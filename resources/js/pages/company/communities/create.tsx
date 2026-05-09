@@ -2,6 +2,7 @@ import CompanyLayout from '@/layouts/company-layout';
 import SportIcon from '@/components/sport-icon';
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import toastr from 'toastr';
 
 interface Props {
     employees: { id: number; name: string }[];
@@ -18,7 +19,9 @@ export default function CommunityCreate({ employees, sports }: Props) {
 
     function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        form.post('/company/communities');
+        form.post('/company/communities', {
+            onSuccess: () => toastr.success('تم إنشاء المجتمع بنجاح'),
+        });
     }
 
     return (

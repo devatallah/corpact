@@ -3,6 +3,7 @@ import SportIcon from '@/components/sport-icon';
 import type { Community, Sport, Employee } from '@/types/models';
 import { Head, useForm } from '@inertiajs/react';
 import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react';
+import toastr from 'toastr';
 
 const COLORS = ['#0CA678', '#D4820A', '#5B3FCC', '#3B5BDB', '#E03050', '#8B5CF6'];
 
@@ -69,13 +70,17 @@ export default function CommunitiesIndex({ communities, sports }: Props) {
         e.preventDefault();
         if (editingItem) {
             form.put(`/company/communities/${editingItem.id}`, {
-                onSuccess: () => setEditingItem(null),
+                onSuccess: () => {
+                    setEditingItem(null);
+                    toastr.success('تم تعديل المجتمع بنجاح');
+                },
             });
         } else {
             form.post('/company/communities', {
                 onSuccess: () => {
                     setShowCreate(false);
                     form.reset();
+                    toastr.success('تم إنشاء المجتمع بنجاح');
                 },
             });
         }

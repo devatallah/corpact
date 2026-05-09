@@ -3,6 +3,7 @@ import Pagination from '@/components/pagination';
 import { fmtDateTime } from '@/lib/utils';
 import type { Notification as NotificationModel, PaginatedResult } from '@/types/models';
 import { Head, router } from '@inertiajs/react';
+import toastr from 'toastr';
 
 function notificationEmoji(type: string | null) {
     switch (type) {
@@ -20,7 +21,9 @@ interface Props {
 
 export default function NotificationsIndex({ notifications, unreadCount }: Props) {
     function markAllRead() {
-        router.post('/company/notifications/mark-all-read');
+        router.post('/company/notifications/mark-all-read', {}, {
+            onSuccess: () => toastr.success('تم تحديد جميع الإشعارات كمقروءة'),
+        });
     }
 
     return (
@@ -54,7 +57,9 @@ export default function NotificationsIndex({ notifications, unreadCount }: Props
                         return (
                             <div
                                 key={notification.id}
-                                onClick={() => isUnread && router.post(`/company/notifications/${notification.id}/read`)}
+                                onClick={() => isUnread && router.post(`/company/notifications/${notification.id}/read`, {}, {
+                                    onSuccess: () => toastr.success('تم تحديد الإشعار كمقروء'),
+                                })}
                                 style={{
                                     background: '#fff',
                                     border: isUnread ? '1px solid #E0305044' : '1px solid #E2E8F4',

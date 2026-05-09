@@ -4,6 +4,7 @@ import type { Event } from '@/types/models';
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import TimePicker from '@/components/time-picker';
+import toastr from 'toastr';
 
 interface Props {
     event: Event;
@@ -22,7 +23,9 @@ export default function EventEdit({ event }: Props) {
 
     function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        form.put(`/company/events/${event.id}`);
+        form.put(`/company/events/${event.id}`, {
+            onSuccess: () => toastr.success('تم تعديل الفعالية بنجاح'),
+        });
     }
 
     return (

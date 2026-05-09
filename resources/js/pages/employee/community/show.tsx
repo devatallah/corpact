@@ -5,6 +5,7 @@ import { fmtDate, fmtTime, fmtDateTime } from '@/lib/utils';
 import StatusBadge from '@/components/status-badge';
 import type { Community, Employee, Event, CommunityAnnouncement, Club, Sport } from '@/types/models';
 import { useState } from 'react';
+import toastr from 'toastr';
 
 interface Props {
     community: Community & {
@@ -31,7 +32,10 @@ export default function CommunityShow({ community, events, announcements, member
         e.preventDefault();
         announcementForm.post(`/employee/community/${community.id}/announcement`, {
             preserveScroll: true,
-            onSuccess: () => announcementForm.reset('body'),
+            onSuccess: () => {
+                announcementForm.reset('body');
+                toastr.success('تم نشر الإعلان بنجاح');
+            },
         });
     }
 

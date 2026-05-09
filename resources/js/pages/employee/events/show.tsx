@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { fmtDate, fmtTime } from '@/lib/utils';
 import type { Event, Employee, Community, Club, EventAlternative } from '@/types/models';
+import toastr from 'toastr';
 
 interface PaymentBreakdown {
     total_amount: number;
@@ -42,16 +43,23 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
 
     function confirmRemove() {
         if (!removeTarget) return;
-        router.post(`/employee/detail/${event.id}/remove/${removeTarget.id}`, {}, { preserveScroll: true });
+        router.post(`/employee/detail/${event.id}/remove/${removeTarget.id}`, {}, {
+            preserveScroll: true,
+            onSuccess: () => toastr.success('تم إزالة اللاعب من الفعالية'),
+        });
         setRemoveTarget(null);
     }
 
     function handleJoin() {
-        router.post(`/employee/detail/${event.id}/join`);
+        router.post(`/employee/detail/${event.id}/join`, {}, {
+            onSuccess: () => toastr.success('تم الانضمام للفعالية بنجاح'),
+        });
     }
 
     function handleLeave() {
-        router.post(`/employee/detail/${event.id}/leave`);
+        router.post(`/employee/detail/${event.id}/leave`, {}, {
+            onSuccess: () => toastr.success('تم مغادرة الفعالية'),
+        });
     }
 
     return (
@@ -153,13 +161,13 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
                             {canManageAlternatives && (
                                 <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
                                     <button
-                                        onClick={() => router.post(`/employee/detail/${event.id}/alternatives/${alt.id}/accept`)}
+                                        onClick={() => router.post(`/employee/detail/${event.id}/alternatives/${alt.id}/accept`, {}, { onSuccess: () => toastr.success('تم قبول الوقت البديل') })}
                                         style={{ flex: 2, padding: '10px 16px', background: '#0CA678', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
                                     >
                                         قبول الوقت البديل
                                     </button>
                                     <button
-                                        onClick={() => router.post(`/employee/detail/${event.id}/alternatives/${alt.id}/reject`)}
+                                        onClick={() => router.post(`/employee/detail/${event.id}/alternatives/${alt.id}/reject`, {}, { onSuccess: () => toastr.success('تم رفض الوقت البديل') })}
                                         style={{ flex: 1, padding: '10px 16px', background: 'none', color: '#E03050', border: '1px solid #E03050', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
                                     >
                                         رفض

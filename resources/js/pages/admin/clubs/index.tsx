@@ -9,6 +9,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import ConfirmModal from '@/components/confirm-modal';
 import { useState, useEffect } from 'react';
+import toastr from 'toastr';
 
 interface Props {
     clubs: PaginatedResult<Club>;
@@ -67,28 +68,29 @@ export default function ClubsIndex({ clubs, stats, filters, sports }: Props) {
         e.preventDefault();
         if (editingItem) {
             form.put(`/admin/clubs/${editingItem.id}`, {
-                onSuccess: () => { setEditingItem(null); },
+                onSuccess: () => { setEditingItem(null); toastr.success('تم التحديث بنجاح.'); },
             });
         } else {
             form.post('/admin/clubs', {
-                onSuccess: () => { setShowCreate(false); form.reset(); },
+                onSuccess: () => { setShowCreate(false); form.reset(); toastr.success('تم الإنشاء بنجاح.'); },
             });
         }
     }
 
     function approve(id: number) {
-        router.post(`/admin/clubs/${id}/approve`, {}, { preserveScroll: true });
+        router.post(`/admin/clubs/${id}/approve`, {}, { preserveScroll: true, onSuccess: () => toastr.success('تمت الموافقة بنجاح.') });
     }
 
     function reject(id: number) {
-        router.post(`/admin/clubs/${id}/reject`, {}, { preserveScroll: true });
+        router.post(`/admin/clubs/${id}/reject`, {}, { preserveScroll: true, onSuccess: () => toastr.success('تم الرفض بنجاح.') });
     }
 
     const [resetTarget, setResetTarget] = useState<{ id: number; email: string } | null>(null);
 
     function confirmResetPassword() {
         if (!resetTarget) return;
-        router.post(`/admin/clubs/${resetTarget.id}/reset-password`, {}, { preserveScroll: true });
+        const email = resetTarget.email;
+        router.post(`/admin/clubs/${resetTarget.id}/reset-password`, {}, { preserveScroll: true, onSuccess: () => toastr.success(`تم إرسال رابط إعادة تعيين كلمة المرور إلى ${email}`) });
         setResetTarget(null);
     }
 

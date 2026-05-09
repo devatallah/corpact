@@ -4,6 +4,7 @@ import { fmtDateTime } from '@/lib/utils';
 import type { Community, Wallet, WalletTransaction } from '@/types/models';
 import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
+import toastr from 'toastr';
 
 interface Props {
     wallet: Wallet | null;
@@ -26,6 +27,7 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
             onSuccess: () => {
                 chargeForm.reset();
                 setShowCharge(false);
+                toastr.success('تم شحن الرصيد بنجاح');
             },
         });
     }
@@ -33,7 +35,10 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
     function handleDistribute(e: FormEvent) {
         e.preventDefault();
         distForm.post('/company/wallet/distribute', {
-            onSuccess: () => distForm.reset('amount'),
+            onSuccess: () => {
+                distForm.reset('amount');
+                toastr.success('تم شحن رصيد المجتمع بنجاح');
+            },
         });
     }
 

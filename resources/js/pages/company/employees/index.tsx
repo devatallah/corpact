@@ -6,6 +6,7 @@ import type { Employee, PaginatedResult } from '@/types/models';
 import { Head, useForm } from '@inertiajs/react';
 import { useState, useEffect, type FormEvent } from 'react';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import toastr from 'toastr';
 
 interface Props {
     employees: PaginatedResult<Employee>;
@@ -40,6 +41,7 @@ export default function EmployeesIndex({ employees, filters, activeCount, totalC
             onSuccess: () => {
                 inviteForm.reset();
                 setShowInvite(false);
+                toastr.success('تم إرسال الدعوة بنجاح');
             },
         });
     }
@@ -48,7 +50,10 @@ export default function EmployeesIndex({ employees, filters, activeCount, totalC
         e.preventDefault();
         if (!editingItem) return;
         editForm.put(`/company/employees/${editingItem.id}`, {
-            onSuccess: () => setEditingItem(null),
+            onSuccess: () => {
+                setEditingItem(null);
+                toastr.success('تم تعديل بيانات الموظف بنجاح');
+            },
         });
     }
 

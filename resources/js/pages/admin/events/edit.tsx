@@ -3,6 +3,7 @@ import { fmtDate, fmtTime } from '@/lib/utils';
 import type { Event } from '@/types/models';
 import { Head, Link, useForm } from '@inertiajs/react';
 import TimePicker from '@/components/time-picker';
+import toastr from 'toastr';
 
 interface Props {
     event: Event;
@@ -22,7 +23,7 @@ export default function EventsEdit({ event }: Props) {
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
-        put(`/admin/events/${event.id}`);
+        put(`/admin/events/${event.id}`, { onSuccess: () => toastr.success('تم التحديث بنجاح.') });
     }
 
     return (

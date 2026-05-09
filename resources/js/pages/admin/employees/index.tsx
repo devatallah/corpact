@@ -7,6 +7,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import ConfirmModal from '@/components/confirm-modal';
 import { useState, useEffect } from 'react';
+import toastr from 'toastr';
 
 interface Props {
     employees: PaginatedResult<Employee>;
@@ -51,11 +52,11 @@ export default function EmployeesIndex({ employees, companies, totalEmployees, f
         e.preventDefault();
         if (editingItem) {
             form.put(`/admin/employees/${editingItem.id}`, {
-                onSuccess: () => { setEditingItem(null); },
+                onSuccess: () => { setEditingItem(null); toastr.success('تم التحديث بنجاح.'); },
             });
         } else {
             form.post('/admin/employees', {
-                onSuccess: () => { setShowCreate(false); form.reset(); },
+                onSuccess: () => { setShowCreate(false); form.reset(); toastr.success('تم الإنشاء بنجاح.'); },
             });
         }
     }
@@ -64,7 +65,8 @@ export default function EmployeesIndex({ employees, companies, totalEmployees, f
 
     function confirmResetPassword() {
         if (!resetTarget) return;
-        router.post(`/admin/employees/${resetTarget.id}/reset-password`, {}, { preserveScroll: true });
+        const email = resetTarget.email;
+        router.post(`/admin/employees/${resetTarget.id}/reset-password`, {}, { preserveScroll: true, onSuccess: () => toastr.success(`تم إرسال رابط إعادة تعيين كلمة المرور إلى ${email}`) });
         setResetTarget(null);
     }
 

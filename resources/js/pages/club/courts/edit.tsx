@@ -2,6 +2,7 @@ import ClubLayout from '@/layouts/club-layout';
 import SportIcon from '@/components/sport-icon';
 import type { Court, Sport } from '@/types/models';
 import { Head, Link, useForm } from '@inertiajs/react';
+import toastr from 'toastr';
 
 interface Props {
     court: Court;
@@ -17,7 +18,9 @@ export default function CourtEdit({ court, sports }: Props) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        form.put(`/club/courts/${court.id}`);
+        form.put(`/club/courts/${court.id}`, {
+            onSuccess: () => toastr.success('تم تعديل الملعب بنجاح'),
+        });
     };
 
     return (

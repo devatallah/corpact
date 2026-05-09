@@ -1,13 +1,16 @@
 import CompanyLayout from '@/layouts/company-layout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import toastr from 'toastr';
 
 export default function EmployeeCreate() {
     const form = useForm({ email: '' });
 
     function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        form.post('/company/employees');
+        form.post('/company/employees', {
+            onSuccess: () => toastr.success('تم إرسال الدعوة بنجاح'),
+        });
     }
 
     return (

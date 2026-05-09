@@ -5,6 +5,7 @@ import type { Sport, PaginatedResult } from '@/types/models';
 import { Head, useForm, router } from '@inertiajs/react';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import { useState, useEffect, useRef } from 'react';
+import toastr from 'toastr';
 
 interface SportWithCounts extends Sport {
     communities_count: number;
@@ -66,12 +67,12 @@ export default function SportsIndex({ sports, totalSports, filters }: Props) {
                 icon: form.data.icon ?? undefined,
             }, {
                 forceFormData: true,
-                onSuccess: () => setEditingItem(null),
+                onSuccess: () => { setEditingItem(null); toastr.success('تم التحديث بنجاح.'); },
             });
         } else {
             form.post('/admin/sports', {
                 forceFormData: true,
-                onSuccess: () => { setShowCreate(false); form.reset(); setIconPreview(null); },
+                onSuccess: () => { setShowCreate(false); form.reset(); setIconPreview(null); toastr.success('تم الإنشاء بنجاح.'); },
             });
         }
     }
@@ -81,7 +82,8 @@ export default function SportsIndex({ sports, totalSports, filters }: Props) {
             ? `/admin/sports/${sport.id}/restore`
             : `/admin/sports/${sport.id}`;
         const method = sport.deleted_at ? 'post' : 'delete';
-        router[method](url, { preserveScroll: true, onSuccess: () => setEditingItem(null) });
+        const msg = sport.deleted_at ? 'تم التفعيل بنجاح.' : 'تم التعطيل بنجاح.';
+        router[method](url, { preserveScroll: true, onSuccess: () => { setEditingItem(null); toastr.success(msg); } });
     }
 
     function closePanel() {

@@ -4,6 +4,7 @@ import StatusBadge from '@/components/status-badge';
 import type { Club, Court, Sport } from '@/types/models';
 import { Head, useForm } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
+import toastr from 'toastr';
 
 interface Props {
     club: Club;
@@ -45,13 +46,17 @@ export default function CourtsIndex({ club, courts, sports }: Props) {
         e.preventDefault();
         if (editingItem) {
             form.put('/club/courts/' + editingItem.id, {
-                onSuccess: () => setEditingItem(null),
+                onSuccess: () => {
+                    setEditingItem(null);
+                    toastr.success('تم تعديل الملعب بنجاح');
+                },
             });
         } else {
             form.post('/club/courts', {
                 onSuccess: () => {
                     setShowCreate(false);
                     form.reset();
+                    toastr.success('تم إضافة الملعب بنجاح');
                 },
             });
         }

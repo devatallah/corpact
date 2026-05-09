@@ -60,6 +60,11 @@ Route::post('/invite/{token}', [InvitationController::class, 'accept'])->name('i
 |--------------------------------------------------------------------------
 */
 Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', function () {
+        return auth('admin')->check()
+            ? redirect()->route('admin.dash')
+            : redirect()->route('admin.login');
+    });
     Route::middleware('guest:admin')->group(function () {
         Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
         Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:login');
@@ -83,6 +88,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('employee')->name('employee.')->group(function () {
+    Route::get('/', function () {
+        return auth('employee')->check()
+            ? redirect()->route('employee.home')
+            : redirect()->route('employee.login');
+    });
     Route::middleware('guest:employee')->group(function () {
         Route::get('/login', [EmployeeAuthController::class, 'showLoginForm'])->name('login');
         Route::post('/login', [EmployeeAuthController::class, 'login'])->middleware('throttle:login');
@@ -110,6 +120,11 @@ Route::prefix('employee')->name('employee.')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('club')->name('club.')->group(function () {
+    Route::get('/', function () {
+        return auth('club')->check()
+            ? redirect()->route('club.dash')
+            : redirect()->route('club.login');
+    });
     Route::middleware('guest:club')->group(function () {
         Route::get('/login', [ClubAuthController::class, 'showLoginForm'])->name('login');
         Route::post('/login', [ClubAuthController::class, 'login'])->middleware('throttle:login');
@@ -137,6 +152,11 @@ Route::prefix('club')->name('club.')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('company')->name('company.')->group(function () {
+    Route::get('/', function () {
+        return auth('company')->check()
+            ? redirect()->route('company.dash')
+            : redirect()->route('company.login');
+    });
     Route::middleware('guest:company')->group(function () {
         Route::get('/login', [CompanyAuthController::class, 'showLoginForm'])->name('login');
         Route::post('/login', [CompanyAuthController::class, 'login'])->middleware('throttle:login');

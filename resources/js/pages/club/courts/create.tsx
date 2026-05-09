@@ -2,6 +2,7 @@ import ClubLayout from '@/layouts/club-layout';
 import SportIcon from '@/components/sport-icon';
 import type { Sport } from '@/types/models';
 import { Head, Link, useForm } from '@inertiajs/react';
+import toastr from 'toastr';
 
 interface Props {
     sports: Sport[];
@@ -16,7 +17,9 @@ export default function CourtCreate({ sports }: Props) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        form.post('/club/courts');
+        form.post('/club/courts', {
+            onSuccess: () => toastr.success('تم إضافة الملعب بنجاح'),
+        });
     };
 
     return (

@@ -3,6 +3,7 @@ import SportIcon from '@/components/sport-icon';
 import type { Community } from '@/types/models';
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import toastr from 'toastr';
 
 interface Props {
     community: Community & { leader?: { id: number; name: string }; sport?: { id: number; name: string; icon: string } };
@@ -20,7 +21,9 @@ export default function CommunityEdit({ community, employees, sports }: Props) {
 
     function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        form.put(`/company/communities/${community.id}`);
+        form.put(`/company/communities/${community.id}`, {
+            onSuccess: () => toastr.success('تم تعديل المجتمع بنجاح'),
+        });
     }
 
     return (

@@ -4,6 +4,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { fmtDate, fmtTime } from '@/lib/utils';
 import type { Employee, Community, Event, Club, Sport, Company } from '@/types/models';
 import { useState, useRef } from 'react';
+import toastr from 'toastr';
 
 const statusMap: Record<string, { label: string; color: string }> = {
     open: { label: 'مفتوح', color: '#009E82' },
@@ -46,7 +47,10 @@ export default function ProfileIndex({ employee, stats, events, communities }: P
         e.preventDefault();
         form.post('/employee/profile', {
             forceFormData: true,
-            onSuccess: () => setEditing(false),
+            onSuccess: () => {
+                setEditing(false);
+                toastr.success('تم تحديث الملف الشخصي بنجاح');
+            },
         });
     }
 

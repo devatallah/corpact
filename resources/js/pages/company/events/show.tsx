@@ -5,6 +5,7 @@ import { fmtDate, fmtTime } from '@/lib/utils';
 import type { Event, Employee, Community, Club, Sport, EventAlternative } from '@/types/models';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
+import toastr from 'toastr';
 
 interface Props {
     event: Event & {
@@ -44,6 +45,9 @@ export default function EventShow({ event, communityMembers, joinedIds }: Props)
 
         router.post(url, { employee_id: employeeId }, {
             preserveScroll: true,
+            onSuccess: () => {
+                toastr.success(isJoined ? 'تمت إزالة العضو بنجاح' : 'تمت إضافة العضو بنجاح');
+            },
             onFinish: () => setProcessing(null),
         });
     }
@@ -325,6 +329,7 @@ export default function EventShow({ event, communityMembers, joinedIds }: Props)
                                     setCancelProcessing(true);
                                     router.post(`/company/events/${event.id}/cancel`, {}, {
                                         preserveScroll: true,
+                                        onSuccess: () => toastr.success('تم إلغاء الفعالية بنجاح'),
                                         onFinish: () => setCancelProcessing(false),
                                     });
                                 }}

@@ -9,6 +9,7 @@ import { Head } from '@inertiajs/react';
 import { router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import TimePicker from '@/components/time-picker';
+import toastr from 'toastr';
 
 interface Props {
     club: Club;
@@ -52,12 +53,17 @@ function RequestCard({ event }: { event: Event }) {
 
     const submitAlternative = () => {
         altForm.post(`/club/requests/${event.id}/propose-alternative`, {
-            onSuccess: () => setShowAlt(false),
+            onSuccess: () => {
+                setShowAlt(false);
+                toastr.success('تم إرسال الوقت البديل بنجاح');
+            },
         });
     };
 
     const handleApprove = () => {
-        router.post(`/club/requests/${event.id}/approve`);
+        router.post(`/club/requests/${event.id}/approve`, {}, {
+            onSuccess: () => toastr.success('تم قبول الحجز بنجاح'),
+        });
     };
 
     const handleReject = () => {
@@ -66,7 +72,10 @@ function RequestCard({ event }: { event: Event }) {
 
     const submitReject = () => {
         rejectForm.post(`/club/requests/${event.id}/reject`, {
-            onSuccess: () => setShowRejectDialog(false),
+            onSuccess: () => {
+                setShowRejectDialog(false);
+                toastr.success('تم رفض الحجز');
+            },
         });
     };
 

@@ -2,6 +2,7 @@ import CompanyLayout from '@/layouts/company-layout';
 import type { Employee } from '@/types/models';
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import toastr from 'toastr';
 
 interface Props {
     employee: Employee;
@@ -19,7 +20,9 @@ export default function EmployeeEdit({ employee }: Props) {
 
     function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        form.put(`/company/employees/${employee.id}`);
+        form.put(`/company/employees/${employee.id}`, {
+            onSuccess: () => toastr.success('تم تعديل بيانات الموظف بنجاح'),
+        });
     }
 
     return (

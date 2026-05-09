@@ -4,6 +4,7 @@ import { Head, useForm } from '@inertiajs/react';
 import type { Club, Community, Court, CourtPricing, Sport } from '@/types/models';
 import { useState, useMemo } from 'react';
 import TimePicker from '@/components/time-picker';
+import toastr from 'toastr';
 
 interface CommunityWithSport extends Community {
     sport: Sport;
@@ -114,7 +115,9 @@ export default function EventCreate({ communities, clubs }: Props) {
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        post('/employee/create');
+        post('/employee/create', {
+            onSuccess: () => toastr.success('تم إنشاء الفعالية بنجاح'),
+        });
     }
 
     const reviewRows = [
