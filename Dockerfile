@@ -26,6 +26,9 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     opcache \
     pcntl
 
+# Redis extension
+RUN pecl install redis && docker-php-ext-enable redis
+
 # OPcache
 RUN echo "opcache.enable=1\nopcache.memory_consumption=128\nopcache.max_accelerated_files=10000\nopcache.validate_timestamps=0" > /usr/local/etc/php/conf.d/opcache.ini
 
