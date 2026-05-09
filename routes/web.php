@@ -1,14 +1,300 @@
 <?php
 
+use App\Http\Controllers\Admin\ClubController as AdminClubController;
+use App\Http\Controllers\Admin\CommunityController as AdminCommunityController;
+use App\Http\Controllers\Admin\CompanyController as AdminCompanyController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\EmployeeController as AdminEmployeeController;
+use App\Http\Controllers\Admin\EventController as AdminEventController;
+use App\Http\Controllers\Admin\SportController as AdminSportController;
+use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
+use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
+use App\Http\Controllers\Auth\AdminAuthController;
+use App\Http\Controllers\Auth\ClubAuthController;
+use App\Http\Controllers\Auth\CompanyAuthController;
+use App\Http\Controllers\Auth\EmployeeAuthController;
+use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\InvitationController;
+use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Club\BookingController as ClubBookingController;
+use App\Http\Controllers\Club\CourtController as ClubCourtController;
+use App\Http\Controllers\Club\DashboardController as ClubDashboardController;
+use App\Http\Controllers\Club\ScheduleController as ClubScheduleController;
+use App\Http\Controllers\Club\SettlementController as ClubSettlementController;
+use App\Http\Controllers\Employee\CommunityController as EmployeeCommunityController;
+use App\Http\Controllers\Employee\EventController as EmployeeEventController;
+use App\Http\Controllers\Employee\ExploreController as EmployeeExploreController;
+use App\Http\Controllers\Employee\HomeController as EmployeeHomeController;
+use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
+use App\Http\Controllers\Employee\ProfileController as EmployeeProfileController;
+use App\Http\Controllers\Company\CommunityController as CompanyCommunityController;
+use App\Http\Controllers\Company\DashboardController as CompanyDashboardController;
+use App\Http\Controllers\Company\EmployeeController as CompanyEmployeeController;
+use App\Http\Controllers\Company\EventController as CompanyEventController;
+use App\Http\Controllers\Company\NotificationController as CompanyNotificationController;
+use App\Http\Controllers\Company\ReportController as CompanyReportController;
+use App\Http\Controllers\Company\WalletController as CompanyWalletController;
 use Illuminate\Support\Facades\Route;
-use Laravel\Fortify\Features;
+use Inertia\Inertia;
 
-Route::inertia('/', 'welcome', [
-    'canRegister' => Features::enabled(Features::registration()),
-])->name('home');
+Route::get('/', function () {
+    if (auth('admin')->check()) return redirect()->route('admin.dash');
+    if (auth('company')->check()) return redirect()->route('company.dash');
+    if (auth('club')->check()) return redirect()->route('club.dash');
+    if (auth('employee')->check()) return redirect()->route('employee.home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    return Inertia::render('welcome');
 });
 
-require __DIR__.'/settings.php';
+/*
+|--------------------------------------------------------------------------
+| Invitation Acceptance (public, no auth required)
+|--------------------------------------------------------------------------
+*/
+Route::get('/invite/{token}', [InvitationController::class, 'show'])->name('invitation.show');
+Route::post('/invite/{token}', [InvitationController::class, 'accept'])->name('invitation.accept');
+
+/*
+|--------------------------------------------------------------------------
+| Admin Auth
+|--------------------------------------------------------------------------
+*/
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::middleware('guest:admin')->group(function () {
+        Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
+        Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:login');
+        Route::get('/forgot-password', fn () => app(PasswordResetController::class)->showForgotForm('admin'))->name('password.request');
+        Route::post('/forgot-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->sendResetLink($r, 'admin'))->name('password.email')->middleware('throttle:password-reset');
+        Route::get('/reset-password/{token}', fn (Illuminate\Http\Request $r, string $token) => app(PasswordResetController::class)->showResetForm($r, 'admin', $token))->name('password.reset');
+        Route::post('/reset-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->reset($r, 'admin'))->name('password.update');
+    });
+    Route::post('/logout', [AdminAuthController::class, 'logout'])->middleware('auth:admin')->name('logout');
+
+    Route::middleware('auth:admin')->group(function () {
+        Route::get('/email/verify', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->notice($r, 'admin'))->name('verification.notice');
+        Route::get('/email/verify/{id}/{hash}', fn (Illuminate\Http\Request $r, int $id, string $hash) => app(EmailVerificationController::class)->verify($r, 'admin', $id, $hash))->middleware('signed')->name('verification.verify');
+        Route::post('/email/verification-notification', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->resend($r, 'admin'))->middleware('throttle:6,1')->name('verification.send');
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Employee Auth
+|--------------------------------------------------------------------------
+*/
+Route::prefix('employee')->name('employee.')->group(function () {
+    Route::middleware('guest:employee')->group(function () {
+        Route::get('/login', [EmployeeAuthController::class, 'showLoginForm'])->name('login');
+        Route::post('/login', [EmployeeAuthController::class, 'login'])->middleware('throttle:login');
+        Route::get('/register', [EmployeeAuthController::class, 'showRegisterForm'])->name('register');
+        Route::post('/register', [EmployeeAuthController::class, 'register'])->middleware('throttle:login');
+        Route::get('/forgot-password', fn () => app(PasswordResetController::class)->showForgotForm('employee'))->name('password.request');
+        Route::post('/forgot-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->sendResetLink($r, 'employee'))->name('password.email')->middleware('throttle:password-reset');
+        Route::get('/reset-password/{token}', fn (Illuminate\Http\Request $r, string $token) => app(PasswordResetController::class)->showResetForm($r, 'employee', $token))->name('password.reset');
+        Route::post('/reset-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->reset($r, 'employee'))->name('password.update');
+    });
+    Route::post('/logout', [EmployeeAuthController::class, 'logout'])->middleware('auth:employee')->name('logout');
+
+    // Verify route accessible without auth (clicked from email)
+    Route::get('/email/verify/{id}/{hash}', fn (Illuminate\Http\Request $r, int $id, string $hash) => app(EmailVerificationController::class)->verify($r, 'employee', $id, $hash))->middleware('signed')->name('verification.verify');
+
+    Route::middleware('auth:employee')->group(function () {
+        Route::get('/email/verify', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->notice($r, 'employee'))->name('verification.notice');
+        Route::post('/email/verification-notification', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->resend($r, 'employee'))->middleware('throttle:6,1')->name('verification.send');
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Club Auth
+|--------------------------------------------------------------------------
+*/
+Route::prefix('club')->name('club.')->group(function () {
+    Route::middleware('guest:club')->group(function () {
+        Route::get('/login', [ClubAuthController::class, 'showLoginForm'])->name('login');
+        Route::post('/login', [ClubAuthController::class, 'login'])->middleware('throttle:login');
+        Route::get('/register', [ClubAuthController::class, 'showRegisterForm'])->name('register');
+        Route::post('/register', [ClubAuthController::class, 'register']);
+        Route::get('/activate/{token}', [ClubAuthController::class, 'showActivateForm'])->name('activate');
+        Route::post('/activate/{token}', [ClubAuthController::class, 'activate']);
+        Route::get('/forgot-password', fn () => app(PasswordResetController::class)->showForgotForm('club'))->name('password.request');
+        Route::post('/forgot-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->sendResetLink($r, 'club'))->name('password.email')->middleware('throttle:password-reset');
+        Route::get('/reset-password/{token}', fn (Illuminate\Http\Request $r, string $token) => app(PasswordResetController::class)->showResetForm($r, 'club', $token))->name('password.reset');
+        Route::post('/reset-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->reset($r, 'club'))->name('password.update');
+    });
+    Route::post('/logout', [ClubAuthController::class, 'logout'])->middleware('auth:club')->name('logout');
+
+    Route::middleware('auth:club')->group(function () {
+        Route::get('/email/verify', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->notice($r, 'club'))->name('verification.notice');
+        Route::get('/email/verify/{id}/{hash}', fn (Illuminate\Http\Request $r, int $id, string $hash) => app(EmailVerificationController::class)->verify($r, 'club', $id, $hash))->middleware('signed')->name('verification.verify');
+        Route::post('/email/verification-notification', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->resend($r, 'club'))->middleware('throttle:6,1')->name('verification.send');
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Company Auth
+|--------------------------------------------------------------------------
+*/
+Route::prefix('company')->name('company.')->group(function () {
+    Route::middleware('guest:company')->group(function () {
+        Route::get('/login', [CompanyAuthController::class, 'showLoginForm'])->name('login');
+        Route::post('/login', [CompanyAuthController::class, 'login'])->middleware('throttle:login');
+        Route::get('/register', [CompanyAuthController::class, 'showRegisterForm'])->name('register');
+        Route::post('/register', [CompanyAuthController::class, 'register']);
+        Route::get('/activate/{token}', [CompanyAuthController::class, 'showActivateForm'])->name('activate');
+        Route::post('/activate/{token}', [CompanyAuthController::class, 'activate']);
+        Route::get('/forgot-password', fn () => app(PasswordResetController::class)->showForgotForm('company'))->name('password.request');
+        Route::post('/forgot-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->sendResetLink($r, 'company'))->name('password.email')->middleware('throttle:password-reset');
+        Route::get('/reset-password/{token}', fn (Illuminate\Http\Request $r, string $token) => app(PasswordResetController::class)->showResetForm($r, 'company', $token))->name('password.reset');
+        Route::post('/reset-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->reset($r, 'company'))->name('password.update');
+    });
+    Route::post('/logout', [CompanyAuthController::class, 'logout'])->middleware('auth:company')->name('logout');
+
+    Route::middleware('auth:company')->group(function () {
+        Route::get('/email/verify', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->notice($r, 'company'))->name('verification.notice');
+        Route::get('/email/verify/{id}/{hash}', fn (Illuminate\Http\Request $r, int $id, string $hash) => app(EmailVerificationController::class)->verify($r, 'company', $id, $hash))->middleware('signed')->name('verification.verify');
+        Route::post('/email/verification-notification', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->resend($r, 'company'))->middleware('throttle:6,1')->name('verification.send');
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin Portal
+|--------------------------------------------------------------------------
+*/
+Route::prefix('admin')
+    ->name('admin.')
+    ->middleware('auth:admin')
+    ->group(function () {
+        Route::get('/dash', [AdminDashboardController::class, 'index'])->name('dash');
+
+        Route::resource('companies', AdminCompanyController::class)->except(['show']);
+        Route::post('/companies/{company}/approve', [AdminCompanyController::class, 'approve'])->name('companies.approve');
+        Route::post('/companies/{company}/reject', [AdminCompanyController::class, 'reject'])->name('companies.reject');
+        Route::post('/companies/{company}/reset-password', [AdminCompanyController::class, 'sendResetPassword'])->name('companies.reset-password');
+
+        Route::resource('clubs', AdminClubController::class)->except(['show']);
+        Route::post('/clubs/{club}/approve', [AdminClubController::class, 'approve'])->name('clubs.approve');
+        Route::post('/clubs/{club}/reject', [AdminClubController::class, 'reject'])->name('clubs.reject');
+        Route::post('/clubs/{club}/reset-password', [AdminClubController::class, 'sendResetPassword'])->name('clubs.reset-password');
+
+        Route::resource('employees', AdminEmployeeController::class)->except(['show']);
+        Route::post('/employees/{employee}/reset-password', [AdminEmployeeController::class, 'sendResetPassword'])->name('employees.reset-password');
+
+        Route::get('communities', [AdminCommunityController::class, 'index'])->name('communities.index');
+
+        Route::resource('sports', AdminSportController::class)->except(['show', 'create', 'edit']);
+        Route::post('/sports/{sport}/restore', [AdminSportController::class, 'restore'])->name('sports.restore');
+
+        Route::resource('events', AdminEventController::class)->except(['create', 'store', 'edit', 'update']);
+        Route::post('/events/{event}/cancel', [AdminEventController::class, 'cancel'])->name('events.cancel');
+
+        Route::get('/revenue', [AdminRevenueController::class, 'index'])->name('revenue.index');
+
+        Route::get('/notifs', [AdminNotificationController::class, 'index'])->name('notifs.index');
+        Route::post('/notifs', [AdminNotificationController::class, 'store'])->name('notifs.store');
+        Route::post('/notifs/{notification}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifs.read');
+        Route::delete('/notifs/{notification}', [AdminNotificationController::class, 'destroy'])->name('notifs.destroy');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Club Portal
+|--------------------------------------------------------------------------
+*/
+Route::prefix('club')
+    ->name('club.')
+    ->middleware('auth:club')
+    ->group(function () {
+        Route::get('/dash', [ClubDashboardController::class, 'index'])->name('dash');
+
+        Route::get('/requests', [ClubBookingController::class, 'index'])->name('bookings.index');
+        Route::post('/requests/{event}/approve', [ClubBookingController::class, 'approve'])->name('bookings.approve');
+        Route::post('/requests/{event}/reject', [ClubBookingController::class, 'reject'])->name('bookings.reject');
+        Route::post('/requests/{event}/propose-alternative', [ClubBookingController::class, 'proposeAlternative'])->name('bookings.propose-alternative');
+
+        Route::get('/schedule', [ClubScheduleController::class, 'index'])->name('schedule.index');
+        Route::post('/schedule', [ClubScheduleController::class, 'store'])->name('schedule.store');
+        Route::put('/schedule/{slot}', [ClubScheduleController::class, 'update'])->name('schedule.update');
+        Route::delete('/schedule/{slot}', [ClubScheduleController::class, 'destroy'])->name('schedule.destroy');
+
+        Route::resource('courts', ClubCourtController::class)->except(['show']);
+
+        Route::get('/settlements', [ClubSettlementController::class, 'index'])->name('settlements.index');
+        Route::get('/settlements/{settlement}', [ClubSettlementController::class, 'show'])->name('settlements.show');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Company Portal (was HR)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('company')
+    ->name('company.')
+    ->middleware('auth:company')
+    ->group(function () {
+        Route::get('/dash', [CompanyDashboardController::class, 'index'])->name('dash');
+
+        Route::resource('employees', CompanyEmployeeController::class)->except(['show']);
+
+        Route::resource('events', CompanyEventController::class)->except(['create', 'store', 'edit', 'update']);
+        Route::post('/events/{event}/cancel', [CompanyEventController::class, 'cancel'])->name('events.cancel');
+        Route::post('/events/{event}/add-member', [CompanyEventController::class, 'addMember'])->name('events.add-member');
+        Route::post('/events/{event}/remove-member', [CompanyEventController::class, 'removeMember'])->name('events.remove-member');
+
+        Route::resource('communities', CompanyCommunityController::class)->except(['show']);
+
+        Route::get('/employees/search', [CompanyEmployeeController::class, 'search'])->name('employees.search');
+
+        Route::get('/wallet', [CompanyWalletController::class, 'index'])->name('wallet.index');
+        Route::post('/wallet/charge', [CompanyWalletController::class, 'charge'])->name('wallet.charge');
+        Route::post('/wallet/distribute', [CompanyWalletController::class, 'distribute'])->name('wallet.distribute');
+
+        Route::get('/reports', [CompanyReportController::class, 'index'])->name('reports.index');
+        Route::post('/reports/export', [CompanyReportController::class, 'export'])->name('reports.export');
+
+        Route::get('/notifications', [CompanyNotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications', [CompanyNotificationController::class, 'store'])->name('notifications.store');
+        Route::post('/notifications/{notification}/read', [CompanyNotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::post('/notifications/mark-all-read', [CompanyNotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
+        Route::delete('/notifications/{notification}', [CompanyNotificationController::class, 'destroy'])->name('notifications.destroy');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Employee Portal
+|--------------------------------------------------------------------------
+*/
+Route::prefix('employee')
+    ->name('employee.')
+    ->middleware('auth:employee')
+    ->group(function () {
+        Route::get('/home', [EmployeeHomeController::class, 'index'])->name('home');
+
+        Route::get('/explore', [EmployeeExploreController::class, 'index'])->name('explore.index');
+        Route::get('/explore/{club}', [EmployeeExploreController::class, 'show'])->name('explore.show');
+
+        Route::get('/create', [EmployeeEventController::class, 'create'])->name('events.create');
+        Route::post('/create', [EmployeeEventController::class, 'store'])->name('events.store');
+        Route::get('/detail/{event}', [EmployeeEventController::class, 'show'])->name('events.show');
+        Route::post('/detail/{event}/join', [EmployeeEventController::class, 'join'])->name('events.join');
+        Route::post('/detail/{event}/leave', [EmployeeEventController::class, 'leave'])->name('events.leave');
+        Route::post('/detail/{event}/alternatives/{alternative}/accept', [EmployeeEventController::class, 'acceptAlternative'])->name('events.accept-alternative');
+        Route::post('/detail/{event}/alternatives/{alternative}/reject', [EmployeeEventController::class, 'rejectAlternative'])->name('events.reject-alternative');
+        Route::post('/detail/{event}/remove/{employee}', [EmployeeEventController::class, 'removeMember'])->name('events.remove-member');
+        Route::delete('/detail/{event}', [EmployeeEventController::class, 'destroy'])->name('events.destroy');
+
+        Route::get('/community', [EmployeeCommunityController::class, 'index'])->name('community.index');
+        Route::get('/community/{community}', [EmployeeCommunityController::class, 'show'])->name('community.show');
+        Route::post('/community/{community}/join', [EmployeeCommunityController::class, 'join'])->name('community.join');
+        Route::post('/community/{community}/leave', [EmployeeCommunityController::class, 'leave'])->name('community.leave');
+        Route::post('/community/{community}/announcement', [EmployeeCommunityController::class, 'postAnnouncement'])->name('community.announce');
+
+        Route::get('/notifications', [EmployeeNotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/{notification}/read', [EmployeeNotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::post('/notifications/read-all', [EmployeeNotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
+
+        Route::get('/profile', [EmployeeProfileController::class, 'index'])->name('profile.index');
+        Route::put('/profile', [EmployeeProfileController::class, 'update'])->name('profile.update');
+    });

@@ -2,11 +2,10 @@
 
 namespace App\Providers;
 
-use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\Date;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,28 +22,22 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->configureDefaults();
-    }
+        RateLimiter::for('login', function (Request $request) {
+            $key = mb_strtolower($request->input('email')).'|'.$request->ip();
 
-    /**
-     * Configure default behaviors for production-ready applications.
-     */
-    protected function configureDefaults(): void
-    {
-        Date::use(CarbonImmutable::class);
+            return Limit::perMinute(5)->by($key)->response(function () {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'email' => ['عدد محاولات تسجيل الدخول كثيرة جدًا. يرجى المحاولة بعد دقيقة.'],
+                ]);
+            });
+        });
 
-        DB::prohibitDestructiveCommands(
-            app()->isProduction(),
-        );
-
-        Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(12)
-                ->mixedCase()
-                ->letters()
-                ->numbers()
-                ->symbols()
-                ->uncompromised()
-            : null,
-        );
+        RateLimiter::for('password-reset', function (Request $request) {
+            return Limit::perMinute(3)->by($request->ip())->response(function () {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'email' => ['عدد المحاولات كثيرة جدًا. يرجى المحاولة بعد دقيقة.'],
+                ]);
+            });
+        });
     }
 }

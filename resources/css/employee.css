@@ -1,0 +1,40 @@
+/* Employee mobile layout */
+body{background:#F4F6FA;color:#0F1923;justify-content:center;}
+.phone{width:430px;min-height:100vh;background:#F4F6FA;position:relative;}
+.topbar{position:sticky;top:0;z-index:10;background:rgba(244,246,250,.95);backdrop-filter:blur(12px);border-bottom:1px solid #E4E9F2;padding:10px 16px;display:flex;align-items:center;gap:10px;}
+.logo-ar{font-size:15px;font-weight:900;background:linear-gradient(90deg,#009E82,#D4820A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.logo-en{font-size:9px;letter-spacing:2px;color:#7A8BA8;}
+.content{padding:0 16px 100px;}
+
+/* Screens */
+.screen{display:none;}
+.screen.on{display:block;}
+
+/* Bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:430px;background:rgba(255,255,255,.95);backdrop-filter:blur(16px);border-top:1px solid #E4E9F2;display:flex;z-index:20;}
+.nb{flex:1;padding:10px 0 12px;display:flex;flex-direction:column;align-items:center;gap:3px;background:transparent;border:none;cursor:pointer;font-family:inherit;position:relative;}
+.nb .ico{font-size:20px;}
+.nb .lbl{font-size:9px;color:#7A8BA8;}
+.nb.on .lbl{color:#009E82;font-weight:700;}
+.nb.on::after{content:'';position:absolute;bottom:0;width:20px;height:2px;background:#009E82;border-radius:2px;}
+.nb-special{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#009E82,#00A888);display:flex;align-items:center;justify-content:center;font-size:20px;margin-top:-12px;box-shadow:0 4px 20px rgba(0,198,154,.4);}
+
+/* Card & UI elements */
+.card{background:#fff;border:1px solid #E4E9F2;border-radius:16px;padding:16px;margin-bottom:12px;}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.pill{padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-family:inherit;}
+.bar-wrap{height:6px;background:#E4E9F2;border-radius:6px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:6px;}
+.notif-dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:#E03050;border:2px solid #F4F6FA;}
+.row{display:flex;gap:12px;align-items:center;}
+.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
+
+/* Employee responsive */
+@media(max-width:480px){
+  .phone{width:100%;}
+  .bottom-nav{width:100%;left:0;transform:none;}
+}
+@media(min-width:481px) and (max-width:768px){
+  .phone{width:100%;max-width:520px;}
+  .bottom-nav{width:100%;max-width:520px;}
+}

@@ -1,95 +1,143 @@
 <?php
 
-namespace Tests\Feature\Auth;
-
+use App\Models\Club;
+use App\Models\Company;
+use App\Models\Employee;
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Support\Facades\Notification;
-use Laravel\Fortify\Features;
-use Tests\TestCase;
+use Illuminate\Support\Facades\Password;
 
-class PasswordResetTest extends TestCase
-{
-    use RefreshDatabase;
+test('admin forgot password page renders', function () {
+    $this->get(route('admin.password.request'))->assertOk();
+});
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+test('admin can request password reset link', function () {
+    Notification::fake();
+    $admin = User::factory()->create();
 
-        $this->skipUnlessFortifyHas(Features::resetPasswords());
-    }
+    $this->post(route('admin.password.email'), ['email' => $admin->email])
+        ->assertSessionHas('status');
 
-    public function test_reset_password_link_screen_can_be_rendered()
-    {
-        $response = $this->get(route('password.request'));
+    Notification::assertSentTo($admin, ResetPasswordNotification::class);
+});
 
-        $response->assertOk();
-    }
+test('admin cannot request reset for non-existent email', function () {
+    $this->post(route('admin.password.email'), ['email' => 'fake@example.com'])
+        ->assertSessionHasErrors('email');
+});
 
-    public function test_reset_password_link_can_be_requested()
-    {
-        Notification::fake();
+test('admin reset password page renders with token', function () {
+    $this->get(route('admin.password.reset', ['token' => 'test-token', 'email' => 'test@example.com']))
+        ->assertOk();
+});
 
-        $user = User::factory()->create();
+test('admin can reset password with valid token', function () {
+    $admin = User::factory()->create();
 
-        $this->post(route('password.email'), ['email' => $user->email]);
+    $token = Password::broker('admins')->createToken($admin);
 
-        Notification::assertSentTo($user, ResetPassword::class);
-    }
+    $this->post(route('admin.password.update'), [
+        'token' => $token,
+        'email' => $admin->email,
+        'password' => 'new-password-123',
+        'password_confirmation' => 'new-password-123',
+    ])->assertRedirect(route('admin.login'));
 
-    public function test_reset_password_screen_can_be_rendered()
-    {
-        Notification::fake();
+    expect(auth()->guard('admin')->attempt([
+        'email' => $admin->email,
+        'password' => 'new-password-123',
+    ]))->toBeTrue();
+});
 
-        $user = User::factory()->create();
+test('employee can request password reset link', function () {
+    Notification::fake();
+    $employee = Employee::factory()->create();
 
-        $this->post(route('password.email'), ['email' => $user->email]);
+    $this->post(route('employee.password.email'), ['email' => $employee->email])
+        ->assertSessionHas('status');
 
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
-            $response = $this->get(route('password.reset', $notification->token));
+    Notification::assertSentTo($employee, ResetPasswordNotification::class);
+});
 
-            $response->assertOk();
+test('employee can reset password with valid token', function () {
+    $employee = Employee::factory()->create();
 
-            return true;
-        });
-    }
+    $token = Password::broker('employees')->createToken($employee);
 
-    public function test_password_can_be_reset_with_valid_token()
-    {
-        Notification::fake();
+    $this->post(route('employee.password.update'), [
+        'token' => $token,
+        'email' => $employee->email,
+        'password' => 'new-password-123',
+        'password_confirmation' => 'new-password-123',
+    ])->assertRedirect(route('employee.login'));
+});
 
-        $user = User::factory()->create();
+test('club can request password reset link', function () {
+    Notification::fake();
+    $club = Club::factory()->create();
 
-        $this->post(route('password.email'), ['email' => $user->email]);
+    $this->post(route('club.password.email'), ['email' => $club->email])
+        ->assertSessionHas('status');
 
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
-            $response = $this->post(route('password.update'), [
-                'token' => $notification->token,
-                'email' => $user->email,
-                'password' => 'password',
-                'password_confirmation' => 'password',
-            ]);
+    Notification::assertSentTo($club, ResetPasswordNotification::class);
+});
 
-            $response
-                ->assertSessionHasNoErrors()
-                ->assertRedirect(route('login'));
+test('club can reset password with valid token', function () {
+    $club = Club::factory()->create();
 
-            return true;
-        });
-    }
+    $token = Password::broker('clubs')->createToken($club);
 
-    public function test_password_cannot_be_reset_with_invalid_token(): void
-    {
-        $user = User::factory()->create();
+    $this->post(route('club.password.update'), [
+        'token' => $token,
+        'email' => $club->email,
+        'password' => 'new-password-123',
+        'password_confirmation' => 'new-password-123',
+    ])->assertRedirect(route('club.login'));
+});
 
-        $response = $this->post(route('password.update'), [
-            'token' => 'invalid-token',
-            'email' => $user->email,
-            'password' => 'newpassword123',
-            'password_confirmation' => 'newpassword123',
-        ]);
+test('company can request password reset link', function () {
+    Notification::fake();
+    $company = Company::factory()->create();
 
-        $response->assertSessionHasErrors('email');
-    }
-}
+    $this->post(route('company.password.email'), ['email' => $company->email])
+        ->assertSessionHas('status');
+
+    Notification::assertSentTo($company, ResetPasswordNotification::class);
+});
+
+test('company can reset password with valid token', function () {
+    $company = Company::factory()->create();
+
+    $token = Password::broker('companies')->createToken($company);
+
+    $this->post(route('company.password.update'), [
+        'token' => $token,
+        'email' => $company->email,
+        'password' => 'new-password-123',
+        'password_confirmation' => 'new-password-123',
+    ])->assertRedirect(route('company.login'));
+});
+
+test('password reset fails with invalid token', function () {
+    $admin = User::factory()->create();
+
+    $this->post(route('admin.password.update'), [
+        'token' => 'invalid-token',
+        'email' => $admin->email,
+        'password' => 'new-password-123',
+        'password_confirmation' => 'new-password-123',
+    ])->assertSessionHasErrors('email');
+});
+
+test('password reset validates minimum length', function () {
+    $admin = User::factory()->create();
+    $token = Password::broker('admins')->createToken($admin);
+
+    $this->post(route('admin.password.update'), [
+        'token' => $token,
+        'email' => $admin->email,
+        'password' => 'short',
+        'password_confirmation' => 'short',
+    ])->assertSessionHasErrors('password');
+});

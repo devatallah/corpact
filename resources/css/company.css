@@ -1,0 +1,41 @@
+/* Company theme colors */
+body{background:#F0F2F8;color:#0F1923;}
+.sidebar{width:220px;background:#1A2035;}
+.ni{color:rgba(255,255,255,.6);}
+.ni:hover{background:rgba(255,255,255,.05);}
+.ni.on{background:rgba(255,255,255,.08);color:#fff;font-weight:700;border-right-color:#00D4AA;}
+.logo .ar{background:linear-gradient(90deg,#00D4AA,#F5A623);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.co-info{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.1);}
+.co-info .lbl{font-size:10px;color:rgba(255,255,255,.3);margin-bottom:2px;}
+.co-info .nm{font-weight:700;color:#fff;font-size:12px;}
+.co-info .sb{font-size:10px;color:rgba(255,255,255,.4);}
+
+/* Company card/table/stat theme */
+.card{background:#fff;border:1px solid #E2E8F4;}
+.stat{background:#fff;border:1px solid #E2E8F4;}
+.sec-title{font-size:15px;font-weight:800;color:#0F1923;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+th{background:#F0F2F8;color:#7A8BA8;}
+td{border-top:1px solid #E2E8F4;}
+.fbtn{border:1px solid #E2E8F4;background:#fff;color:#7A8BA8;}
+.fbtn.on{background:#3B5BDB;color:#fff;border-color:#3B5BDB;}
+
+/* Company-specific elements */
+.bar-w{height:6px;background:#E2E8F4;border-radius:6px;overflow:hidden;}
+.bar-f{height:100%;border-radius:6px;}
+.ac-btn{background:#3B5BDB;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s;}
+.ac-btn:hover{background:#2B4BC9;}
+.ac-btn.secondary{background:#EEF2FF;color:#3B5BDB;}
+.ac-btn.secondary:hover{background:#DEE5FF;}
+
+/* Company hamburger */
+.menu-toggle{background:#1A2035;border:1px solid rgba(255,255,255,.15);}
+
+/* Company responsive overrides */
+@media(max-width:1024px){
+  div[style*="grid-template-columns:1.4fr 1fr"]{grid-template-columns:1fr !important;}
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important;}
+}
+@media(max-width:768px){
+  table{min-width:550px;}
+  div[style*="overflow:auto"]{overflow-x:auto !important;-webkit-overflow-scrolling:touch;}
+}

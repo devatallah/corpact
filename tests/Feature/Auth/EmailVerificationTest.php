@@ -1,118 +1,149 @@
 <?php
 
-namespace Tests\Feature\Auth;
-
+use App\Models\Club;
+use App\Models\Company;
+use App\Models\Employee;
 use App\Models\User;
-use Illuminate\Auth\Events\Verified;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\URL;
-use Laravel\Fortify\Features;
-use Tests\TestCase;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\VerifyEmailNotification;
 
-class EmailVerificationTest extends TestCase
-{
-    use RefreshDatabase;
+uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+beforeEach(function () {
+    $this->withoutVite();
+});
 
-        $this->skipUnlessFortifyHas(Features::emailVerification());
-    }
+test('admin can see verification notice when unverified', function () {
+    $user = User::factory()->unverified()->create();
 
-    public function test_email_verification_screen_can_be_rendered()
-    {
-        $user = User::factory()->unverified()->create();
+    $this->actingAs($user, 'admin')
+        ->get(route('admin.verification.notice'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('auth/verify-email')->has('guard'));
+});
 
-        $response = $this->actingAs($user)->get(route('verification.notice'));
+test('verified admin is redirected from verification notice', function () {
+    $user = User::factory()->create();
 
-        $response->assertOk();
-    }
+    $this->actingAs($user, 'admin')
+        ->get(route('admin.verification.notice'))
+        ->assertRedirect(route('admin.dash'));
+});
 
-    public function test_email_can_be_verified()
-    {
-        $user = User::factory()->unverified()->create();
+test('admin can verify email with valid link', function () {
+    $user = User::factory()->unverified()->create();
 
-        Event::fake();
+    $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        'admin.verification.verify',
+        now()->addMinutes(60),
+        ['id' => $user->id, 'hash' => sha1($user->email)]
+    );
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addMinutes(60),
-            ['id' => $user->id, 'hash' => sha1($user->email)],
-        );
+    $this->actingAs($user, 'admin')
+        ->get($url)
+        ->assertRedirect(route('admin.dash'));
 
-        $response = $this->actingAs($user)->get($verificationUrl);
+    expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
+});
 
-        Event::assertDispatched(Verified::class);
-        $this->assertTrue($user->fresh()->hasVerifiedEmail());
-        $response->assertRedirect(route('dashboard', absolute: false).'?verified=1');
-    }
+test('admin can resend verification email', function () {
+    Notification::fake();
 
-    public function test_email_is_not_verified_with_invalid_hash()
-    {
-        $user = User::factory()->unverified()->create();
+    $user = User::factory()->unverified()->create();
 
-        Event::fake();
+    $this->actingAs($user, 'admin')
+        ->post(route('admin.verification.send'))
+        ->assertRedirect()
+        ->assertSessionHas('status');
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addMinutes(60),
-            ['id' => $user->id, 'hash' => sha1('wrong-email')],
-        );
+    Notification::assertSentTo($user, VerifyEmailNotification::class);
+});
 
-        $this->actingAs($user)->get($verificationUrl);
+test('employee can see verification notice when unverified', function () {
+    $employee = Employee::factory()->unverified()->create();
 
-        Event::assertNotDispatched(Verified::class);
-        $this->assertFalse($user->fresh()->hasVerifiedEmail());
-    }
+    $this->actingAs($employee, 'employee')
+        ->get(route('employee.verification.notice'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('auth/verify-email')->has('guard'));
+});
 
-    public function test_email_is_not_verified_with_invalid_user_id(): void
-    {
-        $user = User::factory()->unverified()->create();
+test('employee can verify email with valid link', function () {
+    $employee = Employee::factory()->unverified()->create();
 
-        Event::fake();
+    $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        'employee.verification.verify',
+        now()->addMinutes(60),
+        ['id' => $employee->id, 'hash' => sha1($employee->email)]
+    );
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addMinutes(60),
-            ['id' => 123, 'hash' => sha1($user->email)],
-        );
+    $this->actingAs($employee, 'employee')
+        ->get($url)
+        ->assertRedirect(route('employee.home'));
 
-        $this->actingAs($user)->get($verificationUrl);
+    expect($employee->fresh()->hasVerifiedEmail())->toBeTrue();
+});
 
-        Event::assertNotDispatched(Verified::class);
-        $this->assertFalse($user->fresh()->hasVerifiedEmail());
-    }
+test('club can see verification notice when unverified', function () {
+    $club = Club::factory()->unverified()->create();
 
-    public function test_verified_user_is_redirected_to_dashboard_from_verification_prompt(): void
-    {
-        $user = User::factory()->create();
+    $this->actingAs($club, 'club')
+        ->get(route('club.verification.notice'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('auth/verify-email')->has('guard'));
+});
 
-        Event::fake();
+test('club can verify email with valid link', function () {
+    $club = Club::factory()->unverified()->create();
 
-        $response = $this->actingAs($user)->get(route('verification.notice'));
+    $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        'club.verification.verify',
+        now()->addMinutes(60),
+        ['id' => $club->id, 'hash' => sha1($club->email)]
+    );
 
-        Event::assertNotDispatched(Verified::class);
-        $response->assertRedirect(route('dashboard', absolute: false));
-    }
+    $this->actingAs($club, 'club')
+        ->get($url)
+        ->assertRedirect(route('club.dash'));
 
-    public function test_already_verified_user_visiting_verification_link_is_redirected_without_firing_event_again(): void
-    {
-        $user = User::factory()->create();
+    expect($club->fresh()->hasVerifiedEmail())->toBeTrue();
+});
 
-        Event::fake();
+test('company can see verification notice when unverified', function () {
+    $company = Company::factory()->unverified()->create();
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addMinutes(60),
-            ['id' => $user->id, 'hash' => sha1($user->email)],
-        );
+    $this->actingAs($company, 'company')
+        ->get(route('company.verification.notice'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('auth/verify-email')->has('guard'));
+});
 
-        $this->actingAs($user)->get($verificationUrl)
-            ->assertRedirect(route('dashboard', absolute: false).'?verified=1');
+test('company can verify email with valid link', function () {
+    $company = Company::factory()->unverified()->create();
 
-        Event::assertNotDispatched(Verified::class);
-        $this->assertTrue($user->fresh()->hasVerifiedEmail());
-    }
-}
+    $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        'company.verification.verify',
+        now()->addMinutes(60),
+        ['id' => $company->id, 'hash' => sha1($company->email)]
+    );
+
+    $this->actingAs($company, 'company')
+        ->get($url)
+        ->assertRedirect(route('company.dash'));
+
+    expect($company->fresh()->hasVerifiedEmail())->toBeTrue();
+});
+
+test('verification fails with invalid hash', function () {
+    $user = User::factory()->unverified()->create();
+
+    $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        'admin.verification.verify',
+        now()->addMinutes(60),
+        ['id' => $user->id, 'hash' => 'invalid-hash']
+    );
+
+    $this->actingAs($user, 'admin')
+        ->get($url)
+        ->assertForbidden();
+});
