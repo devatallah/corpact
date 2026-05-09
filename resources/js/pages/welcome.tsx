@@ -5,7 +5,6 @@ export default function Welcome() {
     const { auth } = usePage().props;
 
     const portals = [
-        { label: 'المشرف', desc: 'إدارة الشركات والأندية والفعاليات', href: '/admin/login', tag: 'ADMIN', color: '#E03050' },
         { label: 'الشركة', desc: 'إدارة الموظفين والمجتمعات والميزانية', href: '/company/login', tag: 'COMPANY', color: '#3B5BDB' },
         { label: 'النادي', desc: 'إدارة الملاعب والحجوزات والتسويات', href: '/club/login', tag: 'CLUB', color: '#C8410A' },
         { label: 'الموظف', desc: 'استكشاف المجتمعات والانضمام للفعاليات', href: '/employee/login', tag: 'EMPLOYEE', color: '#009E82' },
@@ -41,7 +40,7 @@ export default function Welcome() {
                             الذهاب إلى لوحة التحكم
                         </Link>
                     ) : (
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-4 sm:grid-cols-3">
                             {portals.map((p) => (
                                 <Link
                                     key={p.tag}
