@@ -27,15 +27,10 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     pcntl
 
 # OPcache
-RUN echo "opcache.enable=1\n\
-opcache.memory_consumption=128\n\
-opcache.max_accelerated_files=10000\n\
-opcache.validate_timestamps=0" > /usr/local/etc/php/conf.d/opcache.ini
+RUN echo "opcache.enable=1\nopcache.memory_consumption=128\nopcache.max_accelerated_files=10000\nopcache.validate_timestamps=0" > /usr/local/etc/php/conf.d/opcache.ini
 
 # PHP limits
-RUN echo "upload_max_filesize=64M\n\
-post_max_size=64M\n\
-memory_limit=256M" > /usr/local/etc/php/conf.d/custom.ini
+RUN echo "upload_max_filesize=64M\npost_max_size=64M\nmemory_limit=256M" > /usr/local/etc/php/conf.d/custom.ini
 
 # Node.js 20
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
