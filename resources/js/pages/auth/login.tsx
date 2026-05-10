@@ -59,14 +59,14 @@ const tabs = [
 ];
 
 const demoCredentials: Record<GuardName, Array<{ label: string; email: string; password: string }>> = {
-    admin: [{ label: 'مدير النظام', email: 'admin@corpact.com', password: 'password' }],
+    admin: [{ label: 'مدير النظام', email: 'admin@teamat.com', password: 'password' }],
     company: [
         { label: 'شركة التقنية', email: 'hr@advancedtech.sa', password: 'password' },
         { label: 'مجموعة الابتكار', email: 'hr@innovation.sa', password: 'password' },
     ],
     club: [
-        { label: 'نادي الرياض', email: 'club1@corpact.com', password: 'password' },
-        { label: 'نادي جدة', email: 'club2@corpact.com', password: 'password' },
+        { label: 'نادي الرياض', email: 'club1@teamat.com', password: 'password' },
+        { label: 'نادي جدة', email: 'club2@teamat.com', password: 'password' },
     ],
     employee: [
         { label: 'أحمد السالم', email: 'emp1@advancedtech.sa', password: 'password' },
@@ -112,8 +112,8 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                 <div className="admin-wrap" dir="rtl">
                     <div style={{ width: '100%', maxWidth: 440 }}>
                         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                            <div style={{ fontSize: 32, fontWeight: 900, background: 'linear-gradient(90deg,#009E82,#D4820A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>كورباكت</div>
-                            <div style={{ fontSize: 11, letterSpacing: 3, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>CORPACT</div>
+                            <div style={{ fontSize: 32, fontWeight: 900, background: 'linear-gradient(90deg,#009E82,#D4820A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>تيمات</div>
+                            <div style={{ fontSize: 11, letterSpacing: 3, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>TEAMAT</div>
                         </div>
                         <div style={{ background: '#fff', borderRadius: 24, padding: '36px 32px', boxShadow: '0 24px 80px rgba(0,0,0,.4)' }}>
                             <div style={{ fontSize: 16, fontWeight: 800, textAlign: 'center', marginBottom: 4 }}>لوحة المشرف</div>
@@ -165,8 +165,8 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
             <div style={{ width: '100%', maxWidth: 440 }} dir="rtl">
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, background: 'linear-gradient(90deg,#009E82,#D4820A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>كورباكت</div>
-                    <div style={{ fontSize: 11, letterSpacing: 3, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>CORPACT</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, background: 'linear-gradient(90deg,#009E82,#D4820A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>تيمات</div>
+                    <div style={{ fontSize: 11, letterSpacing: 3, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>TEAMAT</div>
                 </div>
 
                 {/* Card */}

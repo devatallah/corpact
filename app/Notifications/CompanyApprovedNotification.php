@@ -23,12 +23,12 @@ class CompanyApprovedNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('تمت الموافقة على شركتك — كورباكت')
+            ->subject('تمت الموافقة على شركتك — تيمات')
             ->greeting("مرحبًا {$notifiable->name}!")
-            ->line('يسعدنا إبلاغك بأنه تمت الموافقة على طلب تسجيل شركتك في منصة كورباكت.')
+            ->line('يسعدنا إبلاغك بأنه تمت الموافقة على طلب تسجيل شركتك في منصة تيمات.')
             ->line('يرجى الضغط على الزر أدناه لتفعيل حسابك وتعيين كلمة المرور.')
             ->action('تفعيل الحساب', $this->activationUrl)
             ->line('صلاحية هذا الرابط 72 ساعة.')
-            ->salutation('فريق كورباكت');
+            ->salutation('فريق تيمات');
     }
 }

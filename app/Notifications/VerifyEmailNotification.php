@@ -23,11 +23,11 @@ class VerifyEmailNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('تأكيد البريد الإلكتروني — كورباكت')
+            ->subject('تأكيد البريد الإلكتروني — تيمات')
             ->greeting('مرحبًا!')
             ->line('يرجى الضغط على الزر أدناه لتأكيد بريدك الإلكتروني.')
             ->action('تأكيد البريد الإلكتروني', $this->url)
             ->line('إذا لم تنشئ حسابًا، يمكنك تجاهل هذا البريد.')
-            ->salutation('فريق كورباكت');
+            ->salutation('فريق تيمات');
     }
 }

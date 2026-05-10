@@ -27,8 +27,8 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
                         🚪
                     </button>
                     <div style={{ marginRight: 'auto', textAlign: 'left' }}>
-                        <div className="logo-ar">كورباكت</div>
-                        <div className="logo-en">CORPACT</div>
+                        <div className="logo-ar">تيمات</div>
+                        <div className="logo-en">TEAMAT</div>
                     </div>
                 </div>
 

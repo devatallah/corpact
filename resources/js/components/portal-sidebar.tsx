@@ -60,8 +60,8 @@ export default function PortalSidebar({
             {/* Sidebar */}
             <div className={`sidebar${collapsed ? ' small' : ''}${mobileOpen ? ' open' : ''}`}>
                 <div className="logo">
-                    <div className="ar">كورباكت</div>
-                    <div className="en">CORPACT</div>
+                    <div className="ar">تيمات</div>
+                    <div className="en">TEAMAT</div>
                     <div className={`tag${tagClass ? ' ' + tagClass : ''}`}>{portalTag}</div>
                 </div>
 

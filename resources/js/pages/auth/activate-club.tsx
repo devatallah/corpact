@@ -31,7 +31,7 @@ export default function ActivateClub({ token, clubName, email, activated }: Prop
 
     return (
         <>
-            <Head title="تفعيل حساب النادي — كورباكت" />
+            <Head title="تفعيل حساب النادي — تيمات" />
             <div className="activate-page" dir="rtl">
                 <div className="activate-card">
                     {/* Progress bar */}
@@ -54,7 +54,7 @@ export default function ActivateClub({ token, clubName, email, activated }: Prop
                                     fontSize: 26, margin: '0 auto 12px',
                                 }}>🏟️</div>
                                 <h2 style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
-                                    مرحبًا بك في كورباكت
+                                    مرحبًا بك في تيمات
                                 </h2>
                                 <p style={{ fontSize: 13, color: '#6B7A99' }}>
                                     {clubName} — قم بتعيين كلمة المرور لتفعيل حسابك
@@ -144,7 +144,7 @@ export default function ActivateClub({ token, clubName, email, activated }: Prop
                             <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
                             <h2 style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 8 }}>تم تفعيل حسابك!</h2>
                             <p style={{ fontSize: 13, color: '#6B7A99', marginBottom: 24, lineHeight: 1.7 }}>
-                                مرحبًا بك في كورباكت! حسابك جاهز الآن.
+                                مرحبًا بك في تيمات! حسابك جاهز الآن.
                             </p>
 
                             <div style={{ textAlign: 'right', background: '#0F1117', borderRadius: 14, padding: '20px 24px', marginBottom: 24 }}>

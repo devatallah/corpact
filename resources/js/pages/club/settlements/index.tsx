@@ -29,7 +29,7 @@ export default function SettlementsIndex({ club, settlements, totals, filters }:
 
             <div style={{ marginBottom: 24 }}>
                 <div className="page-title">التسويات المالية</div>
-                <div className="page-sub">الإيرادات القادمة من Corpact</div>
+                <div className="page-sub">الإيرادات القادمة من Teamat</div>
             </div>
 
             {/* Totals */}

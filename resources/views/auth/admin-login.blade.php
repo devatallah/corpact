@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>كورباكت — دخول المشرف</title>
+<title>تيمات — دخول المشرف</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -54,8 +54,8 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
 
 <div class="login-container">
     <div class="logo-section">
-        <div class="logo-ar">كورباكت</div>
-        <div class="logo-en">CORPACT</div>
+        <div class="logo-ar">تيمات</div>
+        <div class="logo-en">TEAMAT</div>
         <div class="logo-tag">ADMIN</div>
         <div class="logo-desc">لوحة إدارة النظام</div>
     </div>
@@ -82,7 +82,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
 
             <div class="field">
                 <label for="email">البريد الإلكتروني</label>
-                <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="admin@corpact.com" required autofocus dir="ltr">
+                <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="admin@teamat.com" required autofocus dir="ltr">
             </div>
 
             <div class="field">
@@ -104,15 +104,15 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
         <div class="demo-section">
             <div class="demo-title">حسابات تجريبية</div>
             <div class="demo-grid">
-                <button type="button" class="demo-btn" onclick="fillDemo('admin@corpact.com')">
+                <button type="button" class="demo-btn" onclick="fillDemo('admin@teamat.com')">
                     <div class="demo-role">مدير النظام</div>
-                    <div class="demo-email">admin@corpact.com</div>
+                    <div class="demo-email">admin@teamat.com</div>
                 </button>
             </div>
         </div>
     </div>
 
-    <div class="footer-text">كورباكت &copy; {{ date('Y') }}</div>
+    <div class="footer-text">تيمات &copy; {{ date('Y') }}</div>
 </div>
 
 <script>

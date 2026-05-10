@@ -40,8 +40,8 @@ export default function RegisterCompany() {
                 <Head title="تم إرسال الطلب" />
                 <div className="co-reg-page" dir="rtl">
                     <div className="co-reg-logo">
-                        <div className="co-reg-logo-ar">كورباكت</div>
-                        <div className="co-reg-logo-en">CORPACT</div>
+                        <div className="co-reg-logo-ar">تيمات</div>
+                        <div className="co-reg-logo-en">TEAMAT</div>
                     </div>
                     <div className="co-reg-card" style={{ textAlign: 'center', maxWidth: 500 }}>
                         <div style={{ fontSize: 56, marginBottom: 16 }}>📬</div>
@@ -52,7 +52,7 @@ export default function RegisterCompany() {
 
                         <div style={{ background: '#F4F6FA', borderRadius: 14, padding: '16px 20px', textAlign: 'right', marginBottom: 24 }}>
                             {[
-                                { n: '1', t: 'يراجع فريق كورباكت بيانات شركتك' },
+                                { n: '1', t: 'يراجع فريق تيمات بيانات شركتك' },
                                 { n: '2', t: 'يتواصل معك لشرح آلية الاشتراك والتسعير' },
                                 { n: '3', t: 'بعد الاعتماد، يصلك رابط تفعيل حساب الشركة' },
                                 { n: '4', t: 'تبدأ تفعيل مجتمعات موظفيك فوراً' },
@@ -80,16 +80,16 @@ export default function RegisterCompany() {
 
     return (
         <>
-            <Head title="تسجيل شركة — كورباكت" />
+            <Head title="تسجيل شركة — تيمات" />
             <div className="co-reg-page" dir="rtl">
                 <div className="co-reg-logo">
-                    <div className="co-reg-logo-ar">كورباكت</div>
-                    <div className="co-reg-logo-en">CORPACT</div>
+                    <div className="co-reg-logo-ar">تيمات</div>
+                    <div className="co-reg-logo-en">TEAMAT</div>
                 </div>
                 <div className="co-reg-card">
                     <h1 style={{ fontSize: 20, fontWeight: 900, color: '#0F1923', marginBottom: 4 }}>تسجيل شركة جديدة</h1>
                     <p style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 28, lineHeight: 1.5 }}>
-                        سيتم مراجعة طلبك من فريق كورباكت والتواصل معك خلال 48 ساعة
+                        سيتم مراجعة طلبك من فريق تيمات والتواصل معك خلال 48 ساعة
                     </p>
 
                     <div style={{ background: '#3B5BDB10', border: '1px solid #3B5BDB33', borderRadius: 12, padding: '14px 16px', marginBottom: 20, fontSize: 12, color: '#3B5BDB', lineHeight: 1.7 }}>

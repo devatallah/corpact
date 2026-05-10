@@ -62,8 +62,8 @@ export default function RegisterClub({ sports }: Props) {
                 <style>{css}</style>
                 <div style={{ width: '100%', maxWidth: 520 }} dir="rtl">
                     <div style={{ textAlign: 'center', marginBottom: 28 }}>
-                        <div style={{ fontSize: 28, fontWeight: 900, background: 'linear-gradient(90deg,#F5A623,#C8410A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>كورباكت</div>
-                        <div style={{ fontSize: 10, letterSpacing: 3, color: 'rgba(255,255,255,.3)', marginTop: 2 }}>CORPACT</div>
+                        <div style={{ fontSize: 28, fontWeight: 900, background: 'linear-gradient(90deg,#F5A623,#C8410A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>تيمات</div>
+                        <div style={{ fontSize: 10, letterSpacing: 3, color: 'rgba(255,255,255,.3)', marginTop: 2 }}>TEAMAT</div>
                     </div>
                     <div style={{ background: '#fff', borderRadius: 24, padding: '36px 32px', boxShadow: '0 24px 80px rgba(0,0,0,.5)', textAlign: 'center' }}>
                         <div style={{ fontSize: 60, marginBottom: 16 }}>🎯</div>
@@ -74,7 +74,7 @@ export default function RegisterClub({ sports }: Props) {
                         <div style={{ background: '#F7F4F0', borderRadius: 14, padding: '16px 20px', textAlign: 'right', marginBottom: 24 }}>
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10, fontSize: 13, color: '#4A3828' }}>
                                 <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#C8410A', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>1</div>
-                                <span>يراجع فريق كورباكت بيانات ناديك</span>
+                                <span>يراجع فريق تيمات بيانات ناديك</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10, fontSize: 13, color: '#4A3828' }}>
                                 <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#C8410A', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>2</div>
@@ -96,20 +96,20 @@ export default function RegisterClub({ sports }: Props) {
 
     return (
         <>
-            <Head title="تسجيل نادي — كورباكت" />
+            <Head title="تسجيل نادي — تيمات" />
             <style>{css}</style>
 
             <div style={{ width: '100%', maxWidth: 520 }} dir="rtl">
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: 28 }}>
-                    <div style={{ fontSize: 28, fontWeight: 900, background: 'linear-gradient(90deg,#F5A623,#C8410A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>كورباكت</div>
-                    <div style={{ fontSize: 10, letterSpacing: 3, color: 'rgba(255,255,255,.3)', marginTop: 2 }}>CORPACT</div>
+                    <div style={{ fontSize: 28, fontWeight: 900, background: 'linear-gradient(90deg,#F5A623,#C8410A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>تيمات</div>
+                    <div style={{ fontSize: 10, letterSpacing: 3, color: 'rgba(255,255,255,.3)', marginTop: 2 }}>TEAMAT</div>
                 </div>
 
                 {/* Card */}
                 <div style={{ background: '#fff', borderRadius: 24, padding: '36px 32px', boxShadow: '0 24px 80px rgba(0,0,0,.5)' }}>
                     <div style={{ fontSize: 20, fontWeight: 900, color: '#1C1410', marginBottom: 4 }}>تسجيل نادٍ جديد</div>
-                    <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 28, lineHeight: 1.5 }}>انضم لشبكة كورباكت واستقبل حجوزات من شركات ومجتمعات الموظفين</div>
+                    <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 28, lineHeight: 1.5 }}>انضم لشبكة تيمات واستقبل حجوزات من شركات ومجتمعات الموظفين</div>
 
                     {/* Info box */}
                     <div style={{ background: '#C8410A10', border: '1px solid #C8410A33', borderRadius: 12, padding: '14px 16px', marginBottom: 20, fontSize: 12, color: '#C8410A', lineHeight: 1.7 }}>

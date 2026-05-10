@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>كورباكت — المحفظة</title>
+<title>تيمات — المحفظة</title>
 @vite(['resources/css/main.css', 'resources/css/company.css'])
 </head>
 <body>
 <button class="menu-toggle" id="menuBtn" onclick="togMobile()">☰</button>
 <div class="sidebar-backdrop" id="sbBackdrop" onclick="closeMobile()"></div>
 <div class="sidebar" id="sb">
-  <div class="logo"><div class="ar">كورباكت</div><div class="en">COMPANY</div></div>
+  <div class="logo"><div class="ar">تيمات</div><div class="en">COMPANY</div></div>
   <div class="co-info"><div class="lbl">الشركة</div><div class="nm">{{ $company->name }}</div><div class="sb">الشركة · {{ auth('company')->user()->hr_name }}</div></div>
   <nav>
     <div class="ni" onclick="window.location='/company/dash'"><span>📊</span><span class="nl">لوحة التحكم</span></div>

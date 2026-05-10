@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>كورباكت — إضافة شركة</title>
+<title>تيمات — إضافة شركة</title>
 @vite(['resources/css/admin.css'])
 </head>
 <body>
@@ -12,7 +12,7 @@
 <div class="sidebar-backdrop" id="sbBackdrop" onclick="closeMobile()"></div>
 
 <div class="sidebar" id="sb">
-  <div class="logo"><div class="ar">كورباكت</div><div class="en">CORPACT</div><div class="tag">ADMIN</div></div>
+  <div class="logo"><div class="ar">تيمات</div><div class="en">TEAMAT</div><div class="tag">ADMIN</div></div>
   <div class="admin-info"><div class="admin-avatar">م</div><div><div class="admin-name">مشرف النظام</div><div class="admin-role">Super Admin</div></div></div>
   <nav>
     <div class="ni" onclick="window.location='/admin/dash'"><span>📊</span><span class="nl">لوحة التحكم</span></div>

@@ -23,12 +23,12 @@ class ResetPasswordNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('إعادة تعيين كلمة المرور — كورباكت')
+            ->subject('إعادة تعيين كلمة المرور — تيمات')
             ->greeting('مرحبًا!')
             ->line('لقد تلقينا طلبًا لإعادة تعيين كلمة المرور الخاصة بحسابك.')
             ->action('إعادة تعيين كلمة المرور', $this->url)
             ->line('ينتهي هذا الرابط خلال 60 دقيقة.')
             ->line('إذا لم تطلب إعادة تعيين كلمة المرور، يمكنك تجاهل هذا البريد.')
-            ->salutation('فريق كورباكت');
+            ->salutation('فريق تيمات');
     }
 }

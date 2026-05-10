@@ -19,7 +19,7 @@ export default function Welcome() {
 
     return (
         <>
-            <Head title="CorpAct">
+            <Head title="Teamat">
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
             </Head>
@@ -28,7 +28,7 @@ export default function Welcome() {
                 <div className="w-full max-w-lg space-y-10 text-center">
                     <div className="flex flex-col items-center gap-4">
                         <AppLogoIcon className="size-12 fill-current" />
-                        <h1 className="text-3xl font-bold">CorpAct</h1>
+                        <h1 className="text-3xl font-bold">Teamat</h1>
                         <p className="text-muted-foreground">منصة إدارة الأنشطة الرياضية للشركات</p>
                     </div>
 

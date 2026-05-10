@@ -14,6 +14,7 @@ export default function CompanyLayout({ children }: { children: React.ReactNode 
         { label: 'المحفظة', href: '/company/wallet', emoji: '💳' },
         { label: 'التقارير', href: '/company/reports', emoji: '📈' },
         { label: 'الإشعارات', href: '/company/notifications', emoji: '🔔', badge: unread },
+        { label: 'الملف الشخصي', href: '/company/profile', emoji: '👤' },
     ];
 
     return (

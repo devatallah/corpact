@@ -12,6 +12,7 @@ export default function ClubLayout({ children }: { children: React.ReactNode }) 
         { label: 'الجدول', href: '/club/schedule', emoji: '🗓️' },
         { label: 'الملاعب', href: '/club/courts', emoji: '🏟️' },
         { label: 'التسويات', href: '/club/settlements', emoji: '💰' },
+        { label: 'الملف الشخصي', href: '/club/profile', emoji: '👤' },
     ];
 
     const user = auth.user as { name: string; district?: string; city?: string } | undefined;

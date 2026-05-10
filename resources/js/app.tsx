@@ -6,7 +6,7 @@ import toastr from 'toastr';
 toastr.options.positionClass = 'toast-top-left';
 toastr.options.closeButton = true;
 toastr.options.timeOut = 4000;
-const appName = import.meta.env.VITE_APP_NAME || 'CorpAct';
+const appName = import.meta.env.VITE_APP_NAME || 'Teamat';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

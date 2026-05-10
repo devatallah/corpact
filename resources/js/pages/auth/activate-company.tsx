@@ -31,11 +31,11 @@ export default function ActivateCompany({ token, companyName, email, activated }
 
     return (
         <>
-            <Head title="تفعيل حساب شركة — كورباكت" />
+            <Head title="تفعيل حساب شركة — تيمات" />
             <div className="co-reg-page" dir="rtl">
                 <div className="co-reg-logo">
-                    <div className="co-reg-logo-ar">كورباكت</div>
-                    <div className="co-reg-logo-en">CORPACT</div>
+                    <div className="co-reg-logo-ar">تيمات</div>
+                    <div className="co-reg-logo-en">TEAMAT</div>
                 </div>
                 <div className="co-reg-card" style={{ maxWidth: 460 }}>
                     {/* Progress bar */}
@@ -124,7 +124,7 @@ export default function ActivateCompany({ token, companyName, email, activated }
                     {/* Step 2: Next steps intro */}
                     {step === 2 && (
                         <>
-                            <h2 style={{ fontSize: 20, fontWeight: 900, color: '#0F1923', marginBottom: 4 }}>مرحباً بك في كورباكت 🎉</h2>
+                            <h2 style={{ fontSize: 20, fontWeight: 900, color: '#0F1923', marginBottom: 4 }}>مرحباً بك في تيمات 🎉</h2>
                             <p style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 24, lineHeight: 1.5 }}>
                                 حسابك مفعّل الآن. إليك ما تقدر تبدأ به:
                             </p>

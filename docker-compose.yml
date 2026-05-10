@@ -25,9 +25,9 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: rootsecret
-      MYSQL_DATABASE: corpact
-      MYSQL_USER: corpact
-      MYSQL_PASSWORD: "CorpAct@2026!"
+      MYSQL_DATABASE: teamat
+      MYSQL_USER: teamat
+      MYSQL_PASSWORD: "Teamat@2026!"
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
@@ -45,8 +45,8 @@ services:
       - "8080:80"
     environment:
       PMA_HOST: mysql
-      PMA_USER: corpact
-      PMA_PASSWORD: "CorpAct@2026!"
+      PMA_USER: teamat
+      PMA_PASSWORD: "Teamat@2026!"
       UPLOAD_LIMIT: 64M
     depends_on:
       mysql:

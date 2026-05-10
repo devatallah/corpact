@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>كورباكت — ملفي</title>
+<title>تيمات — ملفي</title>
 @vite(['resources/css/main.css', 'resources/css/employee.css'])
 </head>
 <body>
 <div class="phone">
 <div class="topbar">
   <form method="POST" action="{{ route('employee.logout') }}" style="display:inline;margin:0;"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" style="background:#fff;border:1px solid #E4E9F2;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;color:#4A5C78;font-family:inherit;">← خروج</button></form>
-  <div><div class="logo-ar">كورباكت</div><div class="logo-en">CORPACT</div></div>
+  <div><div class="logo-ar">تيمات</div><div class="logo-en">TEAMAT</div></div>
   <div style="margin-right:auto;font-size:10px;color:#7A8BA8;letter-spacing:1px;">EMPLOYEE</div>
 </div>
 <div class="content">

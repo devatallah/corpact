@@ -17,11 +17,11 @@ export default function RegisterEmployee() {
 
     return (
         <>
-            <Head title="تسجيل موظف — كورباكت" />
+            <Head title="تسجيل موظف — تيمات" />
             <div className="co-reg-page" dir="rtl">
                 <div className="co-reg-logo">
-                    <div className="co-reg-logo-ar">كورباكت</div>
-                    <div className="co-reg-logo-en">CORPACT</div>
+                    <div className="co-reg-logo-ar">تيمات</div>
+                    <div className="co-reg-logo-en">TEAMAT</div>
                 </div>
                 <div className="co-reg-card">
                     <h1 style={{ fontSize: 20, fontWeight: 900, color: '#0F1923', marginBottom: 4 }}>تسجيل حساب موظف</h1>

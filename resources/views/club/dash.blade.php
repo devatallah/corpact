@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>كورباكت — الرئيسية</title>
+<title>تيمات — الرئيسية</title>
 @vite(['resources/css/main.css', 'resources/css/club.css'])
 </head>
 <body>
 <button class="menu-toggle" id="menuBtn" onclick="togMobile()">☰</button>
 <div class="sidebar-backdrop" id="sbBackdrop" onclick="closeMobile()"></div>
 <div class="sidebar" id="sb">
-  <div class="logo"><div class="ar">كورباكت</div><div class="en">CLUB PORTAL</div></div>
+  <div class="logo"><div class="ar">تيمات</div><div class="en">CLUB PORTAL</div></div>
   <div class="co-info"><div class="lbl">النادي</div><div class="nm">{{ $club->name }}</div><div class="sb">{{ $club->district }}، {{ $club->city }}</div></div>
   <nav>
     <div class="ni on" onclick="window.location='/club/dash'"><span>📊</span><span class="nl"> الرئيسية</span></div>
@@ -29,7 +29,7 @@
 <!-- DASH -->
 <div class="sc on" id="cdash">
   <div style="background:linear-gradient(135deg,#1C1410,#2A1F18);border-radius:20px;padding:24px 28px;margin-bottom:24px;color:#fff;display:flex;justify-content:space-between;align-items:center;">
-    <div><div style="font-size:11px;color:rgba(255,255,255,.4);letter-spacing:2px;margin-bottom:4px;">CORPACT · CLUB PORTAL</div><div style="font-size:24px;font-weight:900;">{{ $club->name }}</div><div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:4px;">{{ $club->district }}، {{ $club->city }}</div></div>
+    <div><div style="font-size:11px;color:rgba(255,255,255,.4);letter-spacing:2px;margin-bottom:4px;">TEAMAT · CLUB PORTAL</div><div style="font-size:24px;font-weight:900;">{{ $club->name }}</div><div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:4px;">{{ $club->district }}، {{ $club->city }}</div></div>
     <div style="text-align:left;"><div style="font-size:32px;font-weight:900;color:#F5A623;">{{ $club->rating ?? '0.0' }} ⭐</div><div style="font-size:11px;color:rgba(255,255,255,.4);">{{ number_format($club->total_bookings ?? 0) }} حجز إجمالي</div></div>
   </div>
   <div class="stat-row">

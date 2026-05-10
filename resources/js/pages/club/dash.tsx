@@ -26,7 +26,7 @@ export default function ClubDashboard({ club, stats, pendingEvents }: Props) {
             {/* Club Header */}
             <div style={{ background: 'linear-gradient(135deg,#1C1410,#2A1F18)', borderRadius: 20, padding: '24px 28px', marginBottom: 24, color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', letterSpacing: 2, marginBottom: 4 }}>CORPACT &middot; CLUB PORTAL</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', letterSpacing: 2, marginBottom: 4 }}>TEAMAT &middot; CLUB PORTAL</div>
                     <div style={{ fontSize: 24, fontWeight: 900 }}>{club.name}</div>
                     <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', marginTop: 4 }}>{club.district}، {club.city}</div>
                 </div>

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminController as AdminAdminController;
+use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\ClubController as AdminClubController;
 use App\Http\Controllers\Admin\CommunityController as AdminCommunityController;
 use App\Http\Controllers\Admin\CompanyController as AdminCompanyController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\Auth\EmployeeAuthController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Club\ProfileController as ClubProfileController;
 use App\Http\Controllers\Club\BookingController as ClubBookingController;
 use App\Http\Controllers\Club\CourtController as ClubCourtController;
 use App\Http\Controllers\Club\DashboardController as ClubDashboardController;
@@ -27,6 +30,7 @@ use App\Http\Controllers\Employee\ExploreController as EmployeeExploreController
 use App\Http\Controllers\Employee\HomeController as EmployeeHomeController;
 use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
 use App\Http\Controllers\Employee\ProfileController as EmployeeProfileController;
+use App\Http\Controllers\Company\ProfileController as CompanyProfileController;
 use App\Http\Controllers\Company\CommunityController as CompanyCommunityController;
 use App\Http\Controllers\Company\DashboardController as CompanyDashboardController;
 use App\Http\Controllers\Company\EmployeeController as CompanyEmployeeController;
@@ -216,6 +220,15 @@ Route::prefix('admin')
         Route::post('/notifs', [AdminNotificationController::class, 'store'])->name('notifs.store');
         Route::post('/notifs/{notification}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifs.read');
         Route::delete('/notifs/{notification}', [AdminNotificationController::class, 'destroy'])->name('notifs.destroy');
+
+        Route::get('/admins', [AdminAdminController::class, 'index'])->name('admins.index');
+        Route::post('/admins', [AdminAdminController::class, 'store'])->name('admins.store');
+        Route::put('/admins/{admin}', [AdminAdminController::class, 'update'])->name('admins.update');
+        Route::post('/admins/{admin}/reset-password', [AdminAdminController::class, 'sendResetPassword'])->name('admins.reset-password');
+        Route::delete('/admins/{admin}', [AdminAdminController::class, 'destroy'])->name('admins.destroy');
+
+        Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
+        Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
     });
 
 /*
@@ -243,6 +256,9 @@ Route::prefix('club')
 
         Route::get('/settlements', [ClubSettlementController::class, 'index'])->name('settlements.index');
         Route::get('/settlements/{settlement}', [ClubSettlementController::class, 'show'])->name('settlements.show');
+
+        Route::get('/profile', [ClubProfileController::class, 'index'])->name('profile.index');
+        Route::put('/profile', [ClubProfileController::class, 'update'])->name('profile.update');
     });
 
 /*
@@ -279,6 +295,9 @@ Route::prefix('company')
         Route::post('/notifications/{notification}/read', [CompanyNotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::post('/notifications/mark-all-read', [CompanyNotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
         Route::delete('/notifications/{notification}', [CompanyNotificationController::class, 'destroy'])->name('notifications.destroy');
+
+        Route::get('/profile', [CompanyProfileController::class, 'index'])->name('profile.index');
+        Route::put('/profile', [CompanyProfileController::class, 'update'])->name('profile.update');
     });
 
 /*

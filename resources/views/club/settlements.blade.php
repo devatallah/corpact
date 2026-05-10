@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>كورباكت — التسويات</title>
+<title>تيمات — التسويات</title>
 @vite(['resources/css/main.css', 'resources/css/club.css'])
 </head>
 <body>
 <button class="menu-toggle" id="menuBtn" onclick="togMobile()">☰</button>
 <div class="sidebar-backdrop" id="sbBackdrop" onclick="closeMobile()"></div>
 <div class="sidebar" id="sb">
-  <div class="logo"><div class="ar">كورباكت</div><div class="en">CLUB PORTAL</div></div>
+  <div class="logo"><div class="ar">تيمات</div><div class="en">CLUB PORTAL</div></div>
   <div class="co-info"><div class="lbl">النادي</div><div class="nm">{{ $club->name }}</div><div class="sb">{{ $club->district }}، {{ $club->city }}</div></div>
   <nav>
     <div class="ni" onclick="window.location='/club/dash'"><span>📊</span><span class="nl"> الرئيسية</span></div>
@@ -28,7 +28,7 @@
 
 <!-- SETTLEMENTS -->
 <div class="sc on" id="csettle">
-  <div style="margin-bottom:24px;"><div style="font-size:22px;font-weight:900;">التسويات المالية</div><div style="font-size:13px;color:#8A7868;">الإيرادات القادمة من Corpact</div></div>
+  <div style="margin-bottom:24px;"><div style="font-size:22px;font-weight:900;">التسويات المالية</div><div style="font-size:13px;color:#8A7868;">الإيرادات القادمة من Teamat</div></div>
   <div class="stat-row">
     <div class="stat" style="border-top:3px solid #B8860A;"><div style="font-size:24px;margin-bottom:8px;">💰</div><div style="font-size:26px;font-weight:900;color:#B8860A;">{{ number_format($totals['total_net']) }} ر</div><div style="font-size:12px;font-weight:600;">إجمالي الإيرادات</div></div>
     <div class="stat" style="border-top:3px solid #1A7A4A;"><div style="font-size:24px;margin-bottom:8px;">✅</div><div style="font-size:26px;font-weight:900;color:#1A7A4A;">{{ number_format($totals['received']) }} ر</div><div style="font-size:12px;font-weight:600;">مستلم</div></div>

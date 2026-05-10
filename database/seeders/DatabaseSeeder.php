@@ -42,7 +42,7 @@ class DatabaseSeeder extends Seeder
         // ╚══════════════════════════════════════════════════════════╝
         $admin = User::factory()->create([
             'name' => 'مدير النظام',
-            'email' => 'admin@corpact.com',
+            'email' => 'admin@teamat.com',
         ]);
 
         // ╔══════════════════════════════════════════════════════════╗
@@ -52,7 +52,7 @@ class DatabaseSeeder extends Seeder
         // ── Club 1: Active, fully set up ──
         $club1 = Club::factory()->create([
             'name'            => 'نادي الرياض للبادل',
-            'email'           => 'club1@corpact.com',
+            'email'           => 'club1@teamat.com',
             'password'        => Hash::make('123456'),
             'city'            => 'الرياض',
             'district'        => 'حي الملقا',
@@ -79,7 +79,7 @@ class DatabaseSeeder extends Seeder
         // ── Club 2: Active, multi-sport ──
         $club2 = Club::factory()->create([
             'name'            => 'نادي جدة الرياضي',
-            'email'           => 'club2@corpact.com',
+            'email'           => 'club2@teamat.com',
             'password'        => Hash::make('123456'),
             'city'            => 'جدة',
             'district'        => 'حي الروضة',
@@ -107,7 +107,7 @@ class DatabaseSeeder extends Seeder
         // ── Club 3: Active, Dammam ──
         $club3 = Club::factory()->create([
             'name'            => 'نادي الدمام',
-            'email'           => 'club3@corpact.com',
+            'email'           => 'club3@teamat.com',
             'password'        => Hash::make('123456'),
             'city'            => 'الدمام',
             'district'        => 'حي الشاطئ',
@@ -419,7 +419,7 @@ class DatabaseSeeder extends Seeder
         Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'event_rejected', 'title' => 'تم رفض الحجز', 'body' => 'رفض نادي الرياض حجزك. السبب: الملعب محجوز.']);
         Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'event_created', 'title' => 'حدث جديد', 'body' => 'أنشأ أحمد السالم حدث بادل جديد.']);
         Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'payment', 'title' => 'خصم من المحفظة', 'body' => 'تم خصم 100 ر.س كدعم لحدث بادل.']);
-        Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'system', 'title' => 'مرحباً بك في كورباكت', 'body' => 'تم تفعيل حسابك. ابدأ بإنشاء مجتمعات لموظفيك.']);
+        Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'system', 'title' => 'مرحباً بك في تيمات', 'body' => 'تم تفعيل حسابك. ابدأ بإنشاء مجتمعات لموظفيك.']);
         Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'reminder', 'title' => 'تذكير: حدث غداً', 'body' => 'لديك حدث بادل غداً الساعة 6 مساءً.']);
 
         // Company 2
@@ -433,7 +433,7 @@ class DatabaseSeeder extends Seeder
         Notification::factory()->unread()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club1->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من مجموعة الابتكار — تدريب بادل.']);
         Notification::factory()->unread()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club1->id, 'type' => 'alternative_rejected', 'title' => 'رفض الوقت البديل', 'body' => 'رفضت مجموعة الابتكار وقتك البديل الأول لحدث بادل نهاية الأسبوع.']);
         Notification::factory()->unread()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club1->id, 'type' => 'payment', 'title' => 'تسوية مالية', 'body' => 'تم إصدار تسوية بمبلغ 2,016 ر.س.']);
-        Notification::factory()->read()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club1->id, 'type' => 'system', 'title' => 'مرحباً بك في كورباكت', 'body' => 'تم تفعيل حساب ناديك بنجاح.']);
+        Notification::factory()->read()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club1->id, 'type' => 'system', 'title' => 'مرحباً بك في تيمات', 'body' => 'تم تفعيل حساب ناديك بنجاح.']);
 
         // Club 2
         Notification::factory()->unread()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club2->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من شركة التقنية المتقدمة — مباراة ودية.']);

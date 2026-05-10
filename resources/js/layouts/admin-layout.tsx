@@ -12,6 +12,8 @@ const navItems: NavItem[] = [
     { label: 'الفعاليات', href: '/admin/events', emoji: '📅' },
     { label: 'الإيرادات', href: '/admin/revenue', emoji: '💰' },
     { label: 'الإشعارات', href: '/admin/notifs', emoji: '🔔' },
+    { label: 'المشرفون', href: '/admin/admins', emoji: '🛡️' },
+    { label: 'الملف الشخصي', href: '/admin/profile', emoji: '👤' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>كورباكت — إدارة الأندية</title>
+<title>تيمات — إدارة الأندية</title>
 @vite(['resources/css/admin.css'])
 </head>
 <body>
@@ -15,8 +15,8 @@
 <!-- Sidebar -->
 <div class="sidebar" id="sb">
   <div class="logo">
-    <div class="ar">كورباكت</div>
-    <div class="en">CORPACT</div>
+    <div class="ar">تيمات</div>
+    <div class="en">TEAMAT</div>
     <div class="tag">ADMIN</div>
   </div>
   <div class="admin-info">

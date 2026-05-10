@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>كورباكت — تفاصيل التسوية</title>
+<title>تيمات — تفاصيل التسوية</title>
 @vite(['resources/css/main.css', 'resources/css/club.css'])
 </head>
 <body>
 <button class="menu-toggle" id="menuBtn" onclick="togMobile()">☰</button>
 <div class="sidebar-backdrop" id="sbBackdrop" onclick="closeMobile()"></div>
 <div class="sidebar" id="sb">
-  <div class="logo"><div class="ar">كورباكت</div><div class="en">CLUB PORTAL</div></div>
+  <div class="logo"><div class="ar">تيمات</div><div class="en">CLUB PORTAL</div></div>
   <div class="co-info"><div class="lbl">النادي</div><div class="nm">{{ auth('club')->user()->name }}</div></div>
   <nav>
     <div class="ni" onclick="window.location='/club/dash'"><span>📊</span><span class="nl"> الرئيسية</span></div>

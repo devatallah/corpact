@@ -76,8 +76,8 @@ export default function ResetPassword({ guard, guardLabel, token, email }: Props
                 <div style={{ width: '100%', maxWidth: 400 }}>
                     {/* Logo */}
                     <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                        <div style={{ fontSize: 32, fontWeight: 900, background: 'linear-gradient(90deg,#009E82,#D4820A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>كورباكت</div>
-                        <div style={{ fontSize: 11, letterSpacing: 3, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>CORPACT</div>
+                        <div style={{ fontSize: 32, fontWeight: 900, background: 'linear-gradient(90deg,#009E82,#D4820A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>تيمات</div>
+                        <div style={{ fontSize: 11, letterSpacing: 3, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>TEAMAT</div>
                     </div>
 
                     {/* Card */}

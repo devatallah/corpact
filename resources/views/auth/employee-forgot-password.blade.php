@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>كورباكت — استعادة كلمة المرور</title>
+<title>تيمات — استعادة كلمة المرور</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -35,8 +35,8 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
 <body>
 <div class="login-container">
     <div class="logo-section">
-        <div class="logo-ar">كورباكت</div>
-        <div class="logo-en">CORPACT</div>
+        <div class="logo-ar">تيمات</div>
+        <div class="logo-en">TEAMAT</div>
         <div class="logo-tag">EMPLOYEE</div>
         <div class="logo-desc">استعادة كلمة المرور</div>
     </div>
@@ -57,13 +57,13 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
             @csrf
             <div class="field">
                 <label for="email">البريد الإلكتروني</label>
-                <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="admin@corpact.com" required autofocus dir="ltr">
+                <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="admin@teamat.com" required autofocus dir="ltr">
             </div>
             <button type="submit" class="btn">إرسال رابط الاستعادة</button>
         </form>
         <a href="{{ route('employee.login') }}" class="back-link">العودة لتسجيل الدخول</a>
     </div>
-    <div class="footer-text">كورباكت &copy; {{ date('Y') }}</div>
+    <div class="footer-text">تيمات &copy; {{ date('Y') }}</div>
 </div>
 </body>
 </html>
