@@ -13,6 +13,8 @@ class LeagueMatch extends Model
         'department_b_id',
         'score_a',
         'score_b',
+        'penalty_a',
+        'penalty_b',
         'round',
         'match_number',
         'round_label',

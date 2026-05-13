@@ -113,18 +113,33 @@ class LeagueController extends Controller
             'score_b' => ['required', 'integer', 'min:0'],
         ];
 
-        // Knockout: no draws allowed
         if ($league->isKnockout()) {
-            $rules['score_a'][] = 'different:score_b';
+            $rules['penalty_a'] = ['nullable', 'integer', 'min:0'];
+            $rules['penalty_b'] = ['nullable', 'integer', 'min:0'];
         }
 
         $data = $request->validate($rules, [
             'score_a.required' => 'نتيجة الفريق الأول مطلوبة.',
             'score_b.required' => 'نتيجة الفريق الثاني مطلوبة.',
-            'score_a.different' => 'لا يمكن التعادل في نظام خروج المغلوب.',
         ]);
 
-        $this->leagueService->recordResult($match, $data['score_a'], $data['score_b']);
+        // Knockout: if draw, penalties are required and must not be equal
+        if ($league->isKnockout() && (int) $data['score_a'] === (int) $data['score_b']) {
+            if (! isset($data['penalty_a']) || ! isset($data['penalty_b']) || $data['penalty_a'] === '' || $data['penalty_b'] === '') {
+                return back()->withErrors(['penalty_a' => 'يجب إدخال نتيجة ركلات الترجيح في حالة التعادل.']);
+            }
+            if ((int) $data['penalty_a'] === (int) $data['penalty_b']) {
+                return back()->withErrors(['penalty_a' => 'نتيجة ركلات الترجيح لا يمكن أن تكون متعادلة.']);
+            }
+        }
+
+        $this->leagueService->recordResult(
+            $match,
+            $data['score_a'],
+            $data['score_b'],
+            $data['penalty_a'] ?? null,
+            $data['penalty_b'] ?? null,
+        );
 
         return back()->with('success', 'تم تسجيل النتيجة.');
     }

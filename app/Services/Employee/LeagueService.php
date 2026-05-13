@@ -170,24 +170,32 @@ class LeagueService
     /**
      * Record a match result and handle knockout advancement.
      */
-    public function recordResult(LeagueMatch $match, int $scoreA, int $scoreB): LeagueMatch
+    public function recordResult(LeagueMatch $match, int $scoreA, int $scoreB, ?int $penaltyA = null, ?int $penaltyB = null): LeagueMatch
     {
         $league = $match->league;
         $previouslyPlayed = $match->status === 'played';
-        $previousWinnerA = $previouslyPlayed ? ($match->score_a > $match->score_b ? $match->department_a_id : $match->department_b_id) : null;
+        $previousWinner = $previouslyPlayed ? $this->getMatchWinner($match) : null;
+
+        // Clear penalties if not a draw
+        if ($scoreA !== $scoreB) {
+            $penaltyA = null;
+            $penaltyB = null;
+        }
 
         $match->update([
             'score_a' => $scoreA,
             'score_b' => $scoreB,
+            'penalty_a' => $penaltyA,
+            'penalty_b' => $penaltyB,
             'status' => 'played',
         ]);
 
         if ($league->isKnockout()) {
-            $newWinner = $scoreA > $scoreB ? $match->department_a_id : $match->department_b_id;
-            $newLoser = $scoreA > $scoreB ? $match->department_b_id : $match->department_a_id;
+            $newWinner = $this->getMatchWinner($match);
+            $newLoser = $newWinner === $match->department_a_id ? $match->department_b_id : $match->department_a_id;
 
             // Only update bracket if winner changed or first time
-            if (! $previouslyPlayed || $previousWinnerA !== $newWinner) {
+            if (! $previouslyPlayed || $previousWinner !== $newWinner) {
                 $this->advanceWinner($match, $newWinner, $newLoser);
             }
         }
@@ -383,5 +391,26 @@ class LeagueService
         usort($standings, fn ($a, $b) => [$b['points'], $b['gd'], $b['gf']] <=> [$a['points'], $a['gd'], $a['gf']]);
 
         return collect($standings)->values();
+    }
+
+    /**
+     * Determine the winner of a knockout match (by score or penalties).
+     */
+    private function getMatchWinner(LeagueMatch $match): int
+    {
+        if ($match->score_a > $match->score_b) {
+            return $match->department_a_id;
+        }
+
+        if ($match->score_b > $match->score_a) {
+            return $match->department_b_id;
+        }
+
+        // Draw — decided by penalties
+        if ($match->penalty_a > $match->penalty_b) {
+            return $match->department_a_id;
+        }
+
+        return $match->department_b_id;
     }
 }

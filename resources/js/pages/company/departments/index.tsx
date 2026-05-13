@@ -85,7 +85,7 @@ export default function DepartmentsIndex({ departments }: Props) {
                         ) : (
                             departments.map((dept) => (
                                 <tr key={dept.id}>
-                                    <td style={{ fontWeight: 700, color: '#fff' }}>{dept.name}</td>
+                                    <td style={{ fontWeight: 700 }}>{dept.name}</td>
                                     <td>{dept.employees_count}</td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '6px' }}>
@@ -94,12 +94,6 @@ export default function DepartmentsIndex({ departments }: Props) {
                                                 className="act-btn btn-view"
                                             >
                                                 تعديل
-                                            </button>
-                                            <button
-                                                onClick={() => setDeleteTarget(dept)}
-                                                className="act-btn btn-reject"
-                                            >
-                                                حذف
                                             </button>
                                         </div>
                                     </td>

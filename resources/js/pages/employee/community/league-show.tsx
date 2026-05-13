@@ -23,13 +23,16 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
     const [editingMatch, setEditingMatch] = useState<LeagueMatch | null>(null);
     const [showDelete, setShowDelete] = useState(false);
 
-    const scoreForm = useForm({ score_a: '', score_b: '' });
+    const scoreForm = useForm({ score_a: '', score_b: '', penalty_a: '', penalty_b: '' });
+    const isDraw = scoreForm.data.score_a !== '' && scoreForm.data.score_b !== '' && scoreForm.data.score_a === scoreForm.data.score_b;
 
     function openScoreModal(match: LeagueMatch) {
         setEditingMatch(match);
         scoreForm.setData({
             score_a: match.score_a !== null ? String(match.score_a) : '',
             score_b: match.score_b !== null ? String(match.score_b) : '',
+            penalty_a: match.penalty_a !== null ? String(match.penalty_a) : '',
+            penalty_b: match.penalty_b !== null ? String(match.penalty_b) : '',
         });
     }
 
@@ -49,6 +52,15 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
         router.delete(`/employee/community/${community.id}/leagues/${league.id}`, {
             onSuccess: () => toastr.success('تم حذف البطولة'),
         });
+    }
+
+    function formatScore(m: LeagueMatch): string {
+        if (m.status !== 'played') return 'vs';
+        const base = `${m.score_a} - ${m.score_b}`;
+        if (m.penalty_a !== null && m.penalty_b !== null) {
+            return `${base}\n(${m.penalty_a} - ${m.penalty_b}) ر.ت`;
+        }
+        return base;
     }
 
     const playedCount = matches.filter(m => m.status === 'played').length;
@@ -191,9 +203,7 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                                                     background: match.status === 'played' ? `${color}15` : '#F7F8FA',
                                                     color: match.status === 'played' ? color : '#7A8BA8',
                                                 }}>
-                                                    {match.status === 'played'
-                                                        ? `${match.score_a} - ${match.score_b}`
-                                                        : 'vs'}
+                                                    {formatScore(match)}
                                                 </div>
                                                 <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: 13 }}>
                                                     {match.department_b?.name ?? '—'}
@@ -365,9 +375,50 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                                 </div>
                             </div>
 
-                            {isKnockout && (
-                                <div style={{ fontSize: 11, color: '#E03050', textAlign: 'center', marginBottom: 12, background: '#E0305008', borderRadius: 8, padding: '6px 12px' }}>
-                                    لا يمكن التعادل في نظام خروج المغلوب
+                            {isKnockout && isDraw && (
+                                <div style={{ marginBottom: 16 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, textAlign: 'center', color: '#D4820A', marginBottom: 10, background: '#D4820A10', borderRadius: 8, padding: '6px 12px' }}>
+                                        تعادل — أدخل نتيجة ركلات الترجيح
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                        <div style={{ flex: 1, textAlign: 'center' }}>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={scoreForm.data.penalty_a}
+                                                onChange={(e) => scoreForm.setData('penalty_a', e.target.value)}
+                                                required
+                                                placeholder="0"
+                                                style={{
+                                                    width: '100%', textAlign: 'center', padding: '10px 8px',
+                                                    fontSize: 22, fontWeight: 900, border: '2px solid #D4820A33',
+                                                    borderRadius: 10, outline: 'none', fontFamily: 'inherit',
+                                                    background: '#FFFBF5',
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = '#D4820A'}
+                                                onBlur={(e) => e.target.style.borderColor = '#D4820A33'}
+                                            />
+                                        </div>
+                                        <div style={{ fontSize: 20, fontWeight: 900, color: '#D4820A' }}>:</div>
+                                        <div style={{ flex: 1, textAlign: 'center' }}>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={scoreForm.data.penalty_b}
+                                                onChange={(e) => scoreForm.setData('penalty_b', e.target.value)}
+                                                required
+                                                placeholder="0"
+                                                style={{
+                                                    width: '100%', textAlign: 'center', padding: '10px 8px',
+                                                    fontSize: 22, fontWeight: 900, border: '2px solid #D4820A33',
+                                                    borderRadius: 10, outline: 'none', fontFamily: 'inherit',
+                                                    background: '#FFFBF5',
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = '#D4820A'}
+                                                onBlur={(e) => e.target.style.borderColor = '#D4820A33'}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
@@ -422,8 +473,13 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
 function BracketMatch({ match, color, isLeader, onEdit }: { match: LeagueMatch; color: string; isLeader: boolean; onEdit: (m: LeagueMatch) => void }) {
     const hasTeams = match.department_a_id && match.department_b_id;
     const isPlayed = match.status === 'played';
-    const winnerA = isPlayed && match.score_a !== null && match.score_b !== null && match.score_a > match.score_b;
-    const winnerB = isPlayed && match.score_a !== null && match.score_b !== null && match.score_b > match.score_a;
+    const hasPenalties = match.penalty_a !== null && match.penalty_b !== null;
+    const winnerA = isPlayed && match.score_a !== null && match.score_b !== null && (
+        match.score_a > match.score_b || (match.score_a === match.score_b && hasPenalties && match.penalty_a! > match.penalty_b!)
+    );
+    const winnerB = isPlayed && match.score_a !== null && match.score_b !== null && (
+        match.score_b > match.score_a || (match.score_a === match.score_b && hasPenalties && match.penalty_b! > match.penalty_a!)
+    );
 
     return (
         <div
@@ -445,11 +501,16 @@ function BracketMatch({ match, color, isLeader, onEdit }: { match: LeagueMatch; 
                 }}>
                     {match.department_a?.name ?? '—'}
                 </span>
-                <span style={{
-                    fontSize: 14, fontWeight: 800, minWidth: 22, textAlign: 'center',
-                    color: winnerA ? color : '#7A8BA8',
-                }}>
-                    {match.score_a ?? ''}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {hasPenalties && (
+                        <span style={{ fontSize: 10, color: '#D4820A', fontWeight: 600 }}>({match.penalty_a})</span>
+                    )}
+                    <span style={{
+                        fontSize: 14, fontWeight: 800, minWidth: 22, textAlign: 'center',
+                        color: winnerA ? color : '#7A8BA8',
+                    }}>
+                        {match.score_a ?? ''}
+                    </span>
                 </span>
             </div>
             {/* Team B */}
@@ -464,11 +525,16 @@ function BracketMatch({ match, color, isLeader, onEdit }: { match: LeagueMatch; 
                 }}>
                     {match.department_b?.name ?? '—'}
                 </span>
-                <span style={{
-                    fontSize: 14, fontWeight: 800, minWidth: 22, textAlign: 'center',
-                    color: winnerB ? color : '#7A8BA8',
-                }}>
-                    {match.score_b ?? ''}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {hasPenalties && (
+                        <span style={{ fontSize: 10, color: '#D4820A', fontWeight: 600 }}>({match.penalty_b})</span>
+                    )}
+                    <span style={{
+                        fontSize: 14, fontWeight: 800, minWidth: 22, textAlign: 'center',
+                        color: winnerB ? color : '#7A8BA8',
+                    }}>
+                        {match.score_b ?? ''}
+                    </span>
                 </span>
             </div>
             {/* Leader action */}

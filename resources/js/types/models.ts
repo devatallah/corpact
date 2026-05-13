@@ -279,6 +279,8 @@ export interface LeagueMatch {
     department_b_id: number | null;
     score_a: number | null;
     score_b: number | null;
+    penalty_a: number | null;
+    penalty_b: number | null;
     round: number;
     match_number: number;
     round_label: string | null;
