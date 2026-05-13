@@ -1,20 +1,21 @@
 import CompanyLayout from '@/layouts/company-layout';
-import type { Employee } from '@/types/models';
+import type { Department, Employee } from '@/types/models';
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import toastr from 'toastr';
 
 interface Props {
     employee: Employee;
+    departments: Department[];
 }
 
-export default function EmployeeEdit({ employee }: Props) {
+export default function EmployeeEdit({ employee, departments }: Props) {
     const form = useForm({
         name: employee.name ?? '',
         email: employee.email ?? '',
         password: '',
         phone: employee.phone ?? '',
-        department: employee.department ?? '',
+        department_id: String(employee.department_id ?? ''),
         status: employee.status,
     });
 
@@ -97,13 +98,16 @@ export default function EmployeeEdit({ employee }: Props) {
 
                     <div className="fg" style={{ marginBottom: 16 }}>
                         <label className="fl">القسم</label>
-                        <input
-                            type="text"
+                        <select
                             className="fi"
-                            placeholder="القسم"
-                            value={form.data.department}
-                            onChange={(e) => form.setData('department', e.target.value)}
-                        />
+                            value={form.data.department_id}
+                            onChange={(e) => form.setData('department_id', e.target.value)}
+                        >
+                            <option value="">بدون قسم</option>
+                            {departments.map((d) => (
+                                <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="fg" style={{ marginBottom: 24 }}>

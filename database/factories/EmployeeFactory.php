@@ -26,7 +26,7 @@ class EmployeeFactory extends Factory
             'phone' => fake()->phoneNumber(),
             'avatar' => null,
             'company_id' => Company::factory(),
-            'department' => fake()->randomElement(['تقنية المعلومات', 'الموارد البشرية', 'المالية', 'التسويق', 'العمليات', 'المبيعات', 'الهندسة']),
+            'department_id' => null,
             'email_verified_at' => now(),
             'status' => 'active',
         ];

@@ -1,22 +1,25 @@
 import AdminLayout from '@/layouts/admin-layout';
-import type { Company, Employee } from '@/types/models';
+import type { Company, Department, Employee } from '@/types/models';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 interface Props {
     employee: Employee & { company?: Company };
     companies: Company[];
+    departments: Department[];
 }
 
-export default function EmployeesEdit({ employee, companies }: Props) {
+export default function EmployeesEdit({ employee, companies, departments }: Props) {
     const { data, setData, put, processing, errors } = useForm({
         name: employee.name ?? '',
         email: employee.email ?? '',
         password: '',
         phone: employee.phone ?? '',
         company_id: String(employee.company_id ?? ''),
-        department: employee.department ?? '',
+        department_id: String(employee.department_id ?? ''),
         status: employee.status ?? 'active',
     });
+
+    const filteredDepartments = departments.filter((d) => String(d.company_id) === data.company_id);
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
@@ -105,12 +108,15 @@ export default function EmployeesEdit({ employee, companies }: Props) {
                     <div className="frow">
                         <div className="fg">
                             <label>القسم</label>
-                            <input
-                                type="text"
-                                value={data.department}
-                                onChange={(e) => setData('department', e.target.value)}
-                                placeholder="مثال: الموارد البشرية"
-                            />
+                            <select
+                                value={data.department_id}
+                                onChange={(e) => setData('department_id', e.target.value)}
+                            >
+                                <option value="">بدون قسم</option>
+                                {filteredDepartments.map((d) => (
+                                    <option key={d.id} value={d.id}>{d.name}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 

@@ -55,6 +55,7 @@ class CommunityDetailService
     public function members(Community $community): Collection
     {
         return $community->members()
+            ->with('department')
             ->orderByPivot('role', 'asc')
             ->orderByPivot('joined_at', 'asc')
             ->get();

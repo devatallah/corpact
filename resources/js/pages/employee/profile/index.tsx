@@ -84,7 +84,7 @@ export default function ProfileIndex({ employee, stats, events, communities }: P
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{employee.name}</div>
                 <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 16 }}>
-                    {employee.department} · {employee.company?.name}
+                    {employee.department?.name ?? '—'} · {employee.company?.name}
                 </div>
 
                 {/* Stats row */}

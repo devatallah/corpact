@@ -21,7 +21,7 @@ class CompanyEmployeeService
         return Employee::query()
             ->where('company_id', $company->id)
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
-            ->when(isset($filters['department']), fn ($query) => $query->where('department', $filters['department']))
+            ->when(isset($filters['department_id']), fn ($query) => $query->where('department_id', $filters['department_id']))
             ->when(isset($filters['search']), fn ($query) => $query->where(fn ($q) => $q->where('name', 'like', '%'.$filters['search'].'%')
                 ->orWhere('email', 'like', '%'.$filters['search'].'%')
             ))

@@ -32,15 +32,18 @@ class EmployeeController extends Controller
         $filters = $request->validated();
 
         $employees = $this->employeeService->list($company, $filters);
-        $employees->load('communities.sport');
+        $employees->load(['communities.sport', 'department']);
         $employees->loadCount('events');
 
         $activeCount = Employee::where('company_id', $company->id)->where('status', 'active')->count();
         $totalCount = Employee::where('company_id', $company->id)->count();
 
+        $departments = \App\Models\Department::where('company_id', $company->id)->orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('company/employees/index', [
             'company' => $company,
             'employees' => $employees,
+            'departments' => $departments,
             'filters' => $filters,
             'activeCount' => $activeCount,
             'totalCount' => $totalCount,
@@ -82,8 +85,12 @@ class EmployeeController extends Controller
      */
     public function edit(Employee $employee): Response
     {
+        $company = auth('company')->user();
+        $departments = \App\Models\Department::where('company_id', $company->id)->orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('company/employees/edit', [
-            'employee' => $employee,
+            'employee' => $employee->load('department'),
+            'departments' => $departments,
         ]);
     }
 

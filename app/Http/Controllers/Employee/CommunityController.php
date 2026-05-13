@@ -52,12 +52,22 @@ class CommunityController extends Controller
         $isCaptain = $community->leader_id === $employee->id
             || $community->members()->where('employee_id', $employee->id)->wherePivot('role', 'captain')->exists();
 
+        $isLeader = $community->leader_id === $employee->id;
+
+        $leagues = $community->leagues()
+            ->with('departments')
+            ->withCount('matches')
+            ->latest()
+            ->get();
+
         return Inertia::render('employee/community/show', [
             'community' => $community,
             'events' => $events,
             'announcements' => $announcements,
             'members' => $members,
+            'leagues' => $leagues,
             'canAnnounce' => $isCaptain,
+            'isLeader' => $isLeader,
         ]);
     }
 

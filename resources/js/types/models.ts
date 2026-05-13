@@ -80,8 +80,10 @@ export interface Employee {
     phone: string | null;
     avatar: string | null;
     company_id: number;
-    department: string | null;
+    department_id: number | null;
     status: string;
+    // Relationships
+    department?: Department;
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
@@ -245,6 +247,58 @@ export interface Invitation {
     status: string;
     accepted_at: string | null;
     created_at: string;
+}
+
+export interface Department {
+    id: number;
+    name: string;
+    company_id: number;
+}
+
+export interface League {
+    id: number;
+    community_id: number;
+    created_by: number;
+    name: string;
+    format: 'single_round_robin' | 'double_round_robin' | 'knockout';
+    status: 'active' | 'completed';
+    created_at: string;
+    updated_at: string;
+    // Relationships
+    community?: Community;
+    creator?: Employee;
+    departments?: Department[];
+    matches?: LeagueMatch[];
+    matches_count?: number;
+}
+
+export interface LeagueMatch {
+    id: number;
+    league_id: number;
+    department_a_id: number | null;
+    department_b_id: number | null;
+    score_a: number | null;
+    score_b: number | null;
+    round: number;
+    match_number: number;
+    round_label: string | null;
+    is_third_place: boolean;
+    status: 'pending' | 'played';
+    // Relationships
+    department_a?: Department;
+    department_b?: Department;
+}
+
+export interface LeagueStanding {
+    department: Department;
+    played: number;
+    won: number;
+    drawn: number;
+    lost: number;
+    gf: number;
+    ga: number;
+    gd: number;
+    points: number;
 }
 
 export interface CommunityAnnouncement {

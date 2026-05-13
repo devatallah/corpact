@@ -15,11 +15,11 @@ class AdminEmployeeService
     public function list(array $filters = []): LengthAwarePaginator
     {
         return Employee::query()
-            ->with(['company'])
+            ->with(['company', 'department'])
             ->withCount(['communities', 'events'])
             ->when(isset($filters['company_id']), fn ($query) => $query->where('company_id', $filters['company_id']))
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
-            ->when(isset($filters['department']), fn ($query) => $query->where('department', $filters['department']))
+            ->when(isset($filters['department_id']), fn ($query) => $query->where('department_id', $filters['department_id']))
             ->when(isset($filters['search']), fn ($query) => $query->where(fn ($q) => $q->where('name', 'like', '%'.$filters['search'].'%')
                 ->orWhere('email', 'like', '%'.$filters['search'].'%')
             ))

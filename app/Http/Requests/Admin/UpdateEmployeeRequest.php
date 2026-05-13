@@ -28,7 +28,7 @@ class UpdateEmployeeRequest extends FormRequest
             'password' => ['sometimes', 'nullable', 'string', 'min:6'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'company_id' => ['sometimes', 'integer', 'exists:companies,id'],
-            'department' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'department_id' => ['sometimes', 'nullable', 'integer', 'exists:departments,id'],
             'status' => ['sometimes', 'string'],
         ];
     }
@@ -46,7 +46,7 @@ class UpdateEmployeeRequest extends FormRequest
             'password.min' => 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.',
             'phone.max' => 'رقم الجوال يجب ألا يتجاوز 20 حرف.',
             'company_id.exists' => 'الشركة المحددة غير موجودة.',
-            'department.max' => 'القسم يجب ألا يتجاوز 255 حرف.',
+            'department_id.exists' => 'القسم المحدد غير موجود.',
         ];
     }
 }

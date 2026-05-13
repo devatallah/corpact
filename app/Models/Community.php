@@ -88,6 +88,14 @@ class Community extends Model
     }
 
     /**
+     * @return HasMany<League, $this>
+     */
+    public function leagues(): HasMany
+    {
+        return $this->hasMany(League::class);
+    }
+
+    /**
      * @return HasMany<WalletTransaction, $this>
      */
     public function walletTransactions(): HasMany

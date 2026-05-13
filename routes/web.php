@@ -24,13 +24,16 @@ use App\Http\Controllers\Club\CourtController as ClubCourtController;
 use App\Http\Controllers\Club\DashboardController as ClubDashboardController;
 use App\Http\Controllers\Club\ScheduleController as ClubScheduleController;
 use App\Http\Controllers\Club\SettlementController as ClubSettlementController;
+use App\Http\Controllers\Company\LeagueController as CompanyLeagueController;
 use App\Http\Controllers\Employee\CommunityController as EmployeeCommunityController;
+use App\Http\Controllers\Employee\LeagueController as EmployeeLeagueController;
 use App\Http\Controllers\Employee\EventController as EmployeeEventController;
 use App\Http\Controllers\Employee\ExploreController as EmployeeExploreController;
 use App\Http\Controllers\Employee\HomeController as EmployeeHomeController;
 use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
 use App\Http\Controllers\Employee\ProfileController as EmployeeProfileController;
 use App\Http\Controllers\Company\ProfileController as CompanyProfileController;
+use App\Http\Controllers\Company\DepartmentController as CompanyDepartmentController;
 use App\Http\Controllers\Company\CommunityController as CompanyCommunityController;
 use App\Http\Controllers\Company\DashboardController as CompanyDashboardController;
 use App\Http\Controllers\Company\EmployeeController as CompanyEmployeeController;
@@ -272,6 +275,8 @@ Route::prefix('company')
     ->group(function () {
         Route::get('/dash', [CompanyDashboardController::class, 'index'])->name('dash');
 
+        Route::resource('departments', CompanyDepartmentController::class)->only(['index', 'store', 'update', 'destroy']);
+
         Route::resource('employees', CompanyEmployeeController::class)->except(['show']);
 
         Route::resource('events', CompanyEventController::class)->except(['create', 'store', 'edit', 'update']);
@@ -295,6 +300,9 @@ Route::prefix('company')
         Route::post('/notifications/{notification}/read', [CompanyNotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::post('/notifications/mark-all-read', [CompanyNotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
         Route::delete('/notifications/{notification}', [CompanyNotificationController::class, 'destroy'])->name('notifications.destroy');
+
+        Route::get('/leagues', [CompanyLeagueController::class, 'index'])->name('leagues.index');
+        Route::get('/leagues/{league}', [CompanyLeagueController::class, 'show'])->name('leagues.show');
 
         Route::get('/profile', [CompanyProfileController::class, 'index'])->name('profile.index');
         Route::put('/profile', [CompanyProfileController::class, 'update'])->name('profile.update');
@@ -329,6 +337,12 @@ Route::prefix('employee')
         Route::post('/community/{community}/join', [EmployeeCommunityController::class, 'join'])->name('community.join');
         Route::post('/community/{community}/leave', [EmployeeCommunityController::class, 'leave'])->name('community.leave');
         Route::post('/community/{community}/announcement', [EmployeeCommunityController::class, 'postAnnouncement'])->name('community.announce');
+
+        Route::get('/community/{community}/leagues/create', [EmployeeLeagueController::class, 'create'])->name('communities.leagues.create');
+        Route::post('/community/{community}/leagues', [EmployeeLeagueController::class, 'store'])->name('communities.leagues.store');
+        Route::get('/community/{community}/leagues/{league}', [EmployeeLeagueController::class, 'show'])->name('communities.leagues.show');
+        Route::post('/community/{community}/leagues/{league}/matches/{match}/result', [EmployeeLeagueController::class, 'recordResult'])->name('communities.leagues.record-result');
+        Route::delete('/community/{community}/leagues/{league}', [EmployeeLeagueController::class, 'destroy'])->name('communities.leagues.destroy');
 
         Route::get('/notifications', [EmployeeNotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{notification}/read', [EmployeeNotificationController::class, 'markAsRead'])->name('notifications.read');

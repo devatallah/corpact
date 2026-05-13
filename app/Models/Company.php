@@ -70,6 +70,14 @@ class Company extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * @return HasMany<Department, $this>
+     */
+    public function departments(): HasMany
+    {
+        return $this->hasMany(Department::class);
+    }
+
+    /**
      * @return HasMany<Employee, $this>
      */
     public function employees(): HasMany

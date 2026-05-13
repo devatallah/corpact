@@ -8,7 +8,10 @@ use App\Models\CommunityAnnouncement;
 use App\Models\Company;
 use App\Models\Court;
 use App\Models\CourtPricing;
+use App\Models\Department;
 use App\Models\Employee;
+use App\Models\League;
+use App\Models\LeagueMatch;
 use App\Models\Invitation;
 use App\Models\Notification;
 use App\Models\PlatformRevenue;
@@ -267,6 +270,19 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ╔══════════════════════════════════════════════════════════╗
+        // ║  DEPARTMENTS                                               ║
+        // ╚══════════════════════════════════════════════════════════╝
+        $c1Departments = collect();
+        foreach (['تقنية', 'تسويق', 'مبيعات', 'موارد بشرية', 'مالية'] as $deptName) {
+            $c1Departments->push(Department::create(['company_id' => $company1->id, 'name' => $deptName]));
+        }
+
+        $c2Departments = collect();
+        foreach (['مالية', 'عمليات', 'تحليل', 'استثمار'] as $deptName) {
+            $c2Departments->push(Department::create(['company_id' => $company2->id, 'name' => $deptName]));
+        }
+
+        // ╔══════════════════════════════════════════════════════════╗
         // ║  EMPLOYEES                                               ║
         // ╚══════════════════════════════════════════════════════════╝
 
@@ -280,11 +296,11 @@ class DatabaseSeeder extends Seeder
         $c1Employees = collect();
         foreach ($c1Names as $i => $name) {
             $c1Employees->push(Employee::factory()->create([
-                'name'       => $name,
-                'email'      => 'emp' . ($i + 1) . '@advancedtech.sa',
-                'password'   => Hash::make('123456'),
-                'company_id' => $company1->id,
-                'department' => fake()->randomElement(['تقنية', 'تسويق', 'مبيعات', 'موارد بشرية', 'مالية']),
+                'name'          => $name,
+                'email'         => 'emp' . ($i + 1) . '@advancedtech.sa',
+                'password'      => Hash::make('123456'),
+                'company_id'    => $company1->id,
+                'department_id' => $c1Departments->random()->id,
             ]));
         }
 
@@ -297,11 +313,11 @@ class DatabaseSeeder extends Seeder
         $c2Employees = collect();
         foreach ($c2Names as $i => $name) {
             $c2Employees->push(Employee::factory()->create([
-                'name'       => $name,
-                'email'      => 'emp' . ($i + 1) . '@innovation.sa',
-                'password'   => Hash::make('123456'),
-                'company_id' => $company2->id,
-                'department' => fake()->randomElement(['مالية', 'عمليات', 'تحليل', 'استثمار']),
+                'name'          => $name,
+                'email'         => 'emp' . ($i + 1) . '@innovation.sa',
+                'password'      => Hash::make('123456'),
+                'company_id'    => $company2->id,
+                'department_id' => $c2Departments->random()->id,
             ]));
         }
 
@@ -468,5 +484,93 @@ class DatabaseSeeder extends Seeder
         CommunityAnnouncement::factory()->create(['community_id' => $tennisCom1->id, 'employee_id' => $c1Employees[6]->id, 'body' => 'نبحث عن أعضاء جدد لنادي التنس، رشحوا زملاءكم!']);
         CommunityAnnouncement::factory()->create(['community_id' => $padelCom2->id, 'employee_id' => $c2Employees[0]->id, 'body' => 'أهلاً بالأعضاء الجدد في فريق بادل الابتكار!']);
         CommunityAnnouncement::factory()->create(['community_id' => $basketCom2->id, 'employee_id' => $c2Employees[4]->id, 'body' => 'بطولة السلة الشهرية ستبدأ قريباً، سجلوا أسماءكم.']);
+
+        // ╔══════════════════════════════════════════════════════════╗
+        // ║  LEAGUES                                                 ║
+        // ╚══════════════════════════════════════════════════════════╝
+
+        // League 1: Round-robin in padel community (Company 1) — with some results
+        $rrLeague = League::create([
+            'community_id' => $padelCom1->id,
+            'created_by' => $c1Employees[0]->id,
+            'name' => 'دوري البادل بين الأقسام',
+            'format' => 'single_round_robin',
+            'status' => 'active',
+        ]);
+        $rrDeptIds = $c1Departments->take(4)->pluck('id')->toArray();
+        foreach ($rrDeptIds as $i => $deptId) {
+            $rrLeague->departments()->attach($deptId, ['seed_order' => $i + 1]);
+        }
+        // Generate round-robin matches
+        $matchNum = 1;
+        for ($i = 0; $i < count($rrDeptIds); $i++) {
+            for ($j = $i + 1; $j < count($rrDeptIds); $j++) {
+                $played = $matchNum <= 4; // first 4 matches played
+                LeagueMatch::create([
+                    'league_id' => $rrLeague->id,
+                    'department_a_id' => $rrDeptIds[$i],
+                    'department_b_id' => $rrDeptIds[$j],
+                    'round' => 1,
+                    'match_number' => $matchNum,
+                    'score_a' => $played ? rand(0, 4) : null,
+                    'score_b' => $played ? rand(0, 4) : null,
+                    'status' => $played ? 'played' : 'pending',
+                ]);
+                $matchNum++;
+            }
+        }
+
+        // League 2: Knockout in football community (Company 1) — 4 teams
+        $koLeague = League::create([
+            'community_id' => $footballCom1->id,
+            'created_by' => $c1Employees[3]->id,
+            'name' => 'كأس كرة القدم',
+            'format' => 'knockout',
+            'status' => 'active',
+        ]);
+        $koDeptIds = $c1Departments->take(4)->pluck('id')->toArray();
+        foreach ($koDeptIds as $i => $deptId) {
+            $koLeague->departments()->attach($deptId, ['seed_order' => $i + 1]);
+        }
+        // Semi-finals (round 1)
+        $semi1 = LeagueMatch::create([
+            'league_id' => $koLeague->id,
+            'department_a_id' => $koDeptIds[0],
+            'department_b_id' => $koDeptIds[1],
+            'round' => 1,
+            'match_number' => 1,
+            'round_label' => 'نصف النهائي',
+            'score_a' => 3, 'score_b' => 1,
+            'status' => 'played',
+        ]);
+        $semi2 = LeagueMatch::create([
+            'league_id' => $koLeague->id,
+            'department_a_id' => $koDeptIds[2],
+            'department_b_id' => $koDeptIds[3],
+            'round' => 1,
+            'match_number' => 2,
+            'round_label' => 'نصف النهائي',
+            'score_a' => 2, 'score_b' => 4,
+            'status' => 'played',
+        ]);
+        // Final — winners advance
+        LeagueMatch::create([
+            'league_id' => $koLeague->id,
+            'department_a_id' => $koDeptIds[0], // winner of semi1
+            'department_b_id' => $koDeptIds[3], // winner of semi2
+            'round' => 2,
+            'match_number' => 3,
+            'round_label' => 'النهائي',
+        ]);
+        // Third-place — losers
+        LeagueMatch::create([
+            'league_id' => $koLeague->id,
+            'department_a_id' => $koDeptIds[1], // loser of semi1
+            'department_b_id' => $koDeptIds[2], // loser of semi2
+            'round' => 2,
+            'match_number' => 4,
+            'round_label' => 'المركز الثالث',
+            'is_third_place' => true,
+        ]);
     }
 }

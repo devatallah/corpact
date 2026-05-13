@@ -32,10 +32,13 @@ class EmployeeController extends Controller
         $totalEmployees = Employee::count();
         $companies = Company::active()->orderBy('name')->get(['id', 'name']);
 
+        $departments = \App\Models\Department::orderBy('name')->get(['id', 'name', 'company_id']);
+
         return Inertia::render('admin/employees/index', [
             'employees' => $employees,
             'totalEmployees' => $totalEmployees,
             'companies' => $companies,
+            'departments' => $departments,
             'filters' => $filters,
         ]);
     }
@@ -74,9 +77,12 @@ class EmployeeController extends Controller
     {
         $companies = Company::active()->orderBy('name')->get(['id', 'name']);
 
+        $departments = \App\Models\Department::orderBy('company_id')->orderBy('name')->get(['id', 'name', 'company_id']);
+
         return Inertia::render('admin/employees/edit', [
             'employee' => $employee->load(['company']),
             'companies' => $companies,
+            'departments' => $departments,
         ]);
     }
 

@@ -29,7 +29,7 @@ class UpdateEmployeeRequest extends FormRequest
             'email' => ['required', 'email', 'max:255', 'unique:employees,email,' . $employeeId],
             'password' => ['sometimes', 'nullable', 'string', 'min:6'],
             'phone' => ['nullable', 'string', 'max:20'],
-            'department' => ['nullable', 'string', 'max:255'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'status' => ['required', 'in:active,inactive'],
         ];
     }
@@ -49,7 +49,7 @@ class UpdateEmployeeRequest extends FormRequest
             'email.unique' => 'البريد الإلكتروني مستخدم بالفعل.',
             'password.min' => 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.',
             'phone.max' => 'رقم الجوال يجب ألا يتجاوز 20 حرف.',
-            'department.max' => 'القسم يجب ألا يتجاوز 255 حرف.',
+            'department_id.exists' => 'القسم المحدد غير موجود.',
             'status.required' => 'الحالة مطلوبة.',
             'status.in' => 'الحالة المحددة غير صالحة.',
         ];

@@ -17,6 +17,8 @@ class ProfileService
     {
         // Employee is now self-authenticating, no user relation needed
 
+        $employee->load(['company', 'department']);
+
         return [
             'employee' => $employee,
             'stats' => $this->stats($employee),

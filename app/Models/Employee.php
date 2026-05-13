@@ -16,7 +16,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'phone', 'avatar', 'company_id', 'department', 'status'])]
+#[Fillable(['name', 'email', 'password', 'phone', 'avatar', 'company_id', 'department_id', 'status'])]
 #[Hidden(['password', 'remember_token'])]
 class Employee extends Authenticatable implements MustVerifyEmail
 {
@@ -57,6 +57,14 @@ class Employee extends Authenticatable implements MustVerifyEmail
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    /**
+     * @return BelongsTo<Department, $this>
+     */
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     /**

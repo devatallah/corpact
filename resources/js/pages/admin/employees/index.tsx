@@ -9,9 +9,16 @@ import ConfirmModal from '@/components/confirm-modal';
 import { useState, useEffect } from 'react';
 import toastr from 'toastr';
 
+interface Department {
+    id: number;
+    name: string;
+    company_id: number;
+}
+
 interface Props {
     employees: PaginatedResult<Employee>;
     companies: Company[];
+    departments: Department[];
     totalEmployees: number;
     filters: {
         search?: string;
@@ -19,7 +26,7 @@ interface Props {
     };
 }
 
-export default function EmployeesIndex({ employees, companies, totalEmployees, filters }: Props) {
+export default function EmployeesIndex({ employees, companies, departments, totalEmployees, filters }: Props) {
     const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { company_id: filters?.company_id });
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<Employee | null>(null);
@@ -29,9 +36,11 @@ export default function EmployeesIndex({ employees, companies, totalEmployees, f
         email: '',
         password: '',
         company_id: '',
-        department: '',
+        department_id: '',
         status: 'active',
     });
+
+    const filteredDepartments = departments.filter((d) => String(d.company_id) === form.data.company_id);
 
     useEffect(() => {
         if (editingItem) {
@@ -40,7 +49,7 @@ export default function EmployeesIndex({ employees, companies, totalEmployees, f
                 email: editingItem.email ?? '',
                 password: '',
                 company_id: String(editingItem.company_id ?? ''),
-                department: editingItem.department ?? '',
+                department_id: String(editingItem.department_id ?? ''),
                 status: editingItem.status ?? 'active',
             });
         } else {
@@ -233,12 +242,15 @@ export default function EmployeesIndex({ employees, companies, totalEmployees, f
                                 </div>
                                 <div className="fg">
                                     <label>القسم</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.department}
-                                        onChange={(e) => form.setData('department', e.target.value)}
-                                        placeholder="مثال: الموارد البشرية"
-                                    />
+                                    <select
+                                        value={form.data.department_id}
+                                        onChange={(e) => form.setData('department_id', e.target.value)}
+                                    >
+                                        <option value="">بدون قسم</option>
+                                        {filteredDepartments.map((d) => (
+                                            <option key={d.id} value={d.id}>{d.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                             <div className="frow">

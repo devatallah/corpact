@@ -2,7 +2,7 @@ import CompanyLayout from '@/layouts/company-layout';
 import Pagination from '@/components/pagination';
 import StatusBadge from '@/components/status-badge';
 import SportIcon from '@/components/sport-icon';
-import type { Employee, PaginatedResult } from '@/types/models';
+import type { Department, Employee, PaginatedResult } from '@/types/models';
 import { Head, useForm } from '@inertiajs/react';
 import { useState, useEffect, type FormEvent } from 'react';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
@@ -10,16 +10,17 @@ import toastr from 'toastr';
 
 interface Props {
     employees: PaginatedResult<Employee>;
+    departments: Department[];
     filters: { search?: string };
     activeCount: number;
     totalCount: number;
 }
 
-export default function EmployeesIndex({ employees, filters, activeCount, totalCount }: Props) {
+export default function EmployeesIndex({ employees, departments, filters, activeCount, totalCount }: Props) {
     const [showInvite, setShowInvite] = useState(false);
     const [editingItem, setEditingItem] = useState<Employee | null>(null);
     const inviteForm = useForm({ email: '' });
-    const editForm = useForm({ name: '', email: '', password: '', phone: '', department: '', status: 'active' });
+    const editForm = useForm({ name: '', email: '', password: '', phone: '', department_id: '', status: 'active' });
     const [search, setSearch] = useDebouncedSearch(filters?.search ?? '');
 
     useEffect(() => {
@@ -29,7 +30,7 @@ export default function EmployeesIndex({ employees, filters, activeCount, totalC
                 email: editingItem.email ?? '',
                 password: '',
                 phone: editingItem.phone ?? '',
-                department: editingItem.department ?? '',
+                department_id: String(editingItem.department_id ?? ''),
                 status: editingItem.status ?? 'active',
             });
         }
@@ -145,7 +146,7 @@ export default function EmployeesIndex({ employees, filters, activeCount, totalC
                                         </div>
                                     </td>
                                     <td style={{ color: '#7A8BA8', fontSize: 12 }}>
-                                        {employee.department ?? '\u2014'}
+                                        {employee.department?.name ?? '\u2014'}
                                     </td>
                                     <td>
                                         {employee.communities && employee.communities.length > 0 ? (
@@ -240,12 +241,16 @@ export default function EmployeesIndex({ employees, filters, activeCount, totalC
                             <div className="frow">
                                 <div className="fg">
                                     <label>القسم</label>
-                                    <input
-                                        type="text"
-                                        value={editForm.data.department}
-                                        onChange={(e) => editForm.setData('department', e.target.value)}
-                                    />
-                                    {editForm.errors.department && <div className="field-error">{editForm.errors.department}</div>}
+                                    <select
+                                        value={editForm.data.department_id}
+                                        onChange={(e) => editForm.setData('department_id', e.target.value)}
+                                    >
+                                        <option value="">بدون قسم</option>
+                                        {departments.map((d) => (
+                                            <option key={d.id} value={d.id}>{d.name}</option>
+                                        ))}
+                                    </select>
+                                    {editForm.errors.department_id && <div className="field-error">{editForm.errors.department_id}</div>}
                                 </div>
                                 <div className="fg">
                                     <label>الحالة</label>

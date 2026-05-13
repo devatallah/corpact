@@ -25,7 +25,7 @@ class IndexEmployeeRequest extends FormRequest
         return [
             'status' => ['sometimes', 'string'],
             'search' => ['sometimes', 'string', 'max:255'],
-            'department' => ['sometimes', 'string', 'max:255'],
+            'department_id' => ['sometimes', 'integer', 'exists:departments,id'],
             'per_page' => ['sometimes', 'integer', 'min:5', 'max:100'],
         ];
     }

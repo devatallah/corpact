@@ -8,9 +8,11 @@ export default function CompanyLayout({ children }: { children: React.ReactNode 
 
     const navItems: NavItem[] = [
         { label: 'لوحة التحكم', href: '/company/dash', emoji: '📊' },
+        { label: 'الأقسام', href: '/company/departments', emoji: '🏷️' },
         { label: 'الموظفون', href: '/company/employees', emoji: '👥' },
         { label: 'المجتمعات', href: '/company/communities', emoji: '🏘️' },
         { label: 'الفعاليات', href: '/company/events', emoji: '📅' },
+        { label: 'البطولات', href: '/company/leagues', emoji: '🏆' },
         { label: 'المحفظة', href: '/company/wallet', emoji: '💳' },
         { label: 'التقارير', href: '/company/reports', emoji: '📈' },
         { label: 'الإشعارات', href: '/company/notifications', emoji: '🔔', badge: unread },

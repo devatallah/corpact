@@ -3,7 +3,7 @@ import SportIcon from '@/components/sport-icon';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { fmtDate, fmtTime, fmtDateTime } from '@/lib/utils';
 import StatusBadge from '@/components/status-badge';
-import type { Community, Employee, Event, CommunityAnnouncement, Club, Sport } from '@/types/models';
+import type { Community, Employee, Event, CommunityAnnouncement, Club, Sport, League } from '@/types/models';
 import { useState } from 'react';
 import toastr from 'toastr';
 
@@ -16,12 +16,14 @@ interface Props {
     events: (Event & { club: Club; sport?: Sport })[];
     announcements: (CommunityAnnouncement & { employee: Employee })[];
     members: (Employee & { pivot?: { role: string } })[];
+    leagues: League[];
     canAnnounce?: boolean;
+    isLeader?: boolean;
 }
 
-type Tab = 'events' | 'announcements' | 'members';
+type Tab = 'events' | 'announcements' | 'members' | 'leagues';
 
-export default function CommunityShow({ community, events, announcements, members, canAnnounce }: Props) {
+export default function CommunityShow({ community, events, announcements, members, leagues, canAnnounce, isLeader }: Props) {
     const initialTab = (new URLSearchParams(window.location.search).get('tab') as Tab) || 'events';
     const [activeTab, setActiveTab] = useState<Tab>(initialTab);
     const color = community.sport?.color ?? community.color ?? '#009E82';
@@ -41,6 +43,7 @@ export default function CommunityShow({ community, events, announcements, member
 
     const tabs: { key: Tab; label: string }[] = [
         { key: 'events', label: 'الفعاليات' },
+        { key: 'leagues', label: 'البطولات' },
         { key: 'announcements', label: 'الإعلانات' },
         { key: 'members', label: 'الأعضاء' },
     ];
@@ -109,7 +112,7 @@ export default function CommunityShow({ community, events, announcements, member
                                     key={event.id}
                                     href={`/employee/detail/${event.id}`}
                                     className="card"
-                                    style={{ cursor: 'pointer', borderRight: `3px solid ${color}`, textDecoration: 'none', color: 'inherit' }}
+                                    style={{ cursor: 'pointer', borderLeft: `3px solid ${color}`, textDecoration: 'none', color: 'inherit' }}
                                 >
                                     <div style={{ fontSize: 13, fontWeight: 700 }}>{event.club?.name}</div>
                                     <div style={{ fontSize: 11, color: '#7A8BA8', margin: '4px 0 8px' }}>
@@ -168,6 +171,58 @@ export default function CommunityShow({ community, events, announcements, member
                 </div>
             )}
 
+            {/* Leagues Tab */}
+            {activeTab === 'leagues' && (
+                <div>
+                    {isLeader && (
+                        <Link
+                            href={`/employee/community/${community.id}/leagues/create`}
+                            style={{
+                                display: 'block', textAlign: 'center', textDecoration: 'none',
+                                background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12,
+                                border: `2px dashed ${color}44`, color, fontWeight: 700, fontSize: 13,
+                            }}
+                        >
+                            + إنشاء بطولة جديدة
+                        </Link>
+                    )}
+                    {leagues.length > 0 ? (
+                        leagues.map((league) => {
+                            const formatLabel = league.format === 'knockout' ? 'خروج المغلوب'
+                                : league.format === 'double_round_robin' ? 'دوري ذهاب وإياب' : 'دوري دور واحد';
+                            return (
+                                <Link
+                                    key={league.id}
+                                    href={`/employee/community/${community.id}/leagues/${league.id}`}
+                                    style={{
+                                        display: 'block', textDecoration: 'none', color: 'inherit',
+                                        background: '#fff', borderRadius: 16, padding: 16, marginBottom: 12,
+                                        border: '1px solid #E4E9F2', borderRight: `3px solid ${color}`,
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                            <div style={{ fontSize: 14, fontWeight: 700 }}>{league.name}</div>
+                                            <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 4 }}>
+                                                {formatLabel} · {league.departments?.length ?? 0} أقسام
+                                            </div>
+                                        </div>
+                                        <span style={{
+                                            display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, flexShrink: 0,
+                                            ...(league.status === 'active' ? { background: '#009E8218', color: '#009E82' } : { background: '#6B7A9918', color: '#6B7A99' }),
+                                        }}>
+                                            {league.status === 'active' ? 'جارية' : 'منتهية'}
+                                        </span>
+                                    </div>
+                                </Link>
+                            );
+                        })
+                    ) : (
+                        <div style={{ textAlign: 'center', padding: 24, color: '#7A8BA8', fontSize: 13 }}>لا توجد بطولات</div>
+                    )}
+                </div>
+            )}
+
             {/* Members Tab */}
             {activeTab === 'members' && (
                 <div>
@@ -179,7 +234,7 @@ export default function CommunityShow({ community, events, announcements, member
                                 </div>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ fontSize: 13, fontWeight: 600 }}>{member.name}</div>
-                                    <div style={{ fontSize: 11, color: '#7A8BA8' }}>{member.department}</div>
+                                    <div style={{ fontSize: 11, color: '#7A8BA8' }}>{member.department?.name ?? '—'}</div>
                                 </div>
                                 {(member.pivot?.role === 'captain' || community.leader_id === member.id) && (
                                     <span className="badge" style={{ background: `${color}18`, color }}>
