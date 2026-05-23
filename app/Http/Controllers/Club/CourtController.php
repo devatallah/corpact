@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Club\StoreCourtRequest;
 use App\Http\Requests\Club\UpdateCourtRequest;
 use App\Models\Court;
+use App\Models\CourtPricing;
 use App\Services\Club\CourtService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -98,5 +100,81 @@ class CourtController extends Controller
 
         return redirect()->route('club.courts.index')
             ->with('success', 'تم حذف الملعب بنجاح.');
+    }
+
+    /**
+     * Add a pricing to a court.
+     */
+    public function storePricing(Request $request, Court $court): RedirectResponse
+    {
+        $club = auth('club')->user();
+
+        $data = $request->validate([
+            'duration_minutes' => ['required', 'integer', 'in:60,90,120'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'is_peak' => ['sometimes'],
+            'label' => ['nullable', 'string', 'max:255'],
+            'start_time' => ['nullable'],
+            'end_time' => ['nullable'],
+            'days' => ['nullable', 'array'],
+            'days.*' => ['integer', 'min:0', 'max:6'],
+        ]);
+
+        $this->courtService->addPricing($club, $court, $data);
+
+        return back()->with('success', 'تم إضافة السعر بنجاح.');
+    }
+
+    /**
+     * Update a pricing.
+     */
+    public function updatePricing(Request $request, Court $court, CourtPricing $pricing): RedirectResponse
+    {
+        $club = auth('club')->user();
+
+        $data = $request->validate([
+            'duration_minutes' => ['required', 'integer', 'in:60,90,120'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'is_peak' => ['sometimes'],
+            'label' => ['nullable', 'string', 'max:255'],
+            'start_time' => ['nullable'],
+            'end_time' => ['nullable'],
+            'days' => ['nullable', 'array'],
+            'days.*' => ['integer', 'min:0', 'max:6'],
+        ]);
+
+        $this->courtService->updatePricing($club, $court, $pricing, $data);
+
+        return back()->with('success', 'تم تحديث السعر بنجاح.');
+    }
+
+    /**
+     * Toggle a pricing active/inactive.
+     */
+    public function togglePricing(Court $court, CourtPricing $pricing): RedirectResponse
+    {
+        $club = auth('club')->user();
+        $this->courtService->ensureOwnership($club, $court, $pricing);
+
+        $newStatus = $pricing->status === 'active' ? 'inactive' : 'active';
+        $pricing->update(['status' => $newStatus]);
+
+        // Auto-manage court status based on active pricings
+        $hasActivePricings = $court->pricings()->where('status', 'active')->exists();
+        $court->update(['status' => $hasActivePricings ? 'active' : 'closed']);
+
+        return back()->with('success', $newStatus === 'active' ? 'تم تفعيل السعر.' : 'تم تعطيل السعر.');
+    }
+
+    /**
+     * Delete a pricing.
+     */
+    public function destroyPricing(Court $court, CourtPricing $pricing): RedirectResponse
+    {
+        $club = auth('club')->user();
+
+        $this->courtService->deletePricing($club, $court, $pricing);
+
+        return back()->with('success', 'تم حذف السعر بنجاح.');
     }
 }

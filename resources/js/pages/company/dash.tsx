@@ -11,6 +11,9 @@ interface CommunityParticipation {
     rate: number;
 }
 
+interface LeaderboardEntry { id: number; name: string; avatar?: string | null; department_name?: string | null; events_count: number; }
+interface Leaderboard { top_employees: LeaderboardEntry[]; top_departments: LeaderboardEntry[]; top_communities: LeaderboardEntry[]; }
+
 interface Props {
     company: Company;
     stats: {
@@ -21,9 +24,12 @@ interface Props {
     };
     communityParticipation: CommunityParticipation[];
     recentActivity: ActivityLog[];
+    leaderboard: Leaderboard;
 }
 
-export default function HrDashboard({ company, stats, communityParticipation, recentActivity }: Props) {
+const rankColors = ['#D4A017', '#9CA3AF', '#CD7F32'];
+
+export default function HrDashboard({ company, stats, communityParticipation, recentActivity, leaderboard }: Props) {
     return (
         <CompanyLayout>
             <Head title="لوحة التحكم" />
@@ -111,6 +117,43 @@ export default function HrDashboard({ company, stats, communityParticipation, re
                     )}
                 </div>
             </div>
+            {/* Leaderboard */}
+            {(leaderboard.top_departments.length > 0 || leaderboard.top_employees.length > 0) && (
+                <div style={{ marginTop: 24 }}>
+                    <div className="page-title" style={{ fontSize: 16, marginBottom: 16 }}>ترتيب النشاط هذا الشهر</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        {/* Departments */}
+                        {leaderboard.top_departments.length > 0 && (
+                            <div className="card">
+                                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>الأقسام</div>
+                                {leaderboard.top_departments.slice(0, 5).map((dept, idx) => (
+                                    <div key={dept.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: idx < leaderboard.top_departments.length - 1 ? '1px solid #F0EDE8' : 'none' }}>
+                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: rankColors[idx] ?? '#E4E9F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
+                                        <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{dept.name}</div>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#8A7868' }}>{dept.events_count}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {/* Employees */}
+                        {leaderboard.top_employees.length > 0 && (
+                            <div className="card">
+                                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>الموظفين الأكثر نشاطا</div>
+                                {leaderboard.top_employees.slice(0, 5).map((emp, idx) => (
+                                    <div key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: idx < leaderboard.top_employees.length - 1 ? '1px solid #F0EDE8' : 'none' }}>
+                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: rankColors[idx] ?? '#E4E9F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.name}</div>
+                                            {emp.department_name && <div style={{ fontSize: 10, color: '#8A7868' }}>{emp.department_name}</div>}
+                                        </div>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#8A7868' }}>{emp.events_count}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </CompanyLayout>
     );
 }

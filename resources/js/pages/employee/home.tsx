@@ -1,7 +1,8 @@
 import EmployeeLayout from '@/layouts/employee-layout';
 import SportIcon from '@/components/sport-icon';
-import { Head, Link, usePage } from '@inertiajs/react';
-import type { Community, Employee, Event } from '@/types/models';
+import TimePicker from '@/components/time-picker';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import type { Community, Employee, Event, ChallengeWithProgress, QuickMatch } from '@/types/models';
 import { useState } from 'react';
 
 const arabicMonths = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
@@ -20,6 +21,33 @@ function formatArabicTime(timeStr: string): string {
     return `${hour12}:${String(m).padStart(2, '0')} ${suffix}`;
 }
 
+function timeAgo(dateStr: string): string {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'الآن';
+    if (diffMins < 60) return `منذ ${diffMins} د`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `منذ ${diffHours} س`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'منذ يوم';
+    if (diffDays < 7) return `منذ ${diffDays} أيام`;
+    const diffWeeks = Math.floor(diffDays / 7);
+    if (diffWeeks === 1) return 'منذ أسبوع';
+    return `منذ ${diffWeeks} أسابيع`;
+}
+
+interface ActivityStats {
+    streak: number;
+    total_events: number;
+    events_this_month: number;
+    top_sport: string | null;
+}
+
+interface LeaderboardEntry { id: number; name: string; avatar?: string | null; department_name?: string | null; sport_name?: string | null; sport_icon?: string | null; events_count: number; }
+interface Leaderboard { top_employees: LeaderboardEntry[]; top_departments: LeaderboardEntry[]; top_communities: LeaderboardEntry[]; }
+
 interface Props {
     employee: Employee;
     communities: (Community & { members_count: number; sport?: { icon: string; name: string } })[];
@@ -29,11 +57,23 @@ interface Props {
         sport?: { icon: string };
     })[];
     joinedEventIds: number[];
+    activityStats: ActivityStats;
+    challenges: ChallengeWithProgress[];
+    leaderboard: Leaderboard;
+    quickMatches: QuickMatch[];
 }
 
-export default function EmployeeHome({ employee, communities, events, joinedEventIds }: Props) {
+const rankColors = ['#D4A017', '#9CA3AF', '#CD7F32'];
+
+export default function EmployeeHome({ employee, communities, events, joinedEventIds, activityStats, challenges, leaderboard, quickMatches }: Props) {
     const unreadCount = Number((usePage().props as Record<string, unknown>).unreadNotifications ?? 0);
     const [filter, setFilter] = useState<string>('all');
+    const [showQmForm, setShowQmForm] = useState(false);
+    const [qmCommunityId, setQmCommunityId] = useState<string>('');
+    const [qmDate, setQmDate] = useState('');
+    const [qmTime, setQmTime] = useState('');
+    const [qmMessage, setQmMessage] = useState('');
+    const [qmLoading, setQmLoading] = useState(false);
 
     const filteredEvents = filter === 'all'
         ? events
@@ -65,6 +105,131 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                     </Link>
                 </div>
             </div>
+
+            {/* Activity Stats */}
+            <div style={{ background: '#fff', border: '1px solid #E4E9F2', borderRadius: 16, padding: 16, marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: activityStats.streak > 0 ? 'linear-gradient(135deg,#F59E0B,#EF4444)' : '#E4E9F2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                        {activityStats.streak > 0 ? '🔥' : '⭐'}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0F1923' }}>
+                            {activityStats.streak > 0
+                                ? `🔥 ${activityStats.streak} أسابيع متتالية`
+                                : 'ابدأ سلسلتك!'}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 2 }}>
+                            {activityStats.streak > 0 ? 'استمر في النشاط!' : 'شارك في فعالية هذا الأسبوع'}
+                        </div>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ flex: 1, background: '#F7F9FC', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: '#009E82' }}>{activityStats.total_events}</div>
+                        <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>إجمالي الفعاليات</div>
+                    </div>
+                    <div style={{ flex: 1, background: '#F7F9FC', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: '#009E82' }}>{activityStats.events_this_month}</div>
+                        <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>هذا الشهر</div>
+                    </div>
+                    <div style={{ flex: 1, background: '#F7F9FC', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: '#009E82' }}>{activityStats.top_sport ?? '—'}</div>
+                        <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>الرياضة الأكثر</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Challenges */}
+            {challenges.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>التحديات</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {challenges.map((challenge) => {
+                            const isCompleted = challenge.completed_at !== null;
+                            const remaining = challenge.target_count - challenge.current_count;
+
+                            return (
+                                <div
+                                    key={challenge.id}
+                                    style={{
+                                        background: '#fff',
+                                        border: isCompleted ? '1px solid #009E8233' : '1px solid #E4E9F2',
+                                        borderRadius: 16,
+                                        padding: 16,
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: '#0F1923', lineHeight: 1.5 }}>
+                                                {challenge.title}
+                                            </div>
+                                            {challenge.description && (
+                                                <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 3 }}>
+                                                    {challenge.description}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {isCompleted && (
+                                            <span style={{
+                                                background: '#009E8215',
+                                                color: '#009E82',
+                                                borderRadius: 20,
+                                                padding: '4px 12px',
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 4,
+                                                flexShrink: 0,
+                                                marginRight: 8,
+                                            }}>
+                                                مكتمل!
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Progress bar */}
+                                    <div style={{ position: 'relative', height: 24, background: '#E4E9F214', borderRadius: 12, overflow: 'hidden', border: '1px solid #E4E9F2' }}>
+                                        <div style={{
+                                            height: '100%',
+                                            width: `${challenge.percentage}%`,
+                                            background: isCompleted
+                                                ? 'linear-gradient(90deg, #009E82, #00C9A7)'
+                                                : 'linear-gradient(90deg, #009E82, #00B894)',
+                                            borderRadius: 12,
+                                            transition: 'width 0.5s ease',
+                                            minWidth: challenge.percentage > 0 ? 24 : 0,
+                                        }} />
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            bottom: 0,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: 11,
+                                            fontWeight: 800,
+                                            color: challenge.percentage > 45 ? '#fff' : '#4A5C78',
+                                        }}>
+                                            {challenge.percentage}%
+                                        </div>
+                                    </div>
+
+                                    {/* Count text */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#7A8BA8', marginTop: 8 }}>
+                                        <span>{challenge.current_count} من {challenge.target_count}</span>
+                                        {!isCompleted && remaining > 0 && (
+                                            <span>باقي {remaining} {remaining === 1 ? 'فعالية' : 'فعاليات'}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* My Communities */}
             <div style={{ marginBottom: 20 }}>
@@ -101,6 +266,192 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                 </div>
                 <div style={{ background: 'rgba(255,255,255,.2)', borderRadius: 12, padding: '8px 14px', fontSize: 13, fontWeight: 700, color: '#fff' }}>استكشف ←</div>
             </Link>
+
+            {/* Quick Matches */}
+            <div style={{ marginBottom: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700 }}>مباريات سريعة</div>
+                    {communities.length > 0 && (
+                        <button
+                            onClick={() => setShowQmForm(!showQmForm)}
+                            style={{ background: '#009E82', color: '#fff', border: 'none', borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                            {showQmForm ? 'إلغاء' : '+ لعبة سريعة'}
+                        </button>
+                    )}
+                </div>
+
+                {/* Create Form */}
+                {showQmForm && (
+                    <div style={{ background: '#fff', border: '1px solid #E4E9F2', borderRadius: 16, padding: 16, marginBottom: 14 }}>
+                        <div style={{ marginBottom: 12 }}>
+                            <label style={{ fontSize: 12, color: '#4A5C78', fontWeight: 600, display: 'block', marginBottom: 6 }}>المجتمع</label>
+                            <select
+                                value={qmCommunityId}
+                                onChange={(e) => setQmCommunityId(e.target.value)}
+                                style={{ width: '100%', padding: '10px 12px', border: '1px solid #E4E9F2', borderRadius: 10, fontSize: 13, background: '#fff', appearance: 'none', WebkitAppearance: 'none' }}
+                                required
+                            >
+                                <option value="">اختر المجتمع</option>
+                                {communities.map((c) => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ fontSize: 12, color: '#4A5C78', fontWeight: 600, display: 'block', marginBottom: 6 }}>التاريخ (اختياري)</label>
+                                <input
+                                    type="date"
+                                    value={qmDate}
+                                    onChange={(e) => setQmDate(e.target.value)}
+                                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #E4E9F2', borderRadius: 10, fontSize: 13, background: '#fff' }}
+                                />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ fontSize: 12, color: '#4A5C78', fontWeight: 600, display: 'block', marginBottom: 6 }}>الوقت (اختياري)</label>
+                                <TimePicker
+                                    value={qmTime}
+                                    onChange={(v) => setQmTime(v)}
+                                />
+                            </div>
+                        </div>
+                        <div style={{ marginBottom: 12 }}>
+                            <label style={{ fontSize: 12, color: '#4A5C78', fontWeight: 600, display: 'block', marginBottom: 6 }}>رسالة (اختياري)</label>
+                            <textarea
+                                value={qmMessage}
+                                onChange={(e) => setQmMessage(e.target.value)}
+                                placeholder="مثال: نبي نلعب بادل بعد الدوام"
+                                style={{ width: '100%', padding: '10px 12px', border: '1px solid #E4E9F2', borderRadius: 10, fontSize: 13, resize: 'none', minHeight: 60, fontFamily: 'inherit' }}
+                            />
+                        </div>
+                        <button
+                            onClick={() => {
+                                if (!qmCommunityId) return;
+                                setQmLoading(true);
+                                router.post('/employee/quick-match', {
+                                    community_id: Number(qmCommunityId),
+                                    preferred_date: qmDate || null,
+                                    preferred_time: qmTime || null,
+                                    message: qmMessage || null,
+                                }, {
+                                    onFinish: () => {
+                                        setQmLoading(false);
+                                        setShowQmForm(false);
+                                        setQmCommunityId('');
+                                        setQmDate('');
+                                        setQmTime('');
+                                        setQmMessage('');
+                                    },
+                                });
+                            }}
+                            disabled={!qmCommunityId || qmLoading}
+                            style={{ width: '100%', background: !qmCommunityId ? '#E4E9F2' : '#009E82', color: !qmCommunityId ? '#7A8BA8' : '#fff', border: 'none', borderRadius: 12, padding: '12px 0', fontSize: 14, fontWeight: 700, cursor: !qmCommunityId ? 'not-allowed' : 'pointer' }}
+                        >
+                            {qmLoading ? 'جاري الإنشاء...' : 'نشر اللعبة'}
+                        </button>
+                    </div>
+                )}
+
+                {/* Quick Match Cards */}
+                {quickMatches.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {quickMatches.map((qm) => {
+                            const isCreator = qm.created_by === employee.id;
+                            const isLeader = qm.community?.leader_id === employee.id;
+                            const canConvert = (isCreator || isLeader) && (qm.interests_count ?? 0) >= 2;
+
+                            return (
+                                <div
+                                    key={qm.id}
+                                    style={{ background: '#fff', border: '1px solid #E4E9F2', borderRadius: 16, padding: 16 }}
+                                >
+                                    {/* Header: community + badge */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <SportIcon icon={qm.community?.sport?.icon} size={22} />
+                                            <span style={{ fontSize: 13, fontWeight: 700, color: '#0F1923' }}>{qm.community?.name}</span>
+                                        </div>
+                                        {qm.source === 'auto' && (
+                                            <span style={{ background: '#F59E0B15', color: '#F59E0B', borderRadius: 20, padding: '3px 10px', fontSize: 10, fontWeight: 700 }}>
+                                                اقتراح تلقائي
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Message */}
+                                    {qm.message && (
+                                        <div style={{ fontSize: 13, color: '#4A5C78', marginBottom: 10, lineHeight: 1.6 }}>
+                                            {qm.message}
+                                        </div>
+                                    )}
+
+                                    {/* Date & Time */}
+                                    {(qm.preferred_date || qm.preferred_time) && (
+                                        <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+                                            {qm.preferred_date && (
+                                                <span style={{ fontSize: 12, color: '#4A5C78' }}>📅 {formatArabicDate(qm.preferred_date)}</span>
+                                            )}
+                                            {qm.preferred_time && (
+                                                <span style={{ fontSize: 12, color: '#4A5C78' }}>🕐 {formatArabicTime(qm.preferred_time)}</span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Footer: creator, interest count, time ago */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, fontSize: 11, color: '#7A8BA8' }}>
+                                        <span>{qm.created_by ? qm.creator?.name : 'النظام'}</span>
+                                        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                                            <span>{qm.interests_count ?? 0} مهتمين</span>
+                                            <span>{timeAgo(qm.created_at)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button
+                                            onClick={() => router.post(`/employee/quick-match/${qm.id}/interest`)}
+                                            style={{
+                                                flex: 1,
+                                                border: qm.is_interested ? '2px solid #009E82' : '1px solid #E4E9F2',
+                                                background: qm.is_interested ? '#009E8210' : '#fff',
+                                                color: qm.is_interested ? '#009E82' : '#4A5C78',
+                                                borderRadius: 12,
+                                                padding: '10px 0',
+                                                fontSize: 13,
+                                                fontWeight: 700,
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            {qm.is_interested ? 'لست مهتم' : 'أنا مهتم'}
+                                        </button>
+                                        {canConvert && (
+                                            <button
+                                                onClick={() => router.post(`/employee/quick-match/${qm.id}/convert`)}
+                                                style={{
+                                                    flex: 1,
+                                                    border: 'none',
+                                                    background: 'linear-gradient(135deg,#009E82,#2563EB)',
+                                                    color: '#fff',
+                                                    borderRadius: 12,
+                                                    padding: '10px 0',
+                                                    fontSize: 13,
+                                                    fontWeight: 700,
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                حوّل لفعالية
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div style={{ textAlign: 'center', padding: 20, color: '#7A8BA8', fontSize: 13 }}>لا توجد مباريات سريعة حاليا</div>
+                )}
+            </div>
 
             {/* Upcoming Events */}
             <div>
@@ -210,6 +561,72 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                     )}
                 </div>
             </div>
+            {/* Leaderboard */}
+            {(leaderboard.top_employees.length > 0 || leaderboard.top_departments.length > 0 || leaderboard.top_communities.length > 0) && (
+                <div style={{ marginTop: 28 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
+                        الاكثر نشاطا - {arabicMonths[new Date().getMonth()]} {new Date().getFullYear()}
+                    </div>
+
+                    {/* Top Employees */}
+                    {leaderboard.top_employees.length > 0 && (
+                        <div style={{ marginBottom: 18 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#4A5C78', marginBottom: 10 }}>الموظفين</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {leaderboard.top_employees.slice(0, 3).map((emp, idx) => (
+                                    <div key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: `1px solid ${rankColors[idx] ?? '#E4E9F2'}33`, borderRadius: 14, padding: '12px 14px' }}>
+                                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: rankColors[idx] ?? '#E4E9F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
+                                        <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#009E82,#5B3FCC)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>
+                                            {emp.avatar ? <img src={emp.avatar} alt="" style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover' }} /> : emp.name?.charAt(0)}
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.name}</div>
+                                            {emp.department_name && <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 1 }}>{emp.department_name}</div>}
+                                        </div>
+                                        <div style={{ fontSize: 13, fontWeight: 800, color: rankColors[idx] ?? '#7A8BA8', flexShrink: 0 }}>{emp.events_count} {emp.events_count === 1 ? 'مشاركة' : 'مشاركات'}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Top Departments */}
+                    {leaderboard.top_departments.length > 0 && (
+                        <div style={{ marginBottom: 18 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#4A5C78', marginBottom: 10 }}>الاقسام</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {leaderboard.top_departments.slice(0, 3).map((dept, idx) => (
+                                    <div key={dept.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: `1px solid ${rankColors[idx] ?? '#E4E9F2'}33`, borderRadius: 14, padding: '12px 14px' }}>
+                                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: rankColors[idx] ?? '#E4E9F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
+                                        <div style={{ flex: 1, fontSize: 13, fontWeight: 700 }}>{dept.name}</div>
+                                        <div style={{ fontSize: 13, fontWeight: 800, color: rankColors[idx] ?? '#7A8BA8', flexShrink: 0 }}>{dept.events_count} {dept.events_count === 1 ? 'مشاركة' : 'مشاركات'}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Top Communities */}
+                    {leaderboard.top_communities.length > 0 && (
+                        <div style={{ marginBottom: 18 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#4A5C78', marginBottom: 10 }}>المجتمعات</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {leaderboard.top_communities.slice(0, 3).map((comm, idx) => (
+                                    <div key={comm.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: `1px solid ${rankColors[idx] ?? '#E4E9F2'}33`, borderRadius: 14, padding: '12px 14px' }}>
+                                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: rankColors[idx] ?? '#E4E9F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
+                                        <div style={{ width: 32, height: 32, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SportIcon icon={comm.sport_icon} size={28} /></div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{comm.name}</div>
+                                            {comm.sport_name && <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 1 }}>{comm.sport_name}</div>}
+                                        </div>
+                                        <div style={{ fontSize: 13, fontWeight: 800, color: rankColors[idx] ?? '#7A8BA8', flexShrink: 0 }}>{comm.events_count} {comm.events_count === 1 ? 'فعالية' : 'فعاليات'}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
         </EmployeeLayout>
     );
 }

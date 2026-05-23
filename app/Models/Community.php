@@ -88,6 +88,14 @@ class Community extends Model
     }
 
     /**
+     * @return HasMany<CommunityPoll, $this>
+     */
+    public function polls(): HasMany
+    {
+        return $this->hasMany(CommunityPoll::class);
+    }
+
+    /**
      * @return HasMany<League, $this>
      */
     public function leagues(): HasMany
@@ -101,6 +109,14 @@ class Community extends Model
     public function walletTransactions(): HasMany
     {
         return $this->hasMany(WalletTransaction::class);
+    }
+
+    /**
+     * @return HasMany<QuickMatch, $this>
+     */
+    public function quickMatches(): HasMany
+    {
+        return $this->hasMany(QuickMatch::class);
     }
 
     /**

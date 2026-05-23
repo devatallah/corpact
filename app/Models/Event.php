@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'company_id',
     'club_id',
     'court_pricing_id',
+    'discount_id',
+    'discount_amount',
     'sport_id',
     'created_by',
     'title',
@@ -47,6 +49,7 @@ class Event extends Model
             'event_date' => 'date:Y-m-d',
             'duration_minutes' => 'integer',
             'courts_count' => 'integer',
+            'discount_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'capacity' => 'integer',
             'participants_count' => 'integer',
@@ -87,6 +90,14 @@ class Event extends Model
     public function courtPricing(): BelongsTo
     {
         return $this->belongsTo(CourtPricing::class);
+    }
+
+    /**
+     * @return BelongsTo<Discount, $this>
+     */
+    public function discount(): BelongsTo
+    {
+        return $this->belongsTo(Discount::class);
     }
 
     /**

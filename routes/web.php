@@ -22,6 +22,7 @@ use App\Http\Controllers\Club\ProfileController as ClubProfileController;
 use App\Http\Controllers\Club\BookingController as ClubBookingController;
 use App\Http\Controllers\Club\CourtController as ClubCourtController;
 use App\Http\Controllers\Club\DashboardController as ClubDashboardController;
+use App\Http\Controllers\Club\DiscountController as ClubDiscountController;
 use App\Http\Controllers\Club\ScheduleController as ClubScheduleController;
 use App\Http\Controllers\Club\SettlementController as ClubSettlementController;
 use App\Http\Controllers\Company\LeagueController as CompanyLeagueController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\Employee\ExploreController as EmployeeExploreController
 use App\Http\Controllers\Employee\HomeController as EmployeeHomeController;
 use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
 use App\Http\Controllers\Employee\ProfileController as EmployeeProfileController;
+use App\Http\Controllers\Employee\QuickMatchController as EmployeeQuickMatchController;
 use App\Http\Controllers\Company\ProfileController as CompanyProfileController;
 use App\Http\Controllers\Company\DepartmentController as CompanyDepartmentController;
 use App\Http\Controllers\Company\CommunityController as CompanyCommunityController;
@@ -256,6 +258,16 @@ Route::prefix('club')
         Route::delete('/schedule/{slot}', [ClubScheduleController::class, 'destroy'])->name('schedule.destroy');
 
         Route::resource('courts', ClubCourtController::class)->except(['show']);
+        Route::post('/courts/{court}/pricings', [ClubCourtController::class, 'storePricing'])->name('courts.pricings.store');
+        Route::put('/courts/{court}/pricings/{pricing}', [ClubCourtController::class, 'updatePricing'])->name('courts.pricings.update');
+        Route::post('/courts/{court}/pricings/{pricing}/toggle', [ClubCourtController::class, 'togglePricing'])->name('courts.pricings.toggle');
+        Route::delete('/courts/{court}/pricings/{pricing}', [ClubCourtController::class, 'destroyPricing'])->name('courts.pricings.destroy');
+
+        Route::get('/discounts', [ClubDiscountController::class, 'index'])->name('discounts.index');
+        Route::get('/discounts/communities/{company}', [ClubDiscountController::class, 'communities'])->name('discounts.communities');
+        Route::post('/discounts', [ClubDiscountController::class, 'store'])->name('discounts.store');
+        Route::put('/discounts/{discount}', [ClubDiscountController::class, 'update'])->name('discounts.update');
+        Route::delete('/discounts/{discount}', [ClubDiscountController::class, 'destroy'])->name('discounts.destroy');
 
         Route::get('/settlements', [ClubSettlementController::class, 'index'])->name('settlements.index');
         Route::get('/settlements/{settlement}', [ClubSettlementController::class, 'show'])->name('settlements.show');
@@ -323,6 +335,7 @@ Route::prefix('employee')
         Route::get('/explore/{club}', [EmployeeExploreController::class, 'show'])->name('explore.show');
 
         Route::get('/create', [EmployeeEventController::class, 'create'])->name('events.create');
+        Route::post('/create/pricings', [EmployeeEventController::class, 'pricings'])->name('events.pricings');
         Route::post('/create', [EmployeeEventController::class, 'store'])->name('events.store');
         Route::get('/detail/{event}', [EmployeeEventController::class, 'show'])->name('events.show');
         Route::post('/detail/{event}/join', [EmployeeEventController::class, 'join'])->name('events.join');
@@ -337,12 +350,19 @@ Route::prefix('employee')
         Route::post('/community/{community}/join', [EmployeeCommunityController::class, 'join'])->name('community.join');
         Route::post('/community/{community}/leave', [EmployeeCommunityController::class, 'leave'])->name('community.leave');
         Route::post('/community/{community}/announcement', [EmployeeCommunityController::class, 'postAnnouncement'])->name('community.announce');
+        Route::post('/community/{community}/polls', [EmployeeCommunityController::class, 'createPoll'])->name('community.polls.store');
+        Route::post('/community/{community}/polls/{poll}/vote', [EmployeeCommunityController::class, 'votePoll'])->name('community.polls.vote');
+        Route::post('/community/{community}/polls/{poll}/close', [EmployeeCommunityController::class, 'closePoll'])->name('community.polls.close');
 
         Route::get('/community/{community}/leagues/create', [EmployeeLeagueController::class, 'create'])->name('communities.leagues.create');
         Route::post('/community/{community}/leagues', [EmployeeLeagueController::class, 'store'])->name('communities.leagues.store');
         Route::get('/community/{community}/leagues/{league}', [EmployeeLeagueController::class, 'show'])->name('communities.leagues.show');
         Route::post('/community/{community}/leagues/{league}/matches/{match}/result', [EmployeeLeagueController::class, 'recordResult'])->name('communities.leagues.record-result');
         Route::delete('/community/{community}/leagues/{league}', [EmployeeLeagueController::class, 'destroy'])->name('communities.leagues.destroy');
+
+        Route::post('/quick-match', [EmployeeQuickMatchController::class, 'store'])->name('quick-match.store');
+        Route::post('/quick-match/{quickMatch}/interest', [EmployeeQuickMatchController::class, 'toggleInterest'])->name('quick-match.interest');
+        Route::post('/quick-match/{quickMatch}/convert', [EmployeeQuickMatchController::class, 'convert'])->name('quick-match.convert');
 
         Route::get('/notifications', [EmployeeNotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{notification}/read', [EmployeeNotificationController::class, 'markAsRead'])->name('notifications.read');

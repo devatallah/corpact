@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['court_id', 'duration_minutes', 'price'])]
+#[Fillable(['court_id', 'duration_minutes', 'price', 'is_peak', 'label', 'start_time', 'end_time', 'days', 'status'])]
 class CourtPricing extends Model
 {
     use HasFactory;
@@ -21,6 +21,8 @@ class CourtPricing extends Model
         return [
             'duration_minutes' => 'integer',
             'price' => 'decimal:2',
+            'is_peak' => 'boolean',
+            'days' => 'array',
         ];
     }
 

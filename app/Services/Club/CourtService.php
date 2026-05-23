@@ -92,33 +92,36 @@ class CourtService
     /**
      * Add a pricing tier to a court.
      *
-     * @param  array{duration_minutes: int, price: float}  $data
+     * @param  array<string, mixed>  $data
      */
     public function addPricing(Club $club, Court $court, array $data): CourtPricing
     {
         $this->ensureCourtBelongsToClub($club, $court);
 
-        $exists = $court->pricings()
-            ->where('duration_minutes', $data['duration_minutes'])
-            ->exists();
-
-        if ($exists) {
-            throw ValidationException::withMessages([
-                'duration_minutes' => ['A pricing for this duration already exists.'],
-            ]);
+        $days = $data['days'] ?? null;
+        if (is_array($days)) {
+            $days = array_values(array_filter($days, fn ($v) => $v !== null && $v !== ''));
+            if (empty($days)) {
+                $days = null;
+            }
         }
 
         return CourtPricing::create([
             'court_id' => $court->id,
-            'duration_minutes' => $data['duration_minutes'],
-            'price' => $data['price'],
+            'duration_minutes' => (int) ($data['duration_minutes'] ?? 60),
+            'price' => (float) $data['price'],
+            'is_peak' => filter_var($data['is_peak'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'label' => ($data['label'] ?? '') !== '' ? $data['label'] : null,
+            'start_time' => ($data['start_time'] ?? '') !== '' ? $data['start_time'] : null,
+            'end_time' => ($data['end_time'] ?? '') !== '' ? $data['end_time'] : null,
+            'days' => $days,
         ]);
     }
 
     /**
      * Update an existing pricing tier.
      *
-     * @param  array{duration_minutes?: int, price?: float}  $data
+     * @param  array<string, mixed>  $data
      */
     public function updatePricing(Club $club, Court $court, CourtPricing $pricing, array $data): CourtPricing
     {
@@ -128,7 +131,23 @@ class CourtService
             throw new \InvalidArgumentException('Pricing does not belong to this court.');
         }
 
-        $pricing->update($data);
+        $days = $data['days'] ?? null;
+        if (is_array($days)) {
+            $days = array_values(array_filter($days, fn ($v) => $v !== null && $v !== ''));
+            if (empty($days)) {
+                $days = null;
+            }
+        }
+
+        $pricing->update([
+            'duration_minutes' => (int) ($data['duration_minutes'] ?? $pricing->duration_minutes),
+            'price' => (float) ($data['price'] ?? $pricing->price),
+            'is_peak' => filter_var($data['is_peak'] ?? $pricing->is_peak, FILTER_VALIDATE_BOOLEAN),
+            'label' => ($data['label'] ?? '') !== '' ? $data['label'] : null,
+            'start_time' => ($data['start_time'] ?? '') !== '' ? $data['start_time'] : null,
+            'end_time' => ($data['end_time'] ?? '') !== '' ? $data['end_time'] : null,
+            'days' => $days,
+        ]);
 
         return $pricing->fresh();
     }
@@ -148,24 +167,53 @@ class CourtService
     }
 
     /**
-     * Sync pricing tiers for a court. Keys are duration_minutes, values are prices.
+     * Sync pricing tiers for a court.
      *
-     * @param  array<string, numeric-string>  $pricings
+     * @param  array<int|string, mixed>  $pricings
      */
     private function syncPricings(Court $court, array $pricings): void
     {
         $court->pricings()->delete();
 
-        foreach ($pricings as $duration => $price) {
-            if ($price === '' || $price === null) {
+        foreach ($pricings as $data) {
+            if (! is_array($data)) {
                 continue;
+            }
+
+            if (($data['price'] ?? '') === '' || $data['price'] === null) {
+                continue;
+            }
+
+            $days = $data['days'] ?? null;
+            if (is_array($days)) {
+                $days = array_values(array_filter($days, fn ($v) => $v !== null && $v !== ''));
+                if (empty($days)) {
+                    $days = null;
+                }
             }
 
             CourtPricing::create([
                 'court_id' => $court->id,
-                'duration_minutes' => (int) $duration,
-                'price' => (float) $price,
+                'duration_minutes' => (int) ($data['duration_minutes'] ?? 60),
+                'price' => (float) $data['price'],
+                'is_peak' => filter_var($data['is_peak'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'label' => ($data['label'] ?? '') !== '' ? $data['label'] : null,
+                'start_time' => ($data['start_time'] ?? '') !== '' ? $data['start_time'] : null,
+                'end_time' => ($data['end_time'] ?? '') !== '' ? $data['end_time'] : null,
+                'days' => $days,
             ]);
+        }
+    }
+
+    /**
+     * Verify court and pricing ownership.
+     */
+    public function ensureOwnership(Club $club, Court $court, CourtPricing $pricing): void
+    {
+        $this->ensureCourtBelongsToClub($club, $court);
+
+        if ($pricing->court_id !== $court->id) {
+            throw new AuthorizationException('This pricing does not belong to this court.');
         }
     }
 

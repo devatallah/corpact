@@ -36,6 +36,8 @@ class StoreEventRequest extends FormRequest
             'time' => ['required', 'date_format:H:i'],
             'capacity' => ['required', 'integer', 'min:2'],
             'company_subsidy' => ['sometimes', 'numeric', 'min:0'],
+            'discount_id' => ['nullable', 'integer', 'exists:discounts,id'],
+            'quick_match_id' => ['nullable', 'integer', 'exists:quick_matches,id'],
             'notes' => ['nullable', 'string', 'max:500'],
         ];
     }

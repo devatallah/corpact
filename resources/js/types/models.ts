@@ -138,6 +138,35 @@ export interface CourtPricing {
     court_id: number;
     duration_minutes: number;
     price: number;
+    is_peak: boolean;
+    label: string | null;
+    start_time: string | null;
+    end_time: string | null;
+    days: number[] | null;
+    status: 'active' | 'inactive';
+}
+
+export interface Discount {
+    id: number;
+    club_id: number;
+    company_id: number;
+    community_id: number;
+    name: string | null;
+    type: 'fixed' | 'percentage';
+    value: number;
+    usage: 'one_time' | 'date_range';
+    starts_at: string | null;
+    expires_at: string | null;
+    start_time: string | null;
+    end_time: string | null;
+    status: 'active' | 'expired';
+    created_at: string;
+    updated_at: string;
+    used_count?: number;
+    // Relationships
+    club?: Club;
+    company?: Company;
+    community?: Community;
 }
 
 export interface Event {
@@ -146,6 +175,8 @@ export interface Event {
     company_id: number;
     club_id: number;
     court_pricing_id: number | null;
+    discount_id: number | null;
+    discount_amount: number | null;
     sport_id: number;
     created_by: number;
     title: string;
@@ -170,6 +201,7 @@ export interface Event {
     company?: Company;
     club?: Club;
     courtPricing?: CourtPricing;
+    discount?: Discount;
     courts?: Court[];
     sport?: Sport;
     creator?: Employee;
@@ -313,6 +345,39 @@ export interface CommunityAnnouncement {
     employee?: Employee;
 }
 
+export interface CommunityPoll {
+    id: number;
+    community_id: number;
+    employee_id: number;
+    question: string;
+    expires_at: string | null;
+    status: 'active' | 'closed';
+    created_at: string;
+    updated_at: string;
+    // Computed
+    my_vote: number | null;
+    total_votes: number;
+    // Relationships
+    creator?: Employee;
+    options?: PollOption[];
+}
+
+export interface PollOption {
+    id: number;
+    poll_id: number;
+    label: string;
+    sort_order: number;
+    votes_count: number;
+}
+
+export interface PollVote {
+    id: number;
+    poll_id: number;
+    option_id: number;
+    employee_id: number;
+    created_at: string;
+}
+
 export interface Slot {
     id: number;
     court_id: number;
@@ -341,4 +406,46 @@ export interface PlatformRevenue {
     source: string;
     description: string | null;
     revenue_date: string;
+}
+
+export interface Challenge {
+    id: number;
+    title: string;
+    description: string | null;
+    type: 'events_count' | 'communities_join';
+    target_count: number;
+    company_id: number | null;
+    starts_at: string;
+    ends_at: string;
+    status: 'active' | 'completed';
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ChallengeWithProgress {
+    id: number;
+    title: string;
+    description: string | null;
+    type: string;
+    target_count: number;
+    current_count: number;
+    completed_at: string | null;
+    percentage: number;
+}
+
+export interface QuickMatch {
+    id: number;
+    community_id: number;
+    created_by: number | null;
+    preferred_date: string | null;
+    preferred_time: string | null;
+    message: string | null;
+    source: 'manual' | 'auto';
+    status: 'open' | 'converted' | 'expired';
+    created_at: string;
+    updated_at: string;
+    community?: Community & { sport?: Sport };
+    creator?: Employee;
+    interests_count?: number;
+    is_interested?: boolean;
 }

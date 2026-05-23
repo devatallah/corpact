@@ -10,6 +10,7 @@ const statusLabels: Record<string, string> = {
     completed: 'مكتمل',
     cancelled: 'ملغي',
     inactive: 'غير نشط',
+    closed: 'مغلق',
     maintenance: 'صيانة',
     paid: 'مدفوع',
     unpaid: 'غير مدفوع',

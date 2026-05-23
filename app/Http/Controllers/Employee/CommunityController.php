@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Employee\PostAnnouncementRequest;
 use App\Models\Community;
+use App\Models\CommunityPoll;
 use App\Services\Employee\CommunityDetailService;
 use App\Services\Employee\ExploreService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -48,6 +50,7 @@ class CommunityController extends Controller
         $events = $this->communityDetailService->events($community);
         $announcements = $this->communityDetailService->announcements($community);
         $members = $this->communityDetailService->members($community);
+        $polls = $this->communityDetailService->polls($community, $employee);
 
         $isCaptain = $community->leader_id === $employee->id
             || $community->members()->where('employee_id', $employee->id)->wherePivot('role', 'captain')->exists();
@@ -66,6 +69,7 @@ class CommunityController extends Controller
             'announcements' => $announcements,
             'members' => $members,
             'leagues' => $leagues,
+            'polls' => $polls,
             'canAnnounce' => $isCaptain,
             'isLeader' => $isLeader,
         ]);
@@ -107,5 +111,70 @@ class CommunityController extends Controller
         $this->communityDetailService->postAnnouncement($community, $employee, $data['body']);
 
         return back()->with('success', 'تم نشر الإعلان.');
+    }
+
+    /**
+     * Create a poll.
+     */
+    public function createPoll(Request $request, Community $community): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+
+        $data = $request->validate([
+            'question' => ['required', 'string', 'max:500'],
+            'options' => ['required', 'array', 'min:2', 'max:10'],
+            'options.*' => ['required', 'string', 'max:200'],
+            'expires_at' => ['nullable', 'date', 'after:now'],
+        ], [
+            'question.required' => 'السؤال مطلوب.',
+            'question.max' => 'السؤال يجب ألا يتجاوز 500 حرف.',
+            'options.required' => 'الخيارات مطلوبة.',
+            'options.min' => 'يجب إضافة خيارين على الأقل.',
+            'options.max' => 'الحد الأقصى 10 خيارات.',
+            'options.*.required' => 'نص الخيار مطلوب.',
+            'options.*.max' => 'نص الخيار يجب ألا يتجاوز 200 حرف.',
+            'expires_at.after' => 'تاريخ الانتهاء يجب أن يكون في المستقبل.',
+        ]);
+
+        $this->communityDetailService->createPoll(
+            $community,
+            $employee,
+            $data['question'],
+            $data['options'],
+            $data['expires_at'] ?? null,
+        );
+
+        return back()->with('success', 'تم إنشاء التصويت.');
+    }
+
+    /**
+     * Cast a vote on a poll.
+     */
+    public function votePoll(Request $request, Community $community, CommunityPoll $poll): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+
+        $data = $request->validate([
+            'option_id' => ['required', 'integer', 'exists:poll_options,id'],
+        ], [
+            'option_id.required' => 'يجب اختيار خيار.',
+            'option_id.exists' => 'الخيار غير صالح.',
+        ]);
+
+        $this->communityDetailService->votePoll($community, $employee, $poll, $data['option_id']);
+
+        return back()->with('success', 'تم تسجيل تصويتك.');
+    }
+
+    /**
+     * Close a poll.
+     */
+    public function closePoll(Community $community, CommunityPoll $poll): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+
+        $this->communityDetailService->closePoll($community, $employee, $poll);
+
+        return back()->with('success', 'تم إغلاق التصويت.');
     }
 }

@@ -112,6 +112,14 @@ class Employee extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * @return HasMany<ChallengeProgress, $this>
+     */
+    public function challengeProgress(): HasMany
+    {
+        return $this->hasMany(ChallengeProgress::class);
+    }
+
+    /**
      * @return HasMany<Invitation, $this>
      */
     public function invitations(): HasMany

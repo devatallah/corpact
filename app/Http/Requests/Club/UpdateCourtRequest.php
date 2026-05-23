@@ -27,7 +27,14 @@ class UpdateCourtRequest extends FormRequest
             'sport_id' => ['sometimes', 'integer', 'exists:sports,id'],
             'status' => ['sometimes', 'string', 'in:active,inactive'],
             'pricings' => ['sometimes', 'array'],
-            'pricings.*' => ['numeric', 'min:0'],
+            'pricings.*.duration_minutes' => ['required', 'integer', 'in:60,90,120'],
+            'pricings.*.price' => ['required', 'numeric', 'min:0'],
+            'pricings.*.is_peak' => ['sometimes'],
+            'pricings.*.label' => ['nullable', 'string', 'max:255'],
+            'pricings.*.start_time' => ['nullable'],
+            'pricings.*.end_time' => ['nullable'],
+            'pricings.*.days' => ['nullable', 'array'],
+            'pricings.*.days.*' => ['integer', 'min:0', 'max:6'],
         ];
     }
 
@@ -42,8 +49,10 @@ class UpdateCourtRequest extends FormRequest
             'name.max' => 'اسم الملعب يجب ألا يتجاوز 255 حرف.',
             'sport_id.exists' => 'الرياضة المحددة غير موجودة.',
             'status.in' => 'حالة الملعب غير صالحة.',
-            'pricings.*.numeric' => 'السعر يجب أن يكون رقماً.',
-            'pricings.*.min' => 'السعر يجب أن يكون 0 على الأقل.',
+            'pricings.*.price.required' => 'السعر مطلوب.',
+            'pricings.*.price.numeric' => 'السعر يجب أن يكون رقماً.',
+            'pricings.*.price.min' => 'السعر يجب أن يكون 0 على الأقل.',
+            'pricings.*.label.max' => 'التسمية يجب ألا تتجاوز 255 حرف.',
         ];
     }
 }

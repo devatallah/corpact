@@ -5,10 +5,14 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Employee\StoreEventRequest;
 use App\Models\Club;
+use App\Models\CourtPricing;
+use App\Models\Discount;
 use App\Models\Event;
 use App\Models\EventAlternative;
 use App\Models\Notification;
+use Illuminate\Http\Request;
 use App\Services\Company\CompanyEventService;
+use App\Services\Employee\ChallengeService;
 use App\Services\Employee\EventCreationService;
 use App\Services\Employee\EventDetailService;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +25,7 @@ class EventController extends Controller
         private EventCreationService $eventCreationService,
         private EventDetailService $eventDetailService,
         private CompanyEventService $companyEventService,
+        private ChallengeService $challengeService,
     ) {}
 
     /**
@@ -36,15 +41,76 @@ class EventController extends Controller
             ->get();
 
         $clubs = Club::query()
-            ->with(['courts.pricings'])
+            ->with(['courts' => function ($q) {
+                $q->active();
+            }])
             ->active()
             ->orderBy('name')
+            ->get();
+
+        // Get active discounts for this employee's company communities
+        $communityIds = $communities->pluck('id')->toArray();
+        $discounts = Discount::query()
+            ->where('company_id', $employee->company_id)
+            ->whereIn('community_id', $communityIds)
+            ->where('status', 'active')
+            ->where(function ($q) {
+                // Exclude one_time discounts that have already been used
+                $q->where('usage', '!=', 'one_time')
+                    ->orWhereDoesntHave('events');
+            })
             ->get();
 
         return Inertia::render('employee/events/create', [
             'communities' => $communities,
             'clubs' => $clubs,
+            'discounts' => $discounts,
         ]);
+    }
+
+    /**
+     * Return pricings compatible with the given courts, date, and time.
+     */
+    public function pricings(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'court_ids' => ['required', 'array', 'min:1'],
+            'court_ids.*' => ['integer'],
+            'date' => ['required', 'date'],
+            'time' => ['required', 'date_format:H:i'],
+        ]);
+
+        $courtIds = $request->input('court_ids');
+        $date = $request->input('date');
+        $time = $request->input('time');
+        $dayOfWeek = (int) \Carbon\Carbon::parse($date)->dayOfWeek; // 0=Sun..6=Sat
+
+        $pricings = CourtPricing::query()
+            ->whereIn('court_id', $courtIds)
+            ->where('status', 'active')
+            ->get()
+            ->filter(function (CourtPricing $p) use ($dayOfWeek, $time) {
+                // Filter by days if set
+                if (! empty($p->days) && ! in_array($dayOfWeek, $p->days)) {
+                    return false;
+                }
+                // Filter by time range if set
+                if ($p->start_time && $p->end_time) {
+                    $start = substr($p->start_time, 0, 5);
+                    $end = substr($p->end_time, 0, 5);
+                    if ($time < $start || $time >= $end) {
+                        return false;
+                    }
+                }
+
+                return true;
+            })
+            // Per court + duration, keep only the highest price
+            ->groupBy(fn (CourtPricing $p) => $p->court_id . '-' . $p->duration_minutes)
+            ->map(fn ($group) => $group->sortByDesc('price')->first())
+            ->values();
+
+        return response()->json($pricings);
     }
 
     /**
@@ -133,6 +199,8 @@ class EventController extends Controller
                 'data' => ['event_id' => $event->id],
             ]);
         }
+
+        $this->challengeService->incrementProgress($employee, 'events_count');
 
         return back()->with('success', 'تم الانضمام للفعالية.');
     }

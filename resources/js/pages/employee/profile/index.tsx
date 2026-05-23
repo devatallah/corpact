@@ -23,16 +23,24 @@ interface ProfileStats {
     events_created: number;
 }
 
+interface ActivityStats {
+    streak: number;
+    total_events: number;
+    events_this_month: number;
+    top_sport: string | null;
+}
+
 interface Props {
     employee: Employee & { company: Company };
     stats: ProfileStats;
+    activityStats: ActivityStats;
     events: (Event & { club: Club; community: Community; sport?: Sport })[];
     communities: (Community & { sport?: Sport; members_count: number })[];
 }
 
 type ProfileTab = 'events' | 'communities';
 
-export default function ProfileIndex({ employee, stats, events, communities }: Props) {
+export default function ProfileIndex({ employee, stats, activityStats, events, communities }: Props) {
     const [activeTab, setActiveTab] = useState<ProfileTab>('events');
     const [editing, setEditing] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
@@ -100,6 +108,39 @@ export default function ProfileIndex({ employee, stats, events, communities }: P
                     <div style={{ flex: 1, padding: '14px 0', textAlign: 'center' }}>
                         <div style={{ fontSize: 20, fontWeight: 900, color: '#009E82' }}>{stats.events_created}</div>
                         <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>فعاليات أنشأت</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Activity Streak */}
+            <div style={{ background: '#fff', border: '1px solid #E4E9F2', borderRadius: 16, padding: 16, marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: activityStats.streak > 0 ? 'linear-gradient(135deg,#F59E0B,#EF4444)' : '#E4E9F2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                        {activityStats.streak > 0 ? '🔥' : '⭐'}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0F1923' }}>
+                            {activityStats.streak > 0
+                                ? `🔥 ${activityStats.streak} أسابيع متتالية`
+                                : 'ابدأ سلسلتك!'}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 2 }}>
+                            {activityStats.streak > 0 ? 'استمر في النشاط!' : 'شارك في فعالية هذا الأسبوع'}
+                        </div>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ flex: 1, background: '#F7F9FC', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: '#009E82' }}>{activityStats.total_events}</div>
+                        <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>إجمالي الفعاليات</div>
+                    </div>
+                    <div style={{ flex: 1, background: '#F7F9FC', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: '#009E82' }}>{activityStats.events_this_month}</div>
+                        <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>هذا الشهر</div>
+                    </div>
+                    <div style={{ flex: 1, background: '#F7F9FC', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: '#009E82' }}>{activityStats.top_sport ?? '—'}</div>
+                        <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>الرياضة الأكثر</div>
                     </div>
                 </div>
             </div>

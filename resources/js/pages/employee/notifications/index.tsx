@@ -17,6 +17,26 @@ export default function NotificationsIndex({ notifications, unreadCount }: Props
         router.post('/employee/notifications/read-all');
     }
 
+    function isNudge(notification: Notification): boolean {
+        return notification.type === 'nudge_inactive'
+            || notification.type === 'nudge_community'
+            || notification.type === 'nudge_new_member';
+    }
+
+    function getIcon(notification: Notification): string {
+        if (notification.type === 'weekly_digest') return '📊';
+        if (notification.type === 'nudge_inactive') return '👋';
+        if (notification.type === 'nudge_community') return '🏃';
+        if (notification.type === 'nudge_new_member') return '🏸';
+        return '🔔';
+    }
+
+    function getIconBg(notification: Notification, isUnread: boolean): string {
+        if (notification.type === 'weekly_digest') return isUnread ? '#8B5CF618' : '#F3F0FF';
+        if (isNudge(notification)) return isUnread ? '#F59E0B18' : '#FFFBEB';
+        return isUnread ? '#009E8218' : '#F4F6FA';
+    }
+
     function getTargetUrl(notification: Notification): string | null {
         const eventId = notification.data?.event_id;
         if (eventId) return `/employee/detail/${eventId}`;
@@ -74,24 +94,55 @@ export default function NotificationsIndex({ notifications, unreadCount }: Props
                                 width: '100%',
                                 textAlign: 'right',
                                 cursor: 'pointer',
-                                ...(isUnread ? { borderColor: '#009E8244', borderRight: '3px solid #009E82' } : {}),
+                                ...(isUnread
+                                    ? notification.type === 'weekly_digest'
+                                        ? { borderColor: '#8B5CF644', borderRight: '3px solid #8B5CF6' }
+                                        : isNudge(notification)
+                                            ? { borderColor: '#F59E0B44', borderRight: '3px solid #F59E0B' }
+                                            : { borderColor: '#009E8244', borderRight: '3px solid #009E82' }
+                                    : {}),
                             }}
                         >
-                            <div style={{ width: 40, height: 40, borderRadius: 12, background: isUnread ? '#009E8218' : '#F4F6FA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
-                                🔔
+                            <div style={{ width: 40, height: 40, borderRadius: 12, background: getIconBg(notification, isUnread), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                                {getIcon(notification)}
                             </div>
                             <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: 13, ...(isUnread ? { fontWeight: 600 } : { color: '#0F1923' }), lineHeight: 1.5 }}>
                                     {notification.title ?? notification.body}
                                 </div>
-                                {notification.body && notification.title && (
-                                    <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 2 }}>{notification.body}</div>
+                                {notification.type === 'weekly_digest' && notification.data ? (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+                                        <div style={{ background: '#F4F6FA', borderRadius: 8, padding: '6px 10px', fontSize: 11 }}>
+                                            <span style={{ fontWeight: 700 }}>{String(notification.data.upcoming_events_count ?? 0)}</span>{' '}
+                                            <span style={{ color: '#7A8BA8' }}>فعاليات قادمة</span>
+                                        </div>
+                                        <div style={{ background: '#F4F6FA', borderRadius: 8, padding: '6px 10px', fontSize: 11 }}>
+                                            <span style={{ fontWeight: 700 }}>{String(notification.data.new_members_count ?? 0)}</span>{' '}
+                                            <span style={{ color: '#7A8BA8' }}>أعضاء جدد</span>
+                                        </div>
+                                        <div style={{ background: '#F4F6FA', borderRadius: 8, padding: '6px 10px', fontSize: 11 }}>
+                                            <span style={{ fontWeight: 700 }}>{String(notification.data.matches_played ?? 0)}</span>{' '}
+                                            <span style={{ color: '#7A8BA8' }}>مباريات</span>
+                                        </div>
+                                        <div style={{ background: '#F4F6FA', borderRadius: 8, padding: '6px 10px', fontSize: 11 }}>
+                                            <span style={{ fontWeight: 700 }}>🔥 {String(notification.data.streak ?? 0)}</span>{' '}
+                                            <span style={{ color: '#7A8BA8' }}>أسابيع متتالية</span>
+                                        </div>
+                                    </div>
+                                ) : isNudge(notification) && notification.body ? (
+                                    <div style={{ fontSize: 12, color: '#92400E', marginTop: 4, background: '#FFFBEB', borderRadius: 8, padding: '6px 10px', lineHeight: 1.6 }}>
+                                        {notification.body}
+                                    </div>
+                                ) : (
+                                    notification.body && notification.title && (
+                                        <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 2 }}>{notification.body}</div>
+                                    )
                                 )}
                                 <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 4 }}>{fmtDateTime(notification.created_at)}</div>
                             </div>
                             {isUnread && (
                                 <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#009E82', marginTop: 6, flexShrink: 0 }} />
+                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: isNudge(notification) ? '#F59E0B' : '#009E82', marginTop: 6, flexShrink: 0 }} />
                                 </div>
                             )}
                         </button>

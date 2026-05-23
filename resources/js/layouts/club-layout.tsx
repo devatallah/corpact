@@ -11,6 +11,7 @@ export default function ClubLayout({ children }: { children: React.ReactNode }) 
         { label: 'طلبات الحجز', href: '/club/requests', emoji: '📋', badge: pendingCount },
         { label: 'الجدول', href: '/club/schedule', emoji: '🗓️' },
         { label: 'الملاعب', href: '/club/courts', emoji: '🏟️' },
+        { label: 'الخصومات', href: '/club/discounts', emoji: '🏷️' },
         { label: 'التسويات', href: '/club/settlements', emoji: '💰' },
         { label: 'الملف الشخصي', href: '/club/profile', emoji: '👤' },
     ];

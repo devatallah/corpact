@@ -87,6 +87,14 @@ class Club extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * @return HasMany<Discount, $this>
+     */
+    public function discounts(): HasMany
+    {
+        return $this->hasMany(Discount::class);
+    }
+
+    /**
      * @return HasMany<Event, $this>
      */
     public function events(): HasMany

@@ -2,19 +2,27 @@
 
 namespace Database\Seeders;
 
+use App\Models\Challenge;
+use App\Models\ChallengeProgress;
 use App\Models\Club;
 use App\Models\Community;
 use App\Models\CommunityAnnouncement;
+use App\Models\CommunityPoll;
 use App\Models\Company;
 use App\Models\Court;
 use App\Models\CourtPricing;
 use App\Models\Department;
+use App\Models\Discount;
 use App\Models\Employee;
 use App\Models\League;
 use App\Models\LeagueMatch;
 use App\Models\Invitation;
 use App\Models\Notification;
 use App\Models\PlatformRevenue;
+use App\Models\PollOption;
+use App\Models\PollVote;
+use App\Models\QuickMatch;
+use App\Models\QuickMatchInterest;
 use App\Models\Settlement;
 use App\Models\Slot;
 use App\Models\Sport;
@@ -72,12 +80,16 @@ class DatabaseSeeder extends Seeder
         foreach (range(1, 4) as $i) {
             $court = Court::factory()->create(['club_id' => $club1->id, 'sport_id' => $padel->id, 'name' => "ملعب بادل $i"]);
             $club1Courts->push($court);
-            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 60, 'price' => 200]);
-            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 90, 'price' => 280]);
+            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 60, 'price' => 150, 'is_peak' => false, 'label' => 'صباحي', 'start_time' => '06:00', 'end_time' => '16:00', 'days' => [0, 1, 2, 3]]);
+            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 60, 'price' => 250, 'is_peak' => true, 'label' => 'مسائي', 'start_time' => '16:00', 'end_time' => '23:00', 'days' => [0, 1, 2, 3]]);
+            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 60, 'price' => 300, 'is_peak' => true, 'label' => 'نهاية الأسبوع', 'start_time' => '06:00', 'end_time' => '23:00', 'days' => [4, 5]]);
+            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 90, 'price' => 220, 'is_peak' => false, 'label' => 'صباحي', 'start_time' => '06:00', 'end_time' => '16:00']);
+            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 90, 'price' => 350, 'is_peak' => true, 'label' => 'مسائي', 'start_time' => '16:00', 'end_time' => '23:00']);
         }
         $club1Tennis = Court::factory()->create(['club_id' => $club1->id, 'sport_id' => $tennis->id, 'name' => 'ملعب تنس 1']);
         $club1Courts->push($club1Tennis);
-        CourtPricing::factory()->create(['court_id' => $club1Tennis->id, 'duration_minutes' => 60, 'price' => 150]);
+        CourtPricing::factory()->create(['court_id' => $club1Tennis->id, 'duration_minutes' => 60, 'price' => 120, 'is_peak' => false, 'label' => 'خارج الذروة', 'start_time' => '06:00', 'end_time' => '16:00']);
+        CourtPricing::factory()->create(['court_id' => $club1Tennis->id, 'duration_minutes' => 60, 'price' => 200, 'is_peak' => true, 'label' => 'ذروة', 'start_time' => '16:00', 'end_time' => '23:00']);
 
         // ── Club 2: Active, multi-sport ──
         $club2 = Club::factory()->create([
@@ -486,6 +498,66 @@ class DatabaseSeeder extends Seeder
         CommunityAnnouncement::factory()->create(['community_id' => $basketCom2->id, 'employee_id' => $c2Employees[4]->id, 'body' => 'بطولة السلة الشهرية ستبدأ قريباً، سجلوا أسماءكم.']);
 
         // ╔══════════════════════════════════════════════════════════╗
+        // ║  DISCOUNTS                                                ║
+        // ╚══════════════════════════════════════════════════════════╝
+
+        // Club 1 → Company 1, Padel community — 15% one-time
+        Discount::create([
+            'club_id' => $club1->id,
+            'company_id' => $company1->id,
+            'community_id' => $padelCom1->id,
+            'name' => 'خصم ترحيبي',
+            'type' => 'percentage',
+            'value' => 15,
+            'usage' => 'one_time',
+            'status' => 'active',
+        ]);
+
+        // Club 1 → Company 2, Padel community — date range with time restriction
+        Discount::create([
+            'club_id' => $club1->id,
+            'company_id' => $company2->id,
+            'community_id' => $padelCom2->id,
+            'name' => 'خصم الصيف',
+            'type' => 'percentage',
+            'value' => 20,
+            'usage' => 'date_range',
+            'starts_at' => now()->startOfMonth()->toDateString(),
+            'expires_at' => now()->addMonths(2)->endOfMonth()->toDateString(),
+            'start_time' => '08:00',
+            'end_time' => '14:00',
+            'status' => 'active',
+        ]);
+
+        // Club 2 → Company 1, Football community — fixed amount
+        Discount::create([
+            'club_id' => $club2->id,
+            'company_id' => $company1->id,
+            'community_id' => $footballCom1->id,
+            'name' => 'خصم كرة القدم',
+            'type' => 'fixed',
+            'value' => 50,
+            'usage' => 'date_range',
+            'starts_at' => now()->subMonth()->toDateString(),
+            'expires_at' => now()->addMonth()->toDateString(),
+            'status' => 'active',
+        ]);
+
+        // Expired discount for testing
+        Discount::create([
+            'club_id' => $club1->id,
+            'company_id' => $company1->id,
+            'community_id' => $tennisCom1->id,
+            'name' => 'عرض رمضان',
+            'type' => 'percentage',
+            'value' => 25,
+            'usage' => 'date_range',
+            'starts_at' => now()->subMonths(3)->toDateString(),
+            'expires_at' => now()->subMonth()->toDateString(),
+            'status' => 'expired',
+        ]);
+
+        // ╔══════════════════════════════════════════════════════════╗
         // ║  LEAGUES                                                 ║
         // ╚══════════════════════════════════════════════════════════╝
 
@@ -571,6 +643,209 @@ class DatabaseSeeder extends Seeder
             'match_number' => 4,
             'round_label' => 'المركز الثالث',
             'is_third_place' => true,
+        ]);
+
+        // ╔══════════════════════════════════════════════════════════╗
+        // ║  CHALLENGES                                              ║
+        // ╚══════════════════════════════════════════════════════════╝
+
+        $challenge1 = Challenge::create([
+            'title' => 'شارك في 3 فعاليات هذا الشهر',
+            'description' => 'انضم لـ 3 فعاليات على الأقل خلال هذا الشهر',
+            'type' => 'events_count',
+            'target_count' => 3,
+            'starts_at' => now()->startOfMonth()->toDateString(),
+            'ends_at' => now()->endOfMonth()->toDateString(),
+            'status' => 'active',
+        ]);
+        $challenge2 = Challenge::create([
+            'title' => 'شارك في 5 فعاليات هذا الشهر',
+            'description' => 'للمتحمسين! حقق 5 مشاركات هذا الشهر',
+            'type' => 'events_count',
+            'target_count' => 5,
+            'starts_at' => now()->startOfMonth()->toDateString(),
+            'ends_at' => now()->endOfMonth()->toDateString(),
+            'status' => 'active',
+        ]);
+
+        // Progress for some employees
+        ChallengeProgress::create(['challenge_id' => $challenge1->id, 'employee_id' => $c1Employees[0]->id, 'current_count' => 3, 'completed_at' => now()->subDays(2)]);
+        ChallengeProgress::create(['challenge_id' => $challenge1->id, 'employee_id' => $c1Employees[1]->id, 'current_count' => 2]);
+        ChallengeProgress::create(['challenge_id' => $challenge1->id, 'employee_id' => $c1Employees[3]->id, 'current_count' => 1]);
+        ChallengeProgress::create(['challenge_id' => $challenge2->id, 'employee_id' => $c1Employees[0]->id, 'current_count' => 3]);
+        ChallengeProgress::create(['challenge_id' => $challenge2->id, 'employee_id' => $c2Employees[0]->id, 'current_count' => 1]);
+
+        // ╔══════════════════════════════════════════════════════════╗
+        // ║  POLLS                                                    ║
+        // ╚══════════════════════════════════════════════════════════╝
+
+        // Poll 1: Active poll in padel community 1
+        $poll1 = CommunityPoll::create([
+            'community_id' => $padelCom1->id,
+            'employee_id' => $c1Employees[0]->id,
+            'question' => 'متى تفضلون نلعب هالأسبوع؟',
+            'status' => 'active',
+        ]);
+        $opt1a = PollOption::create(['poll_id' => $poll1->id, 'label' => 'الأربعاء مساءً', 'sort_order' => 1]);
+        $opt1b = PollOption::create(['poll_id' => $poll1->id, 'label' => 'الخميس مساءً', 'sort_order' => 2]);
+        $opt1c = PollOption::create(['poll_id' => $poll1->id, 'label' => 'الجمعة صباحاً', 'sort_order' => 3]);
+        PollVote::create(['poll_id' => $poll1->id, 'option_id' => $opt1b->id, 'employee_id' => $c1Employees[1]->id]);
+        PollVote::create(['poll_id' => $poll1->id, 'option_id' => $opt1b->id, 'employee_id' => $c1Employees[2]->id]);
+        PollVote::create(['poll_id' => $poll1->id, 'option_id' => $opt1a->id, 'employee_id' => $c1Employees[3]->id]);
+        PollVote::create(['poll_id' => $poll1->id, 'option_id' => $opt1c->id, 'employee_id' => $c1Employees[4]->id]);
+        PollVote::create(['poll_id' => $poll1->id, 'option_id' => $opt1b->id, 'employee_id' => $c1Employees[5]->id]);
+
+        // Poll 2: Closed poll in football community
+        $poll2 = CommunityPoll::create([
+            'community_id' => $footballCom1->id,
+            'employee_id' => $c1Employees[3]->id,
+            'question' => 'وش أفضل نادي لكرة القدم؟',
+            'status' => 'closed',
+        ]);
+        $opt2a = PollOption::create(['poll_id' => $poll2->id, 'label' => 'نادي الرياض للبادل', 'sort_order' => 1]);
+        $opt2b = PollOption::create(['poll_id' => $poll2->id, 'label' => 'نادي جدة الرياضي', 'sort_order' => 2]);
+        PollVote::create(['poll_id' => $poll2->id, 'option_id' => $opt2b->id, 'employee_id' => $c1Employees[4]->id]);
+        PollVote::create(['poll_id' => $poll2->id, 'option_id' => $opt2b->id, 'employee_id' => $c1Employees[5]->id]);
+        PollVote::create(['poll_id' => $poll2->id, 'option_id' => $opt2a->id, 'employee_id' => $c1Employees[6]->id]);
+
+        // Poll 3: Active poll in company 2
+        $poll3 = CommunityPoll::create([
+            'community_id' => $padelCom2->id,
+            'employee_id' => $c2Employees[0]->id,
+            'question' => 'نسوي بطولة الشهر الجاي؟',
+            'expires_at' => now()->addDays(5),
+            'status' => 'active',
+        ]);
+        PollOption::create(['poll_id' => $poll3->id, 'label' => 'نعم', 'sort_order' => 1]);
+        PollOption::create(['poll_id' => $poll3->id, 'label' => 'لا', 'sort_order' => 2]);
+        PollOption::create(['poll_id' => $poll3->id, 'label' => 'الشهر اللي بعده أفضل', 'sort_order' => 3]);
+
+        // ╔══════════════════════════════════════════════════════════╗
+        // ║  QUICK MATCHES                                            ║
+        // ╚══════════════════════════════════════════════════════════╝
+
+        // Manual quick match — employee created
+        $qm1 = QuickMatch::create([
+            'community_id' => $padelCom1->id,
+            'created_by' => $c1Employees[1]->id,
+            'preferred_date' => now()->addDays(2)->toDateString(),
+            'preferred_time' => '18:30',
+            'message' => 'نبي نلعب بادل بعد الدوام، مين معي؟',
+            'source' => 'manual',
+            'status' => 'open',
+        ]);
+        QuickMatchInterest::create(['quick_match_id' => $qm1->id, 'employee_id' => $c1Employees[0]->id]);
+        QuickMatchInterest::create(['quick_match_id' => $qm1->id, 'employee_id' => $c1Employees[2]->id]);
+        QuickMatchInterest::create(['quick_match_id' => $qm1->id, 'employee_id' => $c1Employees[4]->id]);
+
+        // Manual quick match in football community
+        $qm2 = QuickMatch::create([
+            'community_id' => $footballCom1->id,
+            'created_by' => $c1Employees[3]->id,
+            'preferred_date' => now()->addDays(3)->toDateString(),
+            'preferred_time' => '20:00',
+            'message' => 'مباراة ودية يوم الخميس، نحتاج 10 لاعبين',
+            'source' => 'manual',
+            'status' => 'open',
+        ]);
+        QuickMatchInterest::create(['quick_match_id' => $qm2->id, 'employee_id' => $c1Employees[4]->id]);
+        QuickMatchInterest::create(['quick_match_id' => $qm2->id, 'employee_id' => $c1Employees[5]->id]);
+
+        // Auto-suggested quick match
+        QuickMatch::create([
+            'community_id' => $tennisCom1->id,
+            'created_by' => null,
+            'message' => 'مجتمعكم ما لعب من فترة، وش رايكم نسوي مباراة؟',
+            'source' => 'auto',
+            'status' => 'open',
+        ]);
+
+        // Auto-suggested for company 2
+        QuickMatch::create([
+            'community_id' => $basketCom2->id,
+            'created_by' => null,
+            'message' => 'مجتمعكم ما لعب من فترة، وش رايكم نسوي مباراة؟',
+            'source' => 'auto',
+            'status' => 'open',
+        ]);
+
+        // Converted quick match (already turned into event)
+        QuickMatch::create([
+            'community_id' => $padelCom2->id,
+            'created_by' => $c2Employees[0]->id,
+            'preferred_date' => now()->subDays(3)->toDateString(),
+            'preferred_time' => '19:00',
+            'message' => 'بادل نهاية الأسبوع',
+            'source' => 'manual',
+            'status' => 'converted',
+        ]);
+
+        // ╔══════════════════════════════════════════════════════════╗
+        // ║  WEEKLY DIGEST & NUDGE NOTIFICATIONS                      ║
+        // ╚══════════════════════════════════════════════════════════╝
+
+        // Weekly digest notifications
+        foreach ($c1Employees->take(3) as $emp) {
+            Notification::factory()->unread()->create([
+                'notifiable_type' => Employee::class,
+                'notifiable_id' => $emp->id,
+                'type' => 'weekly_digest',
+                'title' => 'ملخصك الأسبوعي',
+                'body' => "📅 لديك 3 فعاليات قادمة هذا الأسبوع\n👥 انضم 2 أعضاء جدد لمجتمعاتك\n🏆 تم لعب 4 مباريات في الدوريات\n🔥 سلسلتك: 3 أسابيع متتالية",
+                'data' => ['upcoming_events_count' => 3, 'new_members_count' => 2, 'matches_played' => 4, 'streak' => 3],
+            ]);
+        }
+
+        // Nudge notifications
+        Notification::factory()->unread()->create([
+            'notifiable_type' => Employee::class,
+            'notifiable_id' => $c1Employees[8]->id,
+            'type' => 'nudge_inactive',
+            'title' => 'وحشتنا! 👋',
+            'body' => 'فريقك سوّى فعاليات وأنت غايب، ارجع العب معهم!',
+        ]);
+        Notification::factory()->unread()->create([
+            'notifiable_type' => Employee::class,
+            'notifiable_id' => $c1Employees[9]->id,
+            'type' => 'nudge_inactive',
+            'title' => 'وحشتنا! 👋',
+            'body' => 'فريقك سوّى فعاليات وأنت غايب، ارجع العب معهم!',
+        ]);
+        Notification::factory()->unread()->create([
+            'notifiable_type' => Employee::class,
+            'notifiable_id' => $c1Employees[10]->id,
+            'type' => 'nudge_new_member',
+            'title' => 'وقت أول مباراة! 🏸',
+            'body' => 'انضميت لـ فريق البادل ولسّا ما لعبت، أول مباراة دايم أحلى!',
+            'data' => ['community_id' => $padelCom1->id],
+        ]);
+        Notification::factory()->unread()->create([
+            'notifiable_type' => Employee::class,
+            'notifiable_id' => $c1Employees[0]->id,
+            'type' => 'nudge_community',
+            'title' => 'مجتمعك يحتاجك! 🏃',
+            'body' => 'مجتمع نادي التنس ما لعب من أسبوعين، وش رايك تسوي فعالية؟',
+            'data' => ['community_id' => $tennisCom1->id],
+        ]);
+
+        // Poll notification
+        Notification::factory()->unread()->create([
+            'notifiable_type' => Employee::class,
+            'notifiable_id' => $c1Employees[6]->id,
+            'type' => 'poll',
+            'title' => 'تصويت جديد في فريق البادل',
+            'body' => 'متى تفضلون نلعب هالأسبوع؟',
+            'data' => ['community_id' => $padelCom1->id, 'poll_id' => $poll1->id],
+        ]);
+
+        // Quick match notification
+        Notification::factory()->unread()->create([
+            'notifiable_type' => Employee::class,
+            'notifiable_id' => $c1Employees[5]->id,
+            'type' => 'quick_match',
+            'title' => 'لعبة سريعة في فريق البادل',
+            'body' => 'نبي نلعب بادل بعد الدوام، مين معي؟',
+            'data' => ['community_id' => $padelCom1->id, 'quick_match_id' => $qm1->id],
         ]);
     }
 }

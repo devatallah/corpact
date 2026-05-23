@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Employee\UpdateProfileRequest;
+use App\Services\Employee\EmployeeStatsService;
 use App\Services\Employee\ProfileService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -13,6 +14,7 @@ class ProfileController extends Controller
 {
     public function __construct(
         private ProfileService $profileService,
+        private EmployeeStatsService $employeeStatsService,
     ) {}
 
     /**
@@ -31,6 +33,7 @@ class ProfileController extends Controller
             'stats' => $profileData['stats'],
             'events' => $myEvents,
             'communities' => $myCommunities,
+            'activityStats' => $this->employeeStatsService->getStats($employee),
         ]);
     }
 
