@@ -1,27 +1,27 @@
 import EmployeeLayout from '@/layouts/employee-layout';
-import SportIcon from '@/components/sport-icon';
+import CategoryIcon from '@/components/category-icon';
 import { Head, useForm } from '@inertiajs/react';
-import type { Club, Community, Court, CourtPricing, Discount, Sport } from '@/types/models';
+import type { Business, Community, Venue, VenuePricing, Discount, Category } from '@/types/models';
 import { useState, useMemo, useEffect } from 'react';
 import TimePicker from '@/components/time-picker';
 import toastr from 'toastr';
 
-interface CommunityWithSport extends Community {
-    sport: Sport;
+interface CommunityWithCategory extends Community {
+    category: Category;
     members_count: number;
 }
 
-interface ClubWithCourts extends Club {
-    courts: Court[];
+interface businessWithvenues extends Business {
+    venues: Venue[];
 }
 
 interface Props {
-    communities: CommunityWithSport[];
-    clubs: ClubWithCourts[];
+    communities: CommunityWithCategory[];
+    businesses: businessWithvenues[];
     discounts: Discount[];
 }
 
-export default function EventCreate({ communities, clubs, discounts }: Props) {
+export default function EventCreate({ communities, businesses, discounts }: Props) {
     const searchParams = new URLSearchParams(window.location.search);
     const queryCommunityId = searchParams.get('community_id');
     const queryQuickMatchId = searchParams.get('quick_match_id');
@@ -32,15 +32,15 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
 
     const { data, setData, post, processing, errors } = useForm({
         community_id: initial?.id ?? '',
-        sport_id: initial?.sport_id ?? '',
-        club_id: '' as string | number,
-        court_ids: [] as number[],
-        court_pricing_id: '' as string | number,
+        category_id: initial?.category_id ?? '',
+        business_id: '' as string | number,
+        venue_ids: [] as number[],
+        venue_pricing_id: '' as string | number,
         discount_id: null as number | null,
         quick_match_id: queryQuickMatchId ? Number(queryQuickMatchId) : null as number | null,
         date: '',
         time: '',
-        courts_count: 1,
+        venues_count: 1,
         capacity: 4,
         company_subsidy: 0,
         notes: '',
@@ -48,31 +48,31 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
 
     // Derived data
     const selectedCommunity = communities.find((c) => c.id === Number(data.community_id));
-    const sportId = Number(data.sport_id);
+    const categoryId = Number(data.category_id);
 
-    const filteredClubs = useMemo(() => {
-        if (!sportId) return clubs;
-        return clubs.filter((club) => club.courts.some((court) => court.sport_id === sportId && court.status === 'active'));
-    }, [clubs, sportId]);
+    const filteredbusinesses = useMemo(() => {
+        if (!categoryId) return businesses;
+        return businesses.filter((business) => business.venues.some((venue) => venue.category_id === categoryId && venue.status === 'active'));
+    }, [businesses, categoryId]);
 
-    const selectedClub = filteredClubs.find((c) => c.id === Number(data.club_id));
+    const selectedBusiness = filteredbusinesses.find((c) => c.id === Number(data.business_id));
 
-    const availableCourts = useMemo(() => {
-        if (!selectedClub) return [];
-        return selectedClub.courts.filter((c) => c.sport_id === sportId && c.status === 'active');
-    }, [selectedClub, sportId]);
+    const availablevenues = useMemo(() => {
+        if (!selectedBusiness) return [];
+        return selectedBusiness.venues.filter((c) => c.category_id === categoryId && c.status === 'active');
+    }, [selectedBusiness, categoryId]);
 
-    const selectedCourts = availableCourts.filter((c) => data.court_ids.includes(c.id));
+    const selectedVenues = availablevenues.filter((c) => data.venue_ids.includes(c.id));
 
     // Server-fetched pricings
-    const [serverPricings, setServerPricings] = useState<CourtPricing[]>([]);
+    const [serverPricings, setServerPricings] = useState<VenuePricing[]>([]);
     const [loadingPricings, setLoadingPricings] = useState(false);
 
-    // Fetch pricings from server when courts + date + time are set
+    // Fetch pricings from server when venues + date + time are set
     useEffect(() => {
-        if (data.court_ids.length === 0 || !data.date || !data.time) {
+        if (data.venue_ids.length === 0 || !data.date || !data.time) {
             setServerPricings([]);
-            setData('court_pricing_id', '');
+            setData('venue_pricing_id', '');
             return;
         }
 
@@ -80,41 +80,41 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
         fetch('/employee/create/pricings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '') },
-            body: JSON.stringify({ court_ids: data.court_ids, date: data.date, time: data.time }),
+            body: JSON.stringify({ venue_ids: data.venue_ids, date: data.date, time: data.time }),
         })
             .then((r) => r.json())
-            .then((pricings: CourtPricing[]) => {
+            .then((pricings: VenuePricing[]) => {
                 setServerPricings(pricings);
-                setData('court_pricing_id', '');
+                setData('venue_pricing_id', '');
                 setLoadingPricings(false);
             })
             .catch(() => { setServerPricings([]); setLoadingPricings(false); });
-    }, [data.court_ids.join(','), data.date, data.time]);
+    }, [data.venue_ids.join(','), data.date, data.time]);
 
-    // Group server pricings: only show durations common to ALL selected courts
+    // Group server pricings: only show durations common to ALL selected venues
     const availablePricings = useMemo(() => {
-        if (selectedCourts.length === 0 || serverPricings.length === 0) return [];
-        const firstCourtPricings = serverPricings.filter((p) => p.court_id === data.court_ids[0]);
-        return firstCourtPricings.filter((p) =>
-            data.court_ids.every((courtId) =>
-                serverPricings.some((sp) => sp.court_id === courtId && sp.duration_minutes === p.duration_minutes),
+        if (selectedVenues.length === 0 || serverPricings.length === 0) return [];
+        const firstVenuePricings = serverPricings.filter((p) => p.venue_id === data.venue_ids[0]);
+        return firstVenuePricings.filter((p) =>
+            data.venue_ids.every((venueId) =>
+                serverPricings.some((sp) => sp.venue_id === venueId && sp.duration_minutes === p.duration_minutes),
             ),
         );
-    }, [selectedCourts, serverPricings, data.court_ids]);
+    }, [selectedVenues, serverPricings, data.venue_ids]);
 
     const selectedPricing = availablePricings.find(
-        (p) => p.id === Number(data.court_pricing_id),
+        (p) => p.id === Number(data.venue_pricing_id),
     );
 
     // Find all matching discounts for current selection
     const matchingDiscounts = useMemo(() => {
-        if (!selectedClub || !selectedCommunity) return [];
+        if (!selectedBusiness || !selectedCommunity) return [];
 
         const communityId = Number(data.community_id);
-        const clubId = Number(data.club_id);
+        const businessId = Number(data.business_id);
 
         return discounts.filter((d) => {
-            if (d.club_id !== clubId || d.community_id !== communityId) return false;
+            if (d.business_id !== businessId || d.community_id !== communityId) return false;
             if (d.status !== 'active') return false;
 
             // For date_range, check if current date is within range
@@ -129,7 +129,7 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
 
             return true;
         });
-    }, [discounts, data.club_id, data.community_id, data.date, data.time, selectedClub, selectedCommunity]);
+    }, [discounts, data.business_id, data.community_id, data.date, data.time, selectedBusiness, selectedCommunity]);
 
     const selectedDiscount = matchingDiscounts.find((d) => d.id === data.discount_id) ?? null;
 
@@ -142,16 +142,16 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
         }
     }, [matchingDiscounts]);
 
-    // Per-court prices for the selected duration
-    const courtPrices = useMemo(() => {
-        if (!selectedPricing || selectedCourts.length === 0) return [];
-        return selectedCourts.map((court) => {
-            const cp = serverPricings.find((p) => p.court_id === court.id && p.duration_minutes === selectedPricing.duration_minutes);
-            return { name: court.name, price: Number(cp?.price ?? 0) };
+    // Per-venue prices for the selected duration
+    const venuePrices = useMemo(() => {
+        if (!selectedPricing || selectedVenues.length === 0) return [];
+        return selectedVenues.map((venue) => {
+            const cp = serverPricings.find((p) => p.venue_id === venue.id && p.duration_minutes === selectedPricing.duration_minutes);
+            return { name: venue.name, price: Number(cp?.price ?? 0) };
         });
-    }, [selectedPricing, selectedCourts, serverPricings]);
+    }, [selectedPricing, selectedVenues, serverPricings]);
 
-    const totalPrice = courtPrices.reduce((sum, c) => sum + c.price, 0);
+    const totalPrice = venuePrices.reduce((sum, c) => sum + c.price, 0);
 
     // Calculate discount
     const discountAmount = useMemo(() => {
@@ -168,28 +168,28 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
     const afterWallet = afterDiscount - communityContribution;
     const perPlayer = data.capacity > 0 ? Math.ceil(afterWallet / data.capacity) : 0;
 
-    function selectCommunity(community: CommunityWithSport) {
+    function selectCommunity(community: CommunityWithCategory) {
         setData((prev) => ({
             ...prev,
             community_id: community.id,
-            sport_id: community.sport_id,
-            club_id: '',
-            court_ids: [],
-            court_pricing_id: '',
+            category_id: community.category_id,
+            business_id: '',
+            venue_ids: [],
+            venue_pricing_id: '',
             discount_id: null,
         }));
     }
 
-    function handleClubChange(clubId: string) {
-        setData((prev) => ({ ...prev, club_id: clubId, court_ids: [], court_pricing_id: '', discount_id: null }));
+    function handlebusinessChange(businessId: string) {
+        setData((prev) => ({ ...prev, business_id: businessId, venue_ids: [], venue_pricing_id: '', discount_id: null }));
     }
 
-    function toggleCourt(courtId: number) {
+    function togglevenue(venueId: number) {
         setData((prev) => {
-            const ids = prev.court_ids.includes(courtId)
-                ? prev.court_ids.filter((id) => id !== courtId)
-                : [...prev.court_ids, courtId];
-            return { ...prev, court_ids: ids, courts_count: ids.length, court_pricing_id: '' };
+            const ids = prev.venue_ids.includes(venueId)
+                ? prev.venue_ids.filter((id) => id !== venueId)
+                : [...prev.venue_ids, venueId];
+            return { ...prev, venue_ids: ids, venues_count: ids.length, venue_pricing_id: '' };
         });
     }
 
@@ -202,11 +202,11 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
 
     const reviewRows = [
         { label: 'المجتمع', value: selectedCommunity?.name ?? '-' },
-        { label: 'النادي', value: selectedClub?.name ?? '-' },
-        { label: 'الملاعب', value: selectedCourts.length > 0 ? selectedCourts.map((c) => c.name).join('، ') : '-' },
+        { label: 'المنشأة', value: selectedBusiness?.name ?? '-' },
+        { label: 'المرافق', value: selectedVenues.length > 0 ? selectedVenues.map((c) => c.name).join('، ') : '-' },
         { label: 'التاريخ', value: data.date || '-' },
         { label: 'مدة الحجز', value: selectedPricing ? `${selectedPricing.duration_minutes} دقيقة` : '-' },
-        { label: 'عدد الملاعب', value: data.court_ids.length + (data.court_ids.length === 1 ? ' ملعب' : ' ملاعب') },
+        { label: 'عدد المرافق', value: data.venue_ids.length + (data.venue_ids.length === 1 ? ' مرفق' : ' مرافق') },
         { label: 'عدد اللاعبين', value: `${data.capacity} لاعبين` },
         { label: 'إجمالي الحجز', value: `${totalPrice.toLocaleString()} ريال` },
     ];
@@ -243,7 +243,7 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
                                         className="card"
                                         style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', border: `2px solid ${isSelected ? '#009E82' : '#E4E9F2'}`, marginBottom: 10 }}
                                     >
-                                        <div><SportIcon icon={community.sport?.icon} size={28} /></div>
+                                        <div><CategoryIcon icon={community.category?.icon} size={28} /></div>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: 14, fontWeight: 700 }}>{community.name}</div>
                                             <div style={{ fontSize: 11, color: '#7A8BA8' }}>{community.members_count} عضو</div>
@@ -267,38 +267,38 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
                     </div>
                 )}
 
-                {/* === STEP 2: Club, Date, Duration, Players === */}
+                {/* === STEP 2: Business, Date, Duration, Players === */}
                 {step === 2 && (
                     <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>النادي والموعد</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>المنشأة والموعد</div>
 
-                        {/* Club select */}
-                        <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 6 }}>اختر النادي</div>
+                        {/* Business select */}
+                        <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 6 }}>اختر المنشأة</div>
                         <div style={{ position: 'relative', marginBottom: 16 }}>
                             <select
-                                value={data.club_id}
-                                onChange={(e) => handleClubChange(e.target.value)}
+                                value={data.business_id}
+                                onChange={(e) => handlebusinessChange(e.target.value)}
                                 style={{ width: '100%', padding: '12px 14px', background: '#fff', border: '1px solid #E4E9F2', borderRadius: 12, fontSize: 13, appearance: 'none', cursor: 'pointer', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
                             >
-                                <option value="">اختر النادي...</option>
-                                {filteredClubs.map((club) => (
-                                    <option key={club.id} value={club.id}>{club.name}</option>
+                                <option value="">اختر المنشأة...</option>
+                                {filteredbusinesses.map((business) => (
+                                    <option key={business.id} value={business.id}>{business.name}</option>
                                 ))}
                             </select>
                             <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#7A8BA8', pointerEvents: 'none' }}>▼</div>
                         </div>
 
-                        {/* Court multi-select */}
-                        {selectedClub && availableCourts.length > 0 && (
+                        {/* Venue multi-select */}
+                        {selectedBusiness && availablevenues.length > 0 && (
                             <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 6 }}>اختر الملاعب ({data.court_ids.length})</div>
+                                <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 6 }}>اختر المرافق ({data.venue_ids.length})</div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                    {availableCourts.map((court) => {
-                                        const isSelected = data.court_ids.includes(court.id);
+                                    {availablevenues.map((venue) => {
+                                        const isSelected = data.venue_ids.includes(venue.id);
                                         return (
                                             <div
-                                                key={court.id}
-                                                onClick={() => toggleCourt(court.id)}
+                                                key={venue.id}
+                                                onClick={() => togglevenue(venue.id)}
                                                 style={{
                                                     display: 'flex',
                                                     alignItems: 'center',
@@ -314,9 +314,9 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
                                                     <div style={{ width: 18, height: 18, borderRadius: 4, ...(isSelected ? { background: '#009E82', display: 'flex', alignItems: 'center', justifyContent: 'center' } : { border: '2px solid #E4E9F2' }) }}>
                                                         {isSelected && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}
                                                     </div>
-                                                    <span style={{ fontSize: 14, fontWeight: 700 }}>{court.name}</span>
+                                                    <span style={{ fontSize: 14, fontWeight: 700 }}>{venue.name}</span>
                                                 </div>
-                                                <span style={{ fontSize: 11, color: '#7A8BA8' }}>{court.sport?.name ?? ''}</span>
+                                                <span style={{ fontSize: 11, color: '#7A8BA8' }}>{venue.category?.name ?? ''}</span>
                                             </div>
                                         );
                                     })}
@@ -349,16 +349,16 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
                                     <div style={{ padding: '12px 14px', background: '#fff', border: '2px solid #E4E9F2', borderRadius: 12, fontSize: 13, color: '#7A8BA8', textAlign: 'center' }}>جاري تحميل الأسعار...</div>
                                 ) : availablePricings.length > 0 ? (
                                     availablePricings.map((p) => {
-                                        const isSelected = Number(data.court_pricing_id) === p.id;
-                                        const perCourt = selectedCourts.map((court) => {
-                                            const cp = serverPricings.find((sp) => sp.court_id === court.id && sp.duration_minutes === p.duration_minutes);
-                                            return { name: court.name, price: Number(cp?.price ?? 0) };
+                                        const isSelected = Number(data.venue_pricing_id) === p.id;
+                                        const perVenue = selectedVenues.map((venue) => {
+                                            const cp = serverPricings.find((sp) => sp.venue_id === venue.id && sp.duration_minutes === p.duration_minutes);
+                                            return { name: venue.name, price: Number(cp?.price ?? 0) };
                                         });
-                                        const durationTotal = perCourt.reduce((s, c) => s + c.price, 0);
+                                        const durationTotal = perVenue.reduce((s, c) => s + c.price, 0);
                                         return (
                                             <div
                                                 key={p.id}
-                                                onClick={() => setData('court_pricing_id', p.id)}
+                                                onClick={() => setData('venue_pricing_id', p.id)}
                                                 style={{ padding: '12px 14px', background: isSelected ? '#009E8208' : '#fff', border: `2px solid ${isSelected ? '#009E82' : '#E4E9F2'}`, borderRadius: 12, cursor: 'pointer' }}
                                             >
                                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -377,9 +377,9 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
                                                     </div>
                                                     <span style={{ fontSize: 14, fontWeight: 800, color: isSelected ? '#009E82' : '#0F1923' }}>{durationTotal.toLocaleString()} ريال</span>
                                                 </div>
-                                                {selectedCourts.length > 1 && (
+                                                {selectedVenues.length > 1 && (
                                                     <div style={{ marginTop: 8, marginRight: 26, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                                        {perCourt.map((c) => (
+                                                        {perVenue.map((c) => (
                                                             <div key={c.name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#7A8BA8' }}>
                                                                 <span>{c.name}</span>
                                                                 <span>{c.price.toLocaleString()} ريال</span>
@@ -392,7 +392,7 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
                                     })
                                 ) : (
                                     <div style={{ padding: '12px 14px', background: '#fff', border: '2px solid #E4E9F2', borderRadius: 12, fontSize: 13, color: '#7A8BA8', textAlign: 'center' }}>
-                                        {!selectedClub ? 'اختر النادي أولا' : selectedCourts.length === 0 ? 'اختر الملاعب أولا' : !data.date || !data.time ? 'حدد التاريخ والوقت لعرض الأسعار المتاحة' : 'لا توجد أسعار متاحة لهذا الوقت'}
+                                        {!selectedBusiness ? 'اختر المنشأة أولا' : selectedVenues.length === 0 ? 'اختر المرافق أولا' : !data.date || !data.time ? 'حدد التاريخ والوقت لعرض الأسعار المتاحة' : 'لا توجد أسعار متاحة لهذا الوقت'}
                                     </div>
                                 )}
                             </div>
@@ -480,8 +480,8 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
                                 <span style={{ fontSize: 14, fontWeight: 800, color: '#0F1923' }}>{totalPrice.toLocaleString()} ريال</span>
                             </div>
 
-                            {/* Per-court breakdown */}
-                            {courtPrices.map((c) => (
+                            {/* Per-venue breakdown */}
+                            {venuePrices.map((c) => (
                                 <div key={c.name} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, paddingRight: 10 }}>
                                     <span style={{ fontSize: 11, color: '#7A8BA8' }}>{c.name}</span>
                                     <span style={{ fontSize: 11, color: '#7A8BA8' }}>{c.price.toLocaleString()} ريال</span>
@@ -491,7 +491,7 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
                             {/* Discount deduction */}
                             {discountAmount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 }}>
-                                    <span style={{ fontSize: 12, color: '#C8410A' }}>خصم النادي</span>
+                                    <span style={{ fontSize: 12, color: '#C8410A' }}>خصم المنشأة</span>
                                     <span style={{ fontSize: 13, fontWeight: 700, color: '#C8410A' }}>-{discountAmount.toLocaleString()} ريال</span>
                                 </div>
                             )}
@@ -547,7 +547,7 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
                             ))}
                             {discountAmount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #E4E9F2' }}>
-                                    <span style={{ fontSize: 12, color: '#C8410A' }}>خصم النادي</span>
+                                    <span style={{ fontSize: 12, color: '#C8410A' }}>خصم المنشأة</span>
                                     <span style={{ fontSize: 13, fontWeight: 700, color: '#C8410A' }}>-{discountAmount.toLocaleString()} ريال</span>
                                 </div>
                             )}
@@ -557,7 +557,7 @@ export default function EventCreate({ communities, clubs, discounts }: Props) {
                             </div>
                         </div>
 
-                        <div style={{ background: '#009E8218', border: '1px solid #009E8233', borderRadius: 12, padding: '10px 14px', fontSize: 12, color: '#009E82', marginBottom: 20 }}>سيُرسل طلب الحجز للنادي بعد اكتمال عدد اللاعبين</div>
+                        <div style={{ background: '#009E8218', border: '1px solid #009E8233', borderRadius: 12, padding: '10px 14px', fontSize: 12, color: '#009E82', marginBottom: 20 }}>سيُرسل طلب الحجز للمنشأة بعد اكتمال عدد اللاعبين</div>
 
                         {Object.keys(errors).length > 0 && (
                             <div style={{ background: '#E0305018', border: '1px solid #E0305033', borderRadius: 12, padding: '10px 14px', fontSize: 12, color: '#E03050', marginBottom: 16 }}>

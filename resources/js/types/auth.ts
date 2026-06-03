@@ -21,7 +21,7 @@ export type CompanyUser = {
     updated_at: string;
 };
 
-export type ClubUser = {
+export type businessUser = {
     id: number;
     name: string;
     email: string;
@@ -49,9 +49,9 @@ export type EmployeeUser = {
     updated_at: string;
 };
 
-export type AuthUser = AdminUser | CompanyUser | ClubUser | EmployeeUser;
+export type AuthUser = AdminUser | CompanyUser | businessUser | EmployeeUser;
 
-export type GuardName = 'admin' | 'company' | 'club' | 'employee';
+export type GuardName = 'admin' | 'company' | 'business' | 'employee';
 
 export type Auth = {
     guard: GuardName | null;

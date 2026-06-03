@@ -14,7 +14,7 @@ class HomeService
     public function myCommunities(Employee $employee): Collection
     {
         return $employee->communities()
-            ->with(['sport', 'leader'])
+            ->with(['category', 'leader'])
             ->withCount('members')
             ->get();
     }
@@ -27,7 +27,7 @@ class HomeService
         $communityIds = $employee->communities()->pluck('communities.id');
 
         return Event::query()
-            ->with(['community', 'club', 'sport'])
+            ->with(['community', 'business', 'category'])
             ->whereIn('community_id', $communityIds)
             ->whereIn('status', ['open', 'full', 'confirmed'])
             ->where('event_date', '>=', now())

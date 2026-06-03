@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Community;
 use App\Models\Event;
 use App\Models\QuickMatch;
+use App\Models\QuickMatchOption;
 use App\Services\Employee\QuickMatchService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -19,7 +20,7 @@ class SuggestQuickMatches extends Command
     /**
      * The console command description.
      */
-    protected $description = 'إنشاء لعبات سريعة تلقائية للمجتمعات غير النشطة';
+    protected $description = 'إنشاء تصويتات تلقائية للمجتمعات غير النشطة';
 
     /**
      * Execute the console command.
@@ -51,15 +52,39 @@ class SuggestQuickMatches extends Command
                 continue;
             }
 
-            // Create an auto-suggested quick match
+            // Create an auto-suggested quick match poll
             $quickMatch = QuickMatch::create([
                 'community_id' => $community->id,
                 'created_by' => null,
-                'preferred_date' => null,
-                'preferred_time' => null,
-                'message' => 'مجتمعكم ما لعب من فترة، وش رايكم نسوي مباراة؟',
+                'message' => 'مجتمعكم ما لعب من فترة، وش رايكم نسوي مباراة؟ صوّتوا على الموعد المناسب!',
                 'source' => 'auto',
                 'status' => 'open',
+            ]);
+
+            // Create default date/time options for the next few days
+            $nextThursday = Carbon::now()->next(Carbon::THURSDAY);
+            $nextFriday = Carbon::now()->next(Carbon::FRIDAY);
+            $nextSaturday = Carbon::now()->next(Carbon::SATURDAY);
+
+            QuickMatchOption::create([
+                'quick_match_id' => $quickMatch->id,
+                'date' => $nextThursday->toDateString(),
+                'time' => '18:00',
+                'sort_order' => 0,
+            ]);
+
+            QuickMatchOption::create([
+                'quick_match_id' => $quickMatch->id,
+                'date' => $nextFriday->toDateString(),
+                'time' => '20:00',
+                'sort_order' => 1,
+            ]);
+
+            QuickMatchOption::create([
+                'quick_match_id' => $quickMatch->id,
+                'date' => $nextSaturday->toDateString(),
+                'time' => '18:00',
+                'sort_order' => 2,
             ]);
 
             // Notify community members
@@ -68,7 +93,7 @@ class SuggestQuickMatches extends Command
             $count++;
         }
 
-        $this->info("تم إنشاء {$count} لعبة سريعة تلقائية.");
+        $this->info("تم إنشاء {$count} تصويت تلقائي.");
 
         return self::SUCCESS;
     }

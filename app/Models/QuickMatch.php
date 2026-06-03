@@ -7,14 +7,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'community_id',
     'created_by',
-    'preferred_date',
-    'preferred_time',
     'message',
     'source',
     'status',
@@ -22,16 +19,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class QuickMatch extends Model
 {
     use HasFactory;
-
-    /**
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'preferred_date' => 'date:Y-m-d',
-        ];
-    }
 
     /**
      * @return BelongsTo<Community, $this>
@@ -50,20 +37,19 @@ class QuickMatch extends Model
     }
 
     /**
-     * @return HasMany<QuickMatchInterest, $this>
+     * @return HasMany<QuickMatchOption, $this>
      */
-    public function interests(): HasMany
+    public function options(): HasMany
     {
-        return $this->hasMany(QuickMatchInterest::class);
+        return $this->hasMany(QuickMatchOption::class)->orderBy('sort_order');
     }
 
     /**
-     * @return BelongsToMany<Employee, $this>
+     * @return HasMany<QuickMatchVote, $this>
      */
-    public function interestedEmployees(): BelongsToMany
+    public function votes(): HasMany
     {
-        return $this->belongsToMany(Employee::class, 'quick_match_interests')
-            ->withTimestamps();
+        return $this->hasMany(QuickMatchVote::class);
     }
 
     /**

@@ -42,7 +42,7 @@ class HandleInertiaRequests extends Middleware
 
     private function detectGuard(): ?string
     {
-        foreach (['admin', 'company', 'club', 'employee'] as $guard) {
+        foreach (['admin', 'company', 'business', 'employee'] as $guard) {
             if (auth($guard)->check()) {
                 return $guard;
             }

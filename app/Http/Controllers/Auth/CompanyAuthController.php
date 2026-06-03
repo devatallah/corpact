@@ -67,7 +67,7 @@ class CompanyAuthController extends Controller
             'email' => ['required', 'email', 'unique:companies,email'],
             'sector' => ['required', 'string', 'max:255'],
             'employee_count_range' => ['required', 'string', 'max:255'],
-            'domain' => ['required', 'string', 'max:255'],
+            'domain' => ['required', 'string', 'max:255', 'unique:companies,domain'],
             'city' => ['required', 'string', 'max:255'],
             'hr_name' => ['required', 'string', 'max:255'],
             'hr_title' => ['required', 'string', 'max:255'],
@@ -88,7 +88,7 @@ class CompanyAuthController extends Controller
     {
         $company = Company::where('activation_token', $token)->first();
 
-        if (! $company) {
+        if (! $company || ($company->activation_token_expires_at && $company->activation_token_expires_at->isPast())) {
             return redirect()->route('company.login')
                 ->with('error', 'رابط التفعيل غير صالح أو منتهي الصلاحية.');
         }
@@ -104,7 +104,7 @@ class CompanyAuthController extends Controller
     {
         $company = Company::where('activation_token', $token)->first();
 
-        if (! $company) {
+        if (! $company || ($company->activation_token_expires_at && $company->activation_token_expires_at->isPast())) {
             return redirect()->route('company.login')
                 ->with('error', 'رابط التفعيل غير صالح أو منتهي الصلاحية.');
         }

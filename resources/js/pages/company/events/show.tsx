@@ -1,8 +1,8 @@
 import CompanyLayout from '@/layouts/company-layout';
 import StatusBadge from '@/components/status-badge';
-import SportIcon from '@/components/sport-icon';
+import CategoryIcon from '@/components/category-icon';
 import { fmtDate, fmtTime } from '@/lib/utils';
-import type { Event, Employee, Community, Club, Sport, EventAlternative } from '@/types/models';
+import type { Event, Employee, Community, Business, Category, EventAlternative } from '@/types/models';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import toastr from 'toastr';
@@ -10,8 +10,8 @@ import toastr from 'toastr';
 interface Props {
     event: Event & {
         community: Community;
-        club: Club;
-        sport: Sport;
+        business: Business;
+        category: Category;
         creator: Employee;
         participants: (Employee & { pivot?: { status: string; joined_at: string } })[];
         alternatives?: EventAlternative[];
@@ -24,8 +24,8 @@ export default function EventShow({ event, communityMembers, joinedIds }: Props)
     const [processing, setProcessing] = useState<number | null>(null);
     const [cancelProcessing, setCancelProcessing] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
-    const canCancel = ['open', 'waiting_club', 'alternative_proposed'].includes(event.status);
-    const canManageMembers = ['open', 'waiting_club', 'alternative_proposed'].includes(event.status);
+    const canCancel = ['open', 'waiting_business', 'alternative_proposed'].includes(event.status);
+    const canManageMembers = ['open', 'waiting_business', 'alternative_proposed'].includes(event.status);
 
     const joinedParticipants = event.participants?.filter(
         (p) => p.pivot?.status === 'joined',
@@ -71,10 +71,10 @@ export default function EventShow({ event, communityMembers, joinedIds }: Props)
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
                 <div>
                     <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>
-                        <SportIcon icon={event.sport?.icon} size={16} /> {event.community?.name}
+                        <CategoryIcon icon={event.category?.icon} size={16} /> {event.community?.name}
                     </div>
                     <div style={{ fontSize: 13, color: '#7A8BA8' }}>
-                        {event.club?.name} — {fmtDate(event.event_date)} — {fmtTime(event.start_time)}
+                        {event.business?.name} — {fmtDate(event.event_date)} — {fmtTime(event.start_time)}
                     </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -103,8 +103,8 @@ export default function EventShow({ event, communityMembers, joinedIds }: Props)
                     </div>
                 </div>
                 <div style={cardStyle}>
-                    <div style={labelStyle}>عدد الملاعب</div>
-                    <div style={valueStyle}>{event.courts_count}</div>
+                    <div style={labelStyle}>عدد المرافق</div>
+                    <div style={valueStyle}>{event.venues_count}</div>
                 </div>
                 <div style={cardStyle}>
                     <div style={labelStyle}>إجمالي التكلفة</div>
@@ -234,7 +234,7 @@ export default function EventShow({ event, communityMembers, joinedIds }: Props)
             {event.status === 'alternative_proposed' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
                 <div style={cardStyle}>
                     <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14, color: '#1A5FAB' }}>
-                        وقت بديل مقترح من النادي
+                        وقت بديل مقترح من المنشأة
                     </div>
                     {event.alternatives.filter((a) => a.status === 'proposed').map((alt) => (
                         <div key={alt.id} style={{ background: '#1A5FAB08', border: '1px solid #1A5FAB22', borderRadius: 12, padding: 16, marginBottom: 10 }}>
@@ -251,10 +251,10 @@ export default function EventShow({ event, communityMembers, joinedIds }: Props)
                                     <div style={{ fontSize: 11, color: '#7A8BA8' }}>إلى</div>
                                     <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtTime(alt.proposed_end_time)}</div>
                                 </div>
-                                {alt.proposed_courts_count && (
+                                {alt.proposed_venues_count && (
                                     <div>
-                                        <div style={{ fontSize: 11, color: '#7A8BA8' }}>عدد الملاعب</div>
-                                        <div style={{ fontSize: 14, fontWeight: 700 }}>{alt.proposed_courts_count}</div>
+                                        <div style={{ fontSize: 11, color: '#7A8BA8' }}>عدد المرافق</div>
+                                        <div style={{ fontSize: 14, fontWeight: 700 }}>{alt.proposed_venues_count}</div>
                                     </div>
                                 )}
                                 {alt.proposed_amount && (

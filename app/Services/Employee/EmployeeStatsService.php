@@ -11,7 +11,7 @@ class EmployeeStatsService
     /**
      * Get activity stats for an employee.
      *
-     * @return array{streak: int, total_events: int, events_this_month: int, top_sport: string|null}
+     * @return array{streak: int, total_events: int, events_this_month: int, top_category: string|null}
      */
     public function getStats(Employee $employee): array
     {
@@ -19,7 +19,7 @@ class EmployeeStatsService
             'streak' => $this->calculateStreak($employee),
             'total_events' => $this->totalEvents($employee),
             'events_this_month' => $this->eventsThisMonth($employee),
-            'top_sport' => $this->topSport($employee),
+            'top_category' => $this->topCategory($employee),
         ];
     }
 
@@ -105,17 +105,17 @@ class EmployeeStatsService
     /**
      * Get the most played sport name.
      */
-    private function topSport(Employee $employee): ?string
+    private function topCategory(Employee $employee): ?string
     {
-        $topSport = $employee->events()
+        $topCategory = $employee->events()
             ->wherePivot('status', 'joined')
             ->whereIn('events.status', ['confirmed', 'completed'])
-            ->join('sports', 'events.sport_id', '=', 'sports.id')
-            ->select('sports.name', DB::raw('COUNT(*) as count'))
-            ->groupBy('sports.name')
+            ->join('categories', 'events.category_id', '=', 'categories.id')
+            ->select('categories.name', DB::raw('COUNT(*) as count'))
+            ->groupBy('categories.name')
             ->orderByDesc('count')
             ->first();
 
-        return $topSport?->name;
+        return $topCategory?->name;
     }
 }

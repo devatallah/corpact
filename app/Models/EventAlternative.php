@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'proposed_date',
     'proposed_start_time',
     'proposed_end_time',
-    'proposed_courts_count',
+    'proposed_venues_count',
     'proposed_amount',
     'notes',
     'status',
@@ -29,7 +29,7 @@ class EventAlternative extends Model
     {
         return [
             'proposed_date' => 'date:Y-m-d',
-            'proposed_courts_count' => 'integer',
+            'proposed_venues_count' => 'integer',
             'proposed_amount' => 'decimal:2',
         ];
     }

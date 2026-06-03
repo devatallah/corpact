@@ -21,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return match (true) {
                 str_starts_with($path, 'employee') => route('employee.login'),
-                str_starts_with($path, 'club') => route('club.login'),
+                str_starts_with($path, 'business') => route('business.login'),
                 str_starts_with($path, 'company') => route('company.login'),
                 default => route('admin.login'),
             };
@@ -32,7 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return match (true) {
                 str_starts_with($path, 'employee') => route('employee.home'),
-                str_starts_with($path, 'club') => route('club.dash'),
+                str_starts_with($path, 'business') => route('business.dash'),
                 str_starts_with($path, 'company') => route('company.dash'),
                 str_starts_with($path, 'admin') => route('admin.dash'),
                 default => '/',

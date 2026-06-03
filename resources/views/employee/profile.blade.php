@@ -37,8 +37,8 @@
     @php $eColor = $event->community->color ?? '#009E82'; @endphp
     <div onclick="window.location='{{ route('employee.events.show', $event) }}'" class="card" style="cursor:pointer;border-right:3px solid {{ $eColor }};">
       <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-        <div><div style="font-size:13px;font-weight:700;">{{ $event->club->name }}</div><div style="font-size:11px;color:#7A8BA8;">{{ $event->community->name }}</div></div>
-        <span class="badge" style="background:{{ $event->status === 'confirmed' ? '#009E8218' : '#D4820A18' }};color:{{ $event->status === 'confirmed' ? '#009E82' : '#D4820A' }};">{{ $event->status === 'confirmed' ? 'مؤكدة' : ($event->status === 'open' ? 'مفتوح' : ($event->status === 'waiting_club' ? 'انتظار النادي' : $event->status)) }}</span>
+        <div><div style="font-size:13px;font-weight:700;">{{ $event->business->name }}</div><div style="font-size:11px;color:#7A8BA8;">{{ $event->community->name }}</div></div>
+        <span class="badge" style="background:{{ $event->status === 'confirmed' ? '#009E8218' : '#D4820A18' }};color:{{ $event->status === 'confirmed' ? '#009E82' : '#D4820A' }};">{{ $event->status === 'confirmed' ? 'مؤكدة' : ($event->status === 'open' ? 'مفتوح' : ($event->status === 'waiting_business' ? 'انتظار النادي' : $event->status)) }}</span>
       </div>
       <div style="display:flex;gap:14px;"><span style="font-size:11px;color:#7A8BA8;">📅 {{ $event->event_date->translatedFormat('l j F') }}</span><span style="font-size:11px;color:#7A8BA8;">👥 {{ $event->participants_count }}/{{ $event->capacity }}</span></div>
     </div>

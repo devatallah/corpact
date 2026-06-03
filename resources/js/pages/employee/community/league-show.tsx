@@ -1,19 +1,19 @@
 import EmployeeLayout from '@/layouts/employee-layout';
 import ConfirmModal from '@/components/confirm-modal';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import type { Community, League, LeagueMatch, LeagueStanding, Sport } from '@/types/models';
+import type { Community, League, LeagueMatch, LeagueStanding, Category } from '@/types/models';
 import { useState } from 'react';
 import toastr from 'toastr';
 
 interface Props {
-    community: Community & { sport?: Sport };
+    community: Community & { category?: Category };
     league: League;
     standings: LeagueStanding[] | null;
     isLeader: boolean;
 }
 
 export default function LeagueShow({ community, league, standings, isLeader }: Props) {
-    const color = community.sport?.color ?? community.color ?? '#009E82';
+    const color = community.category?.color ?? community.color ?? '#009E82';
     const matches = league.matches ?? [];
     const isKnockout = league.format === 'knockout';
     const formatLabel = league.format === 'knockout' ? 'خروج المغلوب'

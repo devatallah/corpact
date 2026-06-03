@@ -102,24 +102,24 @@ class LeaderboardService
             ->select([
                 'communities.id',
                 'communities.name',
-                'sports.name as sport_name',
-                'sports.icon as sport_icon',
+                'categories.name as category_name',
+                'categories.icon as category_icon',
                 DB::raw('COUNT(events.id) as events_count'),
             ])
-            ->leftJoin('sports', 'sports.id', '=', 'communities.sport_id')
+            ->leftJoin('categories', 'categories.id', '=', 'communities.category_id')
             ->join('events', 'events.community_id', '=', 'communities.id')
             ->where('communities.company_id', $companyId)
             ->whereIn('events.status', ['confirmed', 'completed'])
             ->whereBetween('events.event_date', [$startOfMonth, $endOfMonth])
-            ->groupBy('communities.id', 'communities.name', 'sports.name', 'sports.icon')
+            ->groupBy('communities.id', 'communities.name', 'categories.name', 'categories.icon')
             ->orderByDesc('events_count')
             ->limit(5)
             ->get()
             ->map(fn ($comm) => [
                 'id' => $comm->id,
                 'name' => $comm->name,
-                'sport_name' => $comm->sport_name,
-                'sport_icon' => $comm->sport_icon,
+                'category_name' => $comm->category_name,
+                'category_icon' => $comm->category_icon,
                 'events_count' => (int) $comm->events_count,
             ])
             ->all();

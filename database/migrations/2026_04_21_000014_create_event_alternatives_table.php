@@ -14,7 +14,7 @@ return new class extends Migration
             $table->date('proposed_date');
             $table->time('proposed_start_time');
             $table->time('proposed_end_time');
-            $table->unsignedInteger('proposed_courts_count')->nullable();
+            $table->unsignedInteger('proposed_venues_count')->nullable();
             $table->decimal('proposed_amount', 10, 2)->nullable();
             $table->text('notes')->nullable();
             $table->enum('status', ['proposed', 'accepted', 'rejected'])->default('proposed');

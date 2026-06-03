@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Club;
+use App\Models\business;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
@@ -43,18 +43,18 @@ test('employee login is throttled after 5 failed attempts', function () {
         ->toContain('عدد محاولات تسجيل الدخول');
 });
 
-test('club login is throttled after 5 failed attempts', function () {
-    $club = Club::factory()->create();
+test('business login is throttled after 5 failed attempts', function () {
+    $business = business::factory()->create();
 
     for ($i = 0; $i < 5; $i++) {
-        $this->post(route('club.login'), [
-            'email' => $club->email,
+        $this->post(route('business.login'), [
+            'email' => $business->email,
             'password' => 'wrong-password',
         ]);
     }
 
-    $this->post(route('club.login'), [
-        'email' => $club->email,
+    $this->post(route('business.login'), [
+        'email' => $business->email,
         'password' => 'wrong-password',
     ])->assertSessionHasErrors('email');
 

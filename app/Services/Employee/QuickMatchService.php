@@ -5,7 +5,8 @@ namespace App\Services\Employee;
 use App\Models\Employee;
 use App\Models\Notification;
 use App\Models\QuickMatch;
-use App\Models\QuickMatchInterest;
+use App\Models\QuickMatchOption;
+use App\Models\QuickMatchVote;
 use Illuminate\Database\Eloquent\Collection;
 
 class QuickMatchService
@@ -18,72 +19,93 @@ class QuickMatchService
         $communityIds = $employee->communities()->pluck('communities.id');
 
         return QuickMatch::query()
-            ->with(['community.sport', 'creator'])
-            ->withCount('interests')
+            ->with(['community.category', 'creator', 'options'])
+            ->withCount('votes')
             ->open()
             ->whereIn('community_id', $communityIds)
             ->orderByDesc('created_at')
             ->limit(10)
             ->get()
             ->each(function (QuickMatch $match) use ($employee) {
-                $match->setAttribute('is_interested', $match->interests()
-                    ->where('employee_id', $employee->id)
-                    ->exists());
+                $vote = $match->votes()->where('employee_id', $employee->id)->first();
+                $match->setAttribute('my_vote_option_id', $vote?->option_id);
             });
     }
 
     /**
-     * Create a new quick match.
+     * Create a new quick match with poll options.
      */
     public function create(Employee $employee, array $data): QuickMatch
     {
         $quickMatch = QuickMatch::create([
             'community_id' => $data['community_id'],
             'created_by' => $employee->id,
-            'preferred_date' => $data['preferred_date'] ?? null,
-            'preferred_time' => $data['preferred_time'] ?? null,
             'message' => $data['message'] ?? null,
             'source' => 'manual',
             'status' => 'open',
         ]);
 
-        // Notify community members (excluding creator)
+        foreach ($data['options'] as $i => $option) {
+            QuickMatchOption::create([
+                'quick_match_id' => $quickMatch->id,
+                'date' => $option['date'],
+                'time' => $option['time'],
+                'sort_order' => $i,
+            ]);
+        }
+
         $this->notifyCommunityMembers($quickMatch, $employee->id);
 
         return $quickMatch;
     }
 
     /**
-     * Toggle interest on a quick match. Returns whether the employee is now interested.
+     * Vote on a quick match option. Replaces previous vote if any.
      */
-    public function toggleInterest(Employee $employee, QuickMatch $quickMatch): bool
+    public function vote(Employee $employee, QuickMatch $quickMatch, int $optionId): void
     {
-        $existing = QuickMatchInterest::where('quick_match_id', $quickMatch->id)
+        $existing = QuickMatchVote::where('quick_match_id', $quickMatch->id)
             ->where('employee_id', $employee->id)
             ->first();
 
         if ($existing) {
+            // Decrement old option count
+            QuickMatchOption::where('id', $existing->option_id)->decrement('votes_count');
             $existing->delete();
-
-            return false;
         }
 
-        QuickMatchInterest::create([
+        QuickMatchVote::create([
             'quick_match_id' => $quickMatch->id,
+            'option_id' => $optionId,
             'employee_id' => $employee->id,
         ]);
 
-        return true;
+        QuickMatchOption::where('id', $optionId)->increment('votes_count');
     }
 
     /**
-     * Convert a quick match to an event.
+     * Convert a quick match to an event using the winning option.
      */
     public function convert(QuickMatch $quickMatch): string
     {
         $quickMatch->update(['status' => 'converted']);
 
-        return '/employee/create?community_id=' . $quickMatch->community_id . '&quick_match_id=' . $quickMatch->id;
+        $winningOption = $quickMatch->options()->orderByDesc('votes_count')->first();
+
+        $params = 'community_id=' . $quickMatch->community_id . '&quick_match_id=' . $quickMatch->id;
+        if ($winningOption) {
+            $params .= '&date=' . $winningOption->date->format('Y-m-d') . '&time=' . $winningOption->time;
+        }
+
+        return '/employee/create?' . $params;
+    }
+
+    /**
+     * Get voter employee IDs for a quick match (for auto-joining on event creation).
+     */
+    public function getVoterIds(QuickMatch $quickMatch): \Illuminate\Support\Collection
+    {
+        return $quickMatch->votes()->pluck('employee_id');
     }
 
     /**
@@ -103,8 +125,8 @@ class QuickMatchService
             'notifiable_type' => Employee::class,
             'notifiable_id' => $memberId,
             'type' => 'quick_match',
-            'title' => "لعبة سريعة في {$community->name}",
-            'body' => $quickMatch->message ?? 'مين يبي يلعب؟',
+            'title' => "تصويت جديد في {$community->name}",
+            'body' => $quickMatch->message ?? 'صوّت على الموعد المناسب!',
             'data' => json_encode([
                 'community_id' => $community->id,
                 'quick_match_id' => $quickMatch->id,

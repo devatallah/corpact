@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+#[Fillable(['venue_id', 'duration_minutes', 'price', 'is_peak', 'label', 'start_time', 'end_time', 'days', 'status'])]
+class VenuePricing extends Model
+{
+    use HasFactory;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'duration_minutes' => 'integer',
+            'price' => 'decimal:2',
+            'is_peak' => 'boolean',
+            'days' => 'array',
+        ];
+    }
+
+    /**
+     * @return BelongsTo<Venue, $this>
+     */
+    public function venue(): BelongsTo
+    {
+        return $this->belongsTo(Venue::class);
+    }
+
+    /**
+     * @return HasMany<Event, $this>
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(Event::class);
+    }
+}

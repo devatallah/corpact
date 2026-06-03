@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Court;
+use App\Models\Venue;
 use App\Models\Slot;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -21,7 +21,7 @@ class SlotFactory extends Factory
         $start = fake()->numberBetween(8, 20);
 
         return [
-            'court_id' => Court::factory(),
+            'venue_id' => Venue::factory(),
             'date' => fake()->dateTimeBetween('now', '+30 days')->format('Y-m-d'),
             'start_time' => sprintf('%02d:00', $start),
             'end_time' => sprintf('%02d:00', $start + 1),

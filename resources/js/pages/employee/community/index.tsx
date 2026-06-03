@@ -1,10 +1,10 @@
 import EmployeeLayout from '@/layouts/employee-layout';
-import SportIcon from '@/components/sport-icon';
+import CategoryIcon from '@/components/category-icon';
 import { Head, Link } from '@inertiajs/react';
-import type { Community, Employee, Sport } from '@/types/models';
+import type { Community, Employee, Category } from '@/types/models';
 
 interface CommunityItem extends Community {
-    sport?: Sport;
+    category?: Category;
     leader?: Employee;
     members_count: number;
     events_count: number;
@@ -24,7 +24,7 @@ export default function CommunityIndex({ communities }: Props) {
                 <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 12 }}>
                     {communities.length > 0 ? (
                         communities.map((community) => {
-                            const color = community.sport?.color ?? community.color ?? '#009E82';
+                            const color = community.category?.color ?? community.color ?? '#009E82';
                             return (
                                 <Link
                                     key={community.id}
@@ -32,7 +32,7 @@ export default function CommunityIndex({ communities }: Props) {
                                     style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, textDecoration: 'none', color: 'inherit' }}
                                 >
                                     <div style={{ width: 52, height: 52, borderRadius: 16, background: `${color}33`, border: `2px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <SportIcon icon={community.sport?.icon} size={28} />
+                                        <CategoryIcon icon={community.category?.icon} size={28} />
                                     </div>
                                     <div style={{ fontSize: 10, color, fontWeight: 700 }}>{community.name}</div>
                                 </Link>
@@ -46,7 +46,7 @@ export default function CommunityIndex({ communities }: Props) {
 
             {communities.length > 0 ? (
                 communities.map((community) => {
-                    const color = community.sport?.color ?? community.color ?? '#009E82';
+                    const color = community.category?.color ?? community.color ?? '#009E82';
                     return (
                         <Link
                             key={community.id}
@@ -55,7 +55,7 @@ export default function CommunityIndex({ communities }: Props) {
                             style={{ borderColor: `${color}33`, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
                         >
                             <div style={{ width: 46, height: 46, borderRadius: 12, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <SportIcon icon={community.sport?.icon} size={28} />
+                                <CategoryIcon icon={community.category?.icon} size={28} />
                             </div>
                             <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: 14, fontWeight: 700 }}>{community.name}</div>

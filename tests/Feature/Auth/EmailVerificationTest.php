@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Club;
+use App\Models\business;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
@@ -84,29 +84,29 @@ test('employee can verify email with valid link', function () {
     expect($employee->fresh()->hasVerifiedEmail())->toBeTrue();
 });
 
-test('club can see verification notice when unverified', function () {
-    $club = Club::factory()->unverified()->create();
+test('business can see verification notice when unverified', function () {
+    $business = business::factory()->unverified()->create();
 
-    $this->actingAs($club, 'club')
-        ->get(route('club.verification.notice'))
+    $this->actingAs($business, 'business')
+        ->get(route('business.verification.notice'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->component('auth/verify-email')->has('guard'));
 });
 
-test('club can verify email with valid link', function () {
-    $club = Club::factory()->unverified()->create();
+test('business can verify email with valid link', function () {
+    $business = business::factory()->unverified()->create();
 
     $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-        'club.verification.verify',
+        'business.verification.verify',
         now()->addMinutes(60),
-        ['id' => $club->id, 'hash' => sha1($club->email)]
+        ['id' => $business->id, 'hash' => sha1($business->email)]
     );
 
-    $this->actingAs($club, 'club')
+    $this->actingAs($business, 'business')
         ->get($url)
-        ->assertRedirect(route('club.dash'));
+        ->assertRedirect(route('business.dash'));
 
-    expect($club->fresh()->hasVerifiedEmail())->toBeTrue();
+    expect($business->fresh()->hasVerifiedEmail())->toBeTrue();
 });
 
 test('company can see verification notice when unverified', function () {

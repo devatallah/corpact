@@ -4,13 +4,13 @@ namespace Database\Seeders;
 
 use App\Models\Challenge;
 use App\Models\ChallengeProgress;
-use App\Models\Club;
+use App\Models\Business;
 use App\Models\Community;
 use App\Models\CommunityAnnouncement;
 use App\Models\CommunityPoll;
 use App\Models\Company;
-use App\Models\Court;
-use App\Models\CourtPricing;
+use App\Models\Venue;
+use App\Models\VenuePricing;
 use App\Models\Department;
 use App\Models\Discount;
 use App\Models\Employee;
@@ -22,10 +22,11 @@ use App\Models\PlatformRevenue;
 use App\Models\PollOption;
 use App\Models\PollVote;
 use App\Models\QuickMatch;
-use App\Models\QuickMatchInterest;
+use App\Models\QuickMatchOption;
+use App\Models\QuickMatchVote;
 use App\Models\Settlement;
 use App\Models\Slot;
-use App\Models\Sport;
+use App\Models\Category;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
@@ -40,13 +41,21 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        if (app()->isProduction()) {
+            $this->command->error('لا يمكن تشغيل الـSeeder في بيئة الإنتاج!');
+            return;
+        }
+
         // ╔══════════════════════════════════════════════════════════╗
-        // ║  SPORTS                                                  ║
+        // ║  CATEGORIES                                               ║
         // ╚══════════════════════════════════════════════════════════╝
-        $padel      = Sport::create(['name' => 'بادل', 'name_en' => 'Padel', 'icon' => '/storage/sports/padel.svg']);
-        $football   = Sport::create(['name' => 'كرة قدم', 'name_en' => 'Football', 'icon' => '/storage/sports/football.svg']);
-        $tennis     = Sport::create(['name' => 'تنس', 'name_en' => 'Tennis', 'icon' => '/storage/sports/tennis.svg']);
-        $basketball = Sport::create(['name' => 'كرة سلة', 'name_en' => 'Basketball', 'icon' => '/storage/sports/basketball.svg']);
+        $racketCat = Category::create(['name' => 'رياضات مضرب', 'name_en' => 'Racket Sports']);
+        $ballCat   = Category::create(['name' => 'رياضات كرة', 'name_en' => 'Ball Sports']);
+
+        $padelCat      = Category::create(['name' => 'بادل', 'name_en' => 'Padel', 'icon' => '/storage/sports/padel.svg', 'parent_id' => $racketCat->id]);
+        $tennisCat     = Category::create(['name' => 'تنس', 'name_en' => 'Tennis', 'icon' => '/storage/sports/tennis.svg', 'parent_id' => $racketCat->id]);
+        $footballCat   = Category::create(['name' => 'كرة قدم', 'name_en' => 'Football', 'icon' => '/storage/sports/football.svg', 'parent_id' => $ballCat->id]);
+        $basketballCat = Category::create(['name' => 'كرة سلة', 'name_en' => 'Basketball', 'icon' => '/storage/sports/basketball.svg', 'parent_id' => $ballCat->id]);
 
         // ╔══════════════════════════════════════════════════════════╗
         // ║  ADMIN                                                   ║
@@ -57,13 +66,13 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ╔══════════════════════════════════════════════════════════╗
-        // ║  CLUBS                                                   ║
+        // ║  businessS                                                   ║
         // ╚══════════════════════════════════════════════════════════╝
 
-        // ── Club 1: Active, fully set up ──
-        $club1 = Club::factory()->create([
-            'name'            => 'نادي الرياض للبادل',
-            'email'           => 'club1@teamat.com',
+        // ── Business 1: Active, fully set up ──
+        $biz1 = Business::factory()->create([
+            'name'            => 'مرافق الرياض للبادل',
+            'email'           => 'biz1@teamat.com',
             'password'        => Hash::make('123456'),
             'city'            => 'الرياض',
             'district'        => 'حي الملقا',
@@ -74,27 +83,27 @@ class DatabaseSeeder extends Seeder
             'total_bookings'  => 156,
             'commission_rate' => 10.00,
         ]);
-        $club1->sports()->attach([$padel->id, $tennis->id]);
+        $biz1->categories()->attach([$padelCat->id, $tennisCat->id]);
 
-        $club1Courts = collect();
+        $biz1Venues = collect();
         foreach (range(1, 4) as $i) {
-            $court = Court::factory()->create(['club_id' => $club1->id, 'sport_id' => $padel->id, 'name' => "ملعب بادل $i"]);
-            $club1Courts->push($court);
-            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 60, 'price' => 150, 'is_peak' => false, 'label' => 'صباحي', 'start_time' => '06:00', 'end_time' => '16:00', 'days' => [0, 1, 2, 3]]);
-            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 60, 'price' => 250, 'is_peak' => true, 'label' => 'مسائي', 'start_time' => '16:00', 'end_time' => '23:00', 'days' => [0, 1, 2, 3]]);
-            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 60, 'price' => 300, 'is_peak' => true, 'label' => 'نهاية الأسبوع', 'start_time' => '06:00', 'end_time' => '23:00', 'days' => [4, 5]]);
-            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 90, 'price' => 220, 'is_peak' => false, 'label' => 'صباحي', 'start_time' => '06:00', 'end_time' => '16:00']);
-            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 90, 'price' => 350, 'is_peak' => true, 'label' => 'مسائي', 'start_time' => '16:00', 'end_time' => '23:00']);
+            $venue = Venue::factory()->create(['business_id' => $biz1->id, 'category_id' => $padelCat->id, 'name' => "ملعب بادل $i"]);
+            $biz1Venues->push($venue);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 150, 'is_peak' => false, 'label' => 'صباحي', 'start_time' => '06:00', 'end_time' => '16:00', 'days' => [0, 1, 2, 3]]);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 250, 'is_peak' => true, 'label' => 'مسائي', 'start_time' => '16:00', 'end_time' => '23:00', 'days' => [0, 1, 2, 3]]);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 300, 'is_peak' => true, 'label' => 'نهاية الأسبوع', 'start_time' => '06:00', 'end_time' => '23:00', 'days' => [4, 5]]);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 90, 'price' => 220, 'is_peak' => false, 'label' => 'صباحي', 'start_time' => '06:00', 'end_time' => '16:00']);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 90, 'price' => 350, 'is_peak' => true, 'label' => 'مسائي', 'start_time' => '16:00', 'end_time' => '23:00']);
         }
-        $club1Tennis = Court::factory()->create(['club_id' => $club1->id, 'sport_id' => $tennis->id, 'name' => 'ملعب تنس 1']);
-        $club1Courts->push($club1Tennis);
-        CourtPricing::factory()->create(['court_id' => $club1Tennis->id, 'duration_minutes' => 60, 'price' => 120, 'is_peak' => false, 'label' => 'خارج الذروة', 'start_time' => '06:00', 'end_time' => '16:00']);
-        CourtPricing::factory()->create(['court_id' => $club1Tennis->id, 'duration_minutes' => 60, 'price' => 200, 'is_peak' => true, 'label' => 'ذروة', 'start_time' => '16:00', 'end_time' => '23:00']);
+        $biz1Tennis = Venue::factory()->create(['business_id' => $biz1->id, 'category_id' => $tennisCat->id, 'name' => 'ملعب تنس 1']);
+        $biz1Venues->push($biz1Tennis);
+        VenuePricing::factory()->create(['venue_id' => $biz1Tennis->id, 'duration_minutes' => 60, 'price' => 120, 'is_peak' => false, 'label' => 'خارج الذروة', 'start_time' => '06:00', 'end_time' => '16:00']);
+        VenuePricing::factory()->create(['venue_id' => $biz1Tennis->id, 'duration_minutes' => 60, 'price' => 200, 'is_peak' => true, 'label' => 'ذروة', 'start_time' => '16:00', 'end_time' => '23:00']);
 
-        // ── Club 2: Active, multi-sport ──
-        $club2 = Club::factory()->create([
-            'name'            => 'نادي جدة الرياضي',
-            'email'           => 'club2@teamat.com',
+        // ── Business 2: Active, multi-sport ──
+        $biz2 = Business::factory()->create([
+            'name'            => 'مرافق جدة الرياضية',
+            'email'           => 'biz2@teamat.com',
             'password'        => Hash::make('123456'),
             'city'            => 'جدة',
             'district'        => 'حي الروضة',
@@ -105,24 +114,24 @@ class DatabaseSeeder extends Seeder
             'total_bookings'  => 89,
             'commission_rate' => 12.00,
         ]);
-        $club2->sports()->attach([$padel->id, $football->id]);
+        $biz2->categories()->attach([$padelCat->id, $footballCat->id]);
 
-        $club2Courts = collect();
+        $biz2Venues = collect();
         foreach (range(1, 2) as $i) {
-            $court = Court::factory()->create(['club_id' => $club2->id, 'sport_id' => $padel->id, 'name' => "ملعب بادل $i"]);
-            $club2Courts->push($court);
-            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 60, 'price' => 180]);
-            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 90, 'price' => 250]);
+            $venue = Venue::factory()->create(['business_id' => $biz2->id, 'category_id' => $padelCat->id, 'name' => "ملعب بادل $i"]);
+            $biz2Venues->push($venue);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 180]);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 90, 'price' => 250]);
         }
-        $footballCourt = Court::factory()->create(['club_id' => $club2->id, 'sport_id' => $football->id, 'name' => 'ملعب كرة قدم']);
-        $club2Courts->push($footballCourt);
-        CourtPricing::factory()->create(['court_id' => $footballCourt->id, 'duration_minutes' => 60, 'price' => 350]);
-        CourtPricing::factory()->create(['court_id' => $footballCourt->id, 'duration_minutes' => 90, 'price' => 500]);
+        $footballVenue = Venue::factory()->create(['business_id' => $biz2->id, 'category_id' => $footballCat->id, 'name' => 'ملعب كرة قدم']);
+        $biz2Venues->push($footballVenue);
+        VenuePricing::factory()->create(['venue_id' => $footballVenue->id, 'duration_minutes' => 60, 'price' => 350]);
+        VenuePricing::factory()->create(['venue_id' => $footballVenue->id, 'duration_minutes' => 90, 'price' => 500]);
 
-        // ── Club 3: Active, Dammam ──
-        $club3 = Club::factory()->create([
-            'name'            => 'نادي الدمام',
-            'email'           => 'club3@teamat.com',
+        // ── Business 3: Active, Dammam ──
+        $biz3 = Business::factory()->create([
+            'name'            => 'مرافق الدمام',
+            'email'           => 'biz3@teamat.com',
             'password'        => Hash::make('123456'),
             'city'            => 'الدمام',
             'district'        => 'حي الشاطئ',
@@ -130,49 +139,49 @@ class DatabaseSeeder extends Seeder
             'total_bookings'  => 42,
             'commission_rate' => 10.00,
         ]);
-        $club3->sports()->attach([$tennis->id, $basketball->id]);
+        $biz3->categories()->attach([$tennisCat->id, $basketballCat->id]);
 
-        $club3Courts = collect();
+        $biz3Venues = collect();
         foreach (range(1, 2) as $i) {
-            $court = Court::factory()->create(['club_id' => $club3->id, 'sport_id' => $tennis->id, 'name' => "ملعب تنس $i"]);
-            $club3Courts->push($court);
-            CourtPricing::factory()->create(['court_id' => $court->id, 'duration_minutes' => 60, 'price' => 150]);
+            $venue = Venue::factory()->create(['business_id' => $biz3->id, 'category_id' => $tennisCat->id, 'name' => "ملعب تنس $i"]);
+            $biz3Venues->push($venue);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 150]);
         }
-        $basketCourt = Court::factory()->create(['club_id' => $club3->id, 'sport_id' => $basketball->id, 'name' => 'ملعب سلة']);
-        $club3Courts->push($basketCourt);
-        CourtPricing::factory()->create(['court_id' => $basketCourt->id, 'duration_minutes' => 60, 'price' => 250]);
+        $basketVenue = Venue::factory()->create(['business_id' => $biz3->id, 'category_id' => $basketballCat->id, 'name' => 'ملعب سلة']);
+        $biz3Venues->push($basketVenue);
+        VenuePricing::factory()->create(['venue_id' => $basketVenue->id, 'duration_minutes' => 60, 'price' => 250]);
 
-        // ── Club 4: Pending (waiting admin approval) ──
-        $club4 = Club::factory()->pending()->create([
-            'name'          => 'نادي الخبر الرياضي',
-            'email'         => 'khobar@club.sa',
+        // ── Business 4: Pending (waiting admin approval) ──
+        $biz4 = Business::factory()->pending()->create([
+            'name'          => 'مرافق الخبر الرياضية',
+            'email'         => 'khobar@biz.sa',
             'password'      => null,
             'city'          => 'الخبر',
             'district'      => 'حي العقربية',
             'contact_name'  => 'عادل المحمد',
-            'contact_title' => 'مالك النادي',
-            'courts_count'  => 3,
-            'notes'         => 'نادي جديد يحتوي على 3 ملاعب بادل حديثة',
+            'contact_title' => 'مالك المنشأة',
+            'venues_count'  => 3,
+            'notes'         => 'منشأة جديدة تحتوي على 3 ملاعب بادل حديثة',
         ]);
-        $club4->sports()->attach([$padel->id]);
+        $biz4->categories()->attach([$padelCat->id]);
 
-        // ── Club 5: Pending (another pending for admin) ──
-        Club::factory()->pending()->create([
-            'name'          => 'نادي المدينة الرياضي',
-            'email'         => 'madinah@club.sa',
+        // ── Business 5: Pending (another pending for admin) ──
+        Business::factory()->pending()->create([
+            'name'          => 'مرافق المدينة الرياضية',
+            'email'         => 'madinah@biz.sa',
             'password'      => null,
             'city'          => 'المدينة',
             'district'      => 'حي السلام',
             'contact_name'  => 'خالد الحسن',
             'contact_title' => 'المدير العام',
-            'courts_count'  => 5,
-            'notes'         => 'نادي كبير يضم ملاعب متعددة الرياضات',
+            'venues_count'  => 5,
+            'notes'         => 'منشأة كبيرة تضم ملاعب متعددة الرياضات',
         ]);
 
-        // ── Club 6: Approved but not activated (has activation token) ──
-        Club::factory()->create([
-            'name'             => 'نادي النخيل',
-            'email'            => 'nakheel@club.sa',
+        // ── Business 6: Approved but not activated (has activation token) ──
+        Business::factory()->create([
+            'name'             => 'مرافق النخيل',
+            'email'            => 'nakheel@biz.sa',
             'password'         => null,
             'city'             => 'الرياض',
             'district'         => 'حي النخيل',
@@ -181,19 +190,19 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ── Slots / Schedule ──
-        $allCourts = $club1Courts->merge($club2Courts)->merge($club3Courts);
+        $allvenues = $biz1Venues->merge($biz2Venues)->merge($biz3Venues);
         $slotHours = [
             ['06:00', '07:00'], ['07:00', '08:00'], ['08:00', '09:00'],
             ['16:00', '17:00'], ['17:00', '18:00'], ['18:00', '19:00'],
             ['19:00', '20:00'], ['20:00', '21:00'], ['21:00', '22:00'],
             ['22:00', '23:00'],
         ];
-        foreach ($allCourts as $court) {
+        foreach ($allvenues as $venue) {
             foreach (range(0, 6) as $dayOffset) {
                 $date = now()->addDays($dayOffset)->toDateString();
                 foreach ($slotHours as [$start, $end]) {
                     Slot::create([
-                        'court_id'   => $court->id,
+                        'venue_id'   => $venue->id,
                         'date'       => $date,
                         'start_time' => $start,
                         'end_time'   => $end,
@@ -341,19 +350,19 @@ class DatabaseSeeder extends Seeder
         $padelCom1 = Community::factory()->create([
             'name' => 'فريق البادل', 'description' => 'مجتمع محبي رياضة البادل في الشركة',
             'icon' => '🏸', 'color' => '#3B82F6', 'company_id' => $company1->id,
-            'sport_id' => $padel->id, 'leader_id' => $c1Employees[0]->id,
+            'category_id' => $padelCat->id, 'leader_id' => $c1Employees[0]->id,
             'member_count' => 10, 'balance' => 2500,
         ]);
         $footballCom1 = Community::factory()->create([
             'name' => 'فريق كرة القدم', 'description' => 'مجتمع كرة القدم للموظفين',
             'icon' => '⚽', 'color' => '#10B981', 'company_id' => $company1->id,
-            'sport_id' => $football->id, 'leader_id' => $c1Employees[3]->id,
+            'category_id' => $footballCat->id, 'leader_id' => $c1Employees[3]->id,
             'member_count' => 12, 'balance' => 1800,
         ]);
         $tennisCom1 = Community::factory()->create([
-            'name' => 'نادي التنس', 'description' => 'لعشاق التنس',
+            'name' => 'مجتمع التنس', 'description' => 'لعشاق التنس',
             'icon' => '🎾', 'color' => '#F59E0B', 'company_id' => $company1->id,
-            'sport_id' => $tennis->id, 'leader_id' => $c1Employees[6]->id,
+            'category_id' => $tennisCat->id, 'leader_id' => $c1Employees[6]->id,
             'member_count' => 6, 'balance' => 800,
         ]);
 
@@ -361,13 +370,13 @@ class DatabaseSeeder extends Seeder
         $padelCom2 = Community::factory()->create([
             'name' => 'بادل الابتكار', 'description' => 'فريق البادل في مجموعة الابتكار',
             'icon' => '🏸', 'color' => '#8B5CF6', 'company_id' => $company2->id,
-            'sport_id' => $padel->id, 'leader_id' => $c2Employees[0]->id,
+            'category_id' => $padelCat->id, 'leader_id' => $c2Employees[0]->id,
             'member_count' => 8, 'balance' => 1500,
         ]);
         $basketCom2 = Community::factory()->create([
             'name' => 'فريق السلة', 'description' => 'مجتمع كرة السلة',
             'icon' => '🏀', 'color' => '#EF4444', 'company_id' => $company2->id,
-            'sport_id' => $basketball->id, 'leader_id' => $c2Employees[4]->id,
+            'category_id' => $basketballCat->id, 'leader_id' => $c2Employees[4]->id,
             'member_count' => 6, 'balance' => 900,
         ]);
 
@@ -401,23 +410,23 @@ class DatabaseSeeder extends Seeder
         // ║  SETTLEMENTS                                             ║
         // ╚══════════════════════════════════════════════════════════╝
         $s1 = Settlement::factory()->paid()->create([
-            'club_id' => $club1->id, 'company_id' => $company1->id,
+            'business_id' => $biz1->id, 'company_id' => $company1->id,
             'period' => now()->subMonth()->format('Y-m'), 'events_count' => 8,
             'gross_amount' => 2240, 'commission_amount' => 224, 'net_amount' => 2016,
         ]);
         Settlement::factory()->create([
-            'club_id' => $club1->id, 'company_id' => $company1->id,
+            'business_id' => $biz1->id, 'company_id' => $company1->id,
             'period' => now()->format('Y-m'), 'events_count' => 4,
             'gross_amount' => 1120, 'commission_amount' => 112, 'net_amount' => 1008,
             'status' => 'pending',
         ]);
         Settlement::factory()->paid()->create([
-            'club_id' => $club2->id, 'company_id' => $company2->id,
+            'business_id' => $biz2->id, 'company_id' => $company2->id,
             'period' => now()->subMonth()->format('Y-m'), 'events_count' => 5,
             'gross_amount' => 900, 'commission_amount' => 108, 'net_amount' => 792,
         ]);
         Settlement::factory()->create([
-            'club_id' => $club2->id, 'company_id' => $company1->id,
+            'business_id' => $biz2->id, 'company_id' => $company1->id,
             'period' => now()->format('Y-m'), 'events_count' => 2,
             'gross_amount' => 700, 'commission_amount' => 84, 'net_amount' => 616,
             'status' => 'processing',
@@ -426,8 +435,8 @@ class DatabaseSeeder extends Seeder
         // ╔══════════════════════════════════════════════════════════╗
         // ║  PLATFORM REVENUE                                        ║
         // ╚══════════════════════════════════════════════════════════╝
-        PlatformRevenue::factory()->create(['settlement_id' => $s1->id, 'amount' => 224, 'source' => 'commission', 'description' => 'عمولة تسوية نادي الرياض', 'revenue_date' => now()->subMonth()->endOfMonth()->toDateString()]);
-        PlatformRevenue::factory()->create(['amount' => 108, 'source' => 'commission', 'description' => 'عمولة تسوية نادي جدة', 'revenue_date' => now()->subMonth()->endOfMonth()->toDateString()]);
+        PlatformRevenue::factory()->create(['settlement_id' => $s1->id, 'amount' => 224, 'source' => 'commission', 'description' => 'عمولة تسوية مرافق الرياض', 'revenue_date' => now()->subMonth()->endOfMonth()->toDateString()]);
+        PlatformRevenue::factory()->create(['amount' => 108, 'source' => 'commission', 'description' => 'عمولة تسوية مرافق جدة', 'revenue_date' => now()->subMonth()->endOfMonth()->toDateString()]);
         PlatformRevenue::factory()->create(['amount' => 500, 'source' => 'subscription', 'description' => 'اشتراك شركة التقنية المتقدمة', 'revenue_date' => now()->startOfMonth()->toDateString()]);
         PlatformRevenue::factory()->create(['amount' => 500, 'source' => 'subscription', 'description' => 'اشتراك مجموعة الابتكار', 'revenue_date' => now()->startOfMonth()->toDateString()]);
 
@@ -436,37 +445,37 @@ class DatabaseSeeder extends Seeder
         // ╚══════════════════════════════════════════════════════════╝
 
         // Admin
-        Notification::factory()->unread()->create(['notifiable_type' => User::class, 'notifiable_id' => $admin->id, 'type' => 'system', 'title' => 'طلب تسجيل نادي جديد', 'body' => 'نادي الخبر الرياضي بانتظار الموافقة.']);
+        Notification::factory()->unread()->create(['notifiable_type' => User::class, 'notifiable_id' => $admin->id, 'type' => 'system', 'title' => 'طلب تسجيل منشأة جديدة', 'body' => 'مرافق الخبر الرياضية بانتظار الموافقة.']);
         Notification::factory()->unread()->create(['notifiable_type' => User::class, 'notifiable_id' => $admin->id, 'type' => 'system', 'title' => 'طلب تسجيل شركة', 'body' => 'شركة الأفق الجديد بانتظار الموافقة.']);
-        Notification::factory()->read()->create(['notifiable_type' => User::class, 'notifiable_id' => $admin->id, 'type' => 'payment', 'title' => 'إيرادات جديدة', 'body' => 'تم تحصيل عمولة 224 ر.س من تسوية نادي الرياض.']);
+        Notification::factory()->read()->create(['notifiable_type' => User::class, 'notifiable_id' => $admin->id, 'type' => 'payment', 'title' => 'إيرادات جديدة', 'body' => 'تم تحصيل عمولة 224 ر.س من تسوية مرافق الرياض.']);
 
         // Company 1
-        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'alternative_proposed', 'title' => 'وقت بديل مقترح', 'body' => 'اقترح نادي الرياض وقتاً بديلاً لحدث تدريب بادل مسائي.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'alternative_proposed', 'title' => 'وقت بديل مقترح', 'body' => 'اقترح نادي جدة وقتاً بديلاً لمباراة كرة القدم.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'event_approved', 'title' => 'تمت الموافقة على الحجز', 'body' => 'وافق نادي الرياض على حجز بادل الأربعاء.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'event_rejected', 'title' => 'تم رفض الحجز', 'body' => 'رفض نادي الرياض حجزك. السبب: الملعب محجوز.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'alternative_proposed', 'title' => 'وقت بديل مقترح', 'body' => 'اقترحت مرافق الرياض وقتاً بديلاً لحدث تدريب بادل مسائي.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'alternative_proposed', 'title' => 'وقت بديل مقترح', 'body' => 'اقترحت مرافق جدة وقتاً بديلاً لمباراة كرة القدم.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'event_approved', 'title' => 'تمت الموافقة على الحجز', 'body' => 'وافقت مرافق الرياض على حجز بادل الأربعاء.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'event_rejected', 'title' => 'تم رفض الحجز', 'body' => 'رفضت مرافق الرياض حجزك. السبب: الملعب محجوز.']);
         Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'event_created', 'title' => 'حدث جديد', 'body' => 'أنشأ أحمد السالم حدث بادل جديد.']);
         Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'payment', 'title' => 'خصم من المحفظة', 'body' => 'تم خصم 100 ر.س كدعم لحدث بادل.']);
         Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'system', 'title' => 'مرحباً بك في تيمات', 'body' => 'تم تفعيل حسابك. ابدأ بإنشاء مجتمعات لموظفيك.']);
         Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'reminder', 'title' => 'تذكير: حدث غداً', 'body' => 'لديك حدث بادل غداً الساعة 6 مساءً.']);
 
         // Company 2
-        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company2->id, 'type' => 'alternative_proposed', 'title' => 'وقت بديل مقترح', 'body' => 'اقترح نادي جدة وقتاً بديلاً للقاء البادل.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company2->id, 'type' => 'alternative_proposed', 'title' => 'وقت بديل جديد', 'body' => 'اقترح نادي الرياض وقتاً بديلاً ثانياً لحدث بادل نهاية الأسبوع.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company2->id, 'type' => 'event_approved', 'title' => 'تمت الموافقة', 'body' => 'وافق نادي جدة على حجز بادل مساء الخميس.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company2->id, 'type' => 'alternative_proposed', 'title' => 'وقت بديل مقترح', 'body' => 'اقترحت مرافق جدة وقتاً بديلاً للقاء البادل.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company2->id, 'type' => 'alternative_proposed', 'title' => 'وقت بديل جديد', 'body' => 'اقترحت مرافق الرياض وقتاً بديلاً ثانياً لحدث بادل نهاية الأسبوع.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company2->id, 'type' => 'event_approved', 'title' => 'تمت الموافقة', 'body' => 'وافقت مرافق جدة على حجز بادل مساء الخميس.']);
         Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company2->id, 'type' => 'system', 'title' => 'مرحباً بك', 'body' => 'تم تفعيل حساب شركتك بنجاح.']);
 
-        // Club 1
-        Notification::factory()->unread()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club1->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من شركة التقنية المتقدمة — تدريب أسبوعي.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club1->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من مجموعة الابتكار — تدريب بادل.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club1->id, 'type' => 'alternative_rejected', 'title' => 'رفض الوقت البديل', 'body' => 'رفضت مجموعة الابتكار وقتك البديل الأول لحدث بادل نهاية الأسبوع.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club1->id, 'type' => 'payment', 'title' => 'تسوية مالية', 'body' => 'تم إصدار تسوية بمبلغ 2,016 ر.س.']);
-        Notification::factory()->read()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club1->id, 'type' => 'system', 'title' => 'مرحباً بك في تيمات', 'body' => 'تم تفعيل حساب ناديك بنجاح.']);
+        // Business 1
+        Notification::factory()->unread()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz1->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من شركة التقنية المتقدمة — تدريب أسبوعي.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz1->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من مجموعة الابتكار — تدريب بادل.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz1->id, 'type' => 'alternative_rejected', 'title' => 'رفض الوقت البديل', 'body' => 'رفضت مجموعة الابتكار وقتك البديل الأول لحدث بادل نهاية الأسبوع.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz1->id, 'type' => 'payment', 'title' => 'تسوية مالية', 'body' => 'تم إصدار تسوية بمبلغ 2,016 ر.س.']);
+        Notification::factory()->read()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz1->id, 'type' => 'system', 'title' => 'مرحباً بك في تيمات', 'body' => 'تم تفعيل حساب منشأتك بنجاح.']);
 
-        // Club 2
-        Notification::factory()->unread()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club2->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من شركة التقنية المتقدمة — مباراة ودية.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club2->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من مجموعة الابتكار — مباراة صباحية.']);
-        Notification::factory()->read()->create(['notifiable_type' => Club::class, 'notifiable_id' => $club2->id, 'type' => 'alternative_accepted', 'title' => 'تم قبول البديل', 'body' => 'قبلت مجموعة الابتكار الوقت البديل لحدث بادل.']);
+        // Business 2
+        Notification::factory()->unread()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz2->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من شركة التقنية المتقدمة — مباراة ودية.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz2->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من مجموعة الابتكار — مباراة صباحية.']);
+        Notification::factory()->read()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz2->id, 'type' => 'alternative_accepted', 'title' => 'تم قبول البديل', 'body' => 'قبلت مجموعة الابتكار الوقت البديل لحدث بادل.']);
 
         // Employee notifications
         foreach ($c1Employees->take(5) as $emp) {
@@ -493,7 +502,7 @@ class DatabaseSeeder extends Seeder
         CommunityAnnouncement::factory()->create(['community_id' => $padelCom1->id, 'employee_id' => $c1Employees[0]->id, 'body' => 'تذكير: التدريب الأسبوعي كل يوم أربعاء الساعة 6 مساءً.']);
         CommunityAnnouncement::factory()->create(['community_id' => $footballCom1->id, 'employee_id' => $c1Employees[3]->id, 'body' => 'تهانينا لفريقنا على الفوز في مباراة الأسبوع الماضي!']);
         CommunityAnnouncement::factory()->create(['community_id' => $footballCom1->id, 'employee_id' => $c1Employees[4]->id, 'body' => 'التمرين القادم يوم الأحد الساعة 8 مساءً، الحضور إلزامي.']);
-        CommunityAnnouncement::factory()->create(['community_id' => $tennisCom1->id, 'employee_id' => $c1Employees[6]->id, 'body' => 'نبحث عن أعضاء جدد لنادي التنس، رشحوا زملاءكم!']);
+        CommunityAnnouncement::factory()->create(['community_id' => $tennisCom1->id, 'employee_id' => $c1Employees[6]->id, 'body' => 'نبحث عن أعضاء جدد لمجتمع التنس، رشحوا زملاءكم!']);
         CommunityAnnouncement::factory()->create(['community_id' => $padelCom2->id, 'employee_id' => $c2Employees[0]->id, 'body' => 'أهلاً بالأعضاء الجدد في فريق بادل الابتكار!']);
         CommunityAnnouncement::factory()->create(['community_id' => $basketCom2->id, 'employee_id' => $c2Employees[4]->id, 'body' => 'بطولة السلة الشهرية ستبدأ قريباً، سجلوا أسماءكم.']);
 
@@ -501,9 +510,9 @@ class DatabaseSeeder extends Seeder
         // ║  DISCOUNTS                                                ║
         // ╚══════════════════════════════════════════════════════════╝
 
-        // Club 1 → Company 1, Padel community — 15% one-time
+        // Business 1 → Company 1, Padel community — 15% one-time
         Discount::create([
-            'club_id' => $club1->id,
+            'business_id' => $biz1->id,
             'company_id' => $company1->id,
             'community_id' => $padelCom1->id,
             'name' => 'خصم ترحيبي',
@@ -513,9 +522,9 @@ class DatabaseSeeder extends Seeder
             'status' => 'active',
         ]);
 
-        // Club 1 → Company 2, Padel community — date range with time restriction
+        // Business 1 → Company 2, Padel community — date range with time restriction
         Discount::create([
-            'club_id' => $club1->id,
+            'business_id' => $biz1->id,
             'company_id' => $company2->id,
             'community_id' => $padelCom2->id,
             'name' => 'خصم الصيف',
@@ -529,9 +538,9 @@ class DatabaseSeeder extends Seeder
             'status' => 'active',
         ]);
 
-        // Club 2 → Company 1, Football community — fixed amount
+        // Business 2 → Company 1, Football community — fixed amount
         Discount::create([
-            'club_id' => $club2->id,
+            'business_id' => $biz2->id,
             'company_id' => $company1->id,
             'community_id' => $footballCom1->id,
             'name' => 'خصم كرة القدم',
@@ -545,7 +554,7 @@ class DatabaseSeeder extends Seeder
 
         // Expired discount for testing
         Discount::create([
-            'club_id' => $club1->id,
+            'business_id' => $biz1->id,
             'company_id' => $company1->id,
             'community_id' => $tennisCom1->id,
             'name' => 'عرض رمضان',
@@ -699,11 +708,11 @@ class DatabaseSeeder extends Seeder
         $poll2 = CommunityPoll::create([
             'community_id' => $footballCom1->id,
             'employee_id' => $c1Employees[3]->id,
-            'question' => 'وش أفضل نادي لكرة القدم؟',
+            'question' => 'وش أفضل مرفق لكرة القدم؟',
             'status' => 'closed',
         ]);
-        $opt2a = PollOption::create(['poll_id' => $poll2->id, 'label' => 'نادي الرياض للبادل', 'sort_order' => 1]);
-        $opt2b = PollOption::create(['poll_id' => $poll2->id, 'label' => 'نادي جدة الرياضي', 'sort_order' => 2]);
+        $opt2a = PollOption::create(['poll_id' => $poll2->id, 'label' => 'مرافق الرياض للبادل', 'sort_order' => 1]);
+        $opt2b = PollOption::create(['poll_id' => $poll2->id, 'label' => 'مرافق جدة الرياضية', 'sort_order' => 2]);
         PollVote::create(['poll_id' => $poll2->id, 'option_id' => $opt2b->id, 'employee_id' => $c1Employees[4]->id]);
         PollVote::create(['poll_id' => $poll2->id, 'option_id' => $opt2b->id, 'employee_id' => $c1Employees[5]->id]);
         PollVote::create(['poll_id' => $poll2->id, 'option_id' => $opt2a->id, 'employee_id' => $c1Employees[6]->id]);
@@ -724,61 +733,66 @@ class DatabaseSeeder extends Seeder
         // ║  QUICK MATCHES                                            ║
         // ╚══════════════════════════════════════════════════════════╝
 
-        // Manual quick match — employee created
+        // Manual quick match poll — employee created
         $qm1 = QuickMatch::create([
             'community_id' => $padelCom1->id,
             'created_by' => $c1Employees[1]->id,
-            'preferred_date' => now()->addDays(2)->toDateString(),
-            'preferred_time' => '18:30',
-            'message' => 'نبي نلعب بادل بعد الدوام، مين معي؟',
+            'message' => 'نبي نلعب بادل بعد الدوام، صوّتوا على الموعد!',
             'source' => 'manual',
             'status' => 'open',
         ]);
-        QuickMatchInterest::create(['quick_match_id' => $qm1->id, 'employee_id' => $c1Employees[0]->id]);
-        QuickMatchInterest::create(['quick_match_id' => $qm1->id, 'employee_id' => $c1Employees[2]->id]);
-        QuickMatchInterest::create(['quick_match_id' => $qm1->id, 'employee_id' => $c1Employees[4]->id]);
+        $qm1Opt1 = QuickMatchOption::create(['quick_match_id' => $qm1->id, 'date' => now()->addDays(2)->toDateString(), 'time' => '18:30', 'votes_count' => 2, 'sort_order' => 0]);
+        $qm1Opt2 = QuickMatchOption::create(['quick_match_id' => $qm1->id, 'date' => now()->addDays(3)->toDateString(), 'time' => '20:00', 'votes_count' => 1, 'sort_order' => 1]);
+        QuickMatchVote::create(['quick_match_id' => $qm1->id, 'option_id' => $qm1Opt1->id, 'employee_id' => $c1Employees[0]->id]);
+        QuickMatchVote::create(['quick_match_id' => $qm1->id, 'option_id' => $qm1Opt1->id, 'employee_id' => $c1Employees[2]->id]);
+        QuickMatchVote::create(['quick_match_id' => $qm1->id, 'option_id' => $qm1Opt2->id, 'employee_id' => $c1Employees[4]->id]);
 
-        // Manual quick match in football community
+        // Manual quick match poll in football community
         $qm2 = QuickMatch::create([
             'community_id' => $footballCom1->id,
             'created_by' => $c1Employees[3]->id,
-            'preferred_date' => now()->addDays(3)->toDateString(),
-            'preferred_time' => '20:00',
-            'message' => 'مباراة ودية يوم الخميس، نحتاج 10 لاعبين',
+            'message' => 'مباراة ودية، صوّتوا على الموعد الأنسب',
             'source' => 'manual',
             'status' => 'open',
         ]);
-        QuickMatchInterest::create(['quick_match_id' => $qm2->id, 'employee_id' => $c1Employees[4]->id]);
-        QuickMatchInterest::create(['quick_match_id' => $qm2->id, 'employee_id' => $c1Employees[5]->id]);
+        $qm2Opt1 = QuickMatchOption::create(['quick_match_id' => $qm2->id, 'date' => now()->addDays(3)->toDateString(), 'time' => '20:00', 'votes_count' => 1, 'sort_order' => 0]);
+        $qm2Opt2 = QuickMatchOption::create(['quick_match_id' => $qm2->id, 'date' => now()->addDays(4)->toDateString(), 'time' => '18:00', 'votes_count' => 1, 'sort_order' => 1]);
+        QuickMatchVote::create(['quick_match_id' => $qm2->id, 'option_id' => $qm2Opt1->id, 'employee_id' => $c1Employees[4]->id]);
+        QuickMatchVote::create(['quick_match_id' => $qm2->id, 'option_id' => $qm2Opt2->id, 'employee_id' => $c1Employees[5]->id]);
 
-        // Auto-suggested quick match
-        QuickMatch::create([
+        // Auto-suggested quick match poll
+        $qm3 = QuickMatch::create([
             'community_id' => $tennisCom1->id,
             'created_by' => null,
-            'message' => 'مجتمعكم ما لعب من فترة، وش رايكم نسوي مباراة؟',
+            'message' => 'مجتمعكم ما لعب من فترة، صوّتوا على الموعد المناسب!',
             'source' => 'auto',
             'status' => 'open',
         ]);
+        QuickMatchOption::create(['quick_match_id' => $qm3->id, 'date' => now()->addDays(4)->toDateString(), 'time' => '18:00', 'sort_order' => 0]);
+        QuickMatchOption::create(['quick_match_id' => $qm3->id, 'date' => now()->addDays(5)->toDateString(), 'time' => '20:00', 'sort_order' => 1]);
+        QuickMatchOption::create(['quick_match_id' => $qm3->id, 'date' => now()->addDays(6)->toDateString(), 'time' => '18:00', 'sort_order' => 2]);
 
         // Auto-suggested for company 2
-        QuickMatch::create([
+        $qm4 = QuickMatch::create([
             'community_id' => $basketCom2->id,
             'created_by' => null,
-            'message' => 'مجتمعكم ما لعب من فترة، وش رايكم نسوي مباراة؟',
+            'message' => 'مجتمعكم ما لعب من فترة، صوّتوا على الموعد المناسب!',
             'source' => 'auto',
             'status' => 'open',
         ]);
+        QuickMatchOption::create(['quick_match_id' => $qm4->id, 'date' => now()->addDays(3)->toDateString(), 'time' => '19:00', 'sort_order' => 0]);
+        QuickMatchOption::create(['quick_match_id' => $qm4->id, 'date' => now()->addDays(5)->toDateString(), 'time' => '17:00', 'sort_order' => 1]);
 
         // Converted quick match (already turned into event)
-        QuickMatch::create([
+        $qm5 = QuickMatch::create([
             'community_id' => $padelCom2->id,
             'created_by' => $c2Employees[0]->id,
-            'preferred_date' => now()->subDays(3)->toDateString(),
-            'preferred_time' => '19:00',
             'message' => 'بادل نهاية الأسبوع',
             'source' => 'manual',
             'status' => 'converted',
         ]);
+        QuickMatchOption::create(['quick_match_id' => $qm5->id, 'date' => now()->subDays(3)->toDateString(), 'time' => '19:00', 'votes_count' => 3, 'sort_order' => 0]);
+        QuickMatchOption::create(['quick_match_id' => $qm5->id, 'date' => now()->subDays(2)->toDateString(), 'time' => '20:00', 'votes_count' => 1, 'sort_order' => 1]);
 
         // ╔══════════════════════════════════════════════════════════╗
         // ║  WEEKLY DIGEST & NUDGE NOTIFICATIONS                      ║
@@ -824,7 +838,7 @@ class DatabaseSeeder extends Seeder
             'notifiable_id' => $c1Employees[0]->id,
             'type' => 'nudge_community',
             'title' => 'مجتمعك يحتاجك! 🏃',
-            'body' => 'مجتمع نادي التنس ما لعب من أسبوعين، وش رايك تسوي فعالية؟',
+            'body' => 'مجتمع التنس ما لعب من أسبوعين، وش رايك تسوي فعالية؟',
             'data' => ['community_id' => $tennisCom1->id],
         ]);
 
@@ -843,8 +857,8 @@ class DatabaseSeeder extends Seeder
             'notifiable_type' => Employee::class,
             'notifiable_id' => $c1Employees[5]->id,
             'type' => 'quick_match',
-            'title' => 'لعبة سريعة في فريق البادل',
-            'body' => 'نبي نلعب بادل بعد الدوام، مين معي؟',
+            'title' => 'تصويت جديد في فريق البادل',
+            'body' => 'نبي نلعب بادل بعد الدوام، صوّتوا على الموعد!',
             'data' => ['community_id' => $padelCom1->id, 'quick_match_id' => $qm1->id],
         ]);
     }

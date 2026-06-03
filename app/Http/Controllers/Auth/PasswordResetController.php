@@ -24,9 +24,9 @@ class PasswordResetController extends Controller
             'login_route' => 'employee.login',
             'label' => 'الموظف',
         ],
-        'club' => [
-            'broker' => 'clubs',
-            'login_route' => 'club.login',
+        'business' => [
+            'broker' => 'businesses',
+            'login_route' => 'business.login',
             'label' => 'النادي',
         ],
         'company' => [

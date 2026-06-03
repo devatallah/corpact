@@ -19,7 +19,7 @@ class CommunityService
     public function listForCompany(Company $company): Collection
     {
         return Community::query()
-            ->with(['sport', 'leader'])
+            ->with(['category', 'leader'])
             ->where('company_id', $company->id)
             ->withCount('members')
             ->orderBy('name')
@@ -29,7 +29,7 @@ class CommunityService
     /**
      * Create a new community for a company.
      *
-     * @param  array{name: string, sport_id: int, leader_id: int, description?: string}  $data
+     * @param  array{name: string, category_id: int, leader_id: int, description?: string}  $data
      */
     public function create(Company $company, array $data): Community
     {
@@ -48,7 +48,7 @@ class CommunityService
         return DB::transaction(function () use ($company, $data, $leader) {
             $community = Community::create([
                 'company_id' => $company->id,
-                'sport_id' => $data['sport_id'],
+                'category_id' => $data['category_id'],
                 'leader_id' => $leader->id,
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
@@ -68,7 +68,7 @@ class CommunityService
                 "تم إنشاء مجتمع '{$community->name}'",
             );
 
-            return $community->fresh(['sport', 'leader']);
+            return $community->fresh(['category', 'leader']);
         });
     }
 
@@ -108,7 +108,7 @@ class CommunityService
 
             $community->update(['leader_id' => $newLeader->id]);
 
-            return $community->fresh(['sport', 'leader']);
+            return $community->fresh(['category', 'leader']);
         });
     }
 

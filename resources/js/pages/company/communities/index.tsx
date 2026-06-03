@@ -1,27 +1,34 @@
 import CompanyLayout from '@/layouts/company-layout';
-import SportIcon from '@/components/sport-icon';
-import type { Community, Sport, Employee } from '@/types/models';
+import CategoryIcon from '@/components/category-icon';
+import type { Community, Category, Employee } from '@/types/models';
 import { Head, useForm } from '@inertiajs/react';
-import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, type FormEvent } from 'react';
 import toastr from 'toastr';
 
 const COLORS = ['#0CA678', '#D4820A', '#5B3FCC', '#3B5BDB', '#E03050', '#8B5CF6'];
 
 interface Props {
     communities: Community[];
-    sports?: Sport[];
+    categories?: Category[];
 }
 
-export default function CommunitiesIndex({ communities, sports }: Props) {
+export default function CommunitiesIndex({ communities, categories }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<Community | null>(null);
 
     const form = useForm({
         name: '',
         description: '',
-        sport_id: '',
+        category_id: '',
+        parent_category_id: '',
         leader_id: '',
     });
+
+    const subcategories = useMemo(() => {
+        if (!form.data.parent_category_id) return [];
+        const parent = categories?.find((c) => String(c.id) === form.data.parent_category_id);
+        return parent?.children ?? [];
+    }, [form.data.parent_category_id, categories]);
 
     // Leader search state
     const [leaderQuery, setLeaderQuery] = useState('');
@@ -55,10 +62,14 @@ export default function CommunitiesIndex({ communities, sports }: Props) {
 
     useEffect(() => {
         if (editingItem) {
+            const catParentId = editingItem.category?.parent_id
+                ? String(editingItem.category.parent_id)
+                : editingItem.category_id ? String(editingItem.category_id) : '';
             form.setData({
                 name: editingItem.name ?? '',
                 description: editingItem.description ?? '',
-                sport_id: editingItem.sport_id ? String(editingItem.sport_id) : '',
+                category_id: editingItem.category_id ? String(editingItem.category_id) : '',
+                parent_category_id: catParentId,
                 leader_id: editingItem.leader_id ? String(editingItem.leader_id) : '',
             });
             setSelectedLeaderName(editingItem.leader?.name ?? '');
@@ -129,9 +140,9 @@ export default function CommunitiesIndex({ communities, sports }: Props) {
                                 <div style={{ height: 5, background: color }} />
 
                                 <div style={{ padding: '28px 28px 24px' }}>
-                                    {/* Row 1: Sport icon + name + edit */}
+                                    {/* Row 1: Category icon + name + edit */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
-                                        <SportIcon icon={community.sport?.icon ?? community.icon} size={38} />
+                                        <CategoryIcon icon={community.category?.icon ?? community.icon} size={38} />
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: 20, fontWeight: 800 }}>{community.name}</div>
                                         </div>
@@ -240,21 +251,40 @@ export default function CommunitiesIndex({ communities, sports }: Props) {
                             </div>
                             <div className="frow">
                                 <div className="fg">
-                                    <label>الرياضة</label>
+                                    <label>الفئة</label>
                                     <select
-                                        value={form.data.sport_id}
-                                        onChange={(e) => form.setData('sport_id', e.target.value)}
+                                        value={form.data.parent_category_id}
+                                        onChange={(e) => {
+                                            const parentId = e.target.value;
+                                            const parent = categories?.find((c) => String(c.id) === parentId);
+                                            const hasChildren = (parent?.children?.length ?? 0) > 0;
+                                            form.setData({
+                                                ...form.data,
+                                                parent_category_id: parentId,
+                                                category_id: hasChildren ? '' : parentId,
+                                            });
+                                        }}
                                     >
-                                        <option value="">اختر الرياضة</option>
-                                        {sports?.map((sport) => (
-                                            <option key={sport.id} value={sport.id}>
-                                                <SportIcon icon={sport.icon} size={16} /> {sport.name}
-                                            </option>
+                                        <option value="">اختر الفئة</option>
+                                        {categories?.map((cat) => (
+                                            <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
                                         ))}
                                     </select>
-                                    {form.errors.sport_id && <div className="field-error">{form.errors.sport_id}</div>}
+                                    {form.errors.category_id && <div className="field-error">{form.errors.category_id}</div>}
                                 </div>
-                                <div className="fg" />
+                                <div className="fg">
+                                    <label>الفئة الفرعية</label>
+                                    <select
+                                        value={form.data.category_id}
+                                        onChange={(e) => form.setData('category_id', e.target.value)}
+                                        disabled={!form.data.parent_category_id || subcategories.length === 0}
+                                    >
+                                        <option value="">{form.data.parent_category_id ? 'اختر الفئة الفرعية' : 'اختر الفئة أولاً'}</option>
+                                        {subcategories.map((sub) => (
+                                            <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                             <div className="frow">
                                 <div className="fg">

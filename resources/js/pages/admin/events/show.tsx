@@ -1,15 +1,15 @@
 import AdminLayout from '@/layouts/admin-layout';
-import SportIcon from '@/components/sport-icon';
+import CategoryIcon from '@/components/category-icon';
 import StatusBadge from '@/components/status-badge';
 import { fmtDate, fmtTime } from '@/lib/utils';
-import type { Event, Employee, Community, Club, Sport, Company } from '@/types/models';
+import type { Event, Employee, Community, Business, Category, Company } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
 
 interface Props {
     event: Event & {
         community: Community;
-        club: Club;
-        sport: Sport;
+        business: Business;
+        category: Category;
         company: Company;
         creator: Employee;
         participants: (Employee & { pivot?: { status: string; joined_at: string } })[];
@@ -42,10 +42,10 @@ export default function EventShow({ event }: Props) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
                 <div>
                     <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
-                        <SportIcon icon={event.sport?.icon} size={16} /> {event.community?.name}
+                        <CategoryIcon icon={event.category?.icon} size={16} /> {event.community?.name}
                     </div>
                     <div style={{ fontSize: 13, color: '#6B7A99' }}>
-                        {event.company?.name} — {event.club?.name} — {fmtDate(event.event_date)} — {fmtTime(event.start_time)}
+                        {event.company?.name} — {event.business?.name} — {fmtDate(event.event_date)} — {fmtTime(event.start_time)}
                     </div>
                 </div>
                 <StatusBadge status={event.status} />
@@ -63,8 +63,8 @@ export default function EventShow({ event }: Props) {
                     </div>
                 </div>
                 <div className="card">
-                    <div style={{ fontSize: 11, color: '#6B7A99' }}>عدد الملاعب</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{event.courts_count}</div>
+                    <div style={{ fontSize: 11, color: '#6B7A99' }}>عدد المرافق</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{event.venues_count}</div>
                 </div>
                 <div className="card">
                     <div style={{ fontSize: 11, color: '#6B7A99' }}>إجمالي التكلفة</div>

@@ -17,7 +17,7 @@
 
 @php $color = $event->community->color ?? '#009E82'; @endphp
 <div class="screen on" id="sDetail">
-  <div style="padding:16px 0 20px;"><div style="font-size:11px;color:#7A8BA8;">تفاصيل الفعالية</div><div style="font-size:20px;font-weight:800;">{{ $event->club->name }}</div><div style="font-size:13px;color:#7A8BA8;">{{ $event->club->district }}</div></div>
+  <div style="padding:16px 0 20px;"><div style="font-size:11px;color:#7A8BA8;">تفاصيل الفعالية</div><div style="font-size:20px;font-weight:800;">{{ $event->business->name }}</div><div style="font-size:13px;color:#7A8BA8;">{{ $event->business->district }}</div></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
     <div class="card" style="margin-bottom:0;"><div style="font-size:20px;margin-bottom:4px;">📅</div><div style="font-size:10px;color:#7A8BA8;">التاريخ</div><div style="font-size:13px;font-weight:700;">{{ $event->event_date->translatedFormat('l j F') }}</div></div>
     <div class="card" style="margin-bottom:0;"><div style="font-size:20px;margin-bottom:4px;">🕐</div><div style="font-size:10px;color:#7A8BA8;">الوقت</div><div style="font-size:13px;font-weight:700;">{{ \Carbon\Carbon::parse($event->start_time)->format('g:i') }}</div></div>

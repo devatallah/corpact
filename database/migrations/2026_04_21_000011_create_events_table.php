@@ -12,15 +12,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('community_id')->constrained()->cascadeOnDelete();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('club_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('court_pricing_id')->nullable()->constrained('court_pricings')->nullOnDelete();
-            $table->foreignId('sport_id')->constrained();
+            $table->foreignId('business_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('venue_pricing_id')->nullable()->constrained('venue_pricings')->nullOnDelete();
+            $table->foreignId('category_id')->constrained();
             $table->foreignId('created_by')->constrained('employees');
             $table->string('title')->nullable();
             $table->date('event_date');
             $table->time('start_time');
             $table->unsignedInteger('duration_minutes');
-            $table->unsignedInteger('courts_count')->default(1);
+            $table->unsignedInteger('venues_count')->default(1);
             $table->decimal('total_amount', 10, 2)->default(0);
             $table->unsignedInteger('capacity');
             $table->unsignedInteger('participants_count')->default(0);
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->decimal('player_payment', 8, 2)->default(0);
             $table->text('notes')->nullable();
             $table->text('rejection_reason')->nullable();
-            $table->enum('status', ['open', 'full', 'waiting_club', 'confirmed', 'rejected', 'alternative_proposed', 'completed', 'cancelled'])->default('open');
+            $table->enum('status', ['open', 'full', 'waiting_business', 'confirmed', 'rejected', 'alternative_proposed', 'completed', 'cancelled'])->default('open');
             $table->timestamps();
         });
     }

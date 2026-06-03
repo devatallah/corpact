@@ -48,7 +48,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
     <div class="logo-section">
         <div class="logo-ar">تيمات</div>
         <div class="logo-en">TEAMAT</div>
-        <div class="logo-tag">CLUB</div>
+        <div class="logo-tag">business</div>
         <div class="logo-desc">تسجيل نادي جديد</div>
     </div>
 
@@ -64,7 +64,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
             </div>
         @endif
 
-        <form method="POST" action="{{ route('club.register') }}">
+        <form method="POST" action="{{ route('business.register') }}">
             @csrf
 
             <div class="field">
@@ -74,7 +74,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
 
             <div class="field">
                 <label for="email">البريد الإلكتروني</label>
-                <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="club@example.com" required dir="ltr">
+                <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="business@example.com" required dir="ltr">
             </div>
 
             <div class="field-row">
@@ -101,7 +101,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
 
             <div class="field">
                 <label for="email">البريد الإلكتروني</label>
-                <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="info@club.com" required dir="ltr">
+                <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="info@business.com" required dir="ltr">
             </div>
 
             <div class="field">
@@ -113,7 +113,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
         </form>
 
         <div class="login-link">
-            <a href="{{ route('club.login') }}">لديك حساب بالفعل؟ تسجيل الدخول</a>
+            <a href="{{ route('business.login') }}">لديك حساب بالفعل؟ تسجيل الدخول</a>
         </div>
     </div>
 

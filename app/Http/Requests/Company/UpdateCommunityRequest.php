@@ -25,7 +25,7 @@ class UpdateCommunityRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['sometimes', 'string', 'max:1000'],
-            'sport_id' => ['sometimes', 'integer', 'exists:sports,id'],
+            'category_id' => ['sometimes', 'integer', 'exists:categories,id'],
             'leader_id' => ['sometimes', 'integer', 'exists:employees,id'],
         ];
     }
@@ -42,7 +42,7 @@ class UpdateCommunityRequest extends FormRequest
             'name.max' => 'اسم المجتمع يجب ألا يتجاوز 255 حرف.',
             'description.string' => 'الوصف يجب أن يكون نصاً.',
             'description.max' => 'وصف المجتمع يجب ألا يتجاوز 1000 حرف.',
-            'sport_id.exists' => 'الرياضة المحددة غير موجودة.',
+            'category_id.exists' => 'الفئة المحددة غير موجودة.',
             'leader_id.exists' => 'قائد المجتمع المحدد غير موجود.',
         ];
     }

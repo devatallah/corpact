@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Club;
+use App\Models\business;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
@@ -73,27 +73,27 @@ test('employee can reset password with valid token', function () {
     ])->assertRedirect(route('employee.login'));
 });
 
-test('club can request password reset link', function () {
+test('business can request password reset link', function () {
     Notification::fake();
-    $club = Club::factory()->create();
+    $business = business::factory()->create();
 
-    $this->post(route('club.password.email'), ['email' => $club->email])
+    $this->post(route('business.password.email'), ['email' => $business->email])
         ->assertSessionHas('status');
 
-    Notification::assertSentTo($club, ResetPasswordNotification::class);
+    Notification::assertSentTo($business, ResetPasswordNotification::class);
 });
 
-test('club can reset password with valid token', function () {
-    $club = Club::factory()->create();
+test('business can reset password with valid token', function () {
+    $business = business::factory()->create();
 
-    $token = Password::broker('clubs')->createToken($club);
+    $token = Password::broker('businesss')->createToken($business);
 
-    $this->post(route('club.password.update'), [
+    $this->post(route('business.password.update'), [
         'token' => $token,
-        'email' => $club->email,
+        'email' => $business->email,
         'password' => 'new-password-123',
         'password_confirmation' => 'new-password-123',
-    ])->assertRedirect(route('club.login'));
+    ])->assertRedirect(route('business.login'));
 });
 
 test('company can request password reset link', function () {

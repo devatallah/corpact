@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('settlements', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('club_id')->constrained();
+            $table->foreignId('business_id')->constrained();
             $table->foreignId('company_id')->constrained();
             $table->string('period');
             $table->unsignedInteger('events_count')->default(0);

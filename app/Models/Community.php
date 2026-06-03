@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'icon',
     'color',
     'company_id',
-    'sport_id',
+    'category_id',
     'leader_id',
     'member_count',
     'balance',
@@ -48,9 +48,9 @@ class Community extends Model
     /**
      * @return BelongsTo<Sport, $this>
      */
-    public function sport(): BelongsTo
+    public function category(): BelongsTo
     {
-        return $this->belongsTo(Sport::class);
+        return $this->belongsTo(Category::class);
     }
 
     /**

@@ -16,7 +16,7 @@ class ExploreService
     public function availableCommunities(Employee $employee): Collection
     {
         return Community::query()
-            ->with(['sport', 'leader'])
+            ->with(['category', 'leader'])
             ->where('company_id', $employee->company_id)
             ->withCount('members')
             ->orderBy('name')

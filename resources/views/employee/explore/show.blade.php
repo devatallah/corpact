@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تيمات — {{ $club->name }}</title>
+<title>تيمات — {{ $business->name }}</title>
 @vite(['resources/css/main.css', 'resources/css/employee.css'])
 </head>
 <body>
@@ -21,33 +21,33 @@
   </div>
 
   <div style="padding:12px 0 20px;">
-    <div style="font-size:22px;font-weight:800;">{{ $club->name }}</div>
-    <div style="font-size:13px;color:#7A8BA8;margin-top:4px;">{{ $club->district ?? '' }}{{ $club->district && $club->city ? '، ' : '' }}{{ $club->city ?? '' }}</div>
+    <div style="font-size:22px;font-weight:800;">{{ $business->name }}</div>
+    <div style="font-size:13px;color:#7A8BA8;margin-top:4px;">{{ $business->district ?? '' }}{{ $business->district && $business->city ? '، ' : '' }}{{ $business->city ?? '' }}</div>
   </div>
 
-  @if($club->sports && $club->sports->count())
+  @if($business->sports && $business->sports->count())
   <div style="margin-bottom:20px;">
     <div style="font-size:13px;font-weight:700;margin-bottom:8px;">الرياضات</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;">
-      @foreach($club->sports as $sport)
+      @foreach($business->sports as $sport)
       <span style="background:#009E8218;color:#009E82;font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;">{{ $sport->icon ?? '' }} {{ $sport->name }}</span>
       @endforeach
     </div>
   </div>
   @endif
 
-  @if($club->courts && $club->courts->count())
+  @if($business->venues && $business->venues->count())
   <div>
-    <div style="font-size:13px;font-weight:700;margin-bottom:10px;">الملاعب ({{ $club->courts->count() }})</div>
-    @foreach($club->courts as $court)
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;">الملاعب ({{ $business->venues->count() }})</div>
+    @foreach($business->venues as $venue)
     <div class="card" style="margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
-          <div style="font-size:14px;font-weight:700;">{{ $court->name }}</div>
-          <div style="font-size:11px;color:#7A8BA8;margin-top:2px;">{{ $court->sport?->name ?? '-' }}</div>
+          <div style="font-size:14px;font-weight:700;">{{ $venue->name }}</div>
+          <div style="font-size:11px;color:#7A8BA8;margin-top:2px;">{{ $venue->sport?->name ?? '-' }}</div>
         </div>
         @php
-          $badge = match($court->status) {
+          $badge = match($venue->status) {
             'active' => ['bg' => '#0CA67818', 'color' => '#0CA678', 'label' => 'نشط'],
             default => ['bg' => '#E0305018', 'color' => '#E03050', 'label' => 'مغلق'],
           };
@@ -61,11 +61,11 @@
   <div style="text-align:center;padding:30px 20px;color:#7A8BA8;font-size:13px;">لا توجد ملاعب متاحة حالياً</div>
   @endif
 
-  @if($club->contact_phone || $club->email)
+  @if($business->contact_phone || $business->email)
   <div style="margin-top:20px;padding:16px;background:#F0F2F8;border-radius:12px;">
     <div style="font-size:13px;font-weight:700;margin-bottom:8px;">معلومات التواصل</div>
-    @if($club->email)<div style="font-size:12px;color:#4A5C78;margin-bottom:4px;" dir="ltr">{{ $club->email }}</div>@endif
-    @if($club->contact_phone)<div style="font-size:12px;color:#4A5C78;" dir="ltr">{{ $club->contact_phone }}</div>@endif
+    @if($business->email)<div style="font-size:12px;color:#4A5C78;margin-bottom:4px;" dir="ltr">{{ $business->email }}</div>@endif
+    @if($business->contact_phone)<div style="font-size:12px;color:#4A5C78;" dir="ltr">{{ $business->contact_phone }}</div>@endif
   </div>
   @endif
 </div>

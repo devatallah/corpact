@@ -58,9 +58,9 @@
 
   <!-- Events Tab -->
   <div id="ctE">
-    @forelse($events ?? $selected->events()->with(['club','sport'])->whereIn('status', ['open','full','confirmed'])->latest('event_date')->get() as $event)
+    @forelse($events ?? $selected->events()->with(['business','sport'])->whereIn('status', ['open','full','confirmed'])->latest('event_date')->get() as $event)
     <div onclick="window.location='{{ route('employee.events.show', $event) }}'" class="card" style="cursor:pointer;border-right:3px solid {{ $color }};">
-      <div style="font-size:13px;font-weight:700;">{{ $event->club->name }}</div>
+      <div style="font-size:13px;font-weight:700;">{{ $event->business->name }}</div>
       <div style="font-size:11px;color:#7A8BA8;margin:4px 0 8px;">{{ $event->event_date->translatedFormat('l j F') }} · {{ \Carbon\Carbon::parse($event->start_time)->format('g:i') }}</div>
       <div class="bar-wrap"><div class="bar-fill" style="width:{{ $event->capacity > 0 ? round($event->participants_count / $event->capacity * 100) : 0 }}%;background:{{ $color }};"></div></div>
       <div style="font-size:10px;color:#7A8BA8;margin-top:4px;">{{ $event->participants_count }} من {{ $event->capacity }}</div>

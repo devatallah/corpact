@@ -53,7 +53,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
         <div>
           <label style="display:block;font-size:12px;font-weight:600;color:#4A5C78;margin-bottom:6px;">معرّف النادي *</label>
-          <input type="number" name="club_id" value="{{ old('club_id') }}" required min="1" style="width:100%;padding:10px 14px;background:#F0F2F8;border:1px solid #E2E8F4;border-radius:10px;font-size:14px;font-family:inherit;outline:none;">
+          <input type="number" name="business_id" value="{{ old('business_id') }}" required min="1" style="width:100%;padding:10px 14px;background:#F0F2F8;border:1px solid #E2E8F4;border-radius:10px;font-size:14px;font-family:inherit;outline:none;">
         </div>
         <div>
           <label style="display:block;font-size:12px;font-weight:600;color:#4A5C78;margin-bottom:6px;">معرّف الرياضة *</label>

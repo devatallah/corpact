@@ -28,7 +28,7 @@ class CommunityController extends Controller
         $employee = auth('employee')->user();
 
         $communities = $employee->communities()
-            ->with(['sport', 'leader'])
+            ->with(['category', 'leader'])
             ->withCount(['members', 'events' => function ($query) {
                 $query->whereIn('status', ['open', 'full', 'confirmed']);
             }])

@@ -17,21 +17,21 @@ class CompanyEventService
     /**
      * List events for a company with optional filters.
      *
-     * @param  array{status?: string, community_id?: int, club_id?: int, date_from?: string, date_to?: string, per_page?: int}  $filters
+     * @param  array{status?: string, community_id?: int, business_id?: int, date_from?: string, date_to?: string, per_page?: int}  $filters
      */
     public function listForCompany(Company $company, array $filters = []): LengthAwarePaginator
     {
         return Event::query()
-            ->with(['community', 'club', 'sport', 'creator', 'alternatives', 'courtPricing', 'courts'])
+            ->with(['community', 'business', 'category', 'creator', 'alternatives', 'venuePricing', 'venues'])
             ->whereHas('community', fn ($query) => $query->where('company_id', $company->id))
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->when(isset($filters['community_id']), fn ($query) => $query->where('community_id', $filters['community_id']))
-            ->when(isset($filters['club_id']), fn ($query) => $query->where('club_id', $filters['club_id']))
+            ->when(isset($filters['business_id']), fn ($query) => $query->where('business_id', $filters['business_id']))
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('event_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('event_date', '<=', $filters['date_to']))
             ->when(isset($filters['search']), fn ($query) => $query->where(function ($q) use ($filters) {
-                $q->whereHas('club', fn ($c) => $c->where('name', 'like', "%{$filters['search']}%"))
-                  ->orWhereHas('sport', fn ($s) => $s->where('name', 'like', "%{$filters['search']}%"));
+                $q->whereHas('business', fn ($c) => $c->where('name', 'like', "%{$filters['search']}%"))
+                  ->orWhereHas('category', fn ($s) => $s->where('name', 'like', "%{$filters['search']}%"));
             }))
             ->latest('event_date')
             ->paginate($filters['per_page'] ?? 15);
@@ -72,7 +72,26 @@ class CompanyEventService
 
         return DB::transaction(function () use ($event, $alternative) {
             $newAmount = $alternative->proposed_amount ?? $event->total_amount;
-            $newCourtsCount = $alternative->proposed_courts_count ?? $event->courts_count;
+            $newvenuesCount = $alternative->proposed_venues_count ?? $event->venues_count;
+
+            // Refund original community contribution, then recalculate for new amount
+            $oldContribution = (float) $event->community_contribution;
+            if ($oldContribution > 0 && $event->community) {
+                $event->community->increment('balance', $oldContribution);
+            }
+
+            // Recalculate community contribution based on new amount
+            $discountAmount = (float) ($event->discount_amount ?? 0);
+            $afterDiscount = max(0, $newAmount - $discountAmount);
+            $communityBalance = (float) ($event->community?->fresh()?->balance ?? 0);
+            $newContribution = min($afterDiscount, $communityBalance);
+            $remaining = $afterDiscount - $newContribution;
+            $newCostPerPerson = $event->capacity > 0 ? round($remaining / $event->capacity, 2) : 0;
+
+            // Deduct new contribution
+            if ($newContribution > 0 && $event->community) {
+                $event->community->decrement('balance', $newContribution);
+            }
 
             // Remove all participants except the creator
             $event->participants()
@@ -94,10 +113,13 @@ class CompanyEventService
             $event->update([
                 'event_date' => $alternative->proposed_date,
                 'start_time' => $alternative->proposed_start_time,
-                'courts_count' => $newCourtsCount,
+                'venues_count' => $newvenuesCount,
                 'total_amount' => $newAmount,
+                'community_contribution' => $newContribution,
+                'company_subsidy' => $newContribution,
+                'player_payment' => $remaining,
                 'participants_count' => 1,
-                'cost_per_person' => $event->capacity > 0 ? round(($newAmount - $event->community_contribution) / $event->capacity, 2) : 0,
+                'cost_per_person' => $newCostPerPerson,
                 'status' => 'open',
             ]);
 
@@ -140,7 +162,7 @@ class CompanyEventService
                 'data' => ['event_id' => $event->id],
             ]);
 
-            return $event->fresh(['community', 'club', 'sport', 'alternatives']);
+            return $event->fresh(['community', 'business', 'category', 'alternatives']);
         });
     }
 
@@ -188,7 +210,7 @@ class CompanyEventService
                 }
             }
 
-            return $event->fresh(['community', 'club', 'sport', 'alternatives']);
+            return $event->fresh(['community', 'business', 'category', 'alternatives']);
         });
     }
 

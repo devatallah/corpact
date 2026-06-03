@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['court_id', 'date', 'start_time', 'end_time', 'status'])]
+#[Fillable(['venue_id', 'date', 'start_time', 'end_time', 'status'])]
 class Slot extends Model
 {
     /** @use HasFactory<\Database\Factories\SlotFactory> */
@@ -24,10 +24,10 @@ class Slot extends Model
     }
 
     /**
-     * @return BelongsTo<Court, $this>
+     * @return BelongsTo<Venue, $this>
      */
-    public function court(): BelongsTo
+    public function venue(): BelongsTo
     {
-        return $this->belongsTo(Court::class);
+        return $this->belongsTo(Venue::class);
     }
 }

@@ -1,61 +1,61 @@
 <?php
 
-use App\Models\Club;
-use App\Models\Court;
+use App\Models\business;
+use App\Models\venue;
 use App\Models\User;
 
-test('admin can view any court', function () {
+test('admin can view any venue', function () {
     $admin = User::factory()->create();
 
-    expect($admin->can('viewAny', Court::class))->toBeTrue();
+    expect($admin->can('viewAny', venue::class))->toBeTrue();
 });
 
-test('club can view any court', function () {
-    $club = Club::factory()->create();
+test('business can view any venue', function () {
+    $business = business::factory()->create();
 
-    expect($club->can('viewAny', Court::class))->toBeTrue();
+    expect($business->can('viewAny', venue::class))->toBeTrue();
 });
 
-test('club can view own courts', function () {
-    $club = Club::factory()->create();
-    $court = Court::factory()->create(['club_id' => $club->id]);
-    $otherCourt = Court::factory()->create();
+test('business can view own venues', function () {
+    $business = business::factory()->create();
+    $venue = venue::factory()->create(['business_id' => $business->id]);
+    $othervenue = venue::factory()->create();
 
-    expect($club->can('view', $court))->toBeTrue()
-        ->and($club->can('view', $otherCourt))->toBeFalse();
+    expect($business->can('view', $venue))->toBeTrue()
+        ->and($business->can('view', $othervenue))->toBeFalse();
 });
 
-test('club can create courts', function () {
-    $club = Club::factory()->create();
+test('business can create venues', function () {
+    $business = business::factory()->create();
 
-    expect($club->can('create', Court::class))->toBeTrue();
+    expect($business->can('create', venue::class))->toBeTrue();
 });
 
-test('club can update own courts', function () {
-    $club = Club::factory()->create();
-    $court = Court::factory()->create(['club_id' => $club->id]);
-    $otherCourt = Court::factory()->create();
+test('business can update own venues', function () {
+    $business = business::factory()->create();
+    $venue = venue::factory()->create(['business_id' => $business->id]);
+    $othervenue = venue::factory()->create();
 
-    expect($club->can('update', $court))->toBeTrue()
-        ->and($club->can('update', $otherCourt))->toBeFalse();
+    expect($business->can('update', $venue))->toBeTrue()
+        ->and($business->can('update', $othervenue))->toBeFalse();
 });
 
-test('club can delete own courts', function () {
-    $club = Club::factory()->create();
-    $court = Court::factory()->create(['club_id' => $club->id]);
-    $otherCourt = Court::factory()->create();
+test('business can delete own venues', function () {
+    $business = business::factory()->create();
+    $venue = venue::factory()->create(['business_id' => $business->id]);
+    $othervenue = venue::factory()->create();
 
-    expect($club->can('delete', $court))->toBeTrue()
-        ->and($club->can('delete', $otherCourt))->toBeFalse();
+    expect($business->can('delete', $venue))->toBeTrue()
+        ->and($business->can('delete', $othervenue))->toBeFalse();
 });
 
-test('only admin can restore and force delete courts', function () {
+test('only admin can restore and force delete venues', function () {
     $admin = User::factory()->create();
-    $club = Club::factory()->create();
-    $court = Court::factory()->create(['club_id' => $club->id]);
+    $business = business::factory()->create();
+    $venue = venue::factory()->create(['business_id' => $business->id]);
 
-    expect($admin->can('restore', $court))->toBeTrue()
-        ->and($admin->can('forceDelete', $court))->toBeTrue()
-        ->and($club->can('restore', $court))->toBeFalse()
-        ->and($club->can('forceDelete', $court))->toBeFalse();
+    expect($admin->can('restore', $venue))->toBeTrue()
+        ->and($admin->can('forceDelete', $venue))->toBeTrue()
+        ->and($business->can('restore', $venue))->toBeFalse()
+        ->and($business->can('forceDelete', $venue))->toBeFalse();
 });

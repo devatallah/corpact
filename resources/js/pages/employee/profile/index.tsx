@@ -1,15 +1,15 @@
 import EmployeeLayout from '@/layouts/employee-layout';
-import SportIcon from '@/components/sport-icon';
+import CategoryIcon from '@/components/category-icon';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { fmtDate, fmtTime } from '@/lib/utils';
-import type { Employee, Community, Event, Club, Sport, Company } from '@/types/models';
+import type { Employee, Community, Event, Business, Category, Company } from '@/types/models';
 import { useState, useRef } from 'react';
 import toastr from 'toastr';
 
 const statusMap: Record<string, { label: string; color: string }> = {
     open: { label: 'مفتوح', color: '#009E82' },
     confirmed: { label: 'مؤكد', color: '#2563EB' },
-    waiting_club: { label: 'معلق', color: '#F59E0B' },
+    waiting_business: { label: 'معلق', color: '#F59E0B' },
     full: { label: 'مكتمل', color: '#8B5CF6' },
     completed: { label: 'منتهي', color: '#6B7280' },
     cancelled: { label: 'ملغي', color: '#EF4444' },
@@ -27,15 +27,15 @@ interface ActivityStats {
     streak: number;
     total_events: number;
     events_this_month: number;
-    top_sport: string | null;
+    top_category: string | null;
 }
 
 interface Props {
     employee: Employee & { company: Company };
     stats: ProfileStats;
     activityStats: ActivityStats;
-    events: (Event & { club: Club; community: Community; sport?: Sport })[];
-    communities: (Community & { sport?: Sport; members_count: number })[];
+    events: (Event & { business: Business; community: Community; category?: Category })[];
+    communities: (Community & { category?: Category; members_count: number })[];
 }
 
 type ProfileTab = 'events' | 'communities';
@@ -139,8 +139,8 @@ export default function ProfileIndex({ employee, stats, activityStats, events, c
                         <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>هذا الشهر</div>
                     </div>
                     <div style={{ flex: 1, background: '#F7F9FC', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: '#009E82' }}>{activityStats.top_sport ?? '—'}</div>
-                        <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>الرياضة الأكثر</div>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: '#009E82' }}>{activityStats.top_category ?? '—'}</div>
+                        <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>الفئة الأكثر</div>
                     </div>
                 </div>
             </div>
@@ -233,7 +233,7 @@ export default function ProfileIndex({ employee, stats, activityStats, events, c
                 <div>
                     {events.length > 0 ? (
                         events.map((event) => {
-                            const color = event.sport?.color ?? event.community?.color ?? '#009E82';
+                            const color = event.category?.color ?? event.community?.color ?? '#009E82';
                             const pct = event.capacity > 0
                                 ? Math.round((event.participants_count / event.capacity) * 100)
                                 : 0;
@@ -251,7 +251,7 @@ export default function ProfileIndex({ employee, stats, activityStats, events, c
                                             {statusInfo.label}
                                         </span>
                                         <div style={{ textAlign: 'right', marginRight: 12 }}>
-                                            <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.3 }}>{event.club?.name}</div>
+                                            <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.3 }}>{event.business?.name}</div>
                                             <div style={{ fontSize: 12, color: '#7A8BA8' }}>{event.community?.name}</div>
                                         </div>
                                     </div>
@@ -283,7 +283,7 @@ export default function ProfileIndex({ employee, stats, activityStats, events, c
                 <div>
                     {communities.length > 0 ? (
                         communities.map((community) => {
-                            const cColor = community.sport?.color ?? community.color ?? '#009E82';
+                            const cColor = community.category?.color ?? community.color ?? '#009E82';
                             return (
                                 <Link
                                     key={community.id}
@@ -292,7 +292,7 @@ export default function ProfileIndex({ employee, stats, activityStats, events, c
                                     style={{ cursor: 'pointer', borderColor: `${cColor}33`, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, textDecoration: 'none', color: 'inherit' }}
                                 >
                                     <div style={{ width: 46, height: 46, borderRadius: 12, background: `${cColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <SportIcon icon={community.sport?.icon} size={20} />
+                                        <CategoryIcon icon={community.category?.icon} size={20} />
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontSize: 14, fontWeight: 700 }}>{community.name}</div>

@@ -1,16 +1,16 @@
 import EmployeeLayout from '@/layouts/employee-layout';
 import { Head, Link, useForm } from '@inertiajs/react';
-import type { Community, Department, Sport } from '@/types/models';
+import type { Community, Department, Category } from '@/types/models';
 import { useState } from 'react';
 import toastr from 'toastr';
 
 interface Props {
-    community: Community & { sport?: Sport };
+    community: Community & { category?: Category };
     departments: Department[];
 }
 
 export default function LeagueCreate({ community, departments }: Props) {
-    const color = community.sport?.color ?? community.color ?? '#009E82';
+    const color = community.category?.color ?? community.color ?? '#009E82';
 
     const form = useForm({
         name: '',

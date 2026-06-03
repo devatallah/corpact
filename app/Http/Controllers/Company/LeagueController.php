@@ -22,7 +22,7 @@ class LeagueController extends Controller
         $company = auth('company')->user();
 
         $leagues = League::whereHas('community', fn ($q) => $q->where('company_id', $company->id))
-            ->with(['community.sport', 'departments', 'creator'])
+            ->with(['community.category', 'departments', 'creator'])
             ->withCount('matches')
             ->latest()
             ->paginate(15);
@@ -47,7 +47,7 @@ class LeagueController extends Controller
         $company = auth('company')->user();
 
         // Ensure league belongs to a community of this company
-        $league->load(['community.sport', 'departments', 'matches.departmentA', 'matches.departmentB', 'creator']);
+        $league->load(['community.category', 'departments', 'matches.departmentA', 'matches.departmentB', 'creator']);
 
         if ($league->community->company_id !== $company->id) {
             abort(403);

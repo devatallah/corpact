@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Employee\StoreEventRequest;
-use App\Models\Club;
-use App\Models\CourtPricing;
+use App\Models\Business;
+use App\Models\VenuePricing;
 use App\Models\Discount;
 use App\Models\Event;
 use App\Models\EventAlternative;
@@ -16,6 +16,7 @@ use App\Services\Employee\ChallengeService;
 use App\Services\Employee\EventCreationService;
 use App\Services\Employee\EventDetailService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,12 +37,12 @@ class EventController extends Controller
         $employee = auth('employee')->user();
 
         $communities = $employee->communities()
-            ->with('sport')
+            ->with('category')
             ->withCount('members')
             ->get();
 
-        $clubs = Club::query()
-            ->with(['courts' => function ($q) {
+        $businesss = Business::query()
+            ->with(['venues' => function ($q) {
                 $q->active();
             }])
             ->active()
@@ -63,33 +64,33 @@ class EventController extends Controller
 
         return Inertia::render('employee/events/create', [
             'communities' => $communities,
-            'clubs' => $clubs,
+            'businesses' => $businesss,
             'discounts' => $discounts,
         ]);
     }
 
     /**
-     * Return pricings compatible with the given courts, date, and time.
+     * Return pricings compatible with the given venues, date, and time.
      */
     public function pricings(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
-            'court_ids' => ['required', 'array', 'min:1'],
-            'court_ids.*' => ['integer'],
+            'venue_ids' => ['required', 'array', 'min:1'],
+            'venue_ids.*' => ['integer'],
             'date' => ['required', 'date'],
             'time' => ['required', 'date_format:H:i'],
         ]);
 
-        $courtIds = $request->input('court_ids');
+        $venueIds = $request->input('venue_ids');
         $date = $request->input('date');
         $time = $request->input('time');
         $dayOfWeek = (int) \Carbon\Carbon::parse($date)->dayOfWeek; // 0=Sun..6=Sat
 
-        $pricings = CourtPricing::query()
-            ->whereIn('court_id', $courtIds)
+        $pricings = VenuePricing::query()
+            ->whereIn('venue_id', $venueIds)
             ->where('status', 'active')
             ->get()
-            ->filter(function (CourtPricing $p) use ($dayOfWeek, $time) {
+            ->filter(function (VenuePricing $p) use ($dayOfWeek, $time) {
                 // Filter by days if set
                 if (! empty($p->days) && ! in_array($dayOfWeek, $p->days)) {
                     return false;
@@ -105,8 +106,8 @@ class EventController extends Controller
 
                 return true;
             })
-            // Per court + duration, keep only the highest price
-            ->groupBy(fn (CourtPricing $p) => $p->court_id . '-' . $p->duration_minutes)
+            // Per venue + duration, keep only the highest price
+            ->groupBy(fn (VenuePricing $p) => $p->venue_id . '-' . $p->duration_minutes)
             ->map(fn ($group) => $group->sortByDesc('price')->first())
             ->values();
 
@@ -158,46 +159,54 @@ class EventController extends Controller
      */
     public function join(Event $event): RedirectResponse
     {
-        if ($event->status !== 'open') {
-            return back()->with('error', 'لا يمكن الانضمام إلا للفعاليات المفتوحة.');
-        }
-
-        if ($event->participants_count >= $event->capacity) {
-            return back()->with('error', 'الفعالية مكتملة العدد.');
-        }
-
         $employee = auth('employee')->user();
 
-        $alreadyJoined = $event->participants()
-            ->where('employee_id', $employee->id)
-            ->wherePivot('status', 'joined')
-            ->exists();
+        try {
+            DB::transaction(function () use ($event, $employee) {
+                // Lock the event row to prevent race conditions
+                $event = Event::lockForUpdate()->findOrFail($event->id);
 
-        if ($alreadyJoined) {
-            return back()->with('error', 'أنت منضم بالفعل.');
-        }
+                if ($event->status !== 'open') {
+                    throw new \RuntimeException('لا يمكن الانضمام إلا للفعاليات المفتوحة.');
+                }
 
-        $event->participants()->attach($employee->id, [
-            'status' => 'joined',
-            'joined_at' => now(),
-        ]);
+                if ($event->participants_count >= $event->capacity) {
+                    throw new \RuntimeException('الفعالية مكتملة العدد.');
+                }
 
-        $event->increment('participants_count');
-        $event->refresh();
+                $alreadyJoined = $event->participants()
+                    ->where('employee_id', $employee->id)
+                    ->wherePivot('status', 'joined')
+                    ->exists();
 
-        // Auto-transition to waiting_club when capacity is full
-        if ($event->participants_count >= $event->capacity) {
-            $event->update(['status' => 'waiting_club']);
+                if ($alreadyJoined) {
+                    throw new \RuntimeException('أنت منضم بالفعل.');
+                }
 
-            // Notify club
-            Notification::create([
-                'notifiable_type' => \App\Models\Club::class,
-                'notifiable_id' => $event->club_id,
-                'type' => 'info',
-                'title' => 'طلب حجز جديد',
-                'body' => "طلب حجز جديد للفعالية #{$event->id} — {$event->courts_count} ملعب بتاريخ {$event->event_date->format('Y-m-d')}",
-                'data' => ['event_id' => $event->id],
-            ]);
+                $event->participants()->attach($employee->id, [
+                    'status' => 'joined',
+                    'joined_at' => now(),
+                ]);
+
+                $event->increment('participants_count');
+                $event->refresh();
+
+                // Auto-transition to waiting_business when capacity is full
+                if ($event->participants_count >= $event->capacity) {
+                    $event->update(['status' => 'waiting_business']);
+
+                    Notification::create([
+                        'notifiable_type' => \App\Models\Business::class,
+                        'notifiable_id' => $event->business_id,
+                        'type' => 'info',
+                        'title' => 'طلب حجز جديد',
+                        'body' => "طلب حجز جديد للفعالية #{$event->id} — {$event->venues_count} ملعب بتاريخ {$event->event_date->format('Y-m-d')}",
+                        'data' => ['event_id' => $event->id],
+                    ]);
+                }
+            });
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
         }
 
         $this->challengeService->incrementProgress($employee, 'events_count');
@@ -210,7 +219,7 @@ class EventController extends Controller
      */
     public function leave(Event $event): RedirectResponse
     {
-        if (! in_array($event->status, ['open', 'waiting_club'])) {
+        if (! in_array($event->status, ['open', 'waiting_business'])) {
             return back()->with('error', 'لا يمكن مغادرة الفعالية في هذه الحالة.');
         }
 
@@ -219,9 +228,18 @@ class EventController extends Controller
         $event->participants()->detach($employee->id);
         $event->decrement('participants_count');
 
-        // If was waiting_club and someone left, go back to open
-        if ($event->status === 'waiting_club') {
+        // If was waiting_business and someone left, go back to open and notify business
+        if ($event->status === 'waiting_business') {
             $event->update(['status' => 'open']);
+
+            Notification::create([
+                'notifiable_type' => \App\Models\Business::class,
+                'notifiable_id' => $event->business_id,
+                'type' => 'warning',
+                'title' => 'تغيير في طلب الحجز',
+                'body' => "الفعالية #{$event->id} رجعت لحالة مفتوحة — أحد اللاعبين غادر",
+                'data' => ['event_id' => $event->id],
+            ]);
         }
 
         return back()->with('success', 'تم مغادرة الفعالية.');
@@ -264,7 +282,7 @@ class EventController extends Controller
             return back()->with('error', 'يمكن فقط لمنشئ الفعالية إزالة اللاعبين.');
         }
 
-        if (! in_array($event->status, ['open', 'waiting_club', 'alternative_proposed'])) {
+        if (! in_array($event->status, ['open', 'waiting_business', 'alternative_proposed'])) {
             return back()->with('error', 'لا يمكن إزالة لاعب في هذه الحالة.');
         }
 
@@ -284,7 +302,7 @@ class EventController extends Controller
         $event->participants()->detach($employee->id);
         $event->decrement('participants_count');
 
-        if ($event->status === 'waiting_club') {
+        if ($event->status === 'waiting_business') {
             $event->update(['status' => 'open']);
         }
 

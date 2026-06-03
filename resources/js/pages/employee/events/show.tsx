@@ -2,7 +2,7 @@ import EmployeeLayout from '@/layouts/employee-layout';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { fmtDate, fmtTime } from '@/lib/utils';
-import type { Event, Employee, Community, Club, EventAlternative } from '@/types/models';
+import type { Event, Employee, Community, Business, EventAlternative } from '@/types/models';
 import toastr from 'toastr';
 
 interface PaymentBreakdown {
@@ -18,7 +18,7 @@ interface PaymentBreakdown {
 interface Props {
     event: Event & {
         community: Community;
-        club: Club;
+        business: Business;
         participants: (Employee & { pivot?: { status: string } })[];
     };
     payment: PaymentBreakdown;
@@ -28,7 +28,7 @@ interface Props {
 }
 
 export default function EventShow({ event, payment, isJoined, canManageAlternatives, isCreator }: Props) {
-    const color = event.sport?.color ?? event.community?.color ?? '#009E82';
+    const color = event.category?.color ?? event.community?.color ?? '#009E82';
     const pct =
         event.capacity > 0
             ? Math.round((event.participants_count / event.capacity) * 100)
@@ -69,8 +69,8 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
             {/* Header */}
             <div style={{ padding: '16px 0 20px' }}>
                 <div style={{ fontSize: 11, color: '#7A8BA8' }}>تفاصيل الفعالية</div>
-                <div style={{ fontSize: 20, fontWeight: 800 }}>{event.club?.name}</div>
-                <div style={{ fontSize: 13, color: '#7A8BA8' }}>{event.club?.district}</div>
+                <div style={{ fontSize: 20, fontWeight: 800 }}>{event.business?.name}</div>
+                <div style={{ fontSize: 13, color: '#7A8BA8' }}>{event.business?.district}</div>
             </div>
 
             {/* Info grid */}
@@ -112,7 +112,7 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
                             >
                                 {p.name?.charAt(0)}
                             </div>
-                            {isCreator && p.id !== event.created_by && ['open', 'waiting_club', 'alternative_proposed'].includes(event.status) && (
+                            {isCreator && p.id !== event.created_by && ['open', 'waiting_business', 'alternative_proposed'].includes(event.status) && (
                                 <button
                                     onClick={() => setRemoveTarget({ id: p.id, name: p.name ?? '' })}
                                     title="إزالة"
@@ -132,7 +132,7 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
             {/* Alternative proposed */}
             {event.status === 'alternative_proposed' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
                 <div className="card" style={{ border: '1px solid #1A5FAB44', background: '#1A5FAB08' }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#1A5FAB', marginBottom: 10 }}>وقت بديل مقترح من النادي</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#1A5FAB', marginBottom: 10 }}>وقت بديل مقترح من المنشأة</div>
                     {event.alternatives.filter((a) => a.status === 'proposed').map((alt) => (
                         <div key={alt.id}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -144,10 +144,10 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
                                     <div style={{ fontSize: 10, color: '#7A8BA8' }}>الوقت</div>
                                     <div style={{ fontSize: 13, fontWeight: 700 }}>{fmtTime(alt.proposed_start_time)} - {fmtTime(alt.proposed_end_time)}</div>
                                 </div>
-                                {alt.proposed_courts_count && (
+                                {alt.proposed_venues_count && (
                                     <div>
-                                        <div style={{ fontSize: 10, color: '#7A8BA8' }}>الملاعب</div>
-                                        <div style={{ fontSize: 13, fontWeight: 700 }}>{alt.proposed_courts_count}</div>
+                                        <div style={{ fontSize: 10, color: '#7A8BA8' }}>المرافق</div>
+                                        <div style={{ fontSize: 13, fontWeight: 700 }}>{alt.proposed_venues_count}</div>
                                     </div>
                                 )}
                                 {alt.proposed_amount && (
@@ -238,7 +238,7 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
                     <div style={{ background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color, marginBottom: 12 }}>
                         ✓ أنت منضم في هذه الفعالية
                     </div>
-                    {!isCreator && (event.status === 'open' || event.status === 'waiting_club') && (
+                    {!isCreator && (event.status === 'open' || event.status === 'waiting_business') && (
                         <button
                             onClick={handleLeave}
                             style={{ width: '100%', padding: 14, background: '#E4E9F2', color: '#7A8BA8', border: 'none', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -254,9 +254,9 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
                 >
                     انضم للفعالية
                 </button>
-            ) : event.status === 'waiting_club' ? (
+            ) : event.status === 'waiting_business' ? (
                 <div style={{ background: '#F59E0B18', border: '1px solid #F59E0B44', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#F59E0B' }}>
-                    بانتظار رد النادي
+                    بانتظار رد المنشأة
                 </div>
             ) : event.status === 'confirmed' ? (
                 <div style={{ background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color }}>

@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Club;
+use App\Models\Business;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Settlement;
-use App\Services\Admin\ClubService;
+use App\Services\Admin\BusinessService;
 use App\Services\Admin\CompanyService;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -17,7 +17,7 @@ class DashboardController extends Controller
 {
     public function __construct(
         private CompanyService $companyService,
-        private ClubService $clubService,
+        private BusinessService $businessService,
     ) {}
 
     /**
@@ -26,13 +26,13 @@ class DashboardController extends Controller
     public function index(): Response
     {
         $companyStats = $this->companyService->dashboardStats();
-        $clubStats = $this->clubService->dashboardStats();
+        $businessStats = $this->businessService->dashboardStats();
 
         $now = Carbon::now();
         $startOfMonth = $now->copy()->startOfMonth();
 
         $companiesThisMonth = Company::where('created_at', '>=', $startOfMonth)->count();
-        $clubsThisMonth = Club::where('created_at', '>=', $startOfMonth)->count();
+        $businesssThisMonth = Business::where('created_at', '>=', $startOfMonth)->count();
         $employeesThisMonth = Employee::where('created_at', '>=', $startOfMonth)->count();
 
         $totalEmployees = Employee::count();
@@ -50,8 +50,8 @@ class DashboardController extends Controller
             : 0;
 
         $pendingCompanies = Company::whereIn('status', ['pending', 'review'])->count();
-        $pendingClubs = Club::whereIn('status', ['pending'])->count();
-        $pendingRequests = $pendingCompanies + $pendingClubs;
+        $pendingbusinesss = Business::whereIn('status', ['pending'])->count();
+        $pendingRequests = $pendingCompanies + $pendingbusinesss;
 
         $recentRequests = collect()
             ->merge(
@@ -68,13 +68,13 @@ class DashboardController extends Controller
                     ])
             )
             ->merge(
-                Club::whereIn('status', ['pending'])
+                Business::whereIn('status', ['pending'])
                     ->latest()
                     ->limit(5)
                     ->get()
-                    ->map(fn (Club $c) => (object) [
+                    ->map(fn (Business $c) => (object) [
                         'name' => $c->name,
-                        'type' => 'club',
+                        'type' => 'business',
                         'type_label' => 'نادي',
                         'status' => $c->status,
                         'created_at' => $c->created_at,
@@ -107,16 +107,16 @@ class DashboardController extends Controller
 
         return Inertia::render('admin/dash', [
             'companyStats' => $companyStats,
-            'clubStats' => $clubStats,
+            'businessStats' => $businessStats,
             'totalEmployees' => $totalEmployees,
             'companiesThisMonth' => $companiesThisMonth,
-            'clubsThisMonth' => $clubsThisMonth,
+            'businesssThisMonth' => $businesssThisMonth,
             'employeesThisMonth' => $employeesThisMonth,
             'monthlyRevenue' => $monthlyRevenue,
             'revenueGrowth' => $revenueGrowth,
             'pendingRequests' => $pendingRequests,
             'pendingCompanies' => $pendingCompanies,
-            'pendingClubs' => $pendingClubs,
+            'pendingbusinesss' => $pendingbusinesss,
             'recentRequests' => $recentRequests,
             'topCompanies' => $topCompanies,
             'last6Months' => $last6Months,

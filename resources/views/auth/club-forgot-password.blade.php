@@ -37,7 +37,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
     <div class="logo-section">
         <div class="logo-ar">تيمات</div>
         <div class="logo-en">TEAMAT</div>
-        <div class="logo-tag">CLUB</div>
+        <div class="logo-tag">business</div>
         <div class="logo-desc">استعادة كلمة المرور</div>
     </div>
     <div class="card">
@@ -53,7 +53,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
                 @endforeach
             </div>
         @endif
-        <form method="POST" action="{{ route('club.password.email') }}">
+        <form method="POST" action="{{ route('business.password.email') }}">
             @csrf
             <div class="field">
                 <label for="email">البريد الإلكتروني</label>
@@ -61,7 +61,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
             </div>
             <button type="submit" class="btn">إرسال رابط الاستعادة</button>
         </form>
-        <a href="{{ route('club.login') }}" class="back-link">العودة لتسجيل الدخول</a>
+        <a href="{{ route('business.login') }}" class="back-link">العودة لتسجيل الدخول</a>
     </div>
     <div class="footer-text">تيمات &copy; {{ date('Y') }}</div>
 </div>

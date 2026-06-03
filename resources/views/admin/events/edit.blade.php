@@ -17,7 +17,7 @@
   <nav>
     <div class="ni" onclick="window.location='/admin/dash'"><span>📊</span><span class="nl">لوحة التحكم</span></div>
     <div class="ni" onclick="window.location='/admin/companies'"><span>🏢</span><span class="nl">الشركات</span></div>
-    <div class="ni" onclick="window.location='/admin/clubs'"><span>🏟️</span><span class="nl">الأندية</span></div>
+    <div class="ni" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">الأندية</span></div>
     <div class="ni" onclick="window.location='/admin/employees'"><span>👥</span><span class="nl">الموظفون</span></div>
     <div class="ni on" onclick="window.location='/admin/events'"><span>📅</span><span class="nl">الفعاليات</span></div>
     <div class="ni" onclick="window.location='/admin/revenue'"><span>💰</span><span class="nl">الإيرادات</span></div>
@@ -51,7 +51,7 @@
 
   <div class="card" style="max-width:600px;">
     <div style="font-size:18px;font-weight:700;margin-bottom:6px;">تعديل الفعالية</div>
-    <div style="font-size:13px;color:#6B7A99;margin-bottom:20px;">{{ $event->community?->name ?? '-' }} — {{ $event->club?->name ?? '-' }} — {{ $event->sport?->name ?? '-' }}</div>
+    <div style="font-size:13px;color:#6B7A99;margin-bottom:20px;">{{ $event->community?->name ?? '-' }} — {{ $event->business?->name ?? '-' }} — {{ $event->sport?->name ?? '-' }}</div>
     <form method="POST" action="{{ route('admin.events.update', $event) }}">
       @csrf
       @method('PUT')
@@ -76,7 +76,7 @@
         <label style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:6px;">الحالة</label>
         <select name="status" style="width:100%;padding:10px 14px;background:#0F1117;border:1px solid #232A3E;border-radius:10px;color:#E8EAF0;font-size:14px;font-family:inherit;outline:none;">
           <option value="open" {{ old('status', $event->status) === 'open' ? 'selected' : '' }}>مفتوح</option>
-          <option value="waiting_club" {{ old('status', $event->status) === 'waiting_club' ? 'selected' : '' }}>بانتظار النادي</option>
+          <option value="waiting_business" {{ old('status', $event->status) === 'waiting_business' ? 'selected' : '' }}>بانتظار النادي</option>
           <option value="confirmed" {{ old('status', $event->status) === 'confirmed' ? 'selected' : '' }}>مؤكد</option>
           <option value="completed" {{ old('status', $event->status) === 'completed' ? 'selected' : '' }}>مكتمل</option>
           <option value="cancelled" {{ old('status', $event->status) === 'cancelled' ? 'selected' : '' }}>ملغي</option>

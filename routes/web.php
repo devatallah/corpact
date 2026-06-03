@@ -2,29 +2,29 @@
 
 use App\Http\Controllers\Admin\AdminController as AdminAdminController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
-use App\Http\Controllers\Admin\ClubController as AdminClubController;
+use App\Http\Controllers\Admin\BusinessController as AdminBusinessController;
 use App\Http\Controllers\Admin\CommunityController as AdminCommunityController;
 use App\Http\Controllers\Admin\CompanyController as AdminCompanyController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EmployeeController as AdminEmployeeController;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
-use App\Http\Controllers\Admin\SportController as AdminSportController;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
 use App\Http\Controllers\Auth\AdminAuthController;
-use App\Http\Controllers\Auth\ClubAuthController;
+use App\Http\Controllers\Auth\BusinessAuthController;
 use App\Http\Controllers\Auth\CompanyAuthController;
 use App\Http\Controllers\Auth\EmployeeAuthController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Auth\PasswordResetController;
-use App\Http\Controllers\Club\ProfileController as ClubProfileController;
-use App\Http\Controllers\Club\BookingController as ClubBookingController;
-use App\Http\Controllers\Club\CourtController as ClubCourtController;
-use App\Http\Controllers\Club\DashboardController as ClubDashboardController;
-use App\Http\Controllers\Club\DiscountController as ClubDiscountController;
-use App\Http\Controllers\Club\ScheduleController as ClubScheduleController;
-use App\Http\Controllers\Club\SettlementController as ClubSettlementController;
+use App\Http\Controllers\Business\ProfileController as BusinessProfileController;
+use App\Http\Controllers\Business\BookingController as BusinessBookingController;
+use App\Http\Controllers\Business\VenueController as BusinessVenueController;
+use App\Http\Controllers\Business\DashboardController as BusinessDashboardController;
+use App\Http\Controllers\Business\DiscountController as BusinessDiscountController;
+use App\Http\Controllers\Business\ScheduleController as BusinessScheduleController;
+use App\Http\Controllers\Business\SettlementController as BusinessSettlementController;
 use App\Http\Controllers\Company\LeagueController as CompanyLeagueController;
 use App\Http\Controllers\Employee\CommunityController as EmployeeCommunityController;
 use App\Http\Controllers\Employee\LeagueController as EmployeeLeagueController;
@@ -47,11 +47,6 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    if (auth('admin')->check()) return redirect()->route('admin.dash');
-    if (auth('company')->check()) return redirect()->route('company.dash');
-    if (auth('club')->check()) return redirect()->route('club.dash');
-    if (auth('employee')->check()) return redirect()->route('employee.home');
-
     return Inertia::render('welcome');
 });
 
@@ -125,33 +120,33 @@ Route::prefix('employee')->name('employee.')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Club Auth
+| business Auth
 |--------------------------------------------------------------------------
 */
-Route::prefix('club')->name('club.')->group(function () {
+Route::prefix('business')->name('business.')->group(function () {
     Route::get('/', function () {
-        return auth('club')->check()
-            ? redirect()->route('club.dash')
-            : redirect()->route('club.login');
+        return auth('business')->check()
+            ? redirect()->route('business.dash')
+            : redirect()->route('business.login');
     });
-    Route::middleware('guest:club')->group(function () {
-        Route::get('/login', [ClubAuthController::class, 'showLoginForm'])->name('login');
-        Route::post('/login', [ClubAuthController::class, 'login'])->middleware('throttle:login');
-        Route::get('/register', [ClubAuthController::class, 'showRegisterForm'])->name('register');
-        Route::post('/register', [ClubAuthController::class, 'register']);
-        Route::get('/activate/{token}', [ClubAuthController::class, 'showActivateForm'])->name('activate');
-        Route::post('/activate/{token}', [ClubAuthController::class, 'activate']);
-        Route::get('/forgot-password', fn () => app(PasswordResetController::class)->showForgotForm('club'))->name('password.request');
-        Route::post('/forgot-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->sendResetLink($r, 'club'))->name('password.email')->middleware('throttle:password-reset');
-        Route::get('/reset-password/{token}', fn (Illuminate\Http\Request $r, string $token) => app(PasswordResetController::class)->showResetForm($r, 'club', $token))->name('password.reset');
-        Route::post('/reset-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->reset($r, 'club'))->name('password.update');
+    Route::middleware('guest:business')->group(function () {
+        Route::get('/login', [BusinessAuthController::class, 'showLoginForm'])->name('login');
+        Route::post('/login', [BusinessAuthController::class, 'login'])->middleware('throttle:login');
+        Route::get('/register', [BusinessAuthController::class, 'showRegisterForm'])->name('register');
+        Route::post('/register', [BusinessAuthController::class, 'register']);
+        Route::get('/activate/{token}', [BusinessAuthController::class, 'showActivateForm'])->name('activate');
+        Route::post('/activate/{token}', [BusinessAuthController::class, 'activate']);
+        Route::get('/forgot-password', fn () => app(PasswordResetController::class)->showForgotForm('business'))->name('password.request');
+        Route::post('/forgot-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->sendResetLink($r, 'business'))->name('password.email')->middleware('throttle:password-reset');
+        Route::get('/reset-password/{token}', fn (Illuminate\Http\Request $r, string $token) => app(PasswordResetController::class)->showResetForm($r, 'business', $token))->name('password.reset');
+        Route::post('/reset-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->reset($r, 'business'))->name('password.update');
     });
-    Route::post('/logout', [ClubAuthController::class, 'logout'])->middleware('auth:club')->name('logout');
+    Route::post('/logout', [BusinessAuthController::class, 'logout'])->middleware('auth:business')->name('logout');
 
-    Route::middleware('auth:club')->group(function () {
-        Route::get('/email/verify', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->notice($r, 'club'))->name('verification.notice');
-        Route::get('/email/verify/{id}/{hash}', fn (Illuminate\Http\Request $r, int $id, string $hash) => app(EmailVerificationController::class)->verify($r, 'club', $id, $hash))->middleware('signed')->name('verification.verify');
-        Route::post('/email/verification-notification', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->resend($r, 'club'))->middleware('throttle:6,1')->name('verification.send');
+    Route::middleware('auth:business')->group(function () {
+        Route::get('/email/verify', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->notice($r, 'business'))->name('verification.notice');
+        Route::get('/email/verify/{id}/{hash}', fn (Illuminate\Http\Request $r, int $id, string $hash) => app(EmailVerificationController::class)->verify($r, 'business', $id, $hash))->middleware('signed')->name('verification.verify');
+        Route::post('/email/verification-notification', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->resend($r, 'business'))->middleware('throttle:6,1')->name('verification.send');
     });
 });
 
@@ -203,18 +198,18 @@ Route::prefix('admin')
         Route::post('/companies/{company}/reject', [AdminCompanyController::class, 'reject'])->name('companies.reject');
         Route::post('/companies/{company}/reset-password', [AdminCompanyController::class, 'sendResetPassword'])->name('companies.reset-password');
 
-        Route::resource('clubs', AdminClubController::class)->except(['show']);
-        Route::post('/clubs/{club}/approve', [AdminClubController::class, 'approve'])->name('clubs.approve');
-        Route::post('/clubs/{club}/reject', [AdminClubController::class, 'reject'])->name('clubs.reject');
-        Route::post('/clubs/{club}/reset-password', [AdminClubController::class, 'sendResetPassword'])->name('clubs.reset-password');
+        Route::resource('businesses', AdminBusinessController::class)->except(['show']);
+        Route::post('/businesses/{business}/approve', [AdminBusinessController::class, 'approve'])->name('businesses.approve');
+        Route::post('/businesses/{business}/reject', [AdminBusinessController::class, 'reject'])->name('businesses.reject');
+        Route::post('/businesses/{business}/reset-password', [AdminBusinessController::class, 'sendResetPassword'])->name('businesses.reset-password');
 
         Route::resource('employees', AdminEmployeeController::class)->except(['show']);
         Route::post('/employees/{employee}/reset-password', [AdminEmployeeController::class, 'sendResetPassword'])->name('employees.reset-password');
 
         Route::get('communities', [AdminCommunityController::class, 'index'])->name('communities.index');
 
-        Route::resource('sports', AdminSportController::class)->except(['show', 'create', 'edit']);
-        Route::post('/sports/{sport}/restore', [AdminSportController::class, 'restore'])->name('sports.restore');
+        Route::resource('categories', AdminCategoryController::class)->except(['show', 'create', 'edit']);
+        Route::post('/categories/{category}/restore', [AdminCategoryController::class, 'restore'])->name('categories.restore');
 
         Route::resource('events', AdminEventController::class)->except(['create', 'store', 'edit', 'update']);
         Route::post('/events/{event}/cancel', [AdminEventController::class, 'cancel'])->name('events.cancel');
@@ -238,42 +233,42 @@ Route::prefix('admin')
 
 /*
 |--------------------------------------------------------------------------
-| Club Portal
+| business Portal
 |--------------------------------------------------------------------------
 */
-Route::prefix('club')
-    ->name('club.')
-    ->middleware('auth:club')
+Route::prefix('business')
+    ->name('business.')
+    ->middleware('auth:business')
     ->group(function () {
-        Route::get('/dash', [ClubDashboardController::class, 'index'])->name('dash');
+        Route::get('/dash', [BusinessDashboardController::class, 'index'])->name('dash');
 
-        Route::get('/requests', [ClubBookingController::class, 'index'])->name('bookings.index');
-        Route::post('/requests/{event}/approve', [ClubBookingController::class, 'approve'])->name('bookings.approve');
-        Route::post('/requests/{event}/reject', [ClubBookingController::class, 'reject'])->name('bookings.reject');
-        Route::post('/requests/{event}/propose-alternative', [ClubBookingController::class, 'proposeAlternative'])->name('bookings.propose-alternative');
+        Route::get('/requests', [BusinessBookingController::class, 'index'])->name('bookings.index');
+        Route::post('/requests/{event}/approve', [BusinessBookingController::class, 'approve'])->name('bookings.approve');
+        Route::post('/requests/{event}/reject', [BusinessBookingController::class, 'reject'])->name('bookings.reject');
+        Route::post('/requests/{event}/propose-alternative', [BusinessBookingController::class, 'proposeAlternative'])->name('bookings.propose-alternative');
 
-        Route::get('/schedule', [ClubScheduleController::class, 'index'])->name('schedule.index');
-        Route::post('/schedule', [ClubScheduleController::class, 'store'])->name('schedule.store');
-        Route::put('/schedule/{slot}', [ClubScheduleController::class, 'update'])->name('schedule.update');
-        Route::delete('/schedule/{slot}', [ClubScheduleController::class, 'destroy'])->name('schedule.destroy');
+        Route::get('/schedule', [BusinessScheduleController::class, 'index'])->name('schedule.index');
+        Route::post('/schedule', [BusinessScheduleController::class, 'store'])->name('schedule.store');
+        Route::put('/schedule/{slot}', [BusinessScheduleController::class, 'update'])->name('schedule.update');
+        Route::delete('/schedule/{slot}', [BusinessScheduleController::class, 'destroy'])->name('schedule.destroy');
 
-        Route::resource('courts', ClubCourtController::class)->except(['show']);
-        Route::post('/courts/{court}/pricings', [ClubCourtController::class, 'storePricing'])->name('courts.pricings.store');
-        Route::put('/courts/{court}/pricings/{pricing}', [ClubCourtController::class, 'updatePricing'])->name('courts.pricings.update');
-        Route::post('/courts/{court}/pricings/{pricing}/toggle', [ClubCourtController::class, 'togglePricing'])->name('courts.pricings.toggle');
-        Route::delete('/courts/{court}/pricings/{pricing}', [ClubCourtController::class, 'destroyPricing'])->name('courts.pricings.destroy');
+        Route::resource('venues', BusinessVenueController::class)->except(['show']);
+        Route::post('/venues/{venue}/pricings', [BusinessVenueController::class, 'storePricing'])->name('venues.pricings.store');
+        Route::put('/venues/{venue}/pricings/{pricing}', [BusinessVenueController::class, 'updatePricing'])->name('venues.pricings.update');
+        Route::post('/venues/{venue}/pricings/{pricing}/toggle', [BusinessVenueController::class, 'togglePricing'])->name('venues.pricings.toggle');
+        Route::delete('/venues/{venue}/pricings/{pricing}', [BusinessVenueController::class, 'destroyPricing'])->name('venues.pricings.destroy');
 
-        Route::get('/discounts', [ClubDiscountController::class, 'index'])->name('discounts.index');
-        Route::get('/discounts/communities/{company}', [ClubDiscountController::class, 'communities'])->name('discounts.communities');
-        Route::post('/discounts', [ClubDiscountController::class, 'store'])->name('discounts.store');
-        Route::put('/discounts/{discount}', [ClubDiscountController::class, 'update'])->name('discounts.update');
-        Route::delete('/discounts/{discount}', [ClubDiscountController::class, 'destroy'])->name('discounts.destroy');
+        Route::get('/discounts', [BusinessDiscountController::class, 'index'])->name('discounts.index');
+        Route::get('/discounts/communities/{company}', [BusinessDiscountController::class, 'communities'])->name('discounts.communities');
+        Route::post('/discounts', [BusinessDiscountController::class, 'store'])->name('discounts.store');
+        Route::put('/discounts/{discount}', [BusinessDiscountController::class, 'update'])->name('discounts.update');
+        Route::delete('/discounts/{discount}', [BusinessDiscountController::class, 'destroy'])->name('discounts.destroy');
 
-        Route::get('/settlements', [ClubSettlementController::class, 'index'])->name('settlements.index');
-        Route::get('/settlements/{settlement}', [ClubSettlementController::class, 'show'])->name('settlements.show');
+        Route::get('/settlements', [BusinessSettlementController::class, 'index'])->name('settlements.index');
+        Route::get('/settlements/{settlement}', [BusinessSettlementController::class, 'show'])->name('settlements.show');
 
-        Route::get('/profile', [ClubProfileController::class, 'index'])->name('profile.index');
-        Route::put('/profile', [ClubProfileController::class, 'update'])->name('profile.update');
+        Route::get('/profile', [BusinessProfileController::class, 'index'])->name('profile.index');
+        Route::put('/profile', [BusinessProfileController::class, 'update'])->name('profile.update');
     });
 
 /*
@@ -332,7 +327,7 @@ Route::prefix('employee')
         Route::get('/home', [EmployeeHomeController::class, 'index'])->name('home');
 
         Route::get('/explore', [EmployeeExploreController::class, 'index'])->name('explore.index');
-        Route::get('/explore/{club}', [EmployeeExploreController::class, 'show'])->name('explore.show');
+        Route::get('/explore/{business}', [EmployeeExploreController::class, 'show'])->name('explore.show');
 
         Route::get('/create', [EmployeeEventController::class, 'create'])->name('events.create');
         Route::post('/create/pricings', [EmployeeEventController::class, 'pricings'])->name('events.pricings');
@@ -361,7 +356,7 @@ Route::prefix('employee')
         Route::delete('/community/{community}/leagues/{league}', [EmployeeLeagueController::class, 'destroy'])->name('communities.leagues.destroy');
 
         Route::post('/quick-match', [EmployeeQuickMatchController::class, 'store'])->name('quick-match.store');
-        Route::post('/quick-match/{quickMatch}/interest', [EmployeeQuickMatchController::class, 'toggleInterest'])->name('quick-match.interest');
+        Route::post('/quick-match/{quickMatch}/vote', [EmployeeQuickMatchController::class, 'vote'])->name('quick-match.vote');
         Route::post('/quick-match/{quickMatch}/convert', [EmployeeQuickMatchController::class, 'convert'])->name('quick-match.convert');
 
         Route::get('/notifications', [EmployeeNotificationController::class, 'index'])->name('notifications.index');

@@ -116,7 +116,7 @@ table.portal-table tr:last-child td{border-bottom:none;}
 .b-paid{background:#009E8220;color:#009E82;}
 .b-unpaid{background:#E0305020;color:#E03050;}
 .b-joined{background:#009E8220;color:#009E82;}
-.b-waiting_club{background:#D4820A20;color:#D4820A;}
+.b-waiting_business{background:#D4820A20;color:#D4820A;}
 
 .act-btn{padding:5px 12px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;transition:all .15s;}
 .btn-approve{background:#009E8220;color:#009E82;border:1px solid #009E8244;}
@@ -165,7 +165,7 @@ table.portal-table tr:last-child td{border-bottom:none;}
 
 /* Responsive - Mobile */
 @media(max-width:768px){
-  .portal-admin,.portal-company,.portal-club{flex-direction:column;}
+  .portal-admin,.portal-company,.portal-business{flex-direction:column;}
   .sidebar{position:fixed;right:-260px;top:0;width:250px!important;z-index:100;transition:right .3s;border-left:none;box-shadow:-4px 0 24px rgba(0,0,0,.5);}
   .sidebar.open{right:0;}
   .menu-toggle{display:block;}
@@ -284,47 +284,47 @@ table.portal-table tr:last-child td{border-bottom:none;}
 
 
 /* ══════════════════════════════════════════
-   CLUB PORTAL
+   business PORTAL
    ══════════════════════════════════════════ */
 
-.portal-club{font-family:Tahoma,Arial,sans-serif;background:#F7F4F0;color:#1C1410;display:flex;min-height:100vh;}
-.portal-club .sidebar{width:220px;background:#1C1410;}
-.portal-club .ni{color:rgba(255,255,255,.6);}
-.portal-club .ni:hover{background:rgba(255,255,255,.05);}
-.portal-club .ni.on{background:rgba(255,255,255,.08);color:#fff;font-weight:700;border-right-color:#C8410A;}
-.portal-club .logo .ar{background:linear-gradient(90deg,#F5A623,#C8410A);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
-.portal-club .logo .tag{background:#C8410A20;color:#C8410A;}
-.portal-club .co-info{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.1);}
-.portal-club .co-info .lbl{font-size:10px;color:rgba(255,255,255,.3);margin-bottom:2px;}
-.portal-club .co-info .nm{font-weight:700;color:#fff;font-size:12px;line-height:1.4;}
-.portal-club .co-info .sb{font-size:10px;color:rgba(255,255,255,.4);}
-.portal-club .card{background:#fff;border:1px solid #EAE4DC;}
-.portal-club .stat{background:#fff;border:1px solid #EAE4DC;}
-.portal-club .stat .lbl{color:#8A7868;}
-.portal-club .page-sub{color:#8A7868;}
-.portal-club table.portal-table th{background:#F7F4F0;color:#8A7868;}
-.portal-club table.portal-table td{border-top:1px solid #EAE4DC;}
-.portal-club .fbtn{border-color:#EAE4DC;background:#fff;color:#8A7868;}
-.portal-club .fbtn.on{background:#C8410A;color:#fff;border-color:#C8410A;}
-.portal-club .menu-toggle{background:#1C1410;border-color:rgba(255,255,255,.15);}
-.portal-club .detail-panel{background:#fff;border:1px solid #EAE4DC;}
-.portal-club .detail-row{border-bottom:1px solid #EAE4DC;}
-.portal-club .req-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;background:#F7F4F0;border-radius:10px;padding:14px;margin-bottom:14px;}
-.portal-club .ri .rl{font-size:10px;color:#8A7868;margin-bottom:3px;}
-.portal-club .ri .rv{font-size:13px;font-weight:700;}
-.portal-club .fg input,
-.portal-club .fg select,
-.portal-club .fg textarea{background:#F7F4F0;border-color:#EAE4DC;color:#1C1410;}
-.portal-club .fg input:focus,
-.portal-club .fg select:focus,
-.portal-club .fg textarea:focus{border-color:#B8860A;background:#fff;}
-.portal-club .fg label{color:#8A7868;}
+.portal-business{font-family:Tahoma,Arial,sans-serif;background:#F7F4F0;color:#1C1410;display:flex;min-height:100vh;}
+.portal-business .sidebar{width:220px;background:#1C1410;}
+.portal-business .ni{color:rgba(255,255,255,.6);}
+.portal-business .ni:hover{background:rgba(255,255,255,.05);}
+.portal-business .ni.on{background:rgba(255,255,255,.08);color:#fff;font-weight:700;border-right-color:#C8410A;}
+.portal-business .logo .ar{background:linear-gradient(90deg,#F5A623,#C8410A);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.portal-business .logo .tag{background:#C8410A20;color:#C8410A;}
+.portal-business .co-info{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.1);}
+.portal-business .co-info .lbl{font-size:10px;color:rgba(255,255,255,.3);margin-bottom:2px;}
+.portal-business .co-info .nm{font-weight:700;color:#fff;font-size:12px;line-height:1.4;}
+.portal-business .co-info .sb{font-size:10px;color:rgba(255,255,255,.4);}
+.portal-business .card{background:#fff;border:1px solid #EAE4DC;}
+.portal-business .stat{background:#fff;border:1px solid #EAE4DC;}
+.portal-business .stat .lbl{color:#8A7868;}
+.portal-business .page-sub{color:#8A7868;}
+.portal-business table.portal-table th{background:#F7F4F0;color:#8A7868;}
+.portal-business table.portal-table td{border-top:1px solid #EAE4DC;}
+.portal-business .fbtn{border-color:#EAE4DC;background:#fff;color:#8A7868;}
+.portal-business .fbtn.on{background:#C8410A;color:#fff;border-color:#C8410A;}
+.portal-business .menu-toggle{background:#1C1410;border-color:rgba(255,255,255,.15);}
+.portal-business .detail-panel{background:#fff;border:1px solid #EAE4DC;}
+.portal-business .detail-row{border-bottom:1px solid #EAE4DC;}
+.portal-business .req-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;background:#F7F4F0;border-radius:10px;padding:14px;margin-bottom:14px;}
+.portal-business .ri .rl{font-size:10px;color:#8A7868;margin-bottom:3px;}
+.portal-business .ri .rv{font-size:13px;font-weight:700;}
+.portal-business .fg input,
+.portal-business .fg select,
+.portal-business .fg textarea{background:#F7F4F0;border-color:#EAE4DC;color:#1C1410;}
+.portal-business .fg input:focus,
+.portal-business .fg select:focus,
+.portal-business .fg textarea:focus{border-color:#B8860A;background:#fff;}
+.portal-business .fg label{color:#8A7868;}
 
 @media(max-width:768px){
-  .portal-club .req-grid{grid-template-columns:1fr 1fr;}
+  .portal-business .req-grid{grid-template-columns:1fr 1fr;}
 }
 @media(max-width:480px){
-  .portal-club .req-grid{grid-template-columns:1fr;}
+  .portal-business .req-grid{grid-template-columns:1fr;}
 }
 
 

@@ -31,7 +31,7 @@ class CommunityController extends Controller
         return Inertia::render('company/communities/index', [
             'company' => $company,
             'communities' => $communities,
-            'sports' => \App\Models\Sport::select('id', 'name', 'icon')->orderBy('name')->get(),
+            'categories' => \App\Models\Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
             'unreadNotifications' => $unreadNotifications,
         ]);
     }
@@ -45,7 +45,7 @@ class CommunityController extends Controller
 
         return Inertia::render('company/communities/create', [
             'employees' => \App\Models\Employee::where('company_id', $company->id)->active()->select('id', 'name')->orderBy('name')->get(),
-            'sports' => \App\Models\Sport::select('id', 'name', 'icon')->orderBy('name')->get(),
+            'categories' => \App\Models\Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
         ]);
     }
 
@@ -74,9 +74,9 @@ class CommunityController extends Controller
         $company = auth('company')->user();
 
         return Inertia::render('company/communities/edit', [
-            'community' => $community->load('leader', 'sport'),
+            'community' => $community->load('leader', 'category'),
             'employees' => \App\Models\Employee::where('company_id', $company->id)->active()->select('id', 'name')->orderBy('name')->get(),
-            'sports' => \App\Models\Sport::select('id', 'name', 'icon')->orderBy('name')->get(),
+            'categories' => \App\Models\Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
         ]);
     }
 

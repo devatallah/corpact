@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'club_id',
+    'business_id',
     'company_id',
     'period',
     'events_count',
@@ -39,11 +39,11 @@ class Settlement extends Model
     }
 
     /**
-     * @return BelongsTo<Club, $this>
+     * @return BelongsTo<Business, $this>
      */
-    public function club(): BelongsTo
+    public function business(): BelongsTo
     {
-        return $this->belongsTo(Club::class);
+        return $this->belongsTo(Business::class);
     }
 
     /**

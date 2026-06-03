@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('events', function (Blueprint $table) {
-            $table->foreignId('discount_id')->nullable()->after('court_pricing_id')->constrained('discounts')->nullOnDelete();
+            $table->foreignId('discount_id')->nullable()->after('venue_pricing_id')->constrained('discounts')->nullOnDelete();
             $table->decimal('discount_amount', 8, 2)->nullable()->after('discount_id');
         });
     }

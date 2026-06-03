@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Club;
+use App\Models\Business;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
@@ -49,9 +49,9 @@ return [
             'driver' => 'session',
             'provider' => 'employees',
         ],
-        'club' => [
+        'business' => [
             'driver' => 'session',
-            'provider' => 'clubs',
+            'provider' => 'businesses',
         ],
         'company' => [
             'driver' => 'session',
@@ -85,9 +85,9 @@ return [
             'driver' => 'eloquent',
             'model' => Employee::class,
         ],
-        'clubs' => [
+        'businesses' => [
             'driver' => 'eloquent',
-            'model' => Club::class,
+            'model' => Business::class,
         ],
         'companies' => [
             'driver' => 'eloquent',
@@ -127,8 +127,8 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
-        'clubs' => [
-            'provider' => 'clubs',
+        'businesses' => [
+            'provider' => 'businesses',
             'table' => 'password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,

@@ -15,7 +15,7 @@ export default function EventsEdit({ event }: Props) {
         start_time: fmtTime(event.start_time),
         end_time: '',
         capacity: event.capacity ?? 4,
-        courts_count: event.courts_count ?? 1,
+        venues_count: event.venues_count ?? 1,
         company_subsidy: event.company_subsidy ?? 0,
         notes: event.notes ?? '',
         status: event.status ?? 'open',
@@ -49,7 +49,7 @@ export default function EventsEdit({ event }: Props) {
             <div className="card" style={{ maxWidth: '600px' }}>
                 <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '6px' }}>تعديل الفعالية</div>
                 <div style={{ fontSize: '13px', color: '#6B7A99', marginBottom: '20px' }}>
-                    {event.community?.name ?? '-'} — {event.club?.name ?? '-'} — {event.sport?.name ?? '-'}
+                    {event.community?.name ?? '-'} — {event.business?.name ?? '-'} — {event.category?.name ?? '-'}
                 </div>
                 <form onSubmit={submit}>
                     <div className="frow">
@@ -70,11 +70,11 @@ export default function EventsEdit({ event }: Props) {
 
                     <div className="frow">
                         <div className="fg">
-                            <label>عدد الملاعب</label>
+                            <label>عدد المرافق</label>
                             <input
                                 type="number"
-                                value={data.courts_count}
-                                onChange={(e) => setData('courts_count', Math.max(1, parseInt(e.target.value) || 1))}
+                                value={data.venues_count}
+                                onChange={(e) => setData('venues_count', Math.max(1, parseInt(e.target.value) || 1))}
                                 min={1}
                             />
                         </div>
@@ -107,7 +107,7 @@ export default function EventsEdit({ event }: Props) {
                                 onChange={(e) => setData('status', e.target.value)}
                             >
                                 <option value="open">مفتوح</option>
-                                <option value="waiting_club">بانتظار النادي</option>
+                                <option value="waiting_business">بانتظار المنشأة</option>
                                 <option value="confirmed">مؤكد</option>
                                 <option value="completed">مكتمل</option>
                                 <option value="cancelled">ملغي</option>

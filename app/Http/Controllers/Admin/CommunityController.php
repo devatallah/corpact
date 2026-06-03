@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Community;
 use App\Models\Company;
-use App\Models\Sport;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,7 +14,7 @@ class CommunityController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = Community::with(['sport', 'leader', 'company'])
+        $query = Community::with(['category', 'leader', 'company'])
             ->withCount(['members', 'events']);
 
         if ($search = $request->input('search')) {
@@ -25,8 +25,8 @@ class CommunityController extends Controller
             $query->where('company_id', $companyId);
         }
 
-        if ($sportId = $request->input('sport_id')) {
-            $query->where('sport_id', $sportId);
+        if ($categoryId = $request->input('category_id')) {
+            $query->where('category_id', $categoryId);
         }
 
         $communities = $query->orderBy('name')->paginate(20)->withQueryString();
@@ -35,8 +35,8 @@ class CommunityController extends Controller
             'communities' => $communities,
             'totalCommunities' => Community::count(),
             'companies' => Company::where('status', 'active')->select('id', 'name')->orderBy('name')->get(),
-            'sports' => Sport::select('id', 'name', 'icon')->orderBy('name')->get(),
-            'filters' => $request->only('search', 'company_id', 'sport_id'),
+            'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
+            'filters' => $request->only('search', 'company_id', 'category_id'),
         ]);
     }
 }

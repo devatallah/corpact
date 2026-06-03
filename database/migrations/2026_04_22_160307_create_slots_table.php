@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('slots', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('court_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('venue_id')->constrained()->cascadeOnDelete();
             $table->date('date');
             $table->time('start_time');
             $table->time('end_time');
             $table->string('status')->default('available');
             $table->timestamps();
 
-            $table->index(['court_id', 'date']);
+            $table->index(['venue_id', 'date']);
         });
     }
 

@@ -1,13 +1,13 @@
 import EmployeeLayout from '@/layouts/employee-layout';
-import SportIcon from '@/components/sport-icon';
+import CategoryIcon from '@/components/category-icon';
 import { Head, router } from '@inertiajs/react';
-import type { Community, Sport } from '@/types/models';
+import type { Community, Category } from '@/types/models';
 
 interface ExploreCommunity extends Community {
     members_count: number;
     events_count?: number;
     is_member: boolean;
-    sport?: Sport;
+    category?: Category;
 }
 
 interface Props {
@@ -34,7 +34,7 @@ export default function ExploreIndex({ communities }: Props) {
 
             {communities.length > 0 ? (
                 communities.map((community) => {
-                    const color = community.sport?.color ?? community.color ?? '#009E82';
+                    const color = community.category?.color ?? community.color ?? '#009E82';
                     return (
                         <div
                             key={community.id}
@@ -43,7 +43,7 @@ export default function ExploreIndex({ communities }: Props) {
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
                                 <div style={{ width: 50, height: 50, borderRadius: 14, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <SportIcon icon={community.sport?.icon} size={28} />
+                                    <CategoryIcon icon={community.category?.icon} size={28} />
                                 </div>
                                 <div>
                                     <div style={{ fontSize: 15, fontWeight: 700 }}>{community.name}</div>

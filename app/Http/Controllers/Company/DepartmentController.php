@@ -69,6 +69,19 @@ class DepartmentController extends Controller
             abort(403);
         }
 
+        if ($department->employees()->exists()) {
+            return back()->with('error', 'لا يمكن حذف قسم يحتوي على موظفين.');
+        }
+
+        // Check if department is in an active league
+        $inActiveLeague = \App\Models\League::where('status', 'active')
+            ->whereHas('departments', fn ($q) => $q->where('departments.id', $department->id))
+            ->exists();
+
+        if ($inActiveLeague) {
+            return back()->with('error', 'لا يمكن حذف قسم مشترك في بطولة نشطة.');
+        }
+
         $department->delete();
 
         return back()->with('success', 'تم حذف القسم بنجاح.');

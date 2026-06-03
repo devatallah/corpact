@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Models\Club;
+use App\Models\Business;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Event;
@@ -19,7 +19,7 @@ class EventPolicy
         return match (true) {
             $user instanceof User => true,
             $user instanceof Company => true,
-            $user instanceof Club => true,
+            $user instanceof Business => true,
             $user instanceof Employee => true,
             default => false,
         };
@@ -33,7 +33,7 @@ class EventPolicy
         return match (true) {
             $user instanceof User => true,
             $user instanceof Company => $user->id === $event->company_id,
-            $user instanceof Club => $user->id === $event->club_id,
+            $user instanceof Business => $user->id === $event->business_id,
             $user instanceof Employee => $user->company_id === $event->company_id,
             default => false,
         };
@@ -95,7 +95,7 @@ class EventPolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Club => $user->id === $event->club_id,
+            $user instanceof Business => $user->id === $event->business_id,
             default => false,
         };
     }

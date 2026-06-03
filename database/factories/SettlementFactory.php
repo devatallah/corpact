@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Club;
+use App\Models\Business;
 use App\Models\Company;
 use App\Models\Settlement;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -23,7 +23,7 @@ class SettlementFactory extends Factory
         $netAmount = $grossAmount - $commissionAmount;
 
         return [
-            'club_id' => Club::factory(),
+            'business_id' => Business::factory(),
             'company_id' => Company::factory(),
             'period' => fake()->date('Y-m'),
             'events_count' => fake()->numberBetween(3, 20),

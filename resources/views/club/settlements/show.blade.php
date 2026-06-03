@@ -4,22 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>تيمات — تفاصيل التسوية</title>
-@vite(['resources/css/main.css', 'resources/css/club.css'])
+@vite(['resources/css/main.css', 'resources/css/business.css'])
 </head>
 <body>
 <button class="menu-toggle" id="menuBtn" onclick="togMobile()">☰</button>
 <div class="sidebar-backdrop" id="sbBackdrop" onclick="closeMobile()"></div>
 <div class="sidebar" id="sb">
-  <div class="logo"><div class="ar">تيمات</div><div class="en">CLUB PORTAL</div></div>
-  <div class="co-info"><div class="lbl">النادي</div><div class="nm">{{ auth('club')->user()->name }}</div></div>
+  <div class="logo"><div class="ar">تيمات</div><div class="en">business PORTAL</div></div>
+  <div class="co-info"><div class="lbl">النادي</div><div class="nm">{{ auth('business')->user()->name }}</div></div>
   <nav>
-    <div class="ni" onclick="window.location='/club/dash'"><span>📊</span><span class="nl"> الرئيسية</span></div>
-    <div class="ni" onclick="window.location='/club/requests'"><span>📋</span><span class="nl"> طلبات الحجز</span></div>
-    <div class="ni" onclick="window.location='/club/schedule'"><span>📅</span><span class="nl"> التقويم</span></div>
-    <div class="ni" onclick="window.location='/club/courts'"><span>🏟️</span><span class="nl"> إدارة الملاعب</span></div>
-    <div class="ni on" onclick="window.location='/club/settlements'"><span>💰</span><span class="nl"> التسويات</span></div>
+    <div class="ni" onclick="window.location='/business/dash'"><span>📊</span><span class="nl"> الرئيسية</span></div>
+    <div class="ni" onclick="window.location='/business/requests'"><span>📋</span><span class="nl"> طلبات الحجز</span></div>
+    <div class="ni" onclick="window.location='/business/schedule'"><span>📅</span><span class="nl"> التقويم</span></div>
+    <div class="ni" onclick="window.location='/business/venues'"><span>🏟️</span><span class="nl"> إدارة الملاعب</span></div>
+    <div class="ni on" onclick="window.location='/business/settlements'"><span>💰</span><span class="nl"> التسويات</span></div>
     <div style="margin-top:auto;padding-top:12px;border-top:1px solid #232A3E;margin:16px 4px 0;">
-      <form method="POST" action="{{ route('club.logout') }}" style="margin:0;"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" style="display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;font-size:13px;color:rgba(255,255,255,.4);background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'"><span>🚪</span><span>تسجيل الخروج</span></button></form>
+      <form method="POST" action="{{ route('business.logout') }}" style="margin:0;"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" style="display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;font-size:13px;color:rgba(255,255,255,.4);background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'"><span>🚪</span><span>تسجيل الخروج</span></button></form>
     </div>
   </nav>
   <div class="tog" onclick="togSB()">→</div>
@@ -27,7 +27,7 @@
 <div class="main">
 <div class="sc on">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
-    <a href="{{ route('club.settlements.index') }}" style="color:#8A7868;text-decoration:none;font-size:14px;">← التسويات</a>
+    <a href="{{ route('business.settlements.index') }}" style="color:#8A7868;text-decoration:none;font-size:14px;">← التسويات</a>
     <span style="color:#C8D0E0;">/</span>
     <span style="font-weight:700;">تسوية #{{ $settlement->id }}</span>
   </div>
@@ -79,7 +79,7 @@
     </div>
 
     <div style="margin-top:24px;">
-      <a href="{{ route('club.settlements.index') }}" style="display:block;text-align:center;padding:12px;background:#E2E8F4;border-radius:10px;color:#4A5C78;font-size:14px;font-weight:700;text-decoration:none;">العودة للتسويات</a>
+      <a href="{{ route('business.settlements.index') }}" style="display:block;text-align:center;padding:12px;background:#E2E8F4;border-radius:10px;color:#4A5C78;font-size:14px;font-weight:700;text-decoration:none;">العودة للتسويات</a>
     </div>
   </div>
 </div>

@@ -40,22 +40,22 @@ const portalMeta: Record<string, {
         buttonText: 'دخول — بوابة الشركة',
         registerHtml: { question: 'شركة جديدة؟', label: 'سجّل شركتك', href: '/company/register' },
     },
-    club: {
-        activeClass: 'active-club',
+    business: {
+        activeClass: 'active-business',
         focusColor: '#C8410A',
         btnGradient: 'linear-gradient(135deg,#1C1410,#3A2820)',
         btnShadow: '0 6px 20px rgba(0,0,0,.3)',
         linkColor: '#C8410A',
         description: 'سجّل دخولك لإدارة طلبات الحجز والتقويم والتسويات',
-        buttonText: 'دخول — بوابة النادي',
-        registerHtml: { question: 'نادٍ جديد؟', label: 'سجّل ناديك', href: '/club/register' },
+        buttonText: 'دخول — بوابة المنشأة',
+        registerHtml: { question: 'منشأة جديدة؟', label: 'سجّل منشأتك', href: '/business/register' },
     },
 };
 
 const tabs = [
     { key: 'employee' as const, icon: '👤', label: 'موظف', href: '/employee/login', borderColor: '#009E82', bg: '#009E8210' },
     { key: 'company' as const, icon: '📊', label: 'شركة', href: '/company/login', borderColor: '#3B5BDB', bg: '#3B5BDB10' },
-    { key: 'club' as const, icon: '🏟️', label: 'نادي', href: '/club/login', borderColor: '#1C1410', bg: '#1C141010' },
+    { key: 'business' as const, icon: '🏟️', label: 'منشأة', href: '/business/login', borderColor: '#1C1410', bg: '#1C141010' },
 ];
 
 const demoCredentials: Record<GuardName, Array<{ label: string; email: string; password: string }>> = {
@@ -64,9 +64,9 @@ const demoCredentials: Record<GuardName, Array<{ label: string; email: string; p
         { label: 'شركة التقنية', email: 'hr@advancedtech.sa', password: 'password' },
         { label: 'مجموعة الابتكار', email: 'hr@innovation.sa', password: 'password' },
     ],
-    club: [
-        { label: 'نادي الرياض', email: 'club1@teamat.com', password: 'password' },
-        { label: 'نادي جدة', email: 'club2@teamat.com', password: 'password' },
+    business: [
+        { label: 'مرافق الرياض', email: 'biz1@teamat.com', password: 'password' },
+        { label: 'مرافق جدة', email: 'biz2@teamat.com', password: 'password' },
     ],
     employee: [
         { label: 'أحمد السالم', email: 'emp1@advancedtech.sa', password: 'password' },

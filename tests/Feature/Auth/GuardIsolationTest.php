@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Club;
+use App\Models\business;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
@@ -31,41 +31,41 @@ test('employee logout does not affect admin session', function () {
     $this->assertAuthenticatedAs($admin, 'admin');
 });
 
-test('club logout does not affect company session', function () {
-    $club = Club::factory()->create();
+test('business logout does not affect company session', function () {
+    $business = business::factory()->create();
     $company = Company::factory()->create();
 
-    $this->actingAs($club, 'club')
+    $this->actingAs($business, 'business')
         ->actingAs($company, 'company');
 
-    $this->post(route('club.logout'));
+    $this->post(route('business.logout'));
 
-    $this->assertGuest('club');
+    $this->assertGuest('business');
     $this->assertAuthenticatedAs($company, 'company');
 });
 
 test('all four guards can be authenticated simultaneously', function () {
     $admin = User::factory()->create();
     $employee = Employee::factory()->create();
-    $club = Club::factory()->create();
+    $business = business::factory()->create();
     $company = Company::factory()->create();
 
     $this->actingAs($admin, 'admin')
         ->actingAs($employee, 'employee')
-        ->actingAs($club, 'club')
+        ->actingAs($business, 'business')
         ->actingAs($company, 'company');
 
     $this->assertAuthenticatedAs($admin, 'admin');
     $this->assertAuthenticatedAs($employee, 'employee');
-    $this->assertAuthenticatedAs($club, 'club');
+    $this->assertAuthenticatedAs($business, 'business');
     $this->assertAuthenticatedAs($company, 'company');
 });
 
-test('admin cannot access club routes', function () {
+test('admin cannot access business routes', function () {
     $admin = User::factory()->create();
 
     $this->actingAs($admin, 'admin')
-        ->get(route('club.dash'))
+        ->get(route('business.dash'))
         ->assertRedirect();
 });
 
@@ -77,10 +77,10 @@ test('employee cannot access admin routes', function () {
         ->assertRedirect();
 });
 
-test('club cannot access company routes', function () {
-    $club = Club::factory()->create();
+test('business cannot access company routes', function () {
+    $business = business::factory()->create();
 
-    $this->actingAs($club, 'club')
+    $this->actingAs($business, 'business')
         ->get(route('company.dash'))
         ->assertRedirect();
 });

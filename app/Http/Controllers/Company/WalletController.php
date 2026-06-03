@@ -25,7 +25,7 @@ class WalletController extends Controller
 
         $walletData = $this->walletService->getBalance($company);
         $wallet = $company->wallet;
-        $communities = $company->communities()->with('sport')->get();
+        $communities = $company->communities()->with('category')->get();
         $transactions = $wallet?->transactions()->latest()->limit(20)->get() ?? collect();
 
         return Inertia::render('company/wallet/index', [

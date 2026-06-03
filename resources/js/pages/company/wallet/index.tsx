@@ -1,5 +1,5 @@
 import CompanyLayout from '@/layouts/company-layout';
-import SportIcon from '@/components/sport-icon';
+import CategoryIcon from '@/components/category-icon';
 import { fmtDateTime } from '@/lib/utils';
 import type { Community, Wallet, WalletTransaction } from '@/types/models';
 import { Head, useForm } from '@inertiajs/react';
@@ -117,7 +117,7 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
                                             background: isSelected ? `${color}12` : '#F0F2F8',
                                         }}
                                     >
-                                        <SportIcon icon={community.sport?.icon} size={20} />
+                                        <CategoryIcon icon={community.category?.icon} size={20} />
                                         <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? color : '#4A5C78' }}>
                                             {community.name}
                                         </span>

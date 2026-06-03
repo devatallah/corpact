@@ -31,6 +31,7 @@ use Illuminate\Notifications\Notifiable;
     'status',
     'approved_at',
     'activation_token',
+    'activation_token_expires_at',
     'requester_name',
     'requester_email',
     'requester_phone',
@@ -66,6 +67,7 @@ class Company extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'employee_count' => 'integer',
             'approved_at' => 'datetime',
+            'activation_token_expires_at' => 'datetime',
         ];
     }
 

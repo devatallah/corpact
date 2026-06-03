@@ -14,17 +14,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'community_id',
     'company_id',
-    'club_id',
-    'court_pricing_id',
+    'business_id',
+    'venue_pricing_id',
     'discount_id',
     'discount_amount',
-    'sport_id',
+    'category_id',
     'created_by',
     'title',
     'event_date',
     'start_time',
     'duration_minutes',
-    'courts_count',
+    'venues_count',
     'total_amount',
     'capacity',
     'participants_count',
@@ -48,7 +48,7 @@ class Event extends Model
         return [
             'event_date' => 'date:Y-m-d',
             'duration_minutes' => 'integer',
-            'courts_count' => 'integer',
+            'venues_count' => 'integer',
             'discount_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'capacity' => 'integer',
@@ -77,19 +77,19 @@ class Event extends Model
     }
 
     /**
-     * @return BelongsTo<Club, $this>
+     * @return BelongsTo<Business, $this>
      */
-    public function club(): BelongsTo
+    public function business(): BelongsTo
     {
-        return $this->belongsTo(Club::class);
+        return $this->belongsTo(Business::class);
     }
 
     /**
-     * @return BelongsTo<CourtPricing, $this>
+     * @return BelongsTo<VenuePricing, $this>
      */
-    public function courtPricing(): BelongsTo
+    public function venuePricing(): BelongsTo
     {
-        return $this->belongsTo(CourtPricing::class);
+        return $this->belongsTo(VenuePricing::class);
     }
 
     /**
@@ -103,9 +103,9 @@ class Event extends Model
     /**
      * @return BelongsTo<Sport, $this>
      */
-    public function sport(): BelongsTo
+    public function category(): BelongsTo
     {
-        return $this->belongsTo(Sport::class);
+        return $this->belongsTo(Category::class);
     }
 
     /**
@@ -127,11 +127,11 @@ class Event extends Model
     }
 
     /**
-     * @return BelongsToMany<Court, $this>
+     * @return BelongsToMany<Venue, $this>
      */
-    public function courts(): BelongsToMany
+    public function venues(): BelongsToMany
     {
-        return $this->belongsToMany(Court::class, 'event_court');
+        return $this->belongsToMany(Venue::class, 'event_venue');
     }
 
     /**
@@ -173,7 +173,7 @@ class Event extends Model
      */
     public function scopePending($query)
     {
-        return $query->whereIn('status', ['open', 'waiting_club']);
+        return $query->whereIn('status', ['open', 'waiting_business']);
     }
 
     /**
@@ -186,25 +186,25 @@ class Event extends Model
     }
 
     /**
-     * Get the total courts booked by overlapping events at a given club/date/time.
+     * Get the total venues booked by overlapping events at a given business/date/time.
      */
-    public static function overlappingCourtsCount(int $clubId, string $date, string $startTime, int $durationMinutes, ?int $excludeEventId = null): int
+    public static function overlappingvenuesCount(int $businessId, string $date, string $startTime, int $durationMinutes, ?int $excludeEventId = null): int
     {
         $newStart = Carbon::parse($startTime);
         $newEnd = $newStart->copy()->addMinutes($durationMinutes);
 
-        return (int) static::where('club_id', $clubId)
+        return (int) static::where('business_id', $businessId)
             ->where('event_date', $date)
             ->where('status', 'confirmed')
             ->where('event_date', '>=', now()->toDateString())
             ->when($excludeEventId, fn ($q) => $q->where('id', '!=', $excludeEventId))
-            ->get(['id', 'start_time', 'duration_minutes', 'courts_count'])
+            ->get(['id', 'start_time', 'duration_minutes', 'venues_count'])
             ->filter(function ($event) use ($newStart, $newEnd) {
                 $existingStart = Carbon::parse($event->start_time);
                 $existingEnd = $existingStart->copy()->addMinutes($event->duration_minutes);
 
                 return $newStart->lt($existingEnd) && $newEnd->gt($existingStart);
             })
-            ->sum('courts_count');
+            ->sum('venues_count');
     }
 }

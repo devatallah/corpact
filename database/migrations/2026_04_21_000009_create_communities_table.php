@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('icon')->nullable();
             $table->string('color')->nullable();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('sport_id')->constrained();
+            $table->foreignId('category_id')->constrained();
             $table->foreignId('leader_id')->nullable()->constrained('employees')->nullOnDelete();
             $table->unsignedInteger('member_count')->default(0);
             $table->decimal('balance', 10, 2)->default(0);

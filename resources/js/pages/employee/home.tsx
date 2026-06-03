@@ -1,8 +1,8 @@
 import EmployeeLayout from '@/layouts/employee-layout';
-import SportIcon from '@/components/sport-icon';
+import CategoryIcon from '@/components/category-icon';
 import TimePicker from '@/components/time-picker';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import type { Community, Employee, Event, ChallengeWithProgress, QuickMatch } from '@/types/models';
+import type { Community, Employee, Event, ChallengeWithProgress, QuickMatch, QuickMatchOption } from '@/types/models';
 import { useState } from 'react';
 
 const arabicMonths = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
@@ -42,19 +42,19 @@ interface ActivityStats {
     streak: number;
     total_events: number;
     events_this_month: number;
-    top_sport: string | null;
+    top_category: string | null;
 }
 
-interface LeaderboardEntry { id: number; name: string; avatar?: string | null; department_name?: string | null; sport_name?: string | null; sport_icon?: string | null; events_count: number; }
+interface LeaderboardEntry { id: number; name: string; avatar?: string | null; department_name?: string | null; category_name?: string | null; category_icon?: string | null; events_count: number; }
 interface Leaderboard { top_employees: LeaderboardEntry[]; top_departments: LeaderboardEntry[]; top_communities: LeaderboardEntry[]; }
 
 interface Props {
     employee: Employee;
-    communities: (Community & { members_count: number; sport?: { icon: string; name: string } })[];
+    communities: (Community & { members_count: number; category?: { icon: string; name: string } })[];
     events: (Event & {
-        community: Community & { sport?: { icon: string } };
-        club: { name: string; district: string };
-        sport?: { icon: string };
+        community: Community & { category?: { icon: string } };
+        business: { name: string; district: string };
+        category?: { icon: string };
     })[];
     joinedEventIds: number[];
     activityStats: ActivityStats;
@@ -70,8 +70,7 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
     const [filter, setFilter] = useState<string>('all');
     const [showQmForm, setShowQmForm] = useState(false);
     const [qmCommunityId, setQmCommunityId] = useState<string>('');
-    const [qmDate, setQmDate] = useState('');
-    const [qmTime, setQmTime] = useState('');
+    const [qmOptions, setQmOptions] = useState<{ date: string; time: string }[]>([{ date: '', time: '' }, { date: '', time: '' }]);
     const [qmMessage, setQmMessage] = useState('');
     const [qmLoading, setQmLoading] = useState(false);
 
@@ -133,8 +132,8 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                         <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>هذا الشهر</div>
                     </div>
                     <div style={{ flex: 1, background: '#F7F9FC', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: '#009E82' }}>{activityStats.top_sport ?? '—'}</div>
-                        <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>الرياضة الأكثر</div>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: '#009E82' }}>{activityStats.top_category ?? '—'}</div>
+                        <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 2 }}>الفئة الأكثر</div>
                     </div>
                 </div>
             </div>
@@ -241,9 +240,9 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                                 key={community.id}
                                 href={`/employee/community/${community.id}`}
                                 className="card"
-                                style={{ minWidth: 120, flexShrink: 0, cursor: 'pointer', borderColor: `${community.sport?.color ?? community.color ?? '#009E82'}33`, marginBottom: 0, textDecoration: 'none', color: 'inherit' }}
+                                style={{ minWidth: 120, flexShrink: 0, cursor: 'pointer', borderColor: `${community.category?.color ?? community.color ?? '#009E82'}33`, marginBottom: 0, textDecoration: 'none', color: 'inherit' }}
                             >
-                                <div style={{ marginBottom: 6 }}><SportIcon icon={community.sport?.icon} size={28} /></div>
+                                <div style={{ marginBottom: 6 }}><CategoryIcon icon={community.category?.icon} size={28} /></div>
                                 <div style={{ fontSize: 13, fontWeight: 700 }}>{community.name}</div>
                                 <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 2 }}>{community.members_count} عضو</div>
                             </Link>
@@ -267,21 +266,21 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                 <div style={{ background: 'rgba(255,255,255,.2)', borderRadius: 12, padding: '8px 14px', fontSize: 13, fontWeight: 700, color: '#fff' }}>استكشف ←</div>
             </Link>
 
-            {/* Quick Matches */}
+            {/* Quick Match Polls */}
             <div style={{ marginBottom: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700 }}>مباريات سريعة</div>
+                    <div style={{ fontSize: 15, fontWeight: 700 }}>تصويتات المباريات</div>
                     {communities.length > 0 && (
                         <button
                             onClick={() => setShowQmForm(!showQmForm)}
                             style={{ background: '#009E82', color: '#fff', border: 'none', borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                         >
-                            {showQmForm ? 'إلغاء' : '+ لعبة سريعة'}
+                            {showQmForm ? 'إلغاء' : '+ تصويت جديد'}
                         </button>
                     )}
                 </div>
 
-                {/* Create Form */}
+                {/* Create Poll Form */}
                 {showQmForm && (
                     <div style={{ background: '#fff', border: '1px solid #E4E9F2', borderRadius: 16, padding: 16, marginBottom: 14 }}>
                         <div style={{ marginBottom: 12 }}>
@@ -298,24 +297,53 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                                 ))}
                             </select>
                         </div>
-                        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                            <div style={{ flex: 1 }}>
-                                <label style={{ fontSize: 12, color: '#4A5C78', fontWeight: 600, display: 'block', marginBottom: 6 }}>التاريخ (اختياري)</label>
-                                <input
-                                    type="date"
-                                    value={qmDate}
-                                    onChange={(e) => setQmDate(e.target.value)}
-                                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #E4E9F2', borderRadius: 10, fontSize: 13, background: '#fff' }}
-                                />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <label style={{ fontSize: 12, color: '#4A5C78', fontWeight: 600, display: 'block', marginBottom: 6 }}>الوقت (اختياري)</label>
-                                <TimePicker
-                                    value={qmTime}
-                                    onChange={(v) => setQmTime(v)}
-                                />
-                            </div>
+
+                        {/* Poll Options */}
+                        <div style={{ marginBottom: 12 }}>
+                            <label style={{ fontSize: 12, color: '#4A5C78', fontWeight: 600, display: 'block', marginBottom: 8 }}>خيارات المواعيد</label>
+                            {qmOptions.map((opt, idx) => (
+                                <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#009E8215', color: '#009E82', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                                        {idx + 1}
+                                    </div>
+                                    <input
+                                        type="date"
+                                        value={opt.date}
+                                        onChange={(e) => {
+                                            const updated = [...qmOptions];
+                                            updated[idx] = { ...updated[idx], date: e.target.value };
+                                            setQmOptions(updated);
+                                        }}
+                                        style={{ flex: 1, padding: '8px 10px', border: '1px solid #E4E9F2', borderRadius: 10, fontSize: 12, background: '#fff' }}
+                                    />
+                                    <TimePicker
+                                        value={opt.time}
+                                        onChange={(v) => {
+                                            const updated = [...qmOptions];
+                                            updated[idx] = { ...updated[idx], time: v };
+                                            setQmOptions(updated);
+                                        }}
+                                    />
+                                    {qmOptions.length > 2 && (
+                                        <button
+                                            onClick={() => setQmOptions(qmOptions.filter((_, i) => i !== idx))}
+                                            style={{ width: 28, height: 28, borderRadius: '50%', background: '#EF444415', color: '#EF4444', border: 'none', fontSize: 14, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        >
+                                            ×
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                            {qmOptions.length < 5 && (
+                                <button
+                                    onClick={() => setQmOptions([...qmOptions, { date: '', time: '' }])}
+                                    style={{ background: 'none', border: '1px dashed #E4E9F2', borderRadius: 10, padding: '8px 0', width: '100%', fontSize: 12, color: '#7A8BA8', cursor: 'pointer', fontWeight: 600 }}
+                                >
+                                    + أضف خيار
+                                </button>
+                            )}
                         </div>
+
                         <div style={{ marginBottom: 12 }}>
                             <label style={{ fontSize: 12, color: '#4A5C78', fontWeight: 600, display: 'block', marginBottom: 6 }}>رسالة (اختياري)</label>
                             <textarea
@@ -327,39 +355,39 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                         </div>
                         <button
                             onClick={() => {
-                                if (!qmCommunityId) return;
+                                const validOptions = qmOptions.filter(o => o.date && o.time);
+                                if (!qmCommunityId || validOptions.length < 2) return;
                                 setQmLoading(true);
                                 router.post('/employee/quick-match', {
                                     community_id: Number(qmCommunityId),
-                                    preferred_date: qmDate || null,
-                                    preferred_time: qmTime || null,
+                                    options: validOptions,
                                     message: qmMessage || null,
                                 }, {
                                     onFinish: () => {
                                         setQmLoading(false);
                                         setShowQmForm(false);
                                         setQmCommunityId('');
-                                        setQmDate('');
-                                        setQmTime('');
+                                        setQmOptions([{ date: '', time: '' }, { date: '', time: '' }]);
                                         setQmMessage('');
                                     },
                                 });
                             }}
-                            disabled={!qmCommunityId || qmLoading}
-                            style={{ width: '100%', background: !qmCommunityId ? '#E4E9F2' : '#009E82', color: !qmCommunityId ? '#7A8BA8' : '#fff', border: 'none', borderRadius: 12, padding: '12px 0', fontSize: 14, fontWeight: 700, cursor: !qmCommunityId ? 'not-allowed' : 'pointer' }}
+                            disabled={!qmCommunityId || qmOptions.filter(o => o.date && o.time).length < 2 || qmLoading}
+                            style={{ width: '100%', background: (!qmCommunityId || qmOptions.filter(o => o.date && o.time).length < 2) ? '#E4E9F2' : '#009E82', color: (!qmCommunityId || qmOptions.filter(o => o.date && o.time).length < 2) ? '#7A8BA8' : '#fff', border: 'none', borderRadius: 12, padding: '12px 0', fontSize: 14, fontWeight: 700, cursor: (!qmCommunityId || qmOptions.filter(o => o.date && o.time).length < 2) ? 'not-allowed' : 'pointer' }}
                         >
-                            {qmLoading ? 'جاري الإنشاء...' : 'نشر اللعبة'}
+                            {qmLoading ? 'جاري الإنشاء...' : 'نشر التصويت'}
                         </button>
                     </div>
                 )}
 
-                {/* Quick Match Cards */}
+                {/* Poll Cards */}
                 {quickMatches.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {quickMatches.map((qm) => {
                             const isCreator = qm.created_by === employee.id;
                             const isLeader = qm.community?.leader_id === employee.id;
-                            const canConvert = (isCreator || isLeader) && (qm.interests_count ?? 0) >= 2;
+                            const totalVotes = qm.votes_count ?? 0;
+                            const canConvert = (isCreator || isLeader) && totalVotes >= 2;
 
                             return (
                                 <div
@@ -369,7 +397,7 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                                     {/* Header: community + badge */}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <SportIcon icon={qm.community?.sport?.icon} size={22} />
+                                            <CategoryIcon icon={qm.community?.category?.icon} size={22} />
                                             <span style={{ fontSize: 13, fontWeight: 700, color: '#0F1923' }}>{qm.community?.name}</span>
                                         </div>
                                         {qm.source === 'auto' && (
@@ -381,41 +409,82 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
 
                                     {/* Message */}
                                     {qm.message && (
-                                        <div style={{ fontSize: 13, color: '#4A5C78', marginBottom: 10, lineHeight: 1.6 }}>
+                                        <div style={{ fontSize: 13, color: '#4A5C78', marginBottom: 12, lineHeight: 1.6 }}>
                                             {qm.message}
                                         </div>
                                     )}
 
-                                    {/* Date & Time */}
-                                    {(qm.preferred_date || qm.preferred_time) && (
-                                        <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
-                                            {qm.preferred_date && (
-                                                <span style={{ fontSize: 12, color: '#4A5C78' }}>📅 {formatArabicDate(qm.preferred_date)}</span>
-                                            )}
-                                            {qm.preferred_time && (
-                                                <span style={{ fontSize: 12, color: '#4A5C78' }}>🕐 {formatArabicTime(qm.preferred_time)}</span>
-                                            )}
-                                        </div>
-                                    )}
+                                    {/* Poll Options */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                                        {(qm.options ?? []).map((option: QuickMatchOption) => {
+                                            const isMyVote = qm.my_vote_option_id === option.id;
+                                            const pct = totalVotes > 0 ? Math.round((option.votes_count / totalVotes) * 100) : 0;
+                                            const isWinning = totalVotes > 0 && option.votes_count === Math.max(...(qm.options ?? []).map((o: QuickMatchOption) => o.votes_count));
 
-                                    {/* Footer: creator, interest count, time ago */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, fontSize: 11, color: '#7A8BA8' }}>
+                                            return (
+                                                <button
+                                                    key={option.id}
+                                                    onClick={() => router.post(`/employee/quick-match/${qm.id}/vote`, { option_id: option.id })}
+                                                    style={{
+                                                        position: 'relative',
+                                                        background: isMyVote ? '#009E8210' : '#F7F9FC',
+                                                        border: isMyVote ? '2px solid #009E82' : '1px solid #E4E9F2',
+                                                        borderRadius: 12,
+                                                        padding: '12px 14px',
+                                                        cursor: 'pointer',
+                                                        textAlign: 'right',
+                                                        overflow: 'hidden',
+                                                    }}
+                                                >
+                                                    {/* Progress bar background */}
+                                                    {totalVotes > 0 && (
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            top: 0,
+                                                            right: 0,
+                                                            bottom: 0,
+                                                            width: `${pct}%`,
+                                                            background: isWinning ? '#009E8218' : '#E4E9F240',
+                                                            borderRadius: 12,
+                                                            transition: 'width 0.3s ease',
+                                                        }} />
+                                                    )}
+                                                    <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            {isMyVote && <span style={{ color: '#009E82', fontSize: 14 }}>✓</span>}
+                                                            <span style={{ fontSize: 13, fontWeight: isMyVote ? 700 : 600, color: isMyVote ? '#009E82' : '#0F1923' }}>
+                                                                📅 {formatArabicDate(option.date)} — 🕐 {formatArabicTime(option.time)}
+                                                            </span>
+                                                        </div>
+                                                        {totalVotes > 0 && (
+                                                            <span style={{ fontSize: 12, fontWeight: 700, color: isWinning ? '#009E82' : '#7A8BA8' }}>
+                                                                {pct}%
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Footer: creator, votes count, time ago */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: canConvert ? 12 : 0, fontSize: 11, color: '#7A8BA8' }}>
                                         <span>{qm.created_by ? qm.creator?.name : 'النظام'}</span>
                                         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                                            <span>{qm.interests_count ?? 0} مهتمين</span>
+                                            <span>{totalVotes} {totalVotes === 1 ? 'صوت' : 'أصوات'}</span>
                                             <span>{timeAgo(qm.created_at)}</span>
                                         </div>
                                     </div>
 
-                                    {/* Actions */}
-                                    <div style={{ display: 'flex', gap: 8 }}>
+                                    {/* Convert button */}
+                                    {canConvert && (
                                         <button
-                                            onClick={() => router.post(`/employee/quick-match/${qm.id}/interest`)}
+                                            onClick={() => router.post(`/employee/quick-match/${qm.id}/convert`)}
                                             style={{
-                                                flex: 1,
-                                                border: qm.is_interested ? '2px solid #009E82' : '1px solid #E4E9F2',
-                                                background: qm.is_interested ? '#009E8210' : '#fff',
-                                                color: qm.is_interested ? '#009E82' : '#4A5C78',
+                                                width: '100%',
+                                                border: 'none',
+                                                background: 'linear-gradient(135deg,#009E82,#2563EB)',
+                                                color: '#fff',
                                                 borderRadius: 12,
                                                 padding: '10px 0',
                                                 fontSize: 13,
@@ -423,33 +492,15 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                                                 cursor: 'pointer',
                                             }}
                                         >
-                                            {qm.is_interested ? 'لست مهتم' : 'أنا مهتم'}
+                                            حوّل لفعالية
                                         </button>
-                                        {canConvert && (
-                                            <button
-                                                onClick={() => router.post(`/employee/quick-match/${qm.id}/convert`)}
-                                                style={{
-                                                    flex: 1,
-                                                    border: 'none',
-                                                    background: 'linear-gradient(135deg,#009E82,#2563EB)',
-                                                    color: '#fff',
-                                                    borderRadius: 12,
-                                                    padding: '10px 0',
-                                                    fontSize: 13,
-                                                    fontWeight: 700,
-                                                    cursor: 'pointer',
-                                                }}
-                                            >
-                                                حوّل لفعالية
-                                            </button>
-                                        )}
-                                    </div>
+                                    )}
                                 </div>
                             );
                         })}
                     </div>
                 ) : (
-                    <div style={{ textAlign: 'center', padding: 20, color: '#7A8BA8', fontSize: 13 }}>لا توجد مباريات سريعة حاليا</div>
+                    <div style={{ textAlign: 'center', padding: 20, color: '#7A8BA8', fontSize: 13 }}>لا توجد تصويتات حالياً</div>
                 )}
             </div>
 
@@ -473,7 +524,7 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                             onClick={() => setFilter(c.name)}
                             style={{ background: filter === c.name ? '#009E82' : '#E4E9F2', color: filter === c.name ? '#fff' : '#7A8BA8', flexShrink: 0 }}
                         >
-                            <SportIcon icon={c.sport?.icon} size={16} /> {c.name}
+                            <CategoryIcon icon={c.category?.icon} size={16} /> {c.name}
                         </button>
                     ))}
                 </div>
@@ -482,7 +533,7 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                 <div>
                     {filteredEvents.length > 0 ? (
                         filteredEvents.map((event) => {
-                            const color = event.sport?.color ?? event.community?.color ?? '#009E82';
+                            const color = event.category?.color ?? event.community?.color ?? '#009E82';
                             const pct = event.capacity > 0
                                 ? Math.round((event.participants_count / event.capacity) * 100)
                                 : 0;
@@ -490,7 +541,7 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                             const statusMap: Record<string, { label: string; color: string }> = {
                                 open: { label: 'مفتوح', color: '#009E82' },
                                 confirmed: { label: 'مؤكد', color: '#2563EB' },
-                                waiting_club: { label: 'معلق', color: '#F59E0B' },
+                                waiting_business: { label: 'معلق', color: '#F59E0B' },
                                 full: { label: 'مكتمل', color: '#8B5CF6' },
                                 completed: { label: 'منتهي', color: '#6B7280' },
                                 cancelled: { label: 'ملغي', color: '#EF4444' },
@@ -507,15 +558,15 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                                     href={`/employee/detail/${event.id}`}
                                     style={{ display: 'block', background: '#fff', border: '1px solid #E4E9F2', borderRadius: 16, padding: 16, marginBottom: 12, cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
                                 >
-                                    {/* Row 1: Status badge (left) + Club name (right) */}
+                                    {/* Row 1: Status badge (left) + Business name (right) */}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                         <span style={{ background: `${statusColor}15`, color: statusColor, borderRadius: 20, padding: '4px 12px', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flexShrink: 0 }}>
                                             <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
                                             {statusLabel}
                                         </span>
                                         <div style={{ textAlign: 'right', marginRight: 12 }}>
-                                            <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.3 }}>{event.club?.name}</div>
-                                            <div style={{ fontSize: 12, color: '#7A8BA8' }}>{event.club?.district}</div>
+                                            <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.3 }}>{event.business?.name}</div>
+                                            <div style={{ fontSize: 12, color: '#7A8BA8' }}>{event.business?.district}</div>
                                         </div>
                                     </div>
 
@@ -614,10 +665,10 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                                 {leaderboard.top_communities.slice(0, 3).map((comm, idx) => (
                                     <div key={comm.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: `1px solid ${rankColors[idx] ?? '#E4E9F2'}33`, borderRadius: 14, padding: '12px 14px' }}>
                                         <div style={{ width: 28, height: 28, borderRadius: '50%', background: rankColors[idx] ?? '#E4E9F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
-                                        <div style={{ width: 32, height: 32, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SportIcon icon={comm.sport_icon} size={28} /></div>
+                                        <div style={{ width: 32, height: 32, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CategoryIcon icon={comm.category_icon} size={28} /></div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{comm.name}</div>
-                                            {comm.sport_name && <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 1 }}>{comm.sport_name}</div>}
+                                            {comm.category_name && <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 1 }}>{comm.category_name}</div>}
                                         </div>
                                         <div style={{ fontSize: 13, fontWeight: 800, color: rankColors[idx] ?? '#7A8BA8', flexShrink: 0 }}>{comm.events_count} {comm.events_count === 1 ? 'فعالية' : 'فعاليات'}</div>
                                     </div>

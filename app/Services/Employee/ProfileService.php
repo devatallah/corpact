@@ -57,7 +57,7 @@ class ProfileService
     public function myEvents(Employee $employee, array $filters = []): Collection
     {
         return $employee->events()
-            ->with(['community', 'club', 'sport'])
+            ->with(['community', 'business', 'category'])
             ->wherePivot('status', 'joined')
             ->when(isset($filters['status']), fn ($query) => $query->where('events.status', $filters['status']))
             ->latest('events.event_date')
@@ -70,7 +70,7 @@ class ProfileService
     public function myCommunities(Employee $employee): Collection
     {
         return $employee->communities()
-            ->with(['sport', 'leader'])
+            ->with(['category', 'leader'])
             ->withCount('members')
             ->get();
     }

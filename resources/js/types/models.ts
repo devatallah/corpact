@@ -18,12 +18,15 @@ export interface PaginatedResult<T> {
 
 /* ── Core Models ── */
 
-export interface Sport {
+export interface Category {
     id: number;
+    parent_id: number | null;
     name: string;
     name_en: string;
     icon: string;
     color: string;
+    children?: Category[];
+    parent?: Category;
 }
 
 export interface Company {
@@ -51,7 +54,7 @@ export interface Company {
     total_spend?: number;
 }
 
-export interface Club {
+export interface Business {
     id: number;
     name: string;
     email: string;
@@ -68,9 +71,9 @@ export interface Club {
     created_at: string;
     updated_at: string;
     // Relationships
-    sports?: Sport[];
-    courts?: Court[];
-    courts_count?: number;
+    categories?: Category[];
+    venues?: Venue[];
+    venues_count?: number;
 }
 
 export interface Employee {
@@ -101,7 +104,7 @@ export interface Community {
     icon: string | null;
     color: string | null;
     company_id: number;
-    sport_id: number;
+    category_id: number;
     leader_id: number | null;
     member_count: number;
     balance: number;
@@ -109,7 +112,7 @@ export interface Community {
     created_at: string;
     updated_at: string;
     // Relationships
-    sport?: Sport;
+    category?: Category;
     leader?: Employee;
     members?: Employee[];
     events?: Event[];
@@ -119,23 +122,23 @@ export interface Community {
     is_member?: boolean;
 }
 
-export interface Court {
+export interface Venue {
     id: number;
-    club_id: number;
-    sport_id: number;
+    business_id: number;
+    category_id: number;
     name: string;
     status: string;
     created_at: string;
     updated_at: string;
     // Relationships
-    sport?: Sport;
-    club?: Club;
-    pricings?: CourtPricing[];
+    category?: Category;
+    business?: Business;
+    pricings?: VenuePricing[];
 }
 
-export interface CourtPricing {
+export interface VenuePricing {
     id: number;
-    court_id: number;
+    venue_id: number;
     duration_minutes: number;
     price: number;
     is_peak: boolean;
@@ -148,7 +151,7 @@ export interface CourtPricing {
 
 export interface Discount {
     id: number;
-    club_id: number;
+    business_id: number;
     company_id: number;
     community_id: number;
     name: string | null;
@@ -164,7 +167,7 @@ export interface Discount {
     updated_at: string;
     used_count?: number;
     // Relationships
-    club?: Club;
+    business?: Business;
     company?: Company;
     community?: Community;
 }
@@ -173,17 +176,17 @@ export interface Event {
     id: number;
     community_id: number;
     company_id: number;
-    club_id: number;
-    court_pricing_id: number | null;
+    business_id: number;
+    venue_pricing_id: number | null;
     discount_id: number | null;
     discount_amount: number | null;
-    sport_id: number;
+    category_id: number;
     created_by: number;
     title: string;
     event_date: string;
     start_time: string;
     duration_minutes: number;
-    courts_count: number;
+    venues_count: number;
     total_amount: number;
     capacity: number;
     participants_count: number;
@@ -199,11 +202,11 @@ export interface Event {
     // Relationships
     community?: Community;
     company?: Company;
-    club?: Club;
-    courtPricing?: CourtPricing;
+    business?: Business;
+    venuePricing?: VenuePricing;
     discount?: Discount;
-    courts?: Court[];
-    sport?: Sport;
+    venues?: Venue[];
+    category?: Category;
     creator?: Employee;
     participants?: Employee[];
     alternatives?: EventAlternative[];
@@ -215,7 +218,7 @@ export interface EventAlternative {
     proposed_date: string;
     proposed_start_time: string;
     proposed_end_time: string;
-    proposed_courts_count: number;
+    proposed_venues_count: number;
     proposed_amount: number;
     notes: string | null;
     status: string;
@@ -223,7 +226,7 @@ export interface EventAlternative {
 
 export interface Settlement {
     id: number;
-    club_id: number;
+    business_id: number;
     company_id: number;
     period: string;
     events_count: number;
@@ -235,7 +238,7 @@ export interface Settlement {
     created_at: string;
     updated_at: string;
     // Relationships
-    club?: Club;
+    business?: Business;
     company?: Company;
 }
 
@@ -380,7 +383,7 @@ export interface PollVote {
 
 export interface Slot {
     id: number;
-    court_id: number;
+    venue_id: number;
     date: string;
     start_time: string;
     end_time: string;
@@ -433,19 +436,27 @@ export interface ChallengeWithProgress {
     percentage: number;
 }
 
+export interface QuickMatchOption {
+    id: number;
+    quick_match_id: number;
+    date: string;
+    time: string;
+    votes_count: number;
+    sort_order: number;
+}
+
 export interface QuickMatch {
     id: number;
     community_id: number;
     created_by: number | null;
-    preferred_date: string | null;
-    preferred_time: string | null;
     message: string | null;
     source: 'manual' | 'auto';
     status: 'open' | 'converted' | 'expired';
     created_at: string;
     updated_at: string;
-    community?: Community & { sport?: Sport };
+    community?: Community & { category?: Category };
     creator?: Employee;
-    interests_count?: number;
-    is_interested?: boolean;
+    options?: QuickMatchOption[];
+    votes_count?: number;
+    my_vote_option_id?: number | null;
 }

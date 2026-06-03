@@ -26,7 +26,7 @@
   <nav>
     <div class="ni" onclick="window.location='/admin/dash'"><span>📊</span><span class="nl">لوحة التحكم</span></div>
     <div class="ni" onclick="window.location='/admin/companies'"><span>🏢</span><span class="nl">الشركات</span></div>
-    <div class="ni" onclick="window.location='/admin/clubs'"><span>🏟️</span><span class="nl">الأندية</span></div>
+    <div class="ni" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">الأندية</span></div>
     <div class="ni" onclick="window.location='/admin/employees'"><span>👥</span><span class="nl">الموظفون</span></div>
     <div class="ni on" onclick="window.location='/admin/events'"><span>📅</span><span class="nl">الفعاليات</span></div>
     <div class="ni" onclick="window.location='/admin/revenue'"><span>💰</span><span class="nl">الإيرادات</span></div>
@@ -56,17 +56,17 @@
         @forelse($events as $event)
         @php
           $filterStatus = match($event->status) {
-            'open', 'waiting_club', 'alternative_proposed' => 'مفتوحة',
+            'open', 'waiting_business', 'alternative_proposed' => 'مفتوحة',
             'confirmed', 'full' => 'مؤكدة',
             'completed' => 'منتهية',
             'cancelled', 'rejected' => 'ملغية',
             default => 'مفتوحة',
           };
         @endphp
-        <tr class="ev-row" data-s="{{ $filterStatus }}"><td><span style="font-weight:600;color:#fff;">{{ $event->sport?->icon ?? '' }} {{ $event->sport?->name ?? '-' }}</span></td><td style="color:#C8D0E0;">{{ $event->company?->name ?? ($event->community?->company?->name ?? '-') }}</td><td style="color:#C8D0E0;">{{ $event->club?->name ?? '-' }}</td><td style="font-size:12px;color:#6B7A99;">{{ $event->event_date?->translatedFormat('l j F') }} · {{ $event->start_time }}</td><td>{{ $event->participants_count }}/{{ $event->capacity }}</td><td style="color:@if(in_array($event->status, ['completed']))#009E82 @else #D4820A @endif;font-weight:700;">{{ number_format($event->total_amount) }} ر</td><td>
+        <tr class="ev-row" data-s="{{ $filterStatus }}"><td><span style="font-weight:600;color:#fff;">{{ $event->sport?->icon ?? '' }} {{ $event->sport?->name ?? '-' }}</span></td><td style="color:#C8D0E0;">{{ $event->company?->name ?? ($event->community?->company?->name ?? '-') }}</td><td style="color:#C8D0E0;">{{ $event->business?->name ?? '-' }}</td><td style="font-size:12px;color:#6B7A99;">{{ $event->event_date?->translatedFormat('l j F') }} · {{ $event->start_time }}</td><td>{{ $event->participants_count }}/{{ $event->capacity }}</td><td style="color:@if(in_array($event->status, ['completed']))#009E82 @else #D4820A @endif;font-weight:700;">{{ number_format($event->total_amount) }} ر</td><td>
           @if($event->status === 'open')
           <span class="badge b-review">🔍 مفتوحة</span>
-          @elseif($event->status === 'waiting_club')
+          @elseif($event->status === 'waiting_business')
           <span class="badge b-pending">انتظار النادي</span>
           @elseif($event->status === 'confirmed')
           <span class="badge b-active">✅ مؤكدة</span>

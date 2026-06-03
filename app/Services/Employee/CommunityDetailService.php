@@ -21,7 +21,7 @@ class CommunityDetailService
      */
     public function getDetail(Community $community): Community
     {
-        return $community->load(['sport', 'leader', 'company']);
+        return $community->load(['category', 'leader', 'company']);
     }
 
     /**
@@ -32,7 +32,7 @@ class CommunityDetailService
     public function events(Community $community, array $filters = []): LengthAwarePaginator
     {
         return Event::query()
-            ->with(['club', 'sport', 'creator'])
+            ->with(['business', 'category', 'creator'])
             ->where('community_id', $community->id)
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->latest('event_date')

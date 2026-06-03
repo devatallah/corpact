@@ -2,13 +2,13 @@
 
 namespace Database\Factories;
 
-use App\Models\Club;
+use App\Models\Business;
 use App\Models\Community;
 use App\Models\Company;
-use App\Models\CourtPricing;
+use App\Models\VenuePricing;
 use App\Models\Employee;
 use App\Models\Event;
-use App\Models\Sport;
+use App\Models\Category;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -30,15 +30,15 @@ class EventFactory extends Factory
         return [
             'community_id' => Community::factory(),
             'company_id' => Company::factory(),
-            'club_id' => Club::factory(),
-            'court_pricing_id' => CourtPricing::factory(),
-            'sport_id' => Sport::factory(),
+            'business_id' => Business::factory(),
+            'venue_pricing_id' => VenuePricing::factory(),
+            'category_id' => Category::factory(),
             'created_by' => Employee::factory(),
             'title' => fake()->randomElement([null, 'مباراة ودية', 'تدريب أسبوعي', 'بطولة الشركة', 'لقاء رياضي']),
             'event_date' => fake()->dateTimeBetween('now', '+30 days'),
             'start_time' => fake()->randomElement(['16:00', '17:00', '18:00', '19:00', '20:00', '21:00']),
             'duration_minutes' => fake()->randomElement([60, 90, 120]),
-            'courts_count' => fake()->randomElement([1, 2]),
+            'venues_count' => fake()->randomElement([1, 2]),
             'total_amount' => $totalAmount,
             'capacity' => $capacity,
             'participants_count' => fake()->numberBetween(1, $capacity),
@@ -64,9 +64,9 @@ class EventFactory extends Factory
         ]);
     }
 
-    public function waitingClub(): static
+    public function waitingbusiness(): static
     {
-        return $this->state(fn () => ['status' => 'waiting_club']);
+        return $this->state(fn () => ['status' => 'waiting_business']);
     }
 
     public function confirmed(): static

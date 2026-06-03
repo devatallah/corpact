@@ -43,6 +43,7 @@ class CompanyService
                 'status' => 'active',
                 'approved_at' => Carbon::now(),
                 'activation_token' => $token,
+                'activation_token_expires_at' => Carbon::now()->addHours(72),
             ]);
 
             ActivityLogService::log(

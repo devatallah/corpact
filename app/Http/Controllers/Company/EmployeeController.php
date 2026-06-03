@@ -32,7 +32,7 @@ class EmployeeController extends Controller
         $filters = $request->validated();
 
         $employees = $this->employeeService->list($company, $filters);
-        $employees->load(['communities.sport', 'department']);
+        $employees->load(['communities.category', 'department']);
         $employees->loadCount('events');
 
         $activeCount = Employee::where('company_id', $company->id)->where('status', 'active')->count();

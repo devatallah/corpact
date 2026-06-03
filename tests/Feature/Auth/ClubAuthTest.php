@@ -1,64 +1,64 @@
 <?php
 
-use App\Models\Club;
+use App\Models\business;
 
-test('club login page renders', function () {
-    $this->get(route('club.login'))->assertOk();
+test('business login page renders', function () {
+    $this->get(route('business.login'))->assertOk();
 });
 
-test('active club can login', function () {
-    $club = Club::factory()->create([
+test('active business can login', function () {
+    $business = business::factory()->create([
         'password' => bcrypt('password'),
         'status' => 'active',
     ]);
 
-    $this->post(route('club.login'), [
-        'email' => $club->email,
+    $this->post(route('business.login'), [
+        'email' => $business->email,
         'password' => 'password',
-    ])->assertRedirect(route('club.dash'));
+    ])->assertRedirect(route('business.dash'));
 
-    $this->assertAuthenticatedAs($club, 'club');
+    $this->assertAuthenticatedAs($business, 'business');
 });
 
-test('inactive club cannot login', function () {
-    $club = Club::factory()->pending()->create([
+test('inactive business cannot login', function () {
+    $business = business::factory()->pending()->create([
         'password' => bcrypt('password'),
     ]);
 
-    $this->post(route('club.login'), [
-        'email' => $club->email,
+    $this->post(route('business.login'), [
+        'email' => $business->email,
         'password' => 'password',
     ])->assertSessionHasErrors('email');
 
-    $this->assertGuest('club');
+    $this->assertGuest('business');
 });
 
-test('club cannot login with wrong password', function () {
-    $club = Club::factory()->create(['password' => bcrypt('password')]);
+test('business cannot login with wrong password', function () {
+    $business = business::factory()->create(['password' => bcrypt('password')]);
 
-    $this->post(route('club.login'), [
-        'email' => $club->email,
+    $this->post(route('business.login'), [
+        'email' => $business->email,
         'password' => 'wrong-password',
     ])->assertSessionHasErrors('email');
 
-    $this->assertGuest('club');
+    $this->assertGuest('business');
 });
 
-test('club login validates required fields', function () {
-    $this->post(route('club.login'), [])
+test('business login validates required fields', function () {
+    $this->post(route('business.login'), [])
         ->assertSessionHasErrors(['email', 'password']);
 });
 
-test('club can logout', function () {
-    $club = Club::factory()->create();
+test('business can logout', function () {
+    $business = business::factory()->create();
 
-    $this->actingAs($club, 'club')
-        ->post(route('club.logout'))
-        ->assertRedirect(route('club.login'));
+    $this->actingAs($business, 'business')
+        ->post(route('business.logout'))
+        ->assertRedirect(route('business.login'));
 
-    $this->assertGuest('club');
+    $this->assertGuest('business');
 });
 
-test('club dashboard requires authentication', function () {
-    $this->get(route('club.dash'))->assertRedirect();
+test('business dashboard requires authentication', function () {
+    $this->get(route('business.dash'))->assertRedirect();
 });

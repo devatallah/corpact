@@ -33,7 +33,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
     <div class="logo-section">
         <div class="logo-ar">تيمات</div>
         <div class="logo-en">TEAMAT</div>
-        <div class="logo-tag">CLUB</div>
+        <div class="logo-tag">business</div>
         <div class="logo-desc">تعيين كلمة مرور جديدة</div>
     </div>
     <div class="card">
@@ -46,7 +46,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
                 @endforeach
             </div>
         @endif
-        <form method="POST" action="{{ route('club.password.update') }}">
+        <form method="POST" action="{{ route('business.password.update') }}">
             @csrf
             <input type="hidden" name="token" value="{{ $token }}">
             <div class="field">

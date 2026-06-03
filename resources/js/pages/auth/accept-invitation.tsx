@@ -92,7 +92,7 @@ export default function AcceptInvitation({ invitation }: Props) {
                         <p className="text-xs text-muted-foreground text-center">بوابات أخرى</p>
                         <div className="flex flex-wrap gap-2 justify-center">
                             <Link href="/company/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">🏢 الشركات</Link>
-                            <Link href="/club/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">🏟️ الأندية</Link>
+                            <Link href="/business/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">🏟️ المنشآت</Link>
                             <Link href="/employee/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">👥 الموظفون</Link>
                         </div>
                     </div>

@@ -196,7 +196,7 @@ export default function RegisterCompany() {
                         <div style={{ borderTop: '1px solid #E4E9F2', paddingTop: 16, marginTop: 16, textAlign: 'center' }}>
                             <div style={{ fontSize: 11, color: '#7A8BA8', marginBottom: 8 }}>بوابات أخرى</div>
                             <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                                <Link href="/club/login" style={{ padding: '6px 12px', border: '1px solid #E4E9F2', borderRadius: 8, fontSize: 12, color: '#4A5C78', textDecoration: 'none' }}>🏟️ الأندية</Link>
+                                <Link href="/business/login" style={{ padding: '6px 12px', border: '1px solid #E4E9F2', borderRadius: 8, fontSize: 12, color: '#4A5C78', textDecoration: 'none' }}>🏟️ المنشآت</Link>
                                 <Link href="/employee/login" style={{ padding: '6px 12px', border: '1px solid #E4E9F2', borderRadius: 8, fontSize: 12, color: '#4A5C78', textDecoration: 'none' }}>👥 الموظفون</Link>
                             </div>
                         </div>

@@ -33,7 +33,7 @@
   <div style="margin-bottom:16px;">
     <a href="/company/events" class="fbtn {{ empty($filters['status']) ? 'on' : '' }}" style="text-decoration:none;">الكل</a>
     <a href="/company/events?status=open" class="fbtn {{ ($filters['status'] ?? '') === 'open' ? 'on' : '' }}" style="text-decoration:none;">مفتوحة</a>
-    <a href="/company/events?status=waiting_club" class="fbtn {{ ($filters['status'] ?? '') === 'waiting_club' ? 'on' : '' }}" style="text-decoration:none;">انتظار النادي</a>
+    <a href="/company/events?status=waiting_business" class="fbtn {{ ($filters['status'] ?? '') === 'waiting_business' ? 'on' : '' }}" style="text-decoration:none;">انتظار النادي</a>
     <a href="/company/events?status=confirmed" class="fbtn {{ ($filters['status'] ?? '') === 'confirmed' ? 'on' : '' }}" style="text-decoration:none;">مؤكدة</a>
     <a href="/company/events?status=completed" class="fbtn {{ ($filters['status'] ?? '') === 'completed' ? 'on' : '' }}" style="text-decoration:none;">منتهية</a>
   </div>
@@ -46,7 +46,7 @@
           $fillPercent = $event->capacity > 0 ? round(($event->participants_count / $event->capacity) * 100) : 0;
           $statusBadge = match($event->status) {
             'open' => ['background:#3B5BDB18;color:#3B5BDB;', 'مفتوحة'],
-            'waiting_club' => ['background:#D4820A18;color:#D4820A;', 'انتظار النادي'],
+            'waiting_business' => ['background:#D4820A18;color:#D4820A;', 'انتظار النادي'],
             'confirmed' => ['background:#0CA67818;color:#0CA678;', 'مؤكدة'],
             'completed' => ['background:#7A8BA818;color:#7A8BA8;', 'منتهية'],
             'cancelled' => ['background:#E0305018;color:#E03050;', 'ملغية'],
@@ -55,7 +55,7 @@
         @endphp
         <tr>
           <td><span style="font-weight:600;">{{ $event->sport?->icon }} {{ $event->community?->name }}</span></td>
-          <td style="color:#4A5C78;">{{ $event->club?->name ?? '—' }}</td>
+          <td style="color:#4A5C78;">{{ $event->business?->name ?? '—' }}</td>
           <td><div style="font-size:12px;">{{ $event->event_date?->translatedFormat('l j F') }}</div><div style="font-size:11px;color:#7A8BA8;">{{ $event->start_time }}</div></td>
           <td><div style="font-weight:700;{{ $event->participants_count >= $event->capacity ? 'color:#0CA678;' : '' }}">{{ $event->participants_count }}/{{ $event->capacity }}</div><div class="bar-w" style="width:50px;margin-top:4px;"><div class="bar-f" style="width:{{ $fillPercent }}%;background:#0CA678;"></div></div></td>
           <td style="font-size:12px;color:#7A8BA8;">{{ $event->creator?->name ?? '—' }}</td>

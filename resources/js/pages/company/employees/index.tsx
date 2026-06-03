@@ -1,7 +1,7 @@
 import CompanyLayout from '@/layouts/company-layout';
 import Pagination from '@/components/pagination';
 import StatusBadge from '@/components/status-badge';
-import SportIcon from '@/components/sport-icon';
+import CategoryIcon from '@/components/category-icon';
 import type { Department, Employee, PaginatedResult } from '@/types/models';
 import { Head, useForm } from '@inertiajs/react';
 import { useState, useEffect, type FormEvent } from 'react';
@@ -156,7 +156,7 @@ export default function EmployeesIndex({ employees, departments, filters, active
                                                     className="badge"
                                                     style={{ background: '#0CA67818', color: '#0CA678', marginLeft: 4 }}
                                                 >
-                                                    <SportIcon icon={c.sport?.icon} size={14} /> {c.name}
+                                                    <CategoryIcon icon={c.category?.icon} size={14} /> {c.name}
                                                 </span>
                                             ))
                                         ) : (

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Club;
+use App\Models\Business;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
@@ -27,10 +27,10 @@ class EmailVerificationController extends Controller
             'dashboard_route' => 'employee.home',
             'label' => 'الموظف',
         ],
-        'club' => [
-            'model' => Club::class,
-            'guard' => 'club',
-            'dashboard_route' => 'club.dash',
+        'business' => [
+            'model' => Business::class,
+            'guard' => 'business',
+            'dashboard_route' => 'business.dash',
             'label' => 'النادي',
         ],
         'company' => [
@@ -77,7 +77,7 @@ class EmailVerificationController extends Controller
 
         $loginRoute = match ($guard) {
             'employee' => 'employee.login',
-            'club' => 'club.login',
+            'business' => 'business.login',
             'company' => 'company.login',
             default => 'admin.login',
         };

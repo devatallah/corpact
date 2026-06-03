@@ -27,9 +27,9 @@
     @csrf
     <input type="hidden" name="community_id" id="inputCommunityId" value="">
     <input type="hidden" name="sport_id" id="inputSportId" value="">
-    <input type="hidden" name="club_id" id="inputClubId" value="">
-    <input type="hidden" name="court_pricing_id" id="inputCourtPricingId" value="">
-    <input type="hidden" name="courts_count" id="inputCourtsCount" value="1">
+    <input type="hidden" name="business_id" id="inputbusinessId" value="">
+    <input type="hidden" name="venue_pricing_id" id="inputvenuePricingId" value="">
+    <input type="hidden" name="venues_count" id="inputvenuesCount" value="1">
     <input type="hidden" name="capacity" id="inputCapacity" value="4">
     <input type="hidden" name="company_subsidy" id="inputSubsidy" value="0">
 
@@ -49,21 +49,21 @@
       <div style="font-size:14px;font-weight:700;margin-bottom:12px;">النادي والموعد</div>
       <div style="font-size:12px;color:#7A8BA8;margin-bottom:6px;">اختر النادي</div>
       <div style="position:relative;margin-bottom:16px;">
-        <select id="clubSelect" onchange="onClubChange(this)" style="width:100%;padding:12px 14px;background:#fff;border:1px solid #E4E9F2;border-radius:12px;font-size:13px;appearance:none;cursor:pointer;outline:none;direction:rtl;font-family:inherit;">
+        <select id="businessSelect" onchange="onbusinessChange(this)" style="width:100%;padding:12px 14px;background:#fff;border:1px solid #E4E9F2;border-radius:12px;font-size:13px;appearance:none;cursor:pointer;outline:none;direction:rtl;font-family:inherit;">
           <option value="">اختر النادي...</option>
-          @foreach($clubs as $club)
+          @foreach($businesss as $business)
           @php
-            $courtsData = $club->courts->map(function ($court) {
+            $venuesData = $business->venues->map(function ($venue) {
               return [
-                'id' => $court->id,
-                'name' => $court->name,
-                'pricings' => $court->pricings->map(function ($p) {
+                'id' => $venue->id,
+                'name' => $venue->name,
+                'pricings' => $venue->pricings->map(function ($p) {
                   return ['id' => $p->id, 'duration' => $p->duration_minutes, 'price' => $p->price];
                 })->values(),
               ];
             })->values();
           @endphp
-          <option value="{{ $club->id }}" data-courts='@json($courtsData)'>{{ $club->name }}</option>
+          <option value="{{ $business->id }}" data-venues='@json($venuesData)'>{{ $business->name }}</option>
           @endforeach
         </select>
         <div style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#7A8BA8;pointer-events:none;">▼</div>
@@ -81,13 +81,13 @@
         </div>
       </div>
 
-      <!-- Courts count -->
+      <!-- venues count -->
       <div style="margin-bottom:16px;">
         <div style="font-size:12px;color:#7A8BA8;font-weight:600;margin-bottom:8px;">عدد الملاعب</div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <button type="button" onclick="adjCourts(-1)" style="width:40px;height:40px;border-radius:10px;border:1px solid #E4E9F2;background:#fff;font-size:20px;cursor:pointer;font-family:inherit;">−</button>
-          <input type="number" id="courtsCount" value="1" min="1" oninput="calcPrice()" style="flex:1;text-align:center;padding:10px;background:#fff;border:1px solid #009E82;border-radius:10px;font-size:18px;font-weight:800;outline:none;">
-          <button type="button" onclick="adjCourts(1)" style="width:40px;height:40px;border-radius:10px;border:1px solid #E4E9F2;background:#fff;font-size:20px;cursor:pointer;font-family:inherit;">+</button>
+          <button type="button" onclick="adjvenues(-1)" style="width:40px;height:40px;border-radius:10px;border:1px solid #E4E9F2;background:#fff;font-size:20px;cursor:pointer;font-family:inherit;">−</button>
+          <input type="number" id="venuesCount" value="1" min="1" oninput="calcPrice()" style="flex:1;text-align:center;padding:10px;background:#fff;border:1px solid #009E82;border-radius:10px;font-size:18px;font-weight:800;outline:none;">
+          <button type="button" onclick="adjvenues(1)" style="width:40px;height:40px;border-radius:10px;border:1px solid #E4E9F2;background:#fff;font-size:20px;cursor:pointer;font-family:inherit;">+</button>
         </div>
       </div>
 
@@ -128,10 +128,10 @@
       <div style="font-size:14px;font-weight:700;margin-bottom:16px;">مراجعة الفعالية</div>
       <div class="card" style="border-color:#009E8233;margin-bottom:20px;">
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">المجتمع</span><span style="font-size:13px;font-weight:700;" id="rC">—</span></div>
-        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">النادي</span><span style="font-size:13px;font-weight:700;" id="rClub">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">النادي</span><span style="font-size:13px;font-weight:700;" id="rbusiness">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">التاريخ</span><span style="font-size:13px;font-weight:700;" id="rDate">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">مدة الحجز</span><span style="font-size:13px;font-weight:700;" id="rDurVal">—</span></div>
-        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">عدد الملاعب</span><span style="font-size:13px;font-weight:700;" id="rCourts">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">عدد الملاعب</span><span style="font-size:13px;font-weight:700;" id="rvenues">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">عدد اللاعبين</span><span style="font-size:13px;font-weight:700;" id="rN">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">إجمالي الحجز</span><span style="font-size:13px;font-weight:700;" id="rPrice">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:10px 0;"><span style="font-size:12px;color:#7A8BA8;">حصة كل لاعب</span><span style="font-size:15px;font-weight:900;color:#009E82;" id="rPerPlayer">—</span></div>
@@ -182,15 +182,15 @@ function pickC(id, sportId, name, el){
   document.getElementById('rC').textContent=name;
 }
 
-function onClubChange(select){
+function onbusinessChange(select){
   var opt = select.options[select.selectedIndex];
-  document.getElementById('inputClubId').value = select.value;
-  var courts = opt.dataset.courts ? JSON.parse(opt.dataset.courts) : [];
+  document.getElementById('inputbusinessId').value = select.value;
+  var venues = opt.dataset.venues ? JSON.parse(opt.dataset.venues) : [];
   var container = document.getElementById('durationOptions');
   container.innerHTML='';
   // Collect unique pricings
   var pricings = [];
-  courts.forEach(function(c){
+  venues.forEach(function(c){
     c.pricings.forEach(function(p){
       if(!pricings.find(function(x){return x.id===p.id;})){
         pricings.push(p);
@@ -217,7 +217,7 @@ function onClubChange(select){
 
 function pickDur(el,dur,price,pricingId){
   selDur=dur; selPrice=price; selPricingId=pricingId;
-  document.getElementById('inputCourtPricingId').value = pricingId;
+  document.getElementById('inputvenuePricingId').value = pricingId;
   document.querySelectorAll('.dur-opt').forEach(d=>{
     d.style.borderColor='#E4E9F2'; d.style.background='#fff';
     var r=d.querySelector('.dur-radio');
@@ -230,21 +230,21 @@ function pickDur(el,dur,price,pricingId){
   el.querySelector('span:last-child').style.color='#009E82';
   calcPrice();
 }
-function adjCourts(d){
-  var el=document.getElementById('courtsCount');
+function adjvenues(d){
+  var el=document.getElementById('venuesCount');
   el.value=Math.max(1,parseInt(el.value||1)+d);
   calcPrice();
 }
 function calcPrice(){
-  var courts=parseInt(document.getElementById('courtsCount').value)||1;
+  var venues=parseInt(document.getElementById('venuesCount').value)||1;
   var players=parseInt(document.getElementById('pc').value)||1;
   if(players<1) players=1;
-  var total=selPrice*courts;
+  var total=selPrice*venues;
   var perPlayer=Math.ceil(total/players);
   document.getElementById('totalPrice').textContent=total.toLocaleString()+' ريال';
-  document.getElementById('priceCalc').textContent=courts+' ملعب × '+selPrice.toLocaleString()+' ر';
+  document.getElementById('priceCalc').textContent=venues+' ملعب × '+selPrice.toLocaleString()+' ر';
   document.getElementById('perPlayer').textContent=perPlayer.toLocaleString()+' ريال';
-  document.getElementById('inputCourtsCount').value=courts;
+  document.getElementById('inputvenuesCount').value=venues;
   document.getElementById('inputCapacity').value=players;
 }
 function gostep(n){
@@ -252,16 +252,16 @@ function gostep(n){
   document.getElementById('sb2').style.background=n>=2?'#009E82':'#E4E9F2';
   document.getElementById('sb3').style.background=n>=3?'#009E82':'#E4E9F2';
   if(n===3){
-    var courts=parseInt(document.getElementById('courtsCount').value)||1;
+    var venues=parseInt(document.getElementById('venuesCount').value)||1;
     var players=parseInt(document.getElementById('pc').value)||1;
-    var total=selPrice*courts;
+    var total=selPrice*venues;
     var perPlayer=Math.ceil(total/players);
     document.getElementById('rC').textContent=selCommunityName;
-    var clubSel=document.getElementById('clubSelect');
-    document.getElementById('rClub').textContent=clubSel.options[clubSel.selectedIndex]?.text||'—';
+    var businessSel=document.getElementById('businessSelect');
+    document.getElementById('rbusiness').textContent=businessSel.options[businessSel.selectedIndex]?.text||'—';
     document.getElementById('rDate').textContent=document.getElementById('inputDate').value||'—';
     document.getElementById('rDurVal').textContent=selDur+' دقيقة';
-    document.getElementById('rCourts').textContent=courts+(courts===1?' ملعب':' ملاعب');
+    document.getElementById('rvenues').textContent=venues+(venues===1?' ملعب':' ملاعب');
     document.getElementById('rN').textContent=players+' لاعبين';
     document.getElementById('rPrice').textContent=total.toLocaleString()+' ريال';
     document.getElementById('rPerPlayer').textContent=perPlayer.toLocaleString()+' ريال';

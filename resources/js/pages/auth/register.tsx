@@ -6,7 +6,7 @@ import type { GuardName } from '@/types/auth';
 import type { FormEvent } from 'react';
 
 type Props = {
-    guard: Extract<GuardName, 'club' | 'company'>;
+    guard: Extract<GuardName, 'business' | 'company'>;
     guardLabel: string;
 };
 
@@ -15,7 +15,7 @@ function guardPrefix(guard: string) {
 }
 
 export default function Register({ guard, guardLabel }: Props) {
-    const isClub = guard === 'club';
+    const isBusiness = guard === 'business';
 
     const { data, setData, post, processing, errors } = useForm({
         name: '',
@@ -27,7 +27,7 @@ export default function Register({ guard, guardLabel }: Props) {
         hr_phone: '',
         sector: '',
         city: '',
-        // Club fields
+        // Business fields
         district: '',
         contact_phone: '',
     });
@@ -51,7 +51,7 @@ export default function Register({ guard, guardLabel }: Props) {
                     <form onSubmit={submit} className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-2 sm:col-span-2">
-                                <Label htmlFor="name">{isClub ? 'اسم النادي' : 'اسم الشركة'}</Label>
+                                <Label htmlFor="name">{isBusiness ? 'اسم المنشأة' : 'اسم الشركة'}</Label>
                                 <Input id="name" value={data.name} onChange={(e) => setData('name', e.target.value)} />
                                 {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                             </div>
@@ -73,7 +73,7 @@ export default function Register({ guard, guardLabel }: Props) {
                                 <Input id="password_confirmation" type="password" dir="ltr" value={data.password_confirmation} onChange={(e) => setData('password_confirmation', e.target.value)} />
                             </div>
 
-                            {isClub ? (
+                            {isBusiness ? (
                                 <>
                                     <div className="space-y-2">
                                         <Label htmlFor="city">المدينة</Label>
@@ -135,8 +135,8 @@ export default function Register({ guard, guardLabel }: Props) {
                             {guard !== 'company' && (
                                 <Link href="/company/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">🏢 الشركات</Link>
                             )}
-                            {guard !== 'club' && (
-                                <Link href="/club/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">🏟️ الأندية</Link>
+                            {guard !== 'business' && (
+                                <Link href="/business/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">🏟️ المنشآت</Link>
                             )}
                             <Link href="/employee/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">👥 الموظفون</Link>
                         </div>

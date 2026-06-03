@@ -15,11 +15,11 @@ class EventDetailService
     {
         $event->load([
             'community.company',
-            'club',
-            'sport',
+            'business',
+            'category',
             'creator',
             'participants',
-            'courts',
+            'venues',
             'alternatives',
         ]);
 

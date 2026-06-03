@@ -39,7 +39,7 @@ class EventController extends Controller
      */
     public function show(Event $event): Response
     {
-        $event->load(['community', 'club', 'sport', 'creator', 'participants', 'company']);
+        $event->load(['community', 'business', 'category', 'creator', 'participants', 'company']);
 
         return Inertia::render('admin/events/show', [
             'event' => $event,

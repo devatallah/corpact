@@ -5,10 +5,10 @@ import type { NavItem } from '@/components/portal-sidebar';
 const navItems: NavItem[] = [
     { label: 'لوحة التحكم', href: '/admin/dash', emoji: '📊' },
     { label: 'الشركات', href: '/admin/companies', emoji: '🏢' },
-    { label: 'الأندية', href: '/admin/clubs', emoji: '🏟️' },
+    { label: 'الأعمال', href: '/admin/businesses', emoji: '🏟️' },
     { label: 'الموظفون', href: '/admin/employees', emoji: '👥' },
     { label: 'المجتمعات', href: '/admin/communities', emoji: '👫' },
-    { label: 'الرياضات', href: '/admin/sports', emoji: '⚽' },
+    { label: 'الفئات', href: '/admin/categories', emoji: '⚽' },
     { label: 'الفعاليات', href: '/admin/events', emoji: '📅' },
     { label: 'الإيرادات', href: '/admin/revenue', emoji: '💰' },
     { label: 'الإشعارات', href: '/admin/notifs', emoji: '🔔' },

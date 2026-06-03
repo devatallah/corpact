@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Club;
+use App\Models\business;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
@@ -25,10 +25,10 @@ test('admin cannot access employee home', function () {
         ->assertRedirect();
 });
 
-test('club cannot access employee home', function () {
-    $club = Club::factory()->create();
+test('business cannot access employee home', function () {
+    $business = business::factory()->create();
 
-    $this->actingAs($club, 'club')
+    $this->actingAs($business, 'business')
         ->get(route('employee.home'))
         ->assertRedirect();
 });

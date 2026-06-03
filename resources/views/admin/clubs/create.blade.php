@@ -17,7 +17,7 @@
   <nav>
     <div class="ni" onclick="window.location='/admin/dash'"><span>📊</span><span class="nl">لوحة التحكم</span></div>
     <div class="ni" onclick="window.location='/admin/companies'"><span>🏢</span><span class="nl">الشركات</span></div>
-    <div class="ni on" onclick="window.location='/admin/clubs'"><span>🏟️</span><span class="nl">الأندية</span></div>
+    <div class="ni on" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">الأندية</span></div>
     <div class="ni" onclick="window.location='/admin/employees'"><span>👥</span><span class="nl">الموظفون</span></div>
     <div class="ni" onclick="window.location='/admin/events'"><span>📅</span><span class="nl">الفعاليات</span></div>
     <div class="ni" onclick="window.location='/admin/revenue'"><span>💰</span><span class="nl">الإيرادات</span></div>
@@ -32,7 +32,7 @@
 <div class="main">
 <div class="sc on">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
-    <a href="{{ route('admin.clubs.index') }}" style="color:#6B7A99;text-decoration:none;font-size:14px;">← الأندية</a>
+    <a href="{{ route('admin.businesss.index') }}" style="color:#6B7A99;text-decoration:none;font-size:14px;">← الأندية</a>
     <span style="color:#3D4A60;">/</span>
     <span style="color:#fff;font-weight:700;">إضافة نادي</span>
   </div>
@@ -45,7 +45,7 @@
 
   <div class="card" style="max-width:600px;">
     <div style="font-size:18px;font-weight:700;margin-bottom:20px;">إضافة نادي جديد</div>
-    <form method="POST" action="{{ route('admin.clubs.store') }}">
+    <form method="POST" action="{{ route('admin.businesss.store') }}">
       @csrf
 
       <div style="margin-bottom:16px;">
@@ -67,7 +67,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
         <div>
           <label style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:6px;">البريد الإلكتروني *</label>
-          <input type="email" name="email" value="{{ old('email') }}" required dir="ltr" style="width:100%;padding:10px 14px;background:#0F1117;border:1px solid #232A3E;border-radius:10px;color:#E8EAF0;font-size:14px;font-family:inherit;outline:none;" placeholder="info@club.com">
+          <input type="email" name="email" value="{{ old('email') }}" required dir="ltr" style="width:100%;padding:10px 14px;background:#0F1117;border:1px solid #232A3E;border-radius:10px;color:#E8EAF0;font-size:14px;font-family:inherit;outline:none;" placeholder="info@business.com">
         </div>
         <div>
           <label style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:6px;">رقم الهاتف *</label>
@@ -82,7 +82,7 @@
 
       <div style="display:flex;gap:10px;">
         <button type="submit" style="flex:1;padding:12px;background:linear-gradient(135deg,#009E82,#00B894);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">حفظ</button>
-        <a href="{{ route('admin.clubs.index') }}" style="padding:12px 24px;background:#232A3E;border-radius:10px;color:#6B7A99;font-size:14px;font-weight:700;text-decoration:none;text-align:center;">إلغاء</a>
+        <a href="{{ route('admin.businesss.index') }}" style="padding:12px 24px;background:#232A3E;border-radius:10px;color:#6B7A99;font-size:14px;font-weight:700;text-decoration:none;text-align:center;">إلغاء</a>
       </div>
     </form>
   </div>

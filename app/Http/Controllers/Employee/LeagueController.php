@@ -33,7 +33,7 @@ class LeagueController extends Controller
         $standings = $league->isRoundRobin() ? $this->leagueService->standings($league) : null;
 
         return Inertia::render('employee/community/league-show', [
-            'community' => $community->load('sport'),
+            'community' => $community->load('category'),
             'league' => $league,
             'standings' => $standings,
             'isLeader' => $isLeader,
@@ -50,7 +50,7 @@ class LeagueController extends Controller
             ->get(['id', 'name']);
 
         return Inertia::render('employee/community/league-create', [
-            'community' => $community->load('sport'),
+            'community' => $community->load('category'),
             'departments' => $departments,
         ]);
     }

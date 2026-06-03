@@ -27,14 +27,14 @@ interface TopCompany extends Company {
 
 interface Props {
     companyStats: { active: number; pending: number; review: number };
-    clubStats: { active: number; pending: number };
+    businessStats: { active: number; pending: number };
     totalEmployees: number;
     monthlyRevenue: number;
     pendingRequests: number;
     pendingCompanies: number;
-    pendingClubs: number;
+    pendingbusinesss: number;
     companiesThisMonth: number;
-    clubsThisMonth: number;
+    businessesThisMonth: number;
     employeesThisMonth: number;
     revenueGrowth: number;
     last6Months: MonthData[];
@@ -45,14 +45,14 @@ interface Props {
 
 export default function AdminDashboard({
     companyStats,
-    clubStats,
+    businessStats,
     totalEmployees,
     monthlyRevenue,
     pendingRequests,
     pendingCompanies,
-    pendingClubs,
+    pendingbusinesss,
     companiesThisMonth,
-    clubsThisMonth,
+    businessesThisMonth,
     employeesThisMonth,
     revenueGrowth,
     last6Months,
@@ -77,9 +77,9 @@ export default function AdminDashboard({
                 />
                 <StatCard
                     emoji="🏟️"
-                    label="نادٍ مفعّل"
-                    value={clubStats.active}
-                    change={`+${clubsThisMonth} هذا الشهر`}
+                    label="منشأة مفعّلة"
+                    value={businessStats.active}
+                    change={`+${businessesThisMonth} هذا الشهر`}
                     color="#5B7EFF"
                 />
                 <StatCard
@@ -100,7 +100,7 @@ export default function AdminDashboard({
                     emoji="⏳"
                     label="طلبات تحتاج مراجعة"
                     value={pendingRequests}
-                    change={`${pendingCompanies} شركة · ${pendingClubs} نادي`}
+                    change={`${pendingCompanies} شركة · ${pendingBusinesses} منشأة`}
                     color="#C8A600"
                 />
             </div>
@@ -148,7 +148,7 @@ export default function AdminDashboard({
                         recentRequests.map((req) => (
                             <Link
                                 key={req.id}
-                                href={req.type === 'company' ? '/admin/companies' : '/admin/clubs'}
+                                href={req.type === 'company' ? '/admin/companies' : '/admin/businesses'}
                                 style={{
                                     display: 'block',
                                     background: '#0F1117',

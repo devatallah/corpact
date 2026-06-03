@@ -53,8 +53,8 @@ export default function VerifyEmail({ guard, guardLabel }: Props) {
                                 {guard !== 'company' && (
                                     <Link href="/company/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">🏢 الشركات</Link>
                                 )}
-                                {guard !== 'club' && (
-                                    <Link href="/club/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">🏟️ الأندية</Link>
+                                {guard !== 'business' && (
+                                    <Link href="/business/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">🏟️ المنشآت</Link>
                                 )}
                                 {guard !== 'employee' && (
                                     <Link href="/employee/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">👥 الموظفون</Link>

@@ -1,8 +1,8 @@
 import AdminLayout from '@/layouts/admin-layout';
-import SportIcon from '@/components/sport-icon';
+import CategoryIcon from '@/components/category-icon';
 import Pagination from '@/components/pagination';
 import { fmtDate } from '@/lib/utils';
-import type { Community, Company, Sport, PaginatedResult } from '@/types/models';
+import type { Community, Company, Category, PaginatedResult } from '@/types/models';
 import { Head, router } from '@inertiajs/react';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import { useState } from 'react';
@@ -17,19 +17,19 @@ interface Props {
     communities: PaginatedResult<CommunityRow>;
     totalCommunities: number;
     companies: { id: number; name: string }[];
-    sports: Sport[];
-    filters: { search?: string; company_id?: string; sport_id?: string };
+    categories: Category[];
+    filters: { search?: string; company_id?: string; category_id?: string };
 }
 
-export default function CommunitiesIndex({ communities, totalCommunities, companies, sports, filters }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { company_id: filters?.company_id, sport_id: filters?.sport_id });
+export default function CommunitiesIndex({ communities, totalCommunities, companies, categories, filters }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { company_id: filters?.company_id, category_id: filters?.category_id });
     const [detail, setDetail] = useState<CommunityRow | null>(null);
 
     function handleFilter(key: string, value: string) {
         router.get('/admin/communities', {
             search: filters?.search || undefined,
             company_id: key === 'company_id' ? (value || undefined) : (filters?.company_id || undefined),
-            sport_id: key === 'sport_id' ? (value || undefined) : (filters?.sport_id || undefined),
+            category_id: key === 'category_id' ? (value || undefined) : (filters?.category_id || undefined),
         }, { preserveState: true, replace: true });
     }
 
@@ -63,14 +63,22 @@ export default function CommunitiesIndex({ communities, totalCommunities, compan
                     ))}
                 </select>
                 <select
-                    value={filters?.sport_id ?? ''}
-                    onChange={(e) => handleFilter('sport_id', e.target.value)}
+                    value={filters?.category_id ?? ''}
+                    onChange={(e) => handleFilter('category_id', e.target.value)}
                     style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
                 >
-                    <option value="">كل الرياضات</option>
-                    {sports.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
+                    <option value="">كل الفئات</option>
+                    {categories.map((cat) =>
+                        cat.children && cat.children.length > 0 ? (
+                            <optgroup key={cat.id} label={cat.name}>
+                                {cat.children.map((sub) => (
+                                    <option key={sub.id} value={sub.id}>{sub.name}</option>
+                                ))}
+                            </optgroup>
+                        ) : (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        )
+                    )}
                 </select>
             </div>
 
@@ -81,7 +89,7 @@ export default function CommunitiesIndex({ communities, totalCommunities, compan
                         <tr>
                             <th>المجتمع</th>
                             <th>الشركة</th>
-                            <th>الرياضة</th>
+                            <th>الفئة</th>
                             <th>القائد</th>
                             <th>الأعضاء</th>
                             <th>الفعاليات</th>
@@ -105,8 +113,8 @@ export default function CommunitiesIndex({ communities, totalCommunities, compan
                                     <td style={{ color: '#C8D0E0' }}>{community.company?.name ?? '-'}</td>
                                     <td>
                                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                            <SportIcon icon={community.sport?.icon} size={16} />
-                                            <span style={{ fontSize: 12 }}>{community.sport?.name ?? '-'}</span>
+                                            <CategoryIcon icon={community.category?.icon} size={16} />
+                                            <span style={{ fontSize: 12 }}>{community.category?.name ?? '-'}</span>
                                         </span>
                                     </td>
                                     <td style={{ fontSize: 12, color: '#C8D0E0' }}>{community.leader?.name ?? '-'}</td>
@@ -144,10 +152,10 @@ export default function CommunitiesIndex({ communities, totalCommunities, compan
                         </h3>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-                            <SportIcon icon={detail.sport?.icon} size={44} />
+                            <CategoryIcon icon={detail.category?.icon} size={44} />
                             <div>
                                 <div style={{ fontSize: 18, fontWeight: 800, color: '#E8EAF0' }}>{detail.name}</div>
-                                <div style={{ fontSize: 12, color: '#6B7A99' }}>{detail.sport?.name ?? '-'}</div>
+                                <div style={{ fontSize: 12, color: '#6B7A99' }}>{detail.category?.name ?? '-'}</div>
                             </div>
                         </div>
 

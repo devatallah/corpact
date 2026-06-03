@@ -2,7 +2,7 @@ import CompanyLayout from '@/layouts/company-layout';
 import FilterTabs from '@/components/filter-tabs';
 import Pagination from '@/components/pagination';
 import StatusBadge from '@/components/status-badge';
-import SportIcon from '@/components/sport-icon';
+import CategoryIcon from '@/components/category-icon';
 import { fmtDate, fmtTime } from '@/lib/utils';
 import type { Event, PaginatedResult } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
@@ -12,7 +12,7 @@ import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 const STATUS_OPTIONS = [
     { label: 'الكل', value: '' },
     { label: 'مفتوحة', value: 'open' },
-    { label: 'انتظار النادي', value: 'waiting_club' },
+    { label: 'انتظار المنشأة', value: 'waiting_business' },
     { label: 'مؤكدة', value: 'confirmed' },
     { label: 'وقت بديل', value: 'alternative_proposed' },
     { label: 'منتهية', value: 'completed' },
@@ -43,7 +43,7 @@ export default function EventsIndex({ events, filters, totalEvents, activeEvents
                 <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث بالنادي أو الرياضة..."
+                    placeholder="🔍 ابحث بالمنشأة أو الفئة..."
                     style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
                 />
                 <FilterTabs
@@ -57,7 +57,7 @@ export default function EventsIndex({ events, filters, totalEvents, activeEvents
                     <thead>
                         <tr>
                             <th>المجتمع</th>
-                            <th>النادي</th>
+                            <th>المنشأة</th>
                             <th>التاريخ</th>
                             <th>اللاعبون</th>
                             <th>المنشئ</th>
@@ -84,11 +84,11 @@ export default function EventsIndex({ events, filters, totalEvents, activeEvents
                                         <tr>
                                             <td>
                                                 <span style={{ fontWeight: 600 }}>
-                                                    <SportIcon icon={event.sport?.icon} size={14} /> {event.community?.name}
+                                                    <CategoryIcon icon={event.category?.icon} size={14} /> {event.community?.name}
                                                 </span>
                                             </td>
                                             <td style={{ color: '#4A5C78' }}>
-                                                {event.club?.name ?? '\u2014'}
+                                                {event.business?.name ?? '\u2014'}
                                             </td>
                                             <td>
                                                 <div style={{ fontSize: 12 }}>{fmtDate(event.event_date)}</div>
@@ -123,10 +123,10 @@ export default function EventsIndex({ events, filters, totalEvents, activeEvents
                                                     {proposedAlts.map((alt) => (
                                                         <div key={alt.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, background: '#fff', border: '1px solid #1A5FAB33', borderRadius: 12, padding: '12px 16px' }}>
                                                             <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                                                                <span style={{ fontSize: 12, fontWeight: 700, color: '#1A5FAB' }}>وقت بديل من النادي:</span>
+                                                                <span style={{ fontSize: 12, fontWeight: 700, color: '#1A5FAB' }}>وقت بديل من المنشأة:</span>
                                                                 <span style={{ fontSize: 12 }}>📅 {fmtDate(alt.proposed_date)}</span>
                                                                 <span style={{ fontSize: 12 }}>🕐 {fmtTime(alt.proposed_start_time)} - {fmtTime(alt.proposed_end_time)}</span>
-                                                                {alt.proposed_courts_count && <span style={{ fontSize: 12 }}>🏟️ {alt.proposed_courts_count} ملعب</span>}
+                                                                {alt.proposed_venues_count && <span style={{ fontSize: 12 }}>🏟️ {alt.proposed_venues_count} مرفق</span>}
                                                                 {alt.proposed_amount && <span style={{ fontSize: 12, fontWeight: 700, color: '#1A5FAB' }}>{Number(alt.proposed_amount).toLocaleString()} ريال</span>}
                                                                 {alt.notes && <span style={{ fontSize: 11, color: '#7A8BA8' }}>{alt.notes}</span>}
                                                             </div>

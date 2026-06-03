@@ -27,7 +27,7 @@ const portalMeta: Record<string, {
         btnShadow: '0 6px 20px rgba(59,91,219,.3)',
         linkColor: '#3B5BDB',
     },
-    club: {
+    business: {
         focusColor: '#C8410A',
         btnGradient: 'linear-gradient(135deg,#1C1410,#3A2820)',
         btnShadow: '0 6px 20px rgba(0,0,0,.3)',

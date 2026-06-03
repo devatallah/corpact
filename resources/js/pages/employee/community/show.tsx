@@ -1,19 +1,19 @@
 import EmployeeLayout from '@/layouts/employee-layout';
-import SportIcon from '@/components/sport-icon';
+import CategoryIcon from '@/components/category-icon';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { fmtDate, fmtTime, fmtDateTime } from '@/lib/utils';
 import StatusBadge from '@/components/status-badge';
-import type { Community, Employee, Event, CommunityAnnouncement, CommunityPoll, PollOption, Club, Sport, League } from '@/types/models';
+import type { Community, Employee, Event, CommunityAnnouncement, CommunityPoll, PollOption, Business, Category, League } from '@/types/models';
 import { useState } from 'react';
 import toastr from 'toastr';
 
 interface Props {
     community: Community & {
-        sport?: Sport;
+        category?: Category;
         member_count: number;
         events_count?: number;
     };
-    events: (Event & { club: Club; sport?: Sport })[];
+    events: (Event & { business: Business; category?: Category })[];
     announcements: (CommunityAnnouncement & { employee: Employee })[];
     members: (Employee & { pivot?: { role: string } })[];
     leagues: League[];
@@ -27,7 +27,7 @@ type Tab = 'events' | 'announcements' | 'members' | 'leagues' | 'polls';
 export default function CommunityShow({ community, events, announcements, members, leagues, polls, canAnnounce, isLeader }: Props) {
     const initialTab = (new URLSearchParams(window.location.search).get('tab') as Tab) || 'events';
     const [activeTab, setActiveTab] = useState<Tab>(initialTab);
-    const color = community.sport?.color ?? community.color ?? '#009E82';
+    const color = community.category?.color ?? community.color ?? '#009E82';
 
     const announcementForm = useForm({ body: '' });
 
@@ -146,7 +146,7 @@ export default function CommunityShow({ community, events, announcements, member
             <div className="card" style={{ borderColor: `${color}33`, marginBottom: 12, marginTop: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ fontSize: 18, fontWeight: 800 }}>
-                        <SportIcon icon={community.sport?.icon} size={20} /> مجتمع {community.name}
+                        <CategoryIcon icon={community.category?.icon} size={20} /> مجتمع {community.name}
                     </div>
                     <StatusBadge status={community.status} />
                 </div>
@@ -204,7 +204,7 @@ export default function CommunityShow({ community, events, announcements, member
                                     className="card"
                                     style={{ cursor: 'pointer', borderLeft: `3px solid ${color}`, textDecoration: 'none', color: 'inherit' }}
                                 >
-                                    <div style={{ fontSize: 13, fontWeight: 700 }}>{event.club?.name}</div>
+                                    <div style={{ fontSize: 13, fontWeight: 700 }}>{event.business?.name}</div>
                                     <div style={{ fontSize: 11, color: '#7A8BA8', margin: '4px 0 8px' }}>
                                         {fmtDate(event.event_date)} · {fmtTime(event.start_time)}
                                     </div>

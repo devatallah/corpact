@@ -26,7 +26,7 @@
   <nav>
     <div class="ni" onclick="window.location='/admin/dash'"><span>📊</span><span class="nl">لوحة التحكم</span></div>
     <div class="ni" onclick="window.location='/admin/companies'"><span>🏢</span><span class="nl">الشركات</span></div>
-    <div class="ni on" onclick="window.location='/admin/clubs'"><span>🏟️</span><span class="nl">الأندية</span>@if($stats['pending'] > 0)<span class="nb">{{ $stats['pending'] }}</span>@endif</div>
+    <div class="ni on" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">الأندية</span>@if($stats['pending'] > 0)<span class="nb">{{ $stats['pending'] }}</span>@endif</div>
     <div class="ni" onclick="window.location='/admin/employees'"><span>👥</span><span class="nl">الموظفون</span></div>
     <div class="ni" onclick="window.location='/admin/events'"><span>📅</span><span class="nl">الفعاليات</span></div>
     <div class="ni" onclick="window.location='/admin/revenue'"><span>💰</span><span class="nl">الإيرادات</span></div>
@@ -40,7 +40,7 @@
 
 <div class="main">
 
-<div class="sc on" id="clubs">
+<div class="sc on" id="businesss">
   <div class="page-title">إدارة الأندية</div>
   <div class="page-sub">{{ $stats['active'] }} أندية مفعّلة · {{ $stats['pending'] }} طلبات معلقة</div>
   <div style="margin-bottom:16px;">
@@ -53,32 +53,32 @@
     <table>
       <thead><tr><th>النادي</th><th>المدينة</th><th>الرياضات</th><th>الملاعب</th><th>مسؤول النادي</th><th>الحالة</th><th>إجراء</th></tr></thead>
       <tbody>
-        @forelse($clubs as $club)
-        <tr class="cl-row" data-s="@if($club->status === 'pending')معلق @elseif($club->status === 'active')نشط @elseif($club->status === 'rejected')مرفوض @else معلق @endif">
-          <td><div style="font-weight:700;color:#fff;">{{ $club->name }}</div><div style="font-size:10px;color:#6B7A99;">@if($club->status === 'active'){{ $club->district }}@else{{ $club->created_at->diffForHumans() }}@endif</div></td>
-          <td style="color:#C8D0E0;">{{ $club->city }}</td>
-          <td><span style="font-size:12px;">@if($club->sports && $club->sports->count()){{ $club->sports->map(fn($s) => ($s->icon ?? '') . ' ' . $s->name)->implode(' · ') }}@else -@endif</span></td><td>{{ $club->courts_count ?? $club->courts()->count() }}</td>
-          <td><div style="font-size:12px;">{{ $club->email ?? '-' }}</div><div style="font-size:10px;color:#6B7A99;">{{ $club->contact_phone ?? '-' }}</div></td>
+        @forelse($businesss as $business)
+        <tr class="cl-row" data-s="@if($business->status === 'pending')معلق @elseif($business->status === 'active')نشط @elseif($business->status === 'rejected')مرفوض @else معلق @endif">
+          <td><div style="font-weight:700;color:#fff;">{{ $business->name }}</div><div style="font-size:10px;color:#6B7A99;">@if($business->status === 'active'){{ $business->district }}@else{{ $business->created_at->diffForHumans() }}@endif</div></td>
+          <td style="color:#C8D0E0;">{{ $business->city }}</td>
+          <td><span style="font-size:12px;">@if($business->sports && $business->sports->count()){{ $business->sports->map(fn($s) => ($s->icon ?? '') . ' ' . $s->name)->implode(' · ') }}@else -@endif</span></td><td>{{ $business->venues_count ?? $business->venues()->count() }}</td>
+          <td><div style="font-size:12px;">{{ $business->email ?? '-' }}</div><div style="font-size:10px;color:#6B7A99;">{{ $business->contact_phone ?? '-' }}</div></td>
           <td>
-            @if($club->status === 'pending')
+            @if($business->status === 'pending')
             <span class="badge b-pending">⏳ معلق</span>
-            @elseif($club->status === 'active')
+            @elseif($business->status === 'active')
             <span class="badge b-active">● نشط</span>
-            @elseif($club->status === 'rejected')
+            @elseif($business->status === 'rejected')
             <span class="badge b-rejected">❌ مرفوض</span>
-            @elseif($club->status === 'suspended')
+            @elseif($business->status === 'suspended')
             <span class="badge b-rejected">⛔ معلّق</span>
             @endif
           </td>
           <td>
-            @if($club->status === 'pending')
+            @if($business->status === 'pending')
             <div style="display:flex;gap:6px;">
-              <form method="POST" action="{{ route('admin.clubs.approve', $club) }}" style="margin:0;">@csrf<button type="submit" class="act-btn btn-approve">قبول</button></form>
-              <form method="POST" action="{{ route('admin.clubs.reject', $club) }}" style="margin:0;">@csrf<button type="submit" class="act-btn btn-reject">رفض</button></form>
-              <button class="act-btn btn-view" onclick="openPanel('club','{{ $club->name }}')">تفاصيل</button>
+              <form method="POST" action="{{ route('admin.businesss.approve', $business) }}" style="margin:0;">@csrf<button type="submit" class="act-btn btn-approve">قبول</button></form>
+              <form method="POST" action="{{ route('admin.businesss.reject', $business) }}" style="margin:0;">@csrf<button type="submit" class="act-btn btn-reject">رفض</button></form>
+              <button class="act-btn btn-view" onclick="openPanel('business','{{ $business->name }}')">تفاصيل</button>
             </div>
             @else
-            <button class="act-btn btn-view" onclick="openPanel('club','{{ $club->name }}')">تفاصيل</button>
+            <button class="act-btn btn-view" onclick="openPanel('business','{{ $business->name }}')">تفاصيل</button>
             @endif
           </td>
         </tr>
@@ -121,9 +121,9 @@ function filt(btn,f,cls){
 }
 
 var panelData={
-  club:{
-    @foreach($clubs as $cl)
-    '{{ $cl->name }}':{id:{{ $cl->id }},rows:[['اسم النادي','{{ $cl->name }}'],['المدينة','{{ $cl->city }}@if($cl->district) · {{ $cl->district }}@endif'],['الرياضات','{{ $cl->sports?->map(fn($s) => ($s->icon ?? "") . " " . $s->name)->implode(" · ") ?? "-" }}'],['عدد الملاعب','{{ $cl->courts_count ?? $cl->courts()->count() }}'],['ساعات العمل','{{ $cl->working_hours ?? "-" }}'],['البريد','{{ $cl->email ?? "-" }}'],['جوال التواصل','{{ $cl->contact_phone ?? "-" }}'],@if($cl->status === 'active')['تاريخ التفعيل','{{ $cl->approved_at?->format("j F Y") }}'],['الحالة','نشط ✅']@else['تاريخ الطلب','{{ $cl->created_at->diffForHumans() }}']@endif]},
+  business:{
+    @foreach($businesss as $cl)
+    '{{ $cl->name }}':{id:{{ $cl->id }},rows:[['اسم النادي','{{ $cl->name }}'],['المدينة','{{ $cl->city }}@if($cl->district) · {{ $cl->district }}@endif'],['الرياضات','{{ $cl->sports?->map(fn($s) => ($s->icon ?? "") . " " . $s->name)->implode(" · ") ?? "-" }}'],['عدد الملاعب','{{ $cl->venues_count ?? $cl->venues()->count() }}'],['ساعات العمل','{{ $cl->working_hours ?? "-" }}'],['البريد','{{ $cl->email ?? "-" }}'],['جوال التواصل','{{ $cl->contact_phone ?? "-" }}'],@if($cl->status === 'active')['تاريخ التفعيل','{{ $cl->approved_at?->format("j F Y") }}'],['الحالة','نشط ✅']@else['تاريخ الطلب','{{ $cl->created_at->diffForHumans() }}']@endif]},
     @endforeach
   }
 };
@@ -184,10 +184,10 @@ function saveAndApprove(){
 }
 
 function doApprove(){
-  submitAction('/admin/clubs/'+currentPanelId+'/approve');
+  submitAction('/admin/businesss/'+currentPanelId+'/approve');
 }
 function doReject(){
-  submitAction('/admin/clubs/'+currentPanelId+'/reject');
+  submitAction('/admin/businesss/'+currentPanelId+'/reject');
 }
 function submitAction(url){
   var form=document.createElement('form');

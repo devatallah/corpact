@@ -1,48 +1,48 @@
 <?php
 
-use App\Models\Club;
+use App\Models\business;
 use App\Models\User;
 
-test('admin can view any club', function () {
+test('admin can view any business', function () {
     $admin = User::factory()->create();
 
-    expect($admin->can('viewAny', Club::class))->toBeTrue();
+    expect($admin->can('viewAny', business::class))->toBeTrue();
 });
 
-test('club can view any club', function () {
-    $club = Club::factory()->create();
+test('business can view any business', function () {
+    $business = business::factory()->create();
 
-    expect($club->can('viewAny', Club::class))->toBeTrue();
+    expect($business->can('viewAny', business::class))->toBeTrue();
 });
 
-test('club can only view itself', function () {
-    $club = Club::factory()->create();
-    $otherClub = Club::factory()->create();
+test('business can only view itself', function () {
+    $business = business::factory()->create();
+    $otherbusiness = business::factory()->create();
 
-    expect($club->can('view', $club))->toBeTrue()
-        ->and($club->can('view', $otherClub))->toBeFalse();
+    expect($business->can('view', $business))->toBeTrue()
+        ->and($business->can('view', $otherbusiness))->toBeFalse();
 });
 
-test('only admin can create clubs', function () {
+test('only admin can create businesss', function () {
     $admin = User::factory()->create();
-    $club = Club::factory()->create();
+    $business = business::factory()->create();
 
-    expect($admin->can('create', Club::class))->toBeTrue()
-        ->and($club->can('create', Club::class))->toBeFalse();
+    expect($admin->can('create', business::class))->toBeTrue()
+        ->and($business->can('create', business::class))->toBeFalse();
 });
 
-test('club can update itself', function () {
-    $club = Club::factory()->create();
-    $otherClub = Club::factory()->create();
+test('business can update itself', function () {
+    $business = business::factory()->create();
+    $otherbusiness = business::factory()->create();
 
-    expect($club->can('update', $club))->toBeTrue()
-        ->and($club->can('update', $otherClub))->toBeFalse();
+    expect($business->can('update', $business))->toBeTrue()
+        ->and($business->can('update', $otherbusiness))->toBeFalse();
 });
 
-test('only admin can delete clubs', function () {
+test('only admin can delete businesss', function () {
     $admin = User::factory()->create();
-    $club = Club::factory()->create();
+    $business = business::factory()->create();
 
-    expect($admin->can('delete', $club))->toBeTrue()
-        ->and($club->can('delete', $club))->toBeFalse();
+    expect($admin->can('delete', $business))->toBeTrue()
+        ->and($business->can('delete', $business))->toBeFalse();
 });
