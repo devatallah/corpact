@@ -32,7 +32,7 @@ interface Props {
     monthlyRevenue: number;
     pendingRequests: number;
     pendingCompanies: number;
-    pendingbusinesss: number;
+    pendingBusinesses: number;
     companiesThisMonth: number;
     businessesThisMonth: number;
     employeesThisMonth: number;
@@ -50,7 +50,7 @@ export default function AdminDashboard({
     monthlyRevenue,
     pendingRequests,
     pendingCompanies,
-    pendingbusinesss,
+    pendingBusinesses,
     companiesThisMonth,
     businessesThisMonth,
     employeesThisMonth,

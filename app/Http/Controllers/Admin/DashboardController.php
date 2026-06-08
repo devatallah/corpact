@@ -32,7 +32,7 @@ class DashboardController extends Controller
         $startOfMonth = $now->copy()->startOfMonth();
 
         $companiesThisMonth = Company::where('created_at', '>=', $startOfMonth)->count();
-        $businesssThisMonth = Business::where('created_at', '>=', $startOfMonth)->count();
+        $businessesThisMonth = Business::where('created_at', '>=', $startOfMonth)->count();
         $employeesThisMonth = Employee::where('created_at', '>=', $startOfMonth)->count();
 
         $totalEmployees = Employee::count();
@@ -50,8 +50,8 @@ class DashboardController extends Controller
             : 0;
 
         $pendingCompanies = Company::whereIn('status', ['pending', 'review'])->count();
-        $pendingbusinesss = Business::whereIn('status', ['pending'])->count();
-        $pendingRequests = $pendingCompanies + $pendingbusinesss;
+        $pendingBusinesses = Business::whereIn('status', ['pending'])->count();
+        $pendingRequests = $pendingCompanies + $pendingBusinesses;
 
         $recentRequests = collect()
             ->merge(
@@ -110,13 +110,13 @@ class DashboardController extends Controller
             'businessStats' => $businessStats,
             'totalEmployees' => $totalEmployees,
             'companiesThisMonth' => $companiesThisMonth,
-            'businesssThisMonth' => $businesssThisMonth,
+            'businesssThisMonth' => $businessesThisMonth,
             'employeesThisMonth' => $employeesThisMonth,
             'monthlyRevenue' => $monthlyRevenue,
             'revenueGrowth' => $revenueGrowth,
             'pendingRequests' => $pendingRequests,
             'pendingCompanies' => $pendingCompanies,
-            'pendingbusinesss' => $pendingbusinesss,
+            'pendingbusinesss' => $pendingBusinesses,
             'recentRequests' => $recentRequests,
             'topCompanies' => $topCompanies,
             'last6Months' => $last6Months,
