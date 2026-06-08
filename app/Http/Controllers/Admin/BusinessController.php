@@ -61,8 +61,8 @@ class BusinessController extends Controller
         $business = Business::create($data);
         $business->categories()->sync($categoryIds);
 
-        return redirect()->route('admin.businesss.index')
-            ->with('success', 'تم إنشاء النادي بنجاح.');
+        return redirect()->route('admin.businesses.index')
+            ->with('success', 'تم إنشاء المنشأة بنجاح.');
     }
 
     /**
@@ -95,7 +95,7 @@ class BusinessController extends Controller
             $business->categories()->sync($categoryIds);
         }
 
-        return back()->with('success', 'تم تحديث النادي بنجاح.');
+        return back()->with('success', 'تم تحديث المنشأة بنجاح.');
     }
 
     /**
@@ -105,7 +105,7 @@ class BusinessController extends Controller
     {
         $this->businessService->approve($business);
 
-        return back()->with('success', 'تمت الموافقة على النادي بنجاح.');
+        return back()->with('success', 'تمت الموافقة على المنشأة بنجاح.');
     }
 
     /**
@@ -115,7 +115,7 @@ class BusinessController extends Controller
     {
         $this->businessService->reject($business);
 
-        return back()->with('success', 'تم رفض طلب النادي.');
+        return back()->with('success', 'تم رفض طلب المنشأة.');
     }
 
     /**
@@ -141,7 +141,7 @@ class BusinessController extends Controller
 
         $business->delete();
 
-        return redirect()->route('admin.businesss.index')
-            ->with('success', 'تم حذف النادي بنجاح.');
+        return redirect()->route('admin.businesses.index')
+            ->with('success', 'تم حذف المنشأة بنجاح.');
     }
 }

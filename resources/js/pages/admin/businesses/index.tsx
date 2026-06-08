@@ -25,7 +25,7 @@ const filterOptions = [
     { label: 'مرفوض', value: 'rejected' },
 ];
 
-export default function businesssIndex({ businesses, stats, filters, categories }: Props) {
+export default function businessesIndex({ businesses, stats, filters, categories }: Props) {
     const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { status: filters?.status });
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<Business | null>(null);
@@ -105,7 +105,7 @@ export default function businesssIndex({ businesses, stats, filters, categories 
                 </button>
             </div>
             <div className="page-sub">
-                {stats.active} أندية مفعّلة · {stats.pending} طلبات معلقة
+                {stats.active} منشآت مفعّلة · {stats.pending} طلبات معلقة
             </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
@@ -132,14 +132,14 @@ export default function businesssIndex({ businesses, stats, filters, categories 
                         </tr>
                     </thead>
                     <tbody>
-                        {businesss.data.length === 0 ? (
+                        {businesses.data.length === 0 ? (
                             <tr>
                                 <td colSpan={7} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
-                                    لا توجد أندية
+                                    لا توجد منشآت
                                 </td>
                             </tr>
                         ) : (
-                            businesss.data.map((business) => (
+                            businesses.data.map((business) => (
                                 <tr key={business.id}>
                                     <td>
                                         <div style={{ fontWeight: 700, color: '#fff' }}>{business.name}</div>
@@ -210,7 +210,7 @@ export default function businesssIndex({ businesses, stats, filters, categories 
                 </table>
             </div>
 
-            <Pagination links={businesss.links} />
+            <Pagination links={businesses.links} />
 
             {/* Create/Edit Modal */}
             {(showCreate || editingItem) && (
