@@ -56,7 +56,7 @@
         <tr>
           <td><span style="font-weight:600;">{{ $event->sport?->icon }} {{ $event->community?->name }}</span></td>
           <td style="color:#4A5C78;">{{ $event->business?->name ?? '—' }}</td>
-          <td><div style="font-size:12px;">{{ $event->event_date?->translatedFormat('l j F') }}</div><div style="font-size:11px;color:#7A8BA8;">{{ $event->start_time }}</div></td>
+          <td><div style="font-size:12px;">{{ $event->event_date?->translatedFormat('l j F') }}@if($event->recurrence_type && $event->recurrence_type !== 'none') <span style="font-size:10px;background:#1A5FAB18;color:#1A5FAB;padding:1px 6px;border-radius:4px;font-weight:600;">{{ match($event->recurrence_type) { 'daily' => 'يومي', 'weekly' => 'أسبوعي', 'monthly' => 'شهري', default => '' } }}</span>@endif@if($event->parent_event_id) <span style="font-size:10px;color:#1A5FAB;" title="جزء من سلسلة متكررة">🔄</span>@endif</div><div style="font-size:11px;color:#7A8BA8;">{{ $event->start_time }}</div></td>
           <td><div style="font-weight:700;{{ $event->participants_count >= $event->capacity ? 'color:#0CA678;' : '' }}">{{ $event->participants_count }}/{{ $event->capacity }}</div><div class="bar-w" style="width:50px;margin-top:4px;"><div class="bar-f" style="width:{{ $fillPercent }}%;background:#0CA678;"></div></div></td>
           <td style="font-size:12px;color:#7A8BA8;">{{ $event->creator?->name ?? '—' }}</td>
           <td><span class="badge" style="{{ $statusBadge[0] }}">{{ $statusBadge[1] }}</span></td>

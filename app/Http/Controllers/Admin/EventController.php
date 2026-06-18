@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\IndexEventRequest;
 use App\Models\Event;
 use App\Services\Admin\AdminEventService;
+use App\Services\Employee\EventCreationService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,6 +17,7 @@ class EventController extends Controller
 {
     public function __construct(
         private AdminEventService $eventService,
+        private EventCreationService $eventCreationService,
     ) {}
 
     /**
@@ -39,10 +42,25 @@ class EventController extends Controller
      */
     public function show(Event $event): Response
     {
-        $event->load(['community', 'business', 'category', 'creator', 'participants', 'company']);
+        $event->load(['community', 'business', 'category', 'creator', 'participants', 'company', 'parentEvent']);
+
+        // Load series info for recurring events
+        $seriesEvents = [];
+        if ($event->isRecurringSeries()) {
+            $seriesEvents = $event->occurrences()
+                ->select('id', 'event_date', 'start_time', 'status', 'participants_count', 'capacity')
+                ->orderBy('event_date')
+                ->get();
+        } elseif ($event->isOccurrence()) {
+            $seriesEvents = Event::where('parent_event_id', $event->parent_event_id)
+                ->select('id', 'event_date', 'start_time', 'status', 'participants_count', 'capacity')
+                ->orderBy('event_date')
+                ->get();
+        }
 
         return Inertia::render('admin/events/show', [
             'event' => $event,
+            'seriesEvents' => $seriesEvents,
         ]);
     }
 
@@ -62,7 +80,7 @@ class EventController extends Controller
     /**
      * Cancel the specified event.
      */
-    public function cancel(Event $event): RedirectResponse
+    public function cancel(Request $request, Event $event): RedirectResponse
     {
         if (in_array($event->status, ['cancelled', 'completed'])) {
             return back()->with('error', 'لا يمكن إلغاء فعالية ملغاة أو منتهية.');
@@ -77,6 +95,12 @@ class EventController extends Controller
         }
 
         $event->update(['status' => 'cancelled']);
+
+        // Cancel entire series if requested
+        if ($request->boolean('cancel_series') && $event->isRecurringSeries()) {
+            $this->eventCreationService->cancelSeries($event);
+            return back()->with('success', 'تم إلغاء سلسلة الفعاليات بالكامل.');
+        }
 
         return back()->with('success', 'تم إلغاء الفعالية بنجاح.');
     }

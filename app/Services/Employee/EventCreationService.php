@@ -11,6 +11,7 @@ use App\Models\Notification;
 use App\Models\QuickMatch;
 use App\Models\QuickMatchVote;
 use App\Services\ActivityLogService;
+use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -85,7 +86,7 @@ class EventCreationService
     }
 
     /**
-     * Create a new event.
+     * Create a new event (with optional recurrence).
      *
      * @param  array{
      *     community_id: int,
@@ -98,7 +99,10 @@ class EventCreationService
      *     venues_count: int,
      *     company_subsidy: float,
      *     title?: string,
-     *     notes?: string
+     *     notes?: string,
+     *     recurrence_type?: string,
+     *     recurrence_end_date?: string,
+     *     recurrence_days?: array
      * }  $data
      */
     public function create(Employee $creator, array $data): Event
@@ -133,7 +137,9 @@ class EventCreationService
             'discount_id' => $data['discount_id'] ?? null,
         ]);
 
-        return DB::transaction(function () use ($creator, $community, $data, $costs, $pricing, $venueIds, $venuesCount) {
+        $recurrenceType = $data['recurrence_type'] ?? 'none';
+
+        return DB::transaction(function () use ($creator, $community, $data, $costs, $pricing, $venueIds, $venuesCount, $recurrenceType) {
             // Verify one-time discount hasn't been used (with lock to prevent race condition)
             if ($costs['discount_id']) {
                 $discount = Discount::lockForUpdate()->find($costs['discount_id']);
@@ -151,7 +157,7 @@ class EventCreationService
                 }
             }
 
-            // Deduct company subsidy from community wallet
+            // Deduct company subsidy from community wallet (only for first/parent event)
             if ($costs['community_contribution'] > 0) {
                 $community->decrement('balance', $costs['community_contribution']);
             }
@@ -178,6 +184,9 @@ class EventCreationService
                 'community_contribution' => $costs['community_contribution'],
                 'player_payment' => $costs['player_payment'],
                 'notes' => $data['notes'] ?? null,
+                'recurrence_type' => $recurrenceType,
+                'recurrence_end_date' => ($recurrenceType !== 'none') ? ($data['recurrence_end_date'] ?? null) : null,
+                'recurrence_days' => ($recurrenceType === 'weekly') ? ($data['recurrence_days'] ?? null) : null,
                 'status' => 'open',
             ]);
 
@@ -208,15 +217,25 @@ class EventCreationService
                 }
             }
 
+            // Generate recurring occurrences if recurrence is set
+            if ($recurrenceType !== 'none' && ! empty($data['recurrence_end_date'])) {
+                $this->generateOccurrences($event, $creator, $venueIds, $costs, $pricing);
+            }
+
             ActivityLogService::log(
                 $community->company_id,
                 $event,
                 'event_created',
-                "تم إنشاء الفعالية #{$event->id} بواسطة موظف #{$creator->id}",
+                $recurrenceType !== 'none'
+                    ? "تم إنشاء فعالية متكررة #{$event->id} ({$this->recurrenceLabel($recurrenceType)}) بواسطة موظف #{$creator->id}"
+                    : "تم إنشاء الفعالية #{$event->id} بواسطة موظف #{$creator->id}",
             );
 
             // Notify community members about the new event
             $community->load('members');
+            $recurrenceNotice = $recurrenceType !== 'none'
+                ? " ({$this->recurrenceLabel($recurrenceType)})"
+                : '';
             foreach ($community->members as $member) {
                 if ($member->id === $creator->id) {
                     continue;
@@ -226,12 +245,157 @@ class EventCreationService
                     'notifiable_id' => $member->id,
                     'type' => 'info',
                     'title' => 'فعالية جديدة',
-                    'body' => "تم إنشاء فعالية جديدة في {$community->name} — انضم الآن!",
+                    'body' => "تم إنشاء فعالية جديدة{$recurrenceNotice} في {$community->name} — انضم الآن!",
                     'data' => ['event_id' => $event->id],
                 ]);
             }
 
-            return $event->fresh(['community', 'business', 'category', 'creator']);
+            return $event->fresh(['community', 'business', 'category', 'creator', 'occurrences']);
         });
+    }
+
+    /**
+     * Generate future occurrence events for a recurring series.
+     */
+    private function generateOccurrences(Event $parentEvent, Employee $creator, array $venueIds, array $costs, VenuePricing $pricing): void
+    {
+        $dates = $this->computeOccurrenceDates($parentEvent);
+
+        foreach ($dates as $date) {
+            $occurrence = Event::create([
+                'parent_event_id' => $parentEvent->id,
+                'community_id' => $parentEvent->community_id,
+                'company_id' => $parentEvent->company_id,
+                'business_id' => $parentEvent->business_id,
+                'category_id' => $parentEvent->category_id,
+                'venue_pricing_id' => $parentEvent->venue_pricing_id,
+                'discount_id' => null, // Discounts apply only to first occurrence
+                'discount_amount' => null,
+                'created_by' => $creator->id,
+                'title' => $parentEvent->title,
+                'event_date' => $date,
+                'start_time' => $parentEvent->start_time,
+                'duration_minutes' => $pricing->duration_minutes,
+                'venues_count' => $parentEvent->venues_count,
+                'total_amount' => $costs['total_cost'],
+                'capacity' => $parentEvent->capacity,
+                'participants_count' => 1,
+                'cost_per_person' => $parentEvent->capacity > 0
+                    ? round($costs['total_cost'] / $parentEvent->capacity, 2)
+                    : 0,
+                'company_subsidy' => 0,
+                'community_contribution' => 0,
+                'player_payment' => $costs['total_cost'],
+                'notes' => $parentEvent->notes,
+                'recurrence_type' => 'none',
+                'status' => 'open',
+            ]);
+
+            $occurrence->venues()->attach($venueIds);
+
+            // Creator auto-joins each occurrence
+            $occurrence->participants()->attach($creator->id, [
+                'status' => 'joined',
+                'joined_at' => now(),
+            ]);
+        }
+    }
+
+    /**
+     * Compute the dates for recurring occurrences (excludes the parent event date).
+     *
+     * @return array<string>
+     */
+    private function computeOccurrenceDates(Event $event): array
+    {
+        $startDate = Carbon::parse($event->event_date);
+        $endDate = Carbon::parse($event->recurrence_end_date);
+        $type = $event->recurrence_type;
+        $days = $event->recurrence_days ?? [];
+
+        $dates = [];
+        $current = $startDate->copy();
+
+        // Cap at 52 occurrences to prevent excessive generation
+        $maxOccurrences = 52;
+
+        switch ($type) {
+            case 'daily':
+                $current->addDay();
+                while ($current->lte($endDate) && count($dates) < $maxOccurrences) {
+                    $dates[] = $current->format('Y-m-d');
+                    $current->addDay();
+                }
+                break;
+
+            case 'weekly':
+                if (empty($days)) {
+                    // Default to the same day of week as the start date
+                    $days = [$startDate->dayOfWeek];
+                }
+                $current->addDay();
+                while ($current->lte($endDate) && count($dates) < $maxOccurrences) {
+                    if (in_array($current->dayOfWeek, $days)) {
+                        $dates[] = $current->format('Y-m-d');
+                    }
+                    $current->addDay();
+                }
+                break;
+
+            case 'monthly':
+                $dayOfMonth = $startDate->day;
+                $current->addMonth()->day(min($dayOfMonth, $current->daysInMonth));
+                while ($current->lte($endDate) && count($dates) < $maxOccurrences) {
+                    $dates[] = $current->format('Y-m-d');
+                    $current->addMonth();
+                    // Handle months with fewer days
+                    $current->day(min($dayOfMonth, $current->daysInMonth));
+                }
+                break;
+        }
+
+        return $dates;
+    }
+
+    /**
+     * Get a human-readable label for a recurrence type.
+     */
+    private function recurrenceLabel(string $type): string
+    {
+        return match ($type) {
+            'daily' => 'يومي',
+            'weekly' => 'أسبوعي',
+            'monthly' => 'شهري',
+            default => '',
+        };
+    }
+
+    /**
+     * Cancel all future occurrences of a recurring series.
+     */
+    public function cancelSeries(Event $parentEvent): void
+    {
+        $parentEvent->occurrences()
+            ->where('event_date', '>=', now()->toDateString())
+            ->whereNotIn('status', ['cancelled', 'completed'])
+            ->update(['status' => 'cancelled']);
+    }
+
+    /**
+     * Cancel a single occurrence from a recurring series.
+     */
+    public function cancelOccurrence(Event $occurrence): void
+    {
+        if (in_array($occurrence->status, ['cancelled', 'completed'])) {
+            return;
+        }
+
+        // Refund community contribution for this occurrence
+        $contribution = (float) $occurrence->community_contribution;
+        if ($contribution > 0 && $occurrence->community) {
+            $occurrence->community->increment('balance', $contribution);
+        }
+
+        $occurrence->update(['status' => 'cancelled']);
     }
 }

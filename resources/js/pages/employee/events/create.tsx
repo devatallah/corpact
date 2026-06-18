@@ -43,6 +43,9 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
         venues_count: 1,
         capacity: 4,
         company_subsidy: 0,
+        recurrence_type: 'none' as 'none' | 'daily' | 'weekly' | 'monthly',
+        recurrence_end_date: '',
+        recurrence_days: [] as number[],
         notes: '',
     });
 
@@ -200,6 +203,9 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
         });
     }
 
+    const recurrenceLabels: Record<string, string> = { none: 'مرة واحدة', daily: 'يومي', weekly: 'أسبوعي', monthly: 'شهري' };
+    const dayLabels: Record<number, string> = { 0: 'أحد', 1: 'إثنين', 2: 'ثلاثاء', 3: 'أربعاء', 4: 'خميس', 5: 'جمعة', 6: 'سبت' };
+
     const reviewRows = [
         { label: 'المجتمع', value: selectedCommunity?.name ?? '-' },
         { label: 'المنشأة', value: selectedBusiness?.name ?? '-' },
@@ -208,6 +214,13 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
         { label: 'مدة الحجز', value: selectedPricing ? `${selectedPricing.duration_minutes} دقيقة` : '-' },
         { label: 'عدد المرافق', value: data.venue_ids.length + (data.venue_ids.length === 1 ? ' مرفق' : ' مرافق') },
         { label: 'عدد اللاعبين', value: `${data.capacity} لاعبين` },
+        { label: 'التكرار', value: recurrenceLabels[data.recurrence_type] ?? 'مرة واحدة' },
+        ...(data.recurrence_type !== 'none' && data.recurrence_end_date
+            ? [{ label: 'ينتهي في', value: data.recurrence_end_date }]
+            : []),
+        ...(data.recurrence_type === 'weekly' && data.recurrence_days.length > 0
+            ? [{ label: 'أيام التكرار', value: data.recurrence_days.sort().map((d) => dayLabels[d]).join('، ') }]
+            : []),
         { label: 'إجمالي الحجز', value: `${totalPrice.toLocaleString()} ريال` },
     ];
 
@@ -413,6 +426,114 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                                 <button type="button" onClick={() => setData('capacity', data.capacity + 1)} style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid #E4E9F2', background: '#fff', fontSize: 20, cursor: 'pointer', fontFamily: 'inherit' }}>+</button>
                             </div>
                         </div>
+
+                        {/* Recurrence */}
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ fontSize: 12, color: '#7A8BA8', fontWeight: 600, marginBottom: 8 }}>التكرار</div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                {([
+                                    { value: 'none', label: 'مرة واحدة' },
+                                    { value: 'daily', label: 'يومي' },
+                                    { value: 'weekly', label: 'أسبوعي' },
+                                    { value: 'monthly', label: 'شهري' },
+                                ] as const).map((opt) => {
+                                    const isSelected = data.recurrence_type === opt.value;
+                                    return (
+                                        <div
+                                            key={opt.value}
+                                            onClick={() => setData((prev) => ({
+                                                ...prev,
+                                                recurrence_type: opt.value,
+                                                recurrence_end_date: opt.value === 'none' ? '' : prev.recurrence_end_date,
+                                                recurrence_days: opt.value === 'weekly' ? prev.recurrence_days : [],
+                                            }))}
+                                            style={{
+                                                padding: '8px 16px',
+                                                borderRadius: 10,
+                                                border: `2px solid ${isSelected ? '#009E82' : '#E4E9F2'}`,
+                                                background: isSelected ? '#009E8210' : '#fff',
+                                                cursor: 'pointer',
+                                                fontSize: 13,
+                                                fontWeight: isSelected ? 700 : 400,
+                                                color: isSelected ? '#009E82' : '#4A5C78',
+                                            }}
+                                        >
+                                            {opt.label}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Recurrence end date */}
+                        {data.recurrence_type !== 'none' && (
+                            <div style={{ marginBottom: 16 }}>
+                                <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 6 }}>تاريخ انتهاء التكرار</div>
+                                <input
+                                    type="date"
+                                    value={data.recurrence_end_date}
+                                    min={data.date || undefined}
+                                    onChange={(e) => setData('recurrence_end_date', e.target.value)}
+                                    style={{ width: '100%', background: '#fff', border: '1px solid #E4E9F2', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit' }}
+                                />
+                            </div>
+                        )}
+
+                        {/* Weekly day selection */}
+                        {data.recurrence_type === 'weekly' && (
+                            <div style={{ marginBottom: 16 }}>
+                                <div style={{ fontSize: 12, color: '#7A8BA8', fontWeight: 600, marginBottom: 8 }}>أيام التكرار</div>
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                    {([
+                                        { value: 0, label: 'أحد' },
+                                        { value: 1, label: 'إثنين' },
+                                        { value: 2, label: 'ثلاثاء' },
+                                        { value: 3, label: 'أربعاء' },
+                                        { value: 4, label: 'خميس' },
+                                        { value: 5, label: 'جمعة' },
+                                        { value: 6, label: 'سبت' },
+                                    ] as const).map((day) => {
+                                        const isSelected = data.recurrence_days.includes(day.value);
+                                        return (
+                                            <div
+                                                key={day.value}
+                                                onClick={() => {
+                                                    const days = isSelected
+                                                        ? data.recurrence_days.filter((d) => d !== day.value)
+                                                        : [...data.recurrence_days, day.value];
+                                                    setData('recurrence_days', days);
+                                                }}
+                                                style={{
+                                                    width: 44,
+                                                    height: 44,
+                                                    borderRadius: '50%',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    border: `2px solid ${isSelected ? '#009E82' : '#E4E9F2'}`,
+                                                    background: isSelected ? '#009E82' : '#fff',
+                                                    color: isSelected ? '#fff' : '#4A5C78',
+                                                    cursor: 'pointer',
+                                                    fontSize: 11,
+                                                    fontWeight: 700,
+                                                }}
+                                            >
+                                                {day.label}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Recurrence summary */}
+                        {data.recurrence_type !== 'none' && data.recurrence_end_date && (
+                            <div style={{ background: '#009E8210', border: '1px solid #009E8233', borderRadius: 12, padding: '10px 14px', fontSize: 12, color: '#009E82', marginBottom: 16 }}>
+                                {data.recurrence_type === 'daily' && `سيتم إنشاء فعالية يومية من ${data.date} حتى ${data.recurrence_end_date}`}
+                                {data.recurrence_type === 'weekly' && `سيتم إنشاء فعالية أسبوعية${data.recurrence_days.length > 0 ? ` في الأيام المختارة` : ''} من ${data.date} حتى ${data.recurrence_end_date}`}
+                                {data.recurrence_type === 'monthly' && `سيتم إنشاء فعالية شهرية من ${data.date} حتى ${data.recurrence_end_date}`}
+                            </div>
+                        )}
 
                         {/* Discount selection */}
                         {matchingDiscounts.length > 0 && totalPrice > 0 && (

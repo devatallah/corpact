@@ -38,6 +38,10 @@ class StoreEventRequest extends FormRequest
             'company_subsidy' => ['sometimes', 'numeric', 'min:0'],
             'discount_id' => ['nullable', 'integer', 'exists:discounts,id'],
             'quick_match_id' => ['nullable', 'integer', 'exists:quick_matches,id'],
+            'recurrence_type' => ['sometimes', 'string', 'in:none,daily,weekly,monthly'],
+            'recurrence_end_date' => ['nullable', 'required_if:recurrence_type,daily', 'required_if:recurrence_type,weekly', 'required_if:recurrence_type,monthly', 'date', 'after:date'],
+            'recurrence_days' => ['nullable', 'array'],
+            'recurrence_days.*' => ['integer', 'between:0,6'],
             'notes' => ['nullable', 'string', 'max:500'],
         ];
     }
@@ -112,6 +116,10 @@ class StoreEventRequest extends FormRequest
             'venue_ids.min' => 'يجب اختيار مرفق واحد على الأقل.',
             'venue_ids.*.exists' => 'أحد المرافق المختارة غير موجود.',
             'company_subsidy.min' => 'دعم الشركة يجب أن يكون 0 على الأقل.',
+            'recurrence_type.in' => 'نوع التكرار غير صالح.',
+            'recurrence_end_date.required_if' => 'تاريخ انتهاء التكرار مطلوب عند اختيار التكرار.',
+            'recurrence_end_date.after' => 'تاريخ انتهاء التكرار يجب أن يكون بعد تاريخ الفعالية.',
+            'recurrence_days.array' => 'أيام التكرار يجب أن تكون قائمة.',
             'notes.max' => 'الملاحظات يجب ألا تتجاوز 500 حرف.',
         ];
     }

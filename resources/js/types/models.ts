@@ -182,6 +182,7 @@ export interface Event {
     discount_amount: number | null;
     category_id: number;
     created_by: number;
+    parent_event_id: number | null;
     title: string;
     event_date: string;
     start_time: string;
@@ -195,6 +196,9 @@ export interface Event {
     community_contribution: number;
     player_payment: number;
     notes: string | null;
+    recurrence_type: 'none' | 'daily' | 'weekly' | 'monthly';
+    recurrence_end_date: string | null;
+    recurrence_days: number[] | null;
     rejection_reason: string | null;
     status: string;
     created_at: string;
@@ -210,6 +214,8 @@ export interface Event {
     creator?: Employee;
     participants?: Employee[];
     alternatives?: EventAlternative[];
+    parent_event?: Event;
+    occurrences?: Event[];
 }
 
 export interface EventAlternative {

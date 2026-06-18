@@ -15,6 +15,15 @@ interface PaymentBreakdown {
     capacity: number;
 }
 
+interface SeriesEvent {
+    id: number;
+    event_date: string;
+    start_time: string;
+    status: string;
+    participants_count: number;
+    capacity: number;
+}
+
 interface Props {
     event: Event & {
         community: Community;
@@ -25,9 +34,10 @@ interface Props {
     isJoined: boolean;
     canManageAlternatives: boolean;
     isCreator: boolean;
+    seriesEvents: SeriesEvent[];
 }
 
-export default function EventShow({ event, payment, isJoined, canManageAlternatives, isCreator }: Props) {
+export default function EventShow({ event, payment, isJoined, canManageAlternatives, isCreator, seriesEvents }: Props) {
     const color = event.category?.color ?? event.community?.color ?? '#009E82';
     const pct =
         event.capacity > 0
@@ -72,6 +82,33 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{event.business?.name}</div>
                 <div style={{ fontSize: 13, color: '#7A8BA8' }}>{event.business?.district}</div>
             </div>
+
+            {/* Recurrence badge */}
+            {(event.recurrence_type && event.recurrence_type !== 'none') && (
+                <div style={{ background: '#1A5FAB10', border: '1px solid #1A5FAB33', borderRadius: 12, padding: '8px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>🔄</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#1A5FAB' }}>
+                        فعالية متكررة — {event.recurrence_type === 'daily' ? 'يومي' : event.recurrence_type === 'weekly' ? 'أسبوعي' : 'شهري'}
+                    </span>
+                    {event.recurrence_end_date && (
+                        <span style={{ fontSize: 11, color: '#7A8BA8', marginRight: 'auto' }}>حتى {fmtDate(event.recurrence_end_date)}</span>
+                    )}
+                </div>
+            )}
+
+            {/* Occurrence badge */}
+            {event.parent_event_id && (
+                <div style={{ background: '#1A5FAB10', border: '1px solid #1A5FAB33', borderRadius: 12, padding: '8px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>🔄</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#1A5FAB' }}>جزء من سلسلة فعاليات متكررة</span>
+                    <span
+                        onClick={() => router.get(`/employee/detail/${event.parent_event_id}`)}
+                        style={{ fontSize: 11, color: '#1A5FAB', cursor: 'pointer', marginRight: 'auto', textDecoration: 'underline' }}
+                    >
+                        عرض السلسلة
+                    </span>
+                </div>
+            )}
 
             {/* Info grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
@@ -128,6 +165,77 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
                     ))}
                 </div>
             </div>
+
+            {/* Series timeline */}
+            {seriesEvents && seriesEvents.length > 0 && (
+                <div className="card">
+                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>
+                        سلسلة الفعاليات ({seriesEvents.length + 1} فعاليات)
+                    </div>
+                    {/* Parent event */}
+                    <div
+                        onClick={() => {
+                            const parentId = event.parent_event_id ?? event.id;
+                            if (parentId !== event.id) router.get(`/employee/detail/${parentId}`);
+                        }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 12px',
+                            borderRadius: 10,
+                            marginBottom: 6,
+                            cursor: (event.parent_event_id ?? event.id) !== event.id ? 'pointer' : 'default',
+                            background: !event.parent_event_id ? `${color}10` : 'transparent',
+                            border: !event.parent_event_id ? `1px solid ${color}33` : '1px solid #E4E9F2',
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: !event.parent_event_id ? color : '#4A5C78' }}>
+                                {!event.parent_event_id ? 'الحالية' : fmtDate(event.parent_event?.event_date ?? '')}
+                            </span>
+                            {!event.parent_event_id && (
+                                <span style={{ fontSize: 11, color: '#7A8BA8' }}>{fmtDate(event.event_date)}</span>
+                            )}
+                        </div>
+                    </div>
+                    <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {seriesEvents.map((se) => {
+                            const isCurrent = se.id === event.id;
+                            const statusColor = se.status === 'cancelled' ? '#E03050' : se.status === 'completed' ? '#7A8BA8' : '#009E82';
+                            const statusLabel = se.status === 'cancelled' ? 'ملغية' : se.status === 'completed' ? 'منتهية' : `${se.participants_count}/${se.capacity}`;
+                            return (
+                                <div
+                                    key={se.id}
+                                    onClick={() => !isCurrent && router.get(`/employee/detail/${se.id}`)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '8px 12px',
+                                        borderRadius: 10,
+                                        cursor: isCurrent ? 'default' : 'pointer',
+                                        background: isCurrent ? `${color}10` : 'transparent',
+                                        border: isCurrent ? `1px solid ${color}33` : '1px solid #E4E9F2',
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontSize: 12, fontWeight: isCurrent ? 700 : 400, color: isCurrent ? color : '#4A5C78' }}>
+                                            {fmtDate(se.event_date)}
+                                        </span>
+                                        <span style={{ fontSize: 11, color: '#7A8BA8' }}>
+                                            {fmtTime(se.start_time)}
+                                        </span>
+                                    </div>
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: statusColor }}>
+                                        {statusLabel}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Alternative proposed */}
             {event.status === 'alternative_proposed' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
@@ -269,6 +377,36 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
             ) : (
                 <div style={{ background: '#E4E9F2', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#7A8BA8' }}>
                     الفعالية مكتملة
+                </div>
+            )}
+
+            {/* Cancel series button for recurring event creators */}
+            {isCreator && event.recurrence_type && event.recurrence_type !== 'none' && !event.parent_event_id && !['cancelled', 'completed'].includes(event.status) && (
+                <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
+                    <button
+                        onClick={() => {
+                            if (confirm('هل تريد إلغاء هذه الفعالية فقط؟')) {
+                                router.delete(`/employee/detail/${event.id}`, {
+                                    onSuccess: () => toastr.success('تم إلغاء الفعالية'),
+                                });
+                            }
+                        }}
+                        style={{ flex: 1, padding: 12, background: '#E4E9F2', color: '#7A8BA8', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                        إلغاء هذه الفعالية
+                    </button>
+                    <button
+                        onClick={() => {
+                            if (confirm('هل تريد إلغاء كل الفعاليات المستقبلية في السلسلة؟')) {
+                                router.delete(`/employee/detail/${event.id}?cancel_series=1`, {
+                                    onSuccess: () => toastr.success('تم إلغاء سلسلة الفعاليات'),
+                                });
+                            }
+                        }}
+                        style={{ flex: 1, padding: 12, background: '#E0305018', color: '#E03050', border: '1px solid #E0305033', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                        إلغاء كل السلسلة
+                    </button>
                 </div>
             )}
 

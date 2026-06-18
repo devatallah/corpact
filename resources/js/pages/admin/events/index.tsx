@@ -81,6 +81,14 @@ export default function EventsIndex({ events, totalEvents, filters }: Props) {
                                     <td style={{ color: '#C8D0E0' }}>{event.business?.name ?? '-'}</td>
                                     <td style={{ fontSize: '12px', color: '#6B7A99' }}>
                                         {fmtDate(event.event_date)} · {fmtTime(event.start_time)}
+                                        {event.recurrence_type && event.recurrence_type !== 'none' && (
+                                            <span style={{ marginRight: 6, fontSize: 10, background: '#1A5FAB30', color: '#8AB4F8', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
+                                                {event.recurrence_type === 'daily' ? 'يومي' : event.recurrence_type === 'weekly' ? 'أسبوعي' : 'شهري'}
+                                            </span>
+                                        )}
+                                        {event.parent_event_id && (
+                                            <span style={{ marginRight: 4, fontSize: 10, color: '#8AB4F8' }} title="جزء من سلسلة متكررة">🔄</span>
+                                        )}
                                     </td>
                                     <td>{event.participants_count}/{event.capacity}</td>
                                     <td style={{
