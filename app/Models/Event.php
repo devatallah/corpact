@@ -123,7 +123,21 @@ class Event extends Model
     {
         return $this->belongsToMany(Employee::class, 'event_participants')
             ->using(EventParticipant::class)
-            ->withPivot(['status', 'joined_at']);
+            ->withPivot(['status', 'joined_at', 'position']);
+    }
+
+    /**
+     * Get waitlisted participants ordered by position.
+     *
+     * @return BelongsToMany<Employee, $this>
+     */
+    public function waitlistEntries(): BelongsToMany
+    {
+        return $this->belongsToMany(Employee::class, 'event_participants')
+            ->using(EventParticipant::class)
+            ->withPivot(['status', 'joined_at', 'position'])
+            ->wherePivot('status', 'waitlisted')
+            ->orderByPivot('position');
     }
 
     /**
