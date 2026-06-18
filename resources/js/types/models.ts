@@ -200,6 +200,8 @@ export interface Event {
     recurrence_end_date: string | null;
     recurrence_days: number[] | null;
     rejection_reason: string | null;
+    refund_percentage: number | null;
+    refund_amount: number | null;
     status: string;
     budget_deducted_at: string | null;
     payment_deadline: string | null;

@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\IndexEventRequest;
 use App\Models\Event;
 use App\Services\Admin\AdminEventService;
 use App\Services\Employee\EventCreationService;
+use App\Services\RefundService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -18,6 +19,7 @@ class EventController extends Controller
     public function __construct(
         private AdminEventService $eventService,
         private EventCreationService $eventCreationService,
+        private RefundService $refundService,
     ) {}
 
     /**
@@ -78,7 +80,7 @@ class EventController extends Controller
     }
 
     /**
-     * Cancel the specified event.
+     * Cancel the specified event with refund policy applied.
      */
     public function cancel(Request $request, Event $event): RedirectResponse
     {
@@ -88,14 +90,11 @@ class EventController extends Controller
 
         Gate::authorize('cancel', $event);
 
-        // Only refund community contribution if budget was already deducted
-        // (budget is deducted only after provider approval)
-        if ($event->budget_deducted_at) {
-            $contribution = (float) $event->community_contribution;
-            if ($contribution > 0 && $event->community) {
-                $event->community->increment('balance', $contribution);
-            }
-        }
+        // Apply refund via refund service (handles percentage calculation)
+        // Only processes refund if budget was already deducted
+        $refundAmount = $event->budget_deducted_at
+            ? $this->refundService->applyRefund($event)
+            : 0;
 
         $event->update(['status' => 'cancelled']);
 
@@ -105,7 +104,11 @@ class EventController extends Controller
             return back()->with('success', 'تم إلغاء سلسلة الفعاليات بالكامل.');
         }
 
-        return back()->with('success', 'تم إلغاء الفعالية بنجاح.');
+        $message = $refundAmount > 0
+            ? "تم إلغاء الفعالية. تم استرداد {$refundAmount} ريال إلى رصيد المجتمع."
+            : 'تم إلغاء الفعالية بنجاح.';
+
+        return back()->with('success', $message);
     }
 
 }

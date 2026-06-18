@@ -345,6 +345,7 @@ Route::prefix('employee')
         Route::post('/detail/{event}/alternatives/{alternative}/accept', [EmployeeEventController::class, 'acceptAlternative'])->name('events.accept-alternative');
         Route::post('/detail/{event}/alternatives/{alternative}/reject', [EmployeeEventController::class, 'rejectAlternative'])->name('events.reject-alternative');
         Route::post('/detail/{event}/remove/{employee}', [EmployeeEventController::class, 'removeMember'])->name('events.remove-member');
+        Route::get('/detail/{event}/refund-preview', [EmployeeEventController::class, 'refundPreview'])->name('events.refund-preview');
         Route::delete('/detail/{event}', [EmployeeEventController::class, 'destroy'])->name('events.destroy');
 
         Route::get('/community-requests', [EmployeeCommunityRequestController::class, 'index'])->name('community-requests.index');

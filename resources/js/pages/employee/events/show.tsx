@@ -24,6 +24,14 @@ interface SeriesEvent {
     capacity: number;
 }
 
+interface RefundPreview {
+    percentage: number;
+    refund_amount: number;
+    original_contribution: number;
+    hours_until_event: number;
+    policy_label: string;
+}
+
 interface Props {
     event: Event & {
         community: Community;
@@ -39,9 +47,10 @@ interface Props {
     canManageAlternatives: boolean;
     isCreator: boolean;
     seriesEvents: SeriesEvent[];
+    refundPreview: RefundPreview | null;
 }
 
-export default function EventShow({ event, payment, isJoined, isWaitlisted, waitlistPosition, waitlistCount, canManageAlternatives, isCreator, seriesEvents }: Props) {
+export default function EventShow({ event, payment, isJoined, isWaitlisted, waitlistPosition, waitlistCount, canManageAlternatives, isCreator, seriesEvents, refundPreview }: Props) {
     const color = event.category?.color ?? event.community?.color ?? '#009E82';
     const pct =
         event.capacity > 0
@@ -59,6 +68,9 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
     const canJoinWaitlist = isFull && !isJoined && !isWaitlisted && !['completed', 'cancelled', 'rejected'].includes(event.status);
 
     const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelProcessing, setCancelProcessing] = useState(false);
+    const canCancel = isCreator && !['cancelled', 'completed', 'rejected'].includes(event.status);
 
     function confirmRemove() {
         if (!removeTarget) return;
@@ -386,8 +398,18 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
 
             {/* Action buttons */}
             {event.status === 'completed' || event.status === 'cancelled' || event.status === 'rejected' ? (
-                <div style={{ background: '#E4E9F2', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#7A8BA8' }}>
+                <div style={{ background: '#E4E9F2', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#7A8BA8', marginBottom: 12 }}>
                     {event.status === 'completed' ? 'الفعالية منتهية' : event.status === 'rejected' ? 'الفعالية مرفوضة' : 'الفعالية ملغاة'}
+                    {event.status === 'cancelled' && event.refund_amount != null && event.refund_amount > 0 && (
+                        <div style={{ fontSize: 12, color: '#009E82', marginTop: 6 }}>
+                            تم استرداد {Number(event.refund_amount).toLocaleString()} ريال ({event.refund_percentage}%)
+                        </div>
+                    )}
+                    {event.status === 'cancelled' && event.refund_percentage === 0 && (
+                        <div style={{ fontSize: 12, color: '#E03050', marginTop: 6 }}>
+                            لم يتم استرداد أي مبلغ
+                        </div>
+                    )}
                 </div>
             ) : isWaitlisted ? (
                 <>
@@ -409,7 +431,7 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                     {!isCreator && (event.status === 'open' || event.status === 'waiting_business') && (
                         <button
                             onClick={handleLeave}
-                            style={{ width: '100%', padding: 14, background: '#E4E9F2', color: '#7A8BA8', border: 'none', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                            style={{ width: '100%', padding: 14, background: '#E4E9F2', color: '#7A8BA8', border: 'none', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}
                         >
                             مغادرة الفعالية
                         </button>
@@ -418,7 +440,7 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
             ) : event.status === 'open' && event.participants_count < event.capacity ? (
                 <button
                     onClick={handleJoin}
-                    style={{ width: '100%', padding: 16, background: color, color: '#fff', border: 'none', borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}
+                    style={{ width: '100%', padding: 16, background: color, color: '#fff', border: 'none', borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}
                 >
                     انضم للفعالية
                 </button>
@@ -430,7 +452,7 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                     انضم لقائمة الانتظار {waitlistCount > 0 ? `(${waitlistCount} منتظرين)` : ''}
                 </button>
             ) : event.status === 'waiting_business' ? (
-                <div style={{ background: '#F59E0B18', border: '1px solid #F59E0B44', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#F59E0B' }}>
+                <div style={{ background: '#F59E0B18', border: '1px solid #F59E0B44', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#F59E0B', marginBottom: 12 }}>
                     بانتظار رد المنشأة
                 </div>
             ) : event.status === 'confirmed' ? (
@@ -445,11 +467,11 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                     )}
                 </div>
             ) : event.status === 'alternative_proposed' ? (
-                <div style={{ background: '#1A5FAB18', border: '1px solid #1A5FAB44', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#1A5FAB' }}>
+                <div style={{ background: '#1A5FAB18', border: '1px solid #1A5FAB44', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#1A5FAB', marginBottom: 12 }}>
                     بانتظار الرد على الوقت البديل
                 </div>
             ) : (
-                <div style={{ background: '#E4E9F2', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#7A8BA8' }}>
+                <div style={{ background: '#E4E9F2', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#7A8BA8', marginBottom: 12 }}>
                     الفعالية مكتملة
                 </div>
             )}
@@ -481,6 +503,86 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                     >
                         إلغاء كل السلسلة
                     </button>
+                </div>
+            )}
+
+            {/* Cancel event button (creator only, non-recurring) */}
+            {canCancel && !(event.recurrence_type && event.recurrence_type !== 'none' && !event.parent_event_id) && (
+                <button
+                    onClick={() => setShowCancelModal(true)}
+                    disabled={cancelProcessing}
+                    style={{ width: '100%', padding: 14, background: 'none', color: '#E03050', border: '1px solid #E03050', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: cancelProcessing ? 0.5 : 1, marginTop: 12 }}
+                >
+                    إلغاء الفعالية
+                </button>
+            )}
+
+            {/* Cancel event confirmation with refund info */}
+            {showCancelModal && (
+                <div
+                    onClick={() => setShowCancelModal(false)}
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}
+                >
+                    <div onClick={(e) => e.stopPropagation()} style={{ background: '#1B2234', borderRadius: 16, padding: '24px 20px', width: '100%', maxWidth: 360, textAlign: 'center' }}>
+                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#E0305014', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                            <span style={{ fontSize: 22 }}>⚠</span>
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 10 }}>إلغاء الفعالية</div>
+                        <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 16, lineHeight: 1.7 }}>
+                            هل أنت متأكد من إلغاء هذه الفعالية؟ لا يمكن التراجع عن هذا الإجراء.
+                        </div>
+
+                        {/* Refund policy info */}
+                        {refundPreview && refundPreview.original_contribution > 0 && (
+                            <div style={{ background: '#232A3E', borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'right' }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#7A8BA8', marginBottom: 10 }}>سياسة الاسترداد</div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                    <span style={{ fontSize: 12, color: '#7A8BA8' }}>المبلغ المدفوع من المحفظة</span>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{refundPreview.original_contribution.toLocaleString()} ريال</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                    <span style={{ fontSize: 12, color: '#7A8BA8' }}>نسبة الاسترداد</span>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: refundPreview.percentage > 0 ? '#0CA678' : '#E03050' }}>{refundPreview.percentage}%</span>
+                                </div>
+                                <div style={{ height: 1, background: '#2D3548', margin: '8px 0' }} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>مبلغ الاسترداد</span>
+                                    <span style={{ fontSize: 18, fontWeight: 900, color: refundPreview.refund_amount > 0 ? '#0CA678' : '#E03050' }}>
+                                        {refundPreview.refund_amount.toLocaleString()} ريال
+                                    </span>
+                                </div>
+                                <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 8, fontSize: 11, textAlign: 'center', background: refundPreview.percentage === 100 ? '#0CA67818' : refundPreview.percentage > 0 ? '#F59E0B18' : '#E0305018', color: refundPreview.percentage === 100 ? '#0CA678' : refundPreview.percentage > 0 ? '#F59E0B' : '#E03050' }}>
+                                    {refundPreview.policy_label}
+                                    {refundPreview.percentage === 100 && ' — الإلغاء قبل 24 ساعة أو أكثر'}
+                                    {refundPreview.percentage === 50 && ' — الإلغاء قبل 4 إلى 24 ساعة'}
+                                    {refundPreview.percentage === 0 && ' — الإلغاء قبل أقل من 4 ساعات'}
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button
+                                onClick={() => {
+                                    setShowCancelModal(false);
+                                    setCancelProcessing(true);
+                                    router.delete(`/employee/detail/${event.id}`, {
+                                        onSuccess: () => toastr.success('تم إلغاء الفعالية'),
+                                        onFinish: () => setCancelProcessing(false),
+                                    });
+                                }}
+                                disabled={cancelProcessing}
+                                style={{ flex: 1, padding: '10px 16px', background: '#E03050', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: cancelProcessing ? 0.5 : 1 }}
+                            >
+                                نعم، إلغاء
+                            </button>
+                            <button
+                                onClick={() => setShowCancelModal(false)}
+                                style={{ flex: 1, padding: '10px 16px', background: 'none', color: '#7A8BA8', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                            >
+                                تراجع
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 

@@ -10,6 +10,7 @@ use App\Models\Notification;
 use App\Services\Company\CompanyEventService;
 use App\Services\Employee\EventCreationService;
 use App\Services\Employee\ChallengeService;
+use App\Services\RefundService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,7 @@ class EventController extends Controller
         private CompanyEventService $eventService,
         private EventCreationService $eventCreationService,
         private ChallengeService $challengeService,
+        private RefundService $refundService,
     ) {}
 
     /**
@@ -87,6 +89,9 @@ class EventController extends Controller
                 ->get();
         }
 
+        $canCancel = ! in_array($event->status, ['cancelled', 'completed', 'rejected']);
+        $refundPreview = $canCancel ? $this->refundService->getRefundPreview($event) : null;
+
         return Inertia::render('company/events/show', [
             'company' => $company,
             'event' => $event,
@@ -94,6 +99,7 @@ class EventController extends Controller
             'joinedIds' => $joinedIds,
             'unreadNotifications' => $unreadNotifications,
             'seriesEvents' => $seriesEvents,
+            'refundPreview' => $refundPreview,
         ]);
     }
 
@@ -111,22 +117,19 @@ class EventController extends Controller
     }
 
     /**
-     * Cancel the specified event.
+     * Cancel the specified event with refund policy applied.
      */
     public function cancel(Request $request, Event $event): RedirectResponse
     {
-        if (! in_array($event->status, ['open', 'waiting_business', 'alternative_proposed'])) {
-            return back()->with('error', 'يمكن إلغاء الفعالية فقط إذا كانت مفتوحة أو بانتظار النادي أو بديل مقترح.');
+        if (! in_array($event->status, ['open', 'waiting_business', 'alternative_proposed', 'confirmed'])) {
+            return back()->with('error', 'يمكن إلغاء الفعالية فقط إذا كانت مفتوحة أو بانتظار النادي أو بديل مقترح أو مؤكدة.');
         }
 
-        // Only refund community contribution if budget was already deducted
-        // (budget is deducted only after provider approval)
-        if ($event->budget_deducted_at) {
-            $contribution = (float) $event->community_contribution;
-            if ($contribution > 0 && $event->community) {
-                $event->community->increment('balance', $contribution);
-            }
-        }
+        // Apply refund via refund service (handles percentage calculation)
+        // Only processes refund if budget was already deducted
+        $refundAmount = $event->budget_deducted_at
+            ? $this->refundService->applyRefund($event)
+            : 0;
 
         // Notify waitlisted members that the event is cancelled
         $waitlistedIds = $event->waitlistEntries()->pluck('employees.id');
@@ -149,7 +152,11 @@ class EventController extends Controller
             return back()->with('success', 'تم إلغاء سلسلة الفعاليات بالكامل.');
         }
 
-        return back()->with('success', 'تم إلغاء الفعالية بنجاح.');
+        $message = $refundAmount > 0
+            ? "تم إلغاء الفعالية. تم استرداد {$refundAmount} ريال إلى رصيد المجتمع."
+            : 'تم إلغاء الفعالية بنجاح.';
+
+        return back()->with('success', $message);
     }
 
     /**

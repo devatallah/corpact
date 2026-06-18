@@ -147,6 +147,14 @@ class BookingService
 
         // No community balance refund needed — budget was not deducted yet
         // (deduction only happens after provider approval)
+        // Record refund fields for audit purposes (100% / full amount since nothing was charged)
+        $contribution = (float) $event->community_contribution;
+        if ($contribution > 0) {
+            $event->update([
+                'refund_percentage' => 100,
+                'refund_amount' => $contribution,
+            ]);
+        }
 
         ActivityLogService::log(
             $event->company_id,

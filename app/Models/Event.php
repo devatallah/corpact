@@ -38,6 +38,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'recurrence_end_date',
     'recurrence_days',
     'rejection_reason',
+    'refund_percentage',
+    'refund_amount',
     'status',
     'budget_deducted_at',
     'payment_deadline',
@@ -67,6 +69,8 @@ class Event extends Model
             'recurrence_days' => 'array',
             'budget_deducted_at' => 'datetime',
             'payment_deadline' => 'datetime',
+            'refund_percentage' => 'integer',
+            'refund_amount' => 'decimal:2',
         ];
     }
 
