@@ -10,42 +10,39 @@ type Props = {
     status?: string;
 };
 
+/* ── Design tokens (matching landing page) ── */
+const T = {
+    cream: '#F5F0E8',
+    creamDark: '#F0EAE0',
+    ink: '#1A1A18',
+    lime: '#C8F135',
+    limeHover: '#B8E030',
+    muted: '#8A8A7A',
+    line: '#E8E2D8',
+    paper: '#fff',
+    rust: '#C4622D',
+    error: '#c0392b',
+    fontCairo: "'Cairo', sans-serif",
+    fontBody: "'IBM Plex Sans Arabic', sans-serif",
+    fontMono: "'IBM Plex Mono', monospace",
+};
+
 const portalMeta: Record<string, {
-    activeClass: string;
-    focusColor: string;
-    btnGradient: string;
-    btnShadow: string;
-    linkColor: string;
     description: string;
     buttonText: string;
     registerHtml: { question: string; label: string; href: string };
 }> = {
     employee: {
-        activeClass: 'active-emp',
-        focusColor: '#009E82',
-        btnGradient: 'linear-gradient(135deg,#009E82,#00C49A)',
-        btnShadow: '0 6px 20px rgba(0,158,130,.3)',
-        linkColor: '#009E82',
         description: 'سجّل دخولك ببريد شركتك للوصول إلى مجتمعاتك والفعاليات',
         buttonText: 'دخول — بوابة الموظف',
         registerHtml: { question: 'ليس لديك حساب؟', label: 'سجّل كموظف', href: '/employee/register' },
     },
     company: {
-        activeClass: 'active-company',
-        focusColor: '#3B5BDB',
-        btnGradient: 'linear-gradient(135deg,#3B5BDB,#5B7EFF)',
-        btnShadow: '0 6px 20px rgba(59,91,219,.3)',
-        linkColor: '#3B5BDB',
         description: 'سجّل دخولك لإدارة مجتمعات موظفيك وميزانية الدعم',
         buttonText: 'دخول — بوابة الشركة',
         registerHtml: { question: 'شركة جديدة؟', label: 'سجّل شركتك', href: '/company/register' },
     },
     business: {
-        activeClass: 'active-business',
-        focusColor: '#C8410A',
-        btnGradient: 'linear-gradient(135deg,#1C1410,#3A2820)',
-        btnShadow: '0 6px 20px rgba(0,0,0,.3)',
-        linkColor: '#C8410A',
         description: 'سجّل دخولك لإدارة طلبات الحجز والتقويم والتسويات',
         buttonText: 'دخول — بوابة المنشأة',
         registerHtml: { question: 'منشأة جديدة؟', label: 'سجّل منشأتك', href: '/business/register' },
@@ -53,9 +50,9 @@ const portalMeta: Record<string, {
 };
 
 const tabs = [
-    { key: 'employee' as const, icon: '👤', label: 'موظف', href: '/employee/login', borderColor: '#009E82', bg: '#009E8210' },
-    { key: 'company' as const, icon: '📊', label: 'شركة', href: '/company/login', borderColor: '#3B5BDB', bg: '#3B5BDB10' },
-    { key: 'business' as const, icon: '🏟️', label: 'منشأة', href: '/business/login', borderColor: '#1C1410', bg: '#1C141010' },
+    { key: 'employee' as const, label: 'موظف', href: '/employee/login', tag: 'موظف' },
+    { key: 'company' as const, label: 'شركة', href: '/company/login', tag: 'شركة' },
+    { key: 'business' as const, label: 'منشأة', href: '/business/login', tag: 'نادي' },
 ];
 
 const demoCredentials: Record<GuardName, Array<{ label: string; email: string; password: string }>> = {
@@ -78,6 +75,104 @@ function guardPrefix(guard: GuardName) {
     return guard === 'company' ? 'company' : guard;
 }
 
+/* ── Shared CSS injected via <style> ── */
+const sharedStyles = `
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+    font-family: ${T.fontBody};
+    min-height:100vh;
+    background: ${T.cream};
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.tm-login-inp{
+    width:100%;
+    padding:13px 16px;
+    border:1px solid ${T.line};
+    border-radius:12px;
+    font-size:14px;
+    color:${T.ink};
+    background:${T.paper};
+    outline:none;
+    direction:ltr;
+    font-family:${T.fontBody};
+    transition:border-color .2s, box-shadow .2s;
+}
+.tm-login-inp::placeholder{
+    color:${T.muted};
+    opacity:.6;
+}
+.tm-login-inp:focus{
+    border-color:${T.lime};
+    box-shadow:0 0 0 3px rgba(200,241,53,.18);
+}
+.tm-login-submit{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    font-size:15px;
+    font-weight:800;
+    cursor:pointer;
+    font-family:${T.fontCairo};
+    background:${T.lime};
+    color:${T.ink};
+    transition:background .15s,transform .15s,box-shadow .15s;
+}
+.tm-login-submit:hover:not(:disabled){
+    background:${T.limeHover};
+    transform:translateY(-1px);
+    box-shadow:0 8px 24px rgba(200,241,53,.3);
+}
+.tm-login-submit:active:not(:disabled){
+    transform:scale(.98);
+}
+.tm-login-submit:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+.tm-tab{
+    flex:1;
+    padding:10px 6px;
+    border-radius:10px;
+    border:1.5px solid ${T.line};
+    background:${T.paper};
+    cursor:pointer;
+    font-family:${T.fontCairo};
+    font-size:13px;
+    font-weight:700;
+    color:${T.muted};
+    transition:all .2s;
+    text-align:center;
+    text-decoration:none;
+    display:block;
+}
+.tm-tab:hover{
+    border-color:${T.muted};
+    background:${T.creamDark};
+}
+.tm-tab.active{
+    border-color:${T.lime};
+    background:rgba(200,241,53,.08);
+    color:${T.ink};
+}
+.tm-forgot{
+    font-size:12px;
+    color:${T.muted};
+    text-decoration:none;
+    font-family:${T.fontBody};
+    transition:color .15s;
+}
+.tm-forgot:hover{
+    color:${T.rust};
+}
+`;
+
 export default function Login({ guard, guardLabel, portalTag, canRegister, status }: Props) {
     const { flash } = usePage().props;
     const flashStatus = (flash as Record<string, unknown>)?.status as string | undefined;
@@ -98,46 +193,71 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
         setData({ email, password, remember: false });
     }
 
-    // Admin: simple login
+    /* ── Admin: simple login (also restyled) ── */
     if (guard === 'admin') {
+        const adminDemos = demoCredentials.admin;
         return (
             <>
                 <Head title="تسجيل الدخول — المشرف" />
-                <style>{`
-                    body{font-family:Tahoma,Arial,sans-serif;}
-                    .admin-wrap{min-height:100vh;background:linear-gradient(135deg,#0A0F1E,#1A2035);display:flex;align-items:center;justify-content:center;padding:20px;}
-                    .admin-inp{width:100%;padding:12px 14px;border:1px solid #E4E9F2;border-radius:12px;font-size:14px;color:#0F1923;background:#F4F6FA;outline:none;direction:ltr;font-family:inherit;transition:border-color .15s;}
-                    .admin-inp:focus{border-color:#E03050;background:#fff;}
-                `}</style>
-                <div className="admin-wrap" dir="rtl">
-                    <div style={{ width: '100%', maxWidth: 440 }}>
-                        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                            <div style={{ fontSize: 32, fontWeight: 900, background: 'linear-gradient(90deg,#009E82,#D4820A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>تيمات</div>
-                            <div style={{ fontSize: 11, letterSpacing: 3, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>TEAMAT</div>
-                        </div>
-                        <div style={{ background: '#fff', borderRadius: 24, padding: '36px 32px', boxShadow: '0 24px 80px rgba(0,0,0,.4)' }}>
-                            <div style={{ fontSize: 16, fontWeight: 800, textAlign: 'center', marginBottom: 4 }}>لوحة المشرف</div>
-                            <div style={{ fontSize: 12, color: '#7A8BA8', textAlign: 'center', marginBottom: 24 }}>أدخل بياناتك للدخول</div>
-                            {status && <div style={{ background: '#009E8218', border: '1px solid #009E8233', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#009E82', fontWeight: 600, marginBottom: 14 }}>{status}</div>}
-                            <form onSubmit={submit}>
-                                <div style={{ marginBottom: 16 }}>
-                                    <label style={{ display: 'block', fontSize: 12, color: '#4A5C78', fontWeight: 600, marginBottom: 6 }}>البريد الإلكتروني</label>
-                                    <input className="admin-inp" type="email" autoFocus value={data.email} onChange={(e) => setData('email', e.target.value)} />
-                                    {errors.email && <div style={{ fontSize: 12, color: '#E03050', marginTop: 4 }}>{errors.email}</div>}
-                                </div>
-                                <div style={{ marginBottom: 20 }}>
-                                    <label style={{ display: 'block', fontSize: 12, color: '#4A5C78', fontWeight: 600, marginBottom: 6 }}>كلمة المرور</label>
-                                    <input className="admin-inp" type="password" value={data.password} onChange={(e) => setData('password', e.target.value)} />
-                                    {errors.password && <div style={{ fontSize: 12, color: '#E03050', marginTop: 4 }}>{errors.password}</div>}
-                                </div>
-                                <button type="submit" disabled={processing} style={{ width: '100%', padding: 15, border: 'none', borderRadius: 14, fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,#E03050,#FF4466)', color: '#fff', boxShadow: '0 6px 20px rgba(224,48,80,.3)', opacity: processing ? 0.7 : 1 }}>
-                                    {processing ? 'جارٍ الدخول...' : 'دخول — لوحة المشرف'}
-                                </button>
-                            </form>
-                            <div style={{ marginTop: 20, textAlign: 'center' }}>
-                                <div style={{ fontSize: 11, color: '#7A8BA8', marginBottom: 8 }}>حساب تجريبي</div>
-                                {demoCredentials.admin.map((d) => (
-                                    <button key={d.email} type="button" onClick={() => fillDemo(d.email, d.password)} style={{ padding: '6px 14px', border: '1px solid #E4E9F2', borderRadius: 8, fontSize: 11, color: '#4A5C78', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>{d.label}</button>
+                <style>{sharedStyles}</style>
+                <div style={{ width: '100%', maxWidth: 440 }} dir="rtl">
+                    {/* Logo linking home */}
+                    <a href="/" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 32, textDecoration: 'none' }}>
+                        <img src="/landing/assets/logo-icon.webp" alt="تيمات" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+                        <span style={{ fontFamily: T.fontCairo, fontSize: 26, fontWeight: 900, color: T.ink }}>تيمات</span>
+                    </a>
+
+                    {/* Card */}
+                    <div style={{ background: T.paper, borderRadius: 16, padding: '36px 32px', border: `1px solid ${T.line}`, boxShadow: '0 4px 24px rgba(26,26,24,.06)' }}>
+                        <div style={{ fontFamily: T.fontCairo, fontSize: 18, fontWeight: 800, textAlign: 'center', color: T.ink, marginBottom: 4 }}>لوحة المشرف</div>
+                        <div style={{ fontFamily: T.fontBody, fontSize: 13, color: T.muted, textAlign: 'center', marginBottom: 24 }}>أدخل بياناتك للدخول</div>
+
+                        {status && (
+                            <div style={{ background: 'rgba(200,241,53,.08)', border: '1px solid rgba(200,241,53,.2)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: T.ink, fontWeight: 600, marginBottom: 14, fontFamily: T.fontBody }}>
+                                {status}
+                            </div>
+                        )}
+
+                        <form onSubmit={submit}>
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={{ display: 'block', fontFamily: T.fontCairo, fontSize: 13, color: T.ink, fontWeight: 700, marginBottom: 6 }}>البريد الإلكتروني</label>
+                                <input className="tm-login-inp" type="email" autoFocus value={data.email} onChange={(e) => setData('email', e.target.value)} />
+                                {errors.email && <div style={{ fontSize: 12, color: T.error, marginTop: 4, fontFamily: T.fontBody }}>{errors.email}</div>}
+                            </div>
+                            <div style={{ marginBottom: 24 }}>
+                                <label style={{ display: 'block', fontFamily: T.fontCairo, fontSize: 13, color: T.ink, fontWeight: 700, marginBottom: 6 }}>كلمة المرور</label>
+                                <input className="tm-login-inp" type="password" value={data.password} onChange={(e) => setData('password', e.target.value)} />
+                                {errors.password && <div style={{ fontSize: 12, color: T.error, marginTop: 4, fontFamily: T.fontBody }}>{errors.password}</div>}
+                            </div>
+                            <button type="submit" disabled={processing} className="tm-login-submit">
+                                {processing ? 'جارٍ الدخول...' : 'دخول — لوحة المشرف'}
+                            </button>
+                        </form>
+
+                        {/* Demo credentials */}
+                        <div style={{ marginTop: 20, textAlign: 'center' }}>
+                            <div style={{ fontFamily: T.fontMono, fontSize: 11, color: T.muted, marginBottom: 8 }}>حساب تجريبي</div>
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                                {adminDemos.map((d) => (
+                                    <button
+                                        key={d.email}
+                                        type="button"
+                                        onClick={() => fillDemo(d.email, d.password)}
+                                        style={{
+                                            padding: '6px 14px',
+                                            border: `1px solid ${T.line}`,
+                                            borderRadius: 8,
+                                            fontSize: 12,
+                                            color: T.ink,
+                                            background: T.cream,
+                                            cursor: 'pointer',
+                                            fontFamily: T.fontCairo,
+                                            fontWeight: 700,
+                                            transition: 'border-color .15s',
+                                        }}
+                                    >
+                                        {d.label}
+                                    </button>
                                 ))}
                             </div>
                         </div>
@@ -147,32 +267,28 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
         );
     }
 
+    /* ── Employee / Company / Business login ── */
     const cfg = portalMeta[guard];
     const demos = demoCredentials[guard];
 
     return (
         <>
             <Head title={`تسجيل الدخول — ${guardLabel}`} />
-
-            <style>{`
-                *{margin:0;padding:0;box-sizing:border-box;}
-                body{font-family:Tahoma,Arial,sans-serif;min-height:100vh;background:linear-gradient(135deg,#0A0F1E,#1A2035);display:flex;align-items:center;justify-content:center;padding:20px;}
-                .login-inp{width:100%;padding:12px 14px;border:1px solid #E4E9F2;border-radius:12px;font-size:14px;color:#0F1923;background:#F4F6FA;outline:none;direction:ltr;font-family:inherit;transition:border-color .15s;}
-                .login-inp:focus{border-color:${cfg.focusColor};background:#fff;}
-                .login-submit:hover{transform:translateY(-1px);}
-            `}</style>
+            <style>{sharedStyles}</style>
 
             <div style={{ width: '100%', maxWidth: 440 }} dir="rtl">
-                {/* Logo */}
-                <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, background: 'linear-gradient(90deg,#009E82,#D4820A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>تيمات</div>
-                    <div style={{ fontSize: 11, letterSpacing: 3, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>TEAMAT</div>
-                </div>
+                {/* Logo linking home */}
+                <a href="/" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 32, textDecoration: 'none' }}>
+                    <img src="/landing/assets/logo-icon.webp" alt="تيمات" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+                    <span style={{ fontFamily: T.fontCairo, fontSize: 26, fontWeight: 900, color: T.ink }}>تيمات</span>
+                </a>
 
                 {/* Card */}
-                <div style={{ background: '#fff', borderRadius: 24, padding: '36px 32px', boxShadow: '0 24px 80px rgba(0,0,0,.4)' }}>
-                    {/* Label */}
-                    <span style={{ fontSize: 12, color: '#7A8BA8', fontWeight: 600, marginBottom: 10, display: 'block' }}>اختر نوع حسابك</span>
+                <div style={{ background: T.paper, borderRadius: 16, padding: '36px 32px', border: `1px solid ${T.line}`, boxShadow: '0 4px 24px rgba(26,26,24,.06)' }}>
+                    {/* Account type selector label */}
+                    <span style={{ fontFamily: T.fontMono, fontSize: 11, color: T.muted, fontWeight: 500, marginBottom: 10, display: 'block', letterSpacing: '.5px' }}>
+                        اختر نوع حسابك
+                    </span>
 
                     {/* Portal tabs */}
                     <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
@@ -182,49 +298,82 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                                 <a
                                     key={t.key}
                                     href={t.href}
-                                    style={{
-                                        flex: 1, padding: '10px 6px', borderRadius: 12,
-                                        border: active ? `2px solid ${t.borderColor}` : '2px solid #E4E9F2',
-                                        background: active ? t.bg : '#fff',
-                                        cursor: 'pointer', fontFamily: 'inherit',
-                                        fontSize: 11, fontWeight: 700,
-                                        color: active ? t.borderColor : '#7A8BA8',
-                                        transition: 'all .15s', textAlign: 'center',
-                                        textDecoration: 'none', display: 'block',
-                                    }}
+                                    className={`tm-tab${active ? ' active' : ''}`}
                                 >
-                                    <span style={{ fontSize: 20, display: 'block', marginBottom: 4 }}>{t.icon}</span>
                                     {t.label}
                                 </a>
                             );
                         })}
                     </div>
 
-                    {/* Hint */}
-                    <div style={{ fontSize: 12, color: '#7A8BA8', background: '#F4F6FA', borderRadius: 10, padding: '8px 12px', marginBottom: 16, lineHeight: 1.5 }}>
+                    {/* Description hint */}
+                    <div style={{
+                        fontFamily: T.fontBody,
+                        fontSize: 13,
+                        color: T.muted,
+                        background: T.cream,
+                        borderRadius: 10,
+                        padding: '10px 14px',
+                        marginBottom: 18,
+                        lineHeight: 1.6,
+                        border: `1px solid ${T.line}`,
+                    }}>
                         {cfg.description}
                     </div>
 
-                    {/* Error */}
+                    {/* Error messages */}
                     {(errors.email || errors.password) && (
-                        <div style={{ background: '#E0305018', border: '1px solid #E0305033', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#E03050', fontWeight: 600, marginBottom: 14 }}>
+                        <div style={{
+                            background: 'rgba(192,57,43,.06)',
+                            border: '1px solid rgba(192,57,43,.18)',
+                            borderRadius: 10,
+                            padding: '10px 14px',
+                            fontSize: 13,
+                            color: T.error,
+                            fontWeight: 600,
+                            marginBottom: 14,
+                            fontFamily: T.fontBody,
+                        }}>
                             {errors.email || errors.password}
                         </div>
                     )}
 
+                    {/* Flash status */}
                     {displayStatus && (
-                        <div style={{ background: '#009E8218', border: '1px solid #009E8233', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#009E82', fontWeight: 600, marginBottom: 14 }}>
+                        <div style={{
+                            background: 'rgba(200,241,53,.08)',
+                            border: '1px solid rgba(200,241,53,.2)',
+                            borderRadius: 10,
+                            padding: '10px 14px',
+                            fontSize: 13,
+                            color: T.ink,
+                            fontWeight: 600,
+                            marginBottom: 14,
+                            fontFamily: T.fontBody,
+                        }}>
                             {displayStatus}
                         </div>
                     )}
 
-                    {/* Demo box */}
+                    {/* Demo credentials box */}
                     <div
-                        style={{ background: '#F4F6FA', border: '1px dashed #E4E9F2', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 11, color: '#7A8BA8', lineHeight: 1.8, cursor: 'pointer' }}
+                        style={{
+                            background: 'rgba(200,241,53,.06)',
+                            border: '1px dashed rgba(200,241,53,.25)',
+                            borderRadius: 10,
+                            padding: '12px 14px',
+                            marginBottom: 18,
+                            fontSize: 12,
+                            color: T.muted,
+                            lineHeight: 1.8,
+                            cursor: 'pointer',
+                            fontFamily: T.fontBody,
+                            transition: 'border-color .15s',
+                        }}
                         onClick={() => fillDemo(demos[0].email, demos[0].password)}
                         title="اضغط لتعبئة البيانات التجريبية"
                     >
-                        <strong>بيانات تجريبية:</strong><br />
+                        <strong style={{ color: T.ink }}>بيانات تجريبية:</strong><br />
                         البريد: اكتب أي إيميل<br />
                         كلمة المرور: 123456
                     </div>
@@ -232,9 +381,9 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                     {/* Form */}
                     <form onSubmit={submit}>
                         <div style={{ marginBottom: 16 }}>
-                            <label style={{ display: 'block', fontSize: 12, color: '#4A5C78', fontWeight: 600, marginBottom: 6 }}>البريد الإلكتروني</label>
+                            <label style={{ display: 'block', fontFamily: T.fontCairo, fontSize: 13, color: T.ink, fontWeight: 700, marginBottom: 6 }}>البريد الإلكتروني</label>
                             <input
-                                className="login-inp"
+                                className="tm-login-inp"
                                 type="email"
                                 placeholder="example@company.com"
                                 autoComplete="email"
@@ -245,9 +394,9 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                         </div>
 
                         <div style={{ marginBottom: 16 }}>
-                            <label style={{ display: 'block', fontSize: 12, color: '#4A5C78', fontWeight: 600, marginBottom: 6 }}>كلمة المرور</label>
+                            <label style={{ display: 'block', fontFamily: T.fontCairo, fontSize: 13, color: T.ink, fontWeight: 700, marginBottom: 6 }}>كلمة المرور</label>
                             <input
-                                className="login-inp"
+                                className="tm-login-inp"
                                 type="password"
                                 placeholder="••••••••"
                                 autoComplete="current-password"
@@ -257,37 +406,37 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                         </div>
 
                         <div style={{ textAlign: 'left', marginBottom: 20 }}>
-                            <a href={`/${guardPrefix(guard)}/forgot-password`} style={{ fontSize: 12, color: '#7A8BA8', textDecoration: 'none' }}>نسيت كلمة المرور؟</a>
+                            <a href={`/${guardPrefix(guard)}/forgot-password`} className="tm-forgot">نسيت كلمة المرور؟</a>
                         </div>
 
                         <button
-                            className="login-submit"
+                            className="tm-login-submit"
                             type="submit"
                             disabled={processing}
-                            style={{
-                                width: '100%', padding: 15, border: 'none', borderRadius: 14,
-                                fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
-                                marginBottom: 16, transition: 'transform .15s',
-                                background: cfg.btnGradient, color: '#fff', boxShadow: cfg.btnShadow,
-                                opacity: processing ? 0.7 : 1,
-                            }}
                         >
                             {processing ? 'جارٍ الدخول...' : cfg.buttonText}
                         </button>
                     </form>
 
                     {/* Divider */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                        <div style={{ flex: 1, height: 1, background: '#E4E9F2' }} />
-                        <span style={{ fontSize: 11, color: '#7A8BA8' }}>أو</span>
-                        <div style={{ flex: 1, height: 1, background: '#E4E9F2' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
+                        <div style={{ flex: 1, height: 1, background: T.line }} />
+                        <span style={{ fontFamily: T.fontMono, fontSize: 11, color: T.muted }}>أو</span>
+                        <div style={{ flex: 1, height: 1, background: T.line }} />
                     </div>
 
                     {/* Register link */}
-                    <div style={{ textAlign: 'center', fontSize: 13, color: '#7A8BA8' }}>
+                    <div style={{ textAlign: 'center', fontSize: 13, color: T.muted, fontFamily: T.fontBody }}>
                         {cfg.registerHtml.question}{' '}
-                        <a href={cfg.registerHtml.href} style={{ fontWeight: 700, textDecoration: 'none', color: cfg.linkColor }}>{cfg.registerHtml.label}</a>
+                        <a href={cfg.registerHtml.href} style={{ fontWeight: 700, textDecoration: 'none', color: T.ink, fontFamily: T.fontCairo, transition: 'color .15s' }}>{cfg.registerHtml.label}</a>
                     </div>
+                </div>
+
+                {/* Back to home */}
+                <div style={{ textAlign: 'center', marginTop: 20 }}>
+                    <a href="/" style={{ fontFamily: T.fontBody, fontSize: 13, color: T.muted, textDecoration: 'none', transition: 'color .15s' }}>
+                        &larr; العودة إلى الصفحة الرئيسية
+                    </a>
                 </div>
             </div>
         </>

@@ -47,10 +47,21 @@ use App\Http\Controllers\Company\NotificationController as CompanyNotificationCo
 use App\Http\Controllers\Company\ReportController as CompanyReportController;
 use App\Http\Controllers\Company\WalletController as CompanyWalletController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('welcome');
+    return view('welcome');
+});
+
+Route::get('/companies', function () {
+    return view('landing.companies');
+});
+
+Route::get('/employees', function () {
+    return view('landing.employees');
+});
+
+Route::get('/clubs', function () {
+    return view('landing.clubs');
 });
 
 /*
