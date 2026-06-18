@@ -77,12 +77,17 @@ export default function businessesIndex({ businesses, stats, filters, categories
         }
     }
 
-    function approve(id: number) {
-        router.post(`/admin/businesses/${id}/approve`, {}, { preserveScroll: true, onSuccess: () => toastr.success('تمت الموافقة بنجاح.') });
-    }
-
     function reject(id: number) {
         router.post(`/admin/businesses/${id}/reject`, {}, { preserveScroll: true, onSuccess: () => toastr.success('تم الرفض بنجاح.') });
+    }
+
+    const [approveTarget, setApproveTarget] = useState<{ id: number; name: string; commission_rate: string } | null>(null);
+    const [approveCommission, setApproveCommission] = useState('10');
+
+    function confirmApprove() {
+        if (!approveTarget) return;
+        router.post(`/admin/businesses/${approveTarget.id}/approve`, { commission_rate: approveCommission }, { preserveScroll: true, onSuccess: () => toastr.success('تمت الموافقة بنجاح.') });
+        setApproveTarget(null);
     }
 
     const [resetTarget, setResetTarget] = useState<{ id: number; email: string } | null>(null);
@@ -126,6 +131,7 @@ export default function businessesIndex({ businesses, stats, filters, categories
                             <th>المدينة</th>
                             <th>الفئات</th>
                             <th>المرافق</th>
+                            <th>العمولة</th>
                             <th>مسؤول المنشأة</th>
                             <th>الحالة</th>
                             <th>إجراء</th>
@@ -134,7 +140,7 @@ export default function businessesIndex({ businesses, stats, filters, categories
                     <tbody>
                         {businesses.data.length === 0 ? (
                             <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
+                                <td colSpan={8} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
                                     لا توجد منشآت
                                 </td>
                             </tr>
@@ -161,6 +167,7 @@ export default function businessesIndex({ businesses, stats, filters, categories
                                         </span>
                                     </td>
                                     <td>{business.venues_count ?? 0}</td>
+                                    <td style={{ fontWeight: 700, color: '#F5A623' }}>{business.commission_rate ?? 10}%</td>
                                     <td>
                                         <div style={{ fontSize: '12px' }}>{business.email ?? '-'}</div>
                                         <div style={{ fontSize: '10px', color: '#6B7A99' }}>{business.contact_phone ?? '-'}</div>
@@ -174,7 +181,7 @@ export default function businessesIndex({ businesses, stats, filters, categories
                                                 <>
                                                     <button
                                                         className="act-btn btn-approve"
-                                                        onClick={() => approve(business.id)}
+                                                        onClick={() => { setApproveTarget({ id: business.id, name: business.name, commission_rate: String(business.commission_rate ?? 10) }); setApproveCommission(String(business.commission_rate ?? 10)); }}
                                                     >
                                                         قبول
                                                     </button>
@@ -385,6 +392,40 @@ export default function businessesIndex({ businesses, stats, filters, categories
                                 <button type="button" className="pa-reject" onClick={() => { setShowCreate(false); setEditingItem(null); }}>إلغاء</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Approve with Commission Rate Modal */}
+            {approveTarget && (
+                <div className="detail-overlay open" onClick={() => setApproveTarget(null)}>
+                    <div className="detail-panel" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+                        <h3>
+                            الموافقة على المنشأة
+                            <button className="close-btn" onClick={() => setApproveTarget(null)}>x</button>
+                        </h3>
+                        <div style={{ fontSize: 14, color: '#C8D0E0', marginBottom: 16 }}>
+                            سيتم تفعيل منشأة <strong style={{ color: '#fff' }}>{approveTarget.name}</strong> وإرسال رابط التفعيل.
+                        </div>
+                        <div className="fg" style={{ marginBottom: 20 }}>
+                            <label>نسبة العمولة (%) *</label>
+                            <input
+                                type="number"
+                                value={approveCommission}
+                                onChange={(e) => setApproveCommission(e.target.value)}
+                                min={0}
+                                max={100}
+                                step={0.1}
+                                required
+                            />
+                            <div style={{ fontSize: 11, color: '#6B7A99', marginTop: 4 }}>
+                                النسبة التي تخصمها المنصة من كل حجز لهذه المنشأة
+                            </div>
+                        </div>
+                        <div className="panel-actions">
+                            <button className="pa-approve" onClick={confirmApprove}>تأكيد الموافقة</button>
+                            <button className="pa-reject" onClick={() => setApproveTarget(null)}>إلغاء</button>
+                        </div>
                     </div>
                 </div>
             )}
