@@ -41,11 +41,6 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        if (app()->isProduction()) {
-            $this->command->error('لا يمكن تشغيل الـSeeder في بيئة الإنتاج!');
-            return;
-        }
-
         // ╔══════════════════════════════════════════════════════════╗
         // ║  CATEGORIES                                               ║
         // ╚══════════════════════════════════════════════════════════╝
