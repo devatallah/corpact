@@ -61,6 +61,9 @@ class CompanyEventService
 
     /**
      * Accept a proposed alternative — shared logic for company, creator, and leader.
+     *
+     * Budget is NOT deducted here — it will be deducted when the provider
+     * approves the booking (after participants rejoin and capacity is full again).
      */
     public function acceptAlternativeForEvent(Event $event, EventAlternative $alternative): Event
     {
@@ -74,24 +77,14 @@ class CompanyEventService
             $newAmount = $alternative->proposed_amount ?? $event->total_amount;
             $newvenuesCount = $alternative->proposed_venues_count ?? $event->venues_count;
 
-            // Refund original community contribution, then recalculate for new amount
-            $oldContribution = (float) $event->community_contribution;
-            if ($oldContribution > 0 && $event->community) {
-                $event->community->increment('balance', $oldContribution);
-            }
-
             // Recalculate community contribution based on new amount
+            // (no refund needed — budget was not deducted yet at this stage)
             $discountAmount = (float) ($event->discount_amount ?? 0);
             $afterDiscount = max(0, $newAmount - $discountAmount);
-            $communityBalance = (float) ($event->community?->fresh()?->balance ?? 0);
+            $communityBalance = (float) ($event->community?->balance ?? 0);
             $newContribution = min($afterDiscount, $communityBalance);
             $remaining = $afterDiscount - $newContribution;
             $newCostPerPerson = $event->capacity > 0 ? round($remaining / $event->capacity, 2) : 0;
-
-            // Deduct new contribution
-            if ($newContribution > 0 && $event->community) {
-                $event->community->decrement('balance', $newContribution);
-            }
 
             // Remove all participants except the creator
             $event->participants()
@@ -121,6 +114,8 @@ class CompanyEventService
                 'participants_count' => 1,
                 'cost_per_person' => $newCostPerPerson,
                 'status' => 'open',
+                'budget_deducted_at' => null,
+                'payment_deadline' => null,
             ]);
 
             $alternative->update(['status' => 'accepted']);

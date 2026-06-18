@@ -151,10 +151,8 @@ class EventCreationService
                 }
             }
 
-            // Deduct company subsidy from community wallet
-            if ($costs['community_contribution'] > 0) {
-                $community->decrement('balance', $costs['community_contribution']);
-            }
+            // Budget is NOT deducted at creation time.
+            // It will be deducted when the service provider (business) approves the booking.
 
             $event = Event::create([
                 'community_id' => $data['community_id'],

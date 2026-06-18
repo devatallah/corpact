@@ -70,10 +70,13 @@ class EventController extends Controller
 
         Gate::authorize('cancel', $event);
 
-        // Refund community contribution
-        $contribution = (float) $event->community_contribution;
-        if ($contribution > 0 && $event->community) {
-            $event->community->increment('balance', $contribution);
+        // Only refund community contribution if budget was already deducted
+        // (budget is deducted only after provider approval)
+        if ($event->budget_deducted_at) {
+            $contribution = (float) $event->community_contribution;
+            if ($contribution > 0 && $event->community) {
+                $event->community->increment('balance', $contribution);
+            }
         }
 
         $event->update(['status' => 'cancelled']);

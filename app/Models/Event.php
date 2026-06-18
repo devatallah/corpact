@@ -35,6 +35,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'notes',
     'rejection_reason',
     'status',
+    'budget_deducted_at',
+    'payment_deadline',
 ])]
 class Event extends Model
 {
@@ -57,6 +59,8 @@ class Event extends Model
             'company_subsidy' => 'decimal:2',
             'community_contribution' => 'decimal:2',
             'player_payment' => 'decimal:2',
+            'budget_deducted_at' => 'datetime',
+            'payment_deadline' => 'datetime',
         ];
     }
 

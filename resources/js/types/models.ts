@@ -197,6 +197,8 @@ export interface Event {
     notes: string | null;
     rejection_reason: string | null;
     status: string;
+    budget_deducted_at: string | null;
+    payment_deadline: string | null;
     created_at: string;
     updated_at: string;
     // Relationships
