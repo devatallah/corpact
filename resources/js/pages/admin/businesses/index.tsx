@@ -126,6 +126,7 @@ export default function businessesIndex({ businesses, stats, filters, categories
                             <th>المدينة</th>
                             <th>الفئات</th>
                             <th>المرافق</th>
+                            <th>الموظفون</th>
                             <th>مسؤول المنشأة</th>
                             <th>الحالة</th>
                             <th>إجراء</th>
@@ -134,7 +135,7 @@ export default function businessesIndex({ businesses, stats, filters, categories
                     <tbody>
                         {businesses.data.length === 0 ? (
                             <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
+                                <td colSpan={8} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
                                     لا توجد منشآت
                                 </td>
                             </tr>
@@ -161,6 +162,7 @@ export default function businessesIndex({ businesses, stats, filters, categories
                                         </span>
                                     </td>
                                     <td>{business.venues_count ?? 0}</td>
+                                    <td>{(business as Business & { staff_count?: number }).staff_count ?? 0}</td>
                                     <td>
                                         <div style={{ fontSize: '12px' }}>{business.email ?? '-'}</div>
                                         <div style={{ fontSize: '10px', color: '#6B7A99' }}>{business.contact_phone ?? '-'}</div>

@@ -28,7 +28,7 @@ class VenuePolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => $user->id === $venue->business_id,
+            $user instanceof Business => $user->resolvedBusinessId() === $venue->business_id,
             default => false,
         };
     }
@@ -52,7 +52,7 @@ class VenuePolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => $user->id === $venue->business_id,
+            $user instanceof Business => $user->resolvedBusinessId() === $venue->business_id && $user->hasPermission('venues.update'),
             default => false,
         };
     }
@@ -64,7 +64,7 @@ class VenuePolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => $user->id === $venue->business_id,
+            $user instanceof Business => $user->resolvedBusinessId() === $venue->business_id && $user->hasPermission('venues.delete'),
             default => false,
         };
     }

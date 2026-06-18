@@ -18,7 +18,8 @@ class DashboardController extends Controller
      */
     public function index(): Response
     {
-        $business = auth('business')->user();
+        $authBusiness = auth('business')->user();
+        $business = $authBusiness->resolvedBusiness();
 
         $pendingEvents = $business->events()
             ->with(['company', 'category'])

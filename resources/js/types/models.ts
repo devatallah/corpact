@@ -66,6 +66,8 @@ export interface Business {
     total_bookings: number;
     commission_rate: number;
     status: string;
+    role: 'owner' | 'receptionist';
+    parent_id: number | null;
     approved_at: string | null;
     email_verified_at: string | null;
     created_at: string;
@@ -74,6 +76,8 @@ export interface Business {
     categories?: Category[];
     venues?: Venue[];
     venues_count?: number;
+    parent?: Business;
+    staff?: Business[];
 }
 
 export interface Employee {

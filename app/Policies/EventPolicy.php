@@ -33,7 +33,7 @@ class EventPolicy
         return match (true) {
             $user instanceof User => true,
             $user instanceof Company => $user->id === $event->company_id,
-            $user instanceof Business => $user->id === $event->business_id,
+            $user instanceof Business => $user->resolvedBusinessId() === $event->business_id,
             $user instanceof Employee => $user->company_id === $event->company_id,
             default => false,
         };
@@ -95,7 +95,7 @@ class EventPolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => $user->id === $event->business_id,
+            $user instanceof Business => $user->resolvedBusinessId() === $event->business_id,
             default => false,
         };
     }

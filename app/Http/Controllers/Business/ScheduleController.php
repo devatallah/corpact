@@ -23,7 +23,7 @@ class ScheduleController extends Controller
      */
     public function index(IndexScheduleRequest $request): Response
     {
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         $validated = $request->validated();
 

@@ -22,7 +22,7 @@ class DiscountController extends Controller
      */
     public function index(): Response
     {
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         return Inertia::render('business/discounts/index', [
             'discounts' => $this->discountService->listForbusiness($business),
@@ -45,7 +45,7 @@ class DiscountController extends Controller
      */
     public function store(StoreDiscountRequest $request): RedirectResponse
     {
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         $this->discountService->create($business, $request->validated());
 
@@ -58,7 +58,7 @@ class DiscountController extends Controller
      */
     public function update(UpdateDiscountRequest $request, Discount $discount): RedirectResponse
     {
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         $this->discountService->update($business, $discount, $request->validated());
 
@@ -70,7 +70,7 @@ class DiscountController extends Controller
      */
     public function destroy(Discount $discount): RedirectResponse
     {
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         $this->discountService->delete($business, $discount);
 

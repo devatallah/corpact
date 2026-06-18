@@ -44,11 +44,24 @@ class BusinessAuthController extends Controller
             ]);
         }
 
-        if (Auth::guard('business')->user()->status !== 'active') {
+        $user = Auth::guard('business')->user();
+
+        if ($user->status !== 'active') {
             Auth::guard('business')->logout();
             throw ValidationException::withMessages([
                 'email' => ['حساب النادي غير مفعّل.'],
             ]);
+        }
+
+        // For staff accounts, also check that the parent business is active
+        if ($user->parent_id) {
+            $parent = $user->parent;
+            if (! $parent || $parent->status !== 'active') {
+                Auth::guard('business')->logout();
+                throw ValidationException::withMessages([
+                    'email' => ['حساب المنشأة الرئيسي غير مفعّل.'],
+                ]);
+            }
         }
 
         $request->session()->regenerate();

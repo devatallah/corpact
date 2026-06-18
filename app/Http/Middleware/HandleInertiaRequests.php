@@ -18,12 +18,23 @@ class HandleInertiaRequests extends Middleware
     {
         $guard = $this->detectGuard();
 
+        $authUser = $guard ? auth($guard)->user() : null;
+
+        $businessPermissions = null;
+        $businessRole = null;
+        if ($guard === 'business' && $authUser) {
+            $businessRole = $authUser->role->value;
+            $businessPermissions = $authUser->role->permissions();
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
                 'guard' => $guard,
-                'user' => $guard ? auth($guard)->user() : null,
+                'user' => $authUser,
+                'businessRole' => $businessRole,
+                'businessPermissions' => $businessPermissions,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
