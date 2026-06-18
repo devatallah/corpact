@@ -27,6 +27,7 @@ use App\Http\Controllers\Business\ScheduleController as BusinessScheduleControll
 use App\Http\Controllers\Business\SettlementController as BusinessSettlementController;
 use App\Http\Controllers\Company\LeagueController as CompanyLeagueController;
 use App\Http\Controllers\Employee\CommunityController as EmployeeCommunityController;
+use App\Http\Controllers\Employee\CommunityRequestController as EmployeeCommunityRequestController;
 use App\Http\Controllers\Employee\LeagueController as EmployeeLeagueController;
 use App\Http\Controllers\Employee\EventController as EmployeeEventController;
 use App\Http\Controllers\Employee\ExploreController as EmployeeExploreController;
@@ -37,6 +38,7 @@ use App\Http\Controllers\Employee\QuickMatchController as EmployeeQuickMatchCont
 use App\Http\Controllers\Company\ProfileController as CompanyProfileController;
 use App\Http\Controllers\Company\DepartmentController as CompanyDepartmentController;
 use App\Http\Controllers\Company\CommunityController as CompanyCommunityController;
+use App\Http\Controllers\Company\CommunityRequestController as CompanyCommunityRequestController;
 use App\Http\Controllers\Company\DashboardController as CompanyDashboardController;
 use App\Http\Controllers\Company\EmployeeController as CompanyEmployeeController;
 use App\Http\Controllers\Company\EventController as CompanyEventController;
@@ -293,6 +295,10 @@ Route::prefix('company')
 
         Route::resource('communities', CompanyCommunityController::class)->except(['show']);
 
+        Route::get('/community-requests', [CompanyCommunityRequestController::class, 'index'])->name('community-requests.index');
+        Route::post('/community-requests/{communityRequest}/approve', [CompanyCommunityRequestController::class, 'approve'])->name('community-requests.approve');
+        Route::post('/community-requests/{communityRequest}/reject', [CompanyCommunityRequestController::class, 'reject'])->name('community-requests.reject');
+
         Route::get('/employees/search', [CompanyEmployeeController::class, 'search'])->name('employees.search');
 
         Route::get('/wallet', [CompanyWalletController::class, 'index'])->name('wallet.index');
@@ -339,6 +345,9 @@ Route::prefix('employee')
         Route::post('/detail/{event}/alternatives/{alternative}/reject', [EmployeeEventController::class, 'rejectAlternative'])->name('events.reject-alternative');
         Route::post('/detail/{event}/remove/{employee}', [EmployeeEventController::class, 'removeMember'])->name('events.remove-member');
         Route::delete('/detail/{event}', [EmployeeEventController::class, 'destroy'])->name('events.destroy');
+
+        Route::get('/community-requests', [EmployeeCommunityRequestController::class, 'index'])->name('community-requests.index');
+        Route::post('/community-requests', [EmployeeCommunityRequestController::class, 'store'])->name('community-requests.store');
 
         Route::get('/community', [EmployeeCommunityController::class, 'index'])->name('community.index');
         Route::get('/community/{community}', [EmployeeCommunityController::class, 'show'])->name('community.show');

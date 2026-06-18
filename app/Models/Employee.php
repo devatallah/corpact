@@ -120,6 +120,14 @@ class Employee extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * @return HasMany<CommunityRequest, $this>
+     */
+    public function communityRequests(): HasMany
+    {
+        return $this->hasMany(CommunityRequest::class);
+    }
+
+    /**
      * @return HasMany<Invitation, $this>
      */
     public function invitations(): HasMany
