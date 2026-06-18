@@ -20,7 +20,18 @@ export default function CommunityIndex({ communities }: Props) {
             <Head title="مجتمعاتي" />
 
             <div style={{ padding: '16px 0 20px' }}>
-                <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 8 }}>المجتمعات</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>المجتمعات</div>
+                    <Link
+                        href="/employee/community-requests"
+                        style={{
+                            fontSize: 11, color: '#3B5BDB', fontWeight: 700, textDecoration: 'none',
+                            background: '#3B5BDB10', padding: '4px 12px', borderRadius: 8,
+                        }}
+                    >
+                        اقتراح مجتمع
+                    </Link>
+                </div>
                 <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 12 }}>
                     {communities.length > 0 ? (
                         communities.map((community) => {

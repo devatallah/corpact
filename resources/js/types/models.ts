@@ -338,6 +338,28 @@ export interface LeagueStanding {
     points: number;
 }
 
+export interface CommunityRequest {
+    id: number;
+    company_id: number;
+    employee_id: number;
+    category_id: number;
+    name: string;
+    description: string | null;
+    reason: string | null;
+    status: 'pending' | 'approved' | 'rejected';
+    rejection_reason: string | null;
+    reviewed_by: number | null;
+    reviewed_at: string | null;
+    community_id: number | null;
+    created_at: string;
+    updated_at: string;
+    // Relationships
+    employee?: Employee;
+    category?: Category;
+    community?: Community;
+    reviewer?: Company;
+}
+
 export interface CommunityAnnouncement {
     id: number;
     community_id: number;

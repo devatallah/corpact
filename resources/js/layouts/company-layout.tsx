@@ -5,12 +5,14 @@ import type { NavItem } from '@/components/portal-sidebar';
 export default function CompanyLayout({ children }: { children: React.ReactNode }) {
     const { auth } = usePage().props;
     const unread = (usePage().props as Record<string, unknown>).unreadNotifications as number | undefined;
+    const pendingRequests = (usePage().props as Record<string, unknown>).pendingCommunityRequests as number | undefined;
 
     const navItems: NavItem[] = [
         { label: 'لوحة التحكم', href: '/company/dash', emoji: '📊' },
         { label: 'الأقسام', href: '/company/departments', emoji: '🏷️' },
         { label: 'الموظفون', href: '/company/employees', emoji: '👥' },
         { label: 'المجتمعات', href: '/company/communities', emoji: '🏘️' },
+        { label: 'طلبات المجتمعات', href: '/company/community-requests', emoji: '📋', badge: pendingRequests },
         { label: 'الفعاليات', href: '/company/events', emoji: '📅' },
         { label: 'البطولات', href: '/company/leagues', emoji: '🏆' },
         { label: 'المحفظة', href: '/company/wallet', emoji: '💳' },
