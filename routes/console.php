@@ -9,7 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('app:complete-events')->dailyAt('02:00');
-Schedule::command('app:expire-stale')->dailyAt('03:00');
+Schedule::command('app:expire-stale')->everyFiveMinutes();
 Schedule::command('app:suggest-matches')->dailyAt('09:00');
 Schedule::command('app:send-nudges')->dailyAt('10:00');
 Schedule::command('app:weekly-digest')->weeklyOn(0, '18:00');

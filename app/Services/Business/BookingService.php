@@ -3,6 +3,7 @@
 namespace App\Services\Business;
 
 use App\Models\Business;
+use App\Models\Community;
 use App\Models\Venue;
 use App\Models\Employee;
 use App\Models\Event;
@@ -35,6 +36,10 @@ class BookingService
 
     /**
      * Approve an event booking request.
+     *
+     * Budget is deducted from the community balance AFTER provider approval,
+     * with a 30-minute payment deadline. If the community no longer has
+     * sufficient balance, costs are recalculated so players cover the gap.
      */
     public function approve(Business $business, Event $event): Event
     {
@@ -46,43 +51,84 @@ class BookingService
             ]);
         }
 
-        $event->update(['status' => 'confirmed']);
+        return DB::transaction(function () use ($event) {
+            $paymentDeadline = now()->addMinutes(30);
 
-        ActivityLogService::log(
-            $event->company_id,
-            $event,
-            'event_approved',
-            "تم قبول الفعالية #{$event->id} من النادي",
-        );
+            // Deduct community budget now that the provider has approved
+            $community = $event->community;
+            $contribution = (float) $event->community_contribution;
 
-        // Notify company
-        Notification::create([
-            'notifiable_type' => \App\Models\Company::class,
-            'notifiable_id' => $event->company_id,
-            'type' => 'success',
-            'title' => 'تم قبول الحج��',
-            'body' => "النادي وافق على حجز الفعالية #{$event->id}",
-            'data' => ['event_id' => $event->id],
-        ]);
+            if ($contribution > 0 && $community) {
+                // Lock community to prevent race conditions on balance
+                $community = Community::lockForUpdate()->find($community->id);
+                $currentBalance = (float) $community->balance;
 
-        // Notify community members
-        $event->load('community.members');
-        foreach ($event->community->members as $member) {
+                if ($currentBalance >= $contribution) {
+                    // Full contribution available
+                    $community->decrement('balance', $contribution);
+                } else {
+                    // Partial balance — use what's available, players cover the rest
+                    $actualContribution = $currentBalance;
+                    $community->decrement('balance', $actualContribution);
+
+                    $discountAmount = (float) ($event->discount_amount ?? 0);
+                    $afterDiscount = max(0, (float) $event->total_amount - $discountAmount);
+                    $remaining = $afterDiscount - $actualContribution;
+                    $costPerPerson = $event->capacity > 0 ? round($remaining / $event->capacity, 2) : 0;
+
+                    $event->community_contribution = $actualContribution;
+                    $event->company_subsidy = $actualContribution;
+                    $event->player_payment = $remaining;
+                    $event->cost_per_person = $costPerPerson;
+                }
+            }
+
+            $event->update([
+                'status' => 'confirmed',
+                'budget_deducted_at' => now(),
+                'payment_deadline' => $paymentDeadline,
+            ]);
+
+            ActivityLogService::log(
+                $event->company_id,
+                $event,
+                'event_approved',
+                "تم قبول الفعالية #{$event->id} من النادي وخصم الميزانية",
+            );
+
+            // Notify company
             Notification::create([
-                'notifiable_type' => Employee::class,
-                'notifiable_id' => $member->id,
+                'notifiable_type' => \App\Models\Company::class,
+                'notifiable_id' => $event->company_id,
                 'type' => 'success',
-                'title' => 'تم تأكيد الفعالية',
-                'body' => "تم تأكيد حجز فعالية {$event->community->name} من النادي",
+                'title' => 'تم قبول الحجز',
+                'body' => "النادي وافق على حجز الفعالية #{$event->id} — يجب إتمام الدفع خلال 30 دقيقة",
                 'data' => ['event_id' => $event->id],
             ]);
-        }
 
-        return $event->loadMissing(['company', 'community', 'venues']);
+            // Notify community members
+            $event->load('community.members');
+            foreach ($event->community->members as $member) {
+                Notification::create([
+                    'notifiable_type' => Employee::class,
+                    'notifiable_id' => $member->id,
+                    'type' => 'success',
+                    'title' => 'تم تأكيد الفعالية',
+                    'body' => "تم تأكيد حجز فعالية {$event->community->name} من النادي",
+                    'data' => ['event_id' => $event->id],
+                ]);
+            }
+
+            return $event->loadMissing(['company', 'community', 'venues']);
+        });
     }
 
     /**
      * Reject an event booking request with a reason.
+     *
+     * Since budget is only deducted after approval, rejection does not
+     * require a refund unless the event was previously approved and
+     * the budget was already deducted.
      */
     public function reject(Business $business, Event $event, string $reason): Event
     {
@@ -99,11 +145,8 @@ class BookingService
             'rejection_reason' => $reason,
         ]);
 
-        // Refund community contribution
-        $contribution = (float) $event->community_contribution;
-        if ($contribution > 0 && $event->community) {
-            $event->community->increment('balance', $contribution);
-        }
+        // No community balance refund needed — budget was not deducted yet
+        // (deduction only happens after provider approval)
 
         ActivityLogService::log(
             $event->company_id,

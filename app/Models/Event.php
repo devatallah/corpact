@@ -39,6 +39,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'recurrence_days',
     'rejection_reason',
     'status',
+    'budget_deducted_at',
+    'payment_deadline',
 ])]
 class Event extends Model
 {
@@ -63,6 +65,8 @@ class Event extends Model
             'player_payment' => 'decimal:2',
             'recurrence_end_date' => 'date:Y-m-d',
             'recurrence_days' => 'array',
+            'budget_deducted_at' => 'datetime',
+            'payment_deadline' => 'datetime',
         ];
     }
 

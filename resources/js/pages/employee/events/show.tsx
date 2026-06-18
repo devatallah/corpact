@@ -334,6 +334,11 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
                         مغطى بالكامل من رصيد المجتمع
                     </div>
                 )}
+                {!event.budget_deducted_at && payment.community_contribution > 0 && (
+                    <div style={{ marginTop: 8, background: '#F59E0B18', borderRadius: 8, padding: '6px 10px', fontSize: 11, color: '#B8860A', textAlign: 'center' }}>
+                        سيتم خصم مساهمة المجتمع بعد موافقة المنشأة
+                    </div>
+                )}
             </div>
 
             {/* Action buttons */}
@@ -367,8 +372,15 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
                     بانتظار رد المنشأة
                 </div>
             ) : event.status === 'confirmed' ? (
-                <div style={{ background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color }}>
-                    الفعالية مؤكدة
+                <div>
+                    <div style={{ background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color }}>
+                        الفعالية مؤكدة
+                    </div>
+                    {event.payment_deadline && (
+                        <div style={{ background: '#F59E0B18', border: '1px solid #F59E0B44', borderRadius: 12, padding: '10px 14px', textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#F59E0B', marginTop: 8 }}>
+                            مهلة الدفع: {new Date(event.payment_deadline).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    )}
                 </div>
             ) : event.status === 'alternative_proposed' ? (
                 <div style={{ background: '#1A5FAB18', border: '1px solid #1A5FAB44', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#1A5FAB' }}>

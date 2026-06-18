@@ -128,6 +128,9 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                     <div style={cardStyle}>
                         <div style={labelStyle}>خصم من المحفظة</div>
                         <div style={{ ...valueStyle, color: '#009E82' }}>{Number(event.community_contribution).toLocaleString()} ريال</div>
+                        {!event.budget_deducted_at && (
+                            <div style={{ fontSize: 10, color: '#B8860A', marginTop: 4 }}>بانتظار موافقة المنشأة</div>
+                        )}
                     </div>
                 )}
             </div>
@@ -198,6 +201,16 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                                 </Link>
                             );
                         })}
+
+            {/* Payment deadline notice */}
+            {event.status === 'confirmed' && event.payment_deadline && (
+                <div style={{ background: '#FFF3E0', border: '1px solid #FFB74D44', borderRadius: 12, padding: '10px 14px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#E65100' }}>مهلة الدفع</div>
+                        <div style={{ fontSize: 11, color: '#BF360C' }}>يجب إتمام الدفع خلال 30 دقيقة من الموافقة</div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#E65100' }}>
+                        {new Date(event.payment_deadline).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                 </div>
             )}

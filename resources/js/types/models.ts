@@ -201,6 +201,8 @@ export interface Event {
     recurrence_days: number[] | null;
     rejection_reason: string | null;
     status: string;
+    budget_deducted_at: string | null;
+    payment_deadline: string | null;
     created_at: string;
     updated_at: string;
     // Relationships
