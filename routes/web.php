@@ -193,39 +193,46 @@ Route::prefix('admin')
     ->group(function () {
         Route::get('/dash', [AdminDashboardController::class, 'index'])->name('dash');
 
-        Route::resource('companies', AdminCompanyController::class)->except(['show']);
-        Route::post('/companies/{company}/approve', [AdminCompanyController::class, 'approve'])->name('companies.approve');
-        Route::post('/companies/{company}/reject', [AdminCompanyController::class, 'reject'])->name('companies.reject');
-        Route::post('/companies/{company}/reset-password', [AdminCompanyController::class, 'sendResetPassword'])->name('companies.reset-password');
+        // Routes accessible by super_admin and admin only
+        Route::middleware('role:super_admin,admin')->group(function () {
+            Route::resource('companies', AdminCompanyController::class)->except(['show']);
+            Route::post('/companies/{company}/approve', [AdminCompanyController::class, 'approve'])->name('companies.approve');
+            Route::post('/companies/{company}/reject', [AdminCompanyController::class, 'reject'])->name('companies.reject');
+            Route::post('/companies/{company}/reset-password', [AdminCompanyController::class, 'sendResetPassword'])->name('companies.reset-password');
 
-        Route::resource('businesses', AdminBusinessController::class)->except(['show']);
-        Route::post('/businesses/{business}/approve', [AdminBusinessController::class, 'approve'])->name('businesses.approve');
-        Route::post('/businesses/{business}/reject', [AdminBusinessController::class, 'reject'])->name('businesses.reject');
-        Route::post('/businesses/{business}/reset-password', [AdminBusinessController::class, 'sendResetPassword'])->name('businesses.reset-password');
+            Route::resource('businesses', AdminBusinessController::class)->except(['show']);
+            Route::post('/businesses/{business}/approve', [AdminBusinessController::class, 'approve'])->name('businesses.approve');
+            Route::post('/businesses/{business}/reject', [AdminBusinessController::class, 'reject'])->name('businesses.reject');
+            Route::post('/businesses/{business}/reset-password', [AdminBusinessController::class, 'sendResetPassword'])->name('businesses.reset-password');
 
-        Route::resource('employees', AdminEmployeeController::class)->except(['show']);
-        Route::post('/employees/{employee}/reset-password', [AdminEmployeeController::class, 'sendResetPassword'])->name('employees.reset-password');
+            Route::resource('employees', AdminEmployeeController::class)->except(['show']);
+            Route::post('/employees/{employee}/reset-password', [AdminEmployeeController::class, 'sendResetPassword'])->name('employees.reset-password');
 
-        Route::get('communities', [AdminCommunityController::class, 'index'])->name('communities.index');
+            Route::get('communities', [AdminCommunityController::class, 'index'])->name('communities.index');
 
-        Route::resource('categories', AdminCategoryController::class)->except(['show', 'create', 'edit']);
-        Route::post('/categories/{category}/restore', [AdminCategoryController::class, 'restore'])->name('categories.restore');
+            Route::resource('categories', AdminCategoryController::class)->except(['show', 'create', 'edit']);
+            Route::post('/categories/{category}/restore', [AdminCategoryController::class, 'restore'])->name('categories.restore');
 
-        Route::resource('events', AdminEventController::class)->except(['create', 'store', 'edit', 'update']);
-        Route::post('/events/{event}/cancel', [AdminEventController::class, 'cancel'])->name('events.cancel');
+            Route::resource('events', AdminEventController::class)->except(['create', 'store', 'edit', 'update']);
+            Route::post('/events/{event}/cancel', [AdminEventController::class, 'cancel'])->name('events.cancel');
 
+            Route::get('/notifs', [AdminNotificationController::class, 'index'])->name('notifs.index');
+            Route::post('/notifs', [AdminNotificationController::class, 'store'])->name('notifs.store');
+            Route::post('/notifs/{notification}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifs.read');
+            Route::delete('/notifs/{notification}', [AdminNotificationController::class, 'destroy'])->name('notifs.destroy');
+        });
+
+        // Revenue — accessible by all admin roles (accountant can view)
         Route::get('/revenue', [AdminRevenueController::class, 'index'])->name('revenue.index');
 
-        Route::get('/notifs', [AdminNotificationController::class, 'index'])->name('notifs.index');
-        Route::post('/notifs', [AdminNotificationController::class, 'store'])->name('notifs.store');
-        Route::post('/notifs/{notification}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifs.read');
-        Route::delete('/notifs/{notification}', [AdminNotificationController::class, 'destroy'])->name('notifs.destroy');
-
-        Route::get('/admins', [AdminAdminController::class, 'index'])->name('admins.index');
-        Route::post('/admins', [AdminAdminController::class, 'store'])->name('admins.store');
-        Route::put('/admins/{admin}', [AdminAdminController::class, 'update'])->name('admins.update');
-        Route::post('/admins/{admin}/reset-password', [AdminAdminController::class, 'sendResetPassword'])->name('admins.reset-password');
-        Route::delete('/admins/{admin}', [AdminAdminController::class, 'destroy'])->name('admins.destroy');
+        // Admin management — super_admin only
+        Route::middleware('role:super_admin')->group(function () {
+            Route::get('/admins', [AdminAdminController::class, 'index'])->name('admins.index');
+            Route::post('/admins', [AdminAdminController::class, 'store'])->name('admins.store');
+            Route::put('/admins/{admin}', [AdminAdminController::class, 'update'])->name('admins.update');
+            Route::post('/admins/{admin}/reset-password', [AdminAdminController::class, 'sendResetPassword'])->name('admins.reset-password');
+            Route::delete('/admins/{admin}', [AdminAdminController::class, 'destroy'])->name('admins.destroy');
+        });
 
         Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
         Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
@@ -242,33 +249,37 @@ Route::prefix('business')
     ->group(function () {
         Route::get('/dash', [BusinessDashboardController::class, 'index'])->name('dash');
 
-        Route::get('/requests', [BusinessBookingController::class, 'index'])->name('bookings.index');
-        Route::post('/requests/{event}/approve', [BusinessBookingController::class, 'approve'])->name('bookings.approve');
-        Route::post('/requests/{event}/reject', [BusinessBookingController::class, 'reject'])->name('bookings.reject');
-        Route::post('/requests/{event}/propose-alternative', [BusinessBookingController::class, 'proposeAlternative'])->name('bookings.propose-alternative');
+        // Routes accessible by owner only
+        Route::middleware('role:owner')->group(function () {
+            Route::get('/requests', [BusinessBookingController::class, 'index'])->name('bookings.index');
+            Route::post('/requests/{event}/approve', [BusinessBookingController::class, 'approve'])->name('bookings.approve');
+            Route::post('/requests/{event}/reject', [BusinessBookingController::class, 'reject'])->name('bookings.reject');
+            Route::post('/requests/{event}/propose-alternative', [BusinessBookingController::class, 'proposeAlternative'])->name('bookings.propose-alternative');
 
-        Route::get('/schedule', [BusinessScheduleController::class, 'index'])->name('schedule.index');
-        Route::post('/schedule', [BusinessScheduleController::class, 'store'])->name('schedule.store');
-        Route::put('/schedule/{slot}', [BusinessScheduleController::class, 'update'])->name('schedule.update');
-        Route::delete('/schedule/{slot}', [BusinessScheduleController::class, 'destroy'])->name('schedule.destroy');
+            Route::get('/schedule', [BusinessScheduleController::class, 'index'])->name('schedule.index');
+            Route::post('/schedule', [BusinessScheduleController::class, 'store'])->name('schedule.store');
+            Route::put('/schedule/{slot}', [BusinessScheduleController::class, 'update'])->name('schedule.update');
+            Route::delete('/schedule/{slot}', [BusinessScheduleController::class, 'destroy'])->name('schedule.destroy');
 
-        Route::resource('venues', BusinessVenueController::class)->except(['show']);
-        Route::post('/venues/{venue}/pricings', [BusinessVenueController::class, 'storePricing'])->name('venues.pricings.store');
-        Route::put('/venues/{venue}/pricings/{pricing}', [BusinessVenueController::class, 'updatePricing'])->name('venues.pricings.update');
-        Route::post('/venues/{venue}/pricings/{pricing}/toggle', [BusinessVenueController::class, 'togglePricing'])->name('venues.pricings.toggle');
-        Route::delete('/venues/{venue}/pricings/{pricing}', [BusinessVenueController::class, 'destroyPricing'])->name('venues.pricings.destroy');
+            Route::resource('venues', BusinessVenueController::class)->except(['show']);
+            Route::post('/venues/{venue}/pricings', [BusinessVenueController::class, 'storePricing'])->name('venues.pricings.store');
+            Route::put('/venues/{venue}/pricings/{pricing}', [BusinessVenueController::class, 'updatePricing'])->name('venues.pricings.update');
+            Route::post('/venues/{venue}/pricings/{pricing}/toggle', [BusinessVenueController::class, 'togglePricing'])->name('venues.pricings.toggle');
+            Route::delete('/venues/{venue}/pricings/{pricing}', [BusinessVenueController::class, 'destroyPricing'])->name('venues.pricings.destroy');
 
-        Route::get('/discounts', [BusinessDiscountController::class, 'index'])->name('discounts.index');
-        Route::get('/discounts/communities/{company}', [BusinessDiscountController::class, 'communities'])->name('discounts.communities');
-        Route::post('/discounts', [BusinessDiscountController::class, 'store'])->name('discounts.store');
-        Route::put('/discounts/{discount}', [BusinessDiscountController::class, 'update'])->name('discounts.update');
-        Route::delete('/discounts/{discount}', [BusinessDiscountController::class, 'destroy'])->name('discounts.destroy');
+            Route::get('/discounts', [BusinessDiscountController::class, 'index'])->name('discounts.index');
+            Route::get('/discounts/communities/{company}', [BusinessDiscountController::class, 'communities'])->name('discounts.communities');
+            Route::post('/discounts', [BusinessDiscountController::class, 'store'])->name('discounts.store');
+            Route::put('/discounts/{discount}', [BusinessDiscountController::class, 'update'])->name('discounts.update');
+            Route::delete('/discounts/{discount}', [BusinessDiscountController::class, 'destroy'])->name('discounts.destroy');
 
+            Route::get('/profile', [BusinessProfileController::class, 'index'])->name('profile.index');
+            Route::put('/profile', [BusinessProfileController::class, 'update'])->name('profile.update');
+        });
+
+        // Settlements — accessible by both owner and accountant
         Route::get('/settlements', [BusinessSettlementController::class, 'index'])->name('settlements.index');
         Route::get('/settlements/{settlement}', [BusinessSettlementController::class, 'show'])->name('settlements.show');
-
-        Route::get('/profile', [BusinessProfileController::class, 'index'])->name('profile.index');
-        Route::put('/profile', [BusinessProfileController::class, 'update'])->name('profile.update');
     });
 
 /*

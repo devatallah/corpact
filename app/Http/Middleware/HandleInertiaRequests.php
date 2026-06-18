@@ -17,13 +17,25 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $guard = $this->detectGuard();
+        $user = $guard ? auth($guard)->user() : null;
+
+        // Resolve role label and permissions for guards that support roles
+        $roleLabel = null;
+        $permissions = [];
+
+        if ($user && in_array($guard, ['admin', 'business'], true) && isset($user->role)) {
+            $roleLabel = $user->role->label();
+            $permissions = $user->role->permissions();
+        }
 
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
                 'guard' => $guard,
-                'user' => $guard ? auth($guard)->user() : null,
+                'user' => $user,
+                'role_label' => $roleLabel,
+                'permissions' => $permissions,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

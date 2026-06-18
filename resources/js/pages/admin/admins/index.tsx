@@ -14,9 +14,16 @@ interface Admin {
     name: string;
     email: string;
     phone: string | null;
+    role: string;
     status: string;
     created_at: string;
 }
+
+const roleLabels: Record<string, string> = {
+    super_admin: 'مدير عام',
+    admin: 'مشرف',
+    accountant: 'محاسب',
+};
 
 interface Props {
     admins: PaginatedResult<Admin>;
@@ -37,6 +44,7 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
         email: '',
         password: '',
         phone: '',
+        role: 'admin',
         status: 'active',
     });
 
@@ -47,6 +55,7 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
                 email: editingItem.email ?? '',
                 password: '',
                 phone: editingItem.phone ?? '',
+                role: editingItem.role ?? 'admin',
                 status: editingItem.status ?? 'active',
             });
         } else {
@@ -111,6 +120,7 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
                     <thead>
                         <tr>
                             <th>المشرف</th>
+                            <th>الدور</th>
                             <th>رقم الجوال</th>
                             <th>تاريخ التسجيل</th>
                             <th>الحالة</th>
@@ -120,7 +130,7 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
                     <tbody>
                         {admins.data.length === 0 ? (
                             <tr>
-                                <td colSpan={5} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
+                                <td colSpan={6} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
                                     لا يوجد مشرفون
                                 </td>
                             </tr>
@@ -130,6 +140,18 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
                                     <td>
                                         <div style={{ fontWeight: 700, color: '#fff' }}>{admin.name ?? '-'}</div>
                                         <div style={{ fontSize: '10px', color: '#6B7A99' }}>{admin.email ?? '-'}</div>
+                                    </td>
+                                    <td>
+                                        <span style={{
+                                            padding: '3px 10px',
+                                            borderRadius: '6px',
+                                            fontSize: '11px',
+                                            fontWeight: 600,
+                                            background: admin.role === 'super_admin' ? 'rgba(224,48,80,.15)' : admin.role === 'accountant' ? 'rgba(91,126,255,.15)' : 'rgba(0,158,130,.15)',
+                                            color: admin.role === 'super_admin' ? '#E03050' : admin.role === 'accountant' ? '#5B7EFF' : '#009E82',
+                                        }}>
+                                            {roleLabels[admin.role] ?? admin.role}
+                                        </span>
                                     </td>
                                     <td style={{ color: '#C8D0E0', direction: 'ltr', textAlign: 'right' }}>{admin.phone ?? '-'}</td>
                                     <td style={{ fontSize: '12px', color: '#6B7A99' }}>{fmtDateTime(admin.created_at)}</td>
@@ -236,6 +258,17 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
                             </div>
 
                             <div className="frow">
+                                <div className="fg">
+                                    <label>الدور *</label>
+                                    <select
+                                        value={form.data.role}
+                                        onChange={(e) => form.setData('role', e.target.value)}
+                                    >
+                                        <option value="super_admin">مدير عام</option>
+                                        <option value="admin">مشرف</option>
+                                        <option value="accountant">محاسب</option>
+                                    </select>
+                                </div>
                                 {editingItem ? (
                                     <div className="fg">
                                         <label>الحالة</label>
@@ -250,7 +283,6 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
                                 ) : (
                                     <div className="fg" />
                                 )}
-                                <div className="fg" />
                             </div>
 
                             <div className="panel-actions">

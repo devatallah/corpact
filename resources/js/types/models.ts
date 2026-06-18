@@ -65,6 +65,7 @@ export interface Business {
     rating: number;
     total_bookings: number;
     commission_rate: number;
+    role: 'owner' | 'accountant';
     status: string;
     approved_at: string | null;
     email_verified_at: string | null;

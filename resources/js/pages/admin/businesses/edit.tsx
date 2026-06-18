@@ -14,6 +14,7 @@ export default function businesssEdit({ business }: Props) {
         email: business.email ?? '',
         contact_phone: business.contact_phone ?? '',
         commission_rate: String(business.commission_rate ?? 15),
+        role: ((business as Business & { role?: string }).role ?? 'owner') as string,
         status: business.status ?? 'pending',
     });
 
@@ -109,6 +110,19 @@ export default function businesssEdit({ business }: Props) {
                             />
                         </div>
                         <div className="fg">
+                            <label>الدور</label>
+                            <select
+                                value={data.role}
+                                onChange={(e) => setData('role', e.target.value)}
+                            >
+                                <option value="owner">مالك المنشأة</option>
+                                <option value="accountant">محاسب</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="frow" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div className="fg">
                             <label>الحالة</label>
                             <select
                                 value={data.status}
@@ -120,6 +134,7 @@ export default function businesssEdit({ business }: Props) {
                                 <option value="suspended">معلّق</option>
                             </select>
                         </div>
+                        <div className="fg" />
                     </div>
 
                     <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BusinessRole;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -31,6 +32,7 @@ use Illuminate\Notifications\Notifiable;
     'commission_rate',
     'notes',
     'status',
+    'role',
     'approved_at',
     'activation_token',
     'activation_token_expires_at',
@@ -69,7 +71,24 @@ class Business extends Authenticatable implements MustVerifyEmail
             'commission_rate' => 'decimal:2',
             'approved_at' => 'datetime',
             'activation_token_expires_at' => 'datetime',
+            'role' => BusinessRole::class,
         ];
+    }
+
+    /**
+     * Check if this business user has the given permission.
+     */
+    public function hasPermission(string $permission): bool
+    {
+        return $this->role->hasPermission($permission);
+    }
+
+    /**
+     * Check if this business user has one of the given roles.
+     */
+    public function hasRole(BusinessRole ...$roles): bool
+    {
+        return in_array($this->role, $roles, true);
     }
 
     /**

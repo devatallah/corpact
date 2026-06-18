@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AdminRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Enum;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -43,6 +45,7 @@ class AdminController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'role' => ['sometimes', 'string', new Enum(AdminRole::class)],
             'status' => ['sometimes', 'string', Rule::in(['active', 'inactive'])],
         ], [
             'name.required' => 'الاسم مطلوب.',
@@ -65,6 +68,7 @@ class AdminController extends Controller
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users', 'email')->ignore($admin->id)],
             'password' => ['sometimes', 'nullable', 'string', 'min:6'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'role' => ['sometimes', 'string', new Enum(AdminRole::class)],
             'status' => ['sometimes', 'string', Rule::in(['active', 'inactive'])],
         ], [
             'email.email' => 'البريد الإلكتروني غير صالح.',
