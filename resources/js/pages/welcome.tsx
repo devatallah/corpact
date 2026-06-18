@@ -997,6 +997,197 @@ section { position: relative; }
   .journey-visual-icon { font-size: 48px; }
 }
 
+/* ---------- pricing ---------- */
+.pricing { background: var(--cream); border-top: 1px solid var(--line); }
+.pricing-toggle-wrap { text-align: center; margin-bottom: 48px; }
+.pricing-toggle {
+  display: inline-flex;
+  background: var(--paper);
+  padding: 5px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+.pricing-toggle button {
+  padding: 10px 24px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  transition: all .25s ease;
+}
+.pricing-toggle button.active {
+  background: var(--ink);
+  color: var(--cream);
+}
+.pricing-save {
+  display: inline-block;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--rust);
+  font-weight: 500;
+  letter-spacing: .04em;
+  margin-right: 8px;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 880px) { .pricing-grid { grid-template-columns: 1fr; max-width: 440px; margin: 0 auto; } }
+
+.pricing-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  padding: 36px 32px;
+  position: relative;
+  overflow: hidden;
+  transition: transform .35s ease, box-shadow .35s ease;
+}
+.pricing-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.pricing-card.featured {
+  background: var(--ink);
+  color: var(--cream);
+  border-color: transparent;
+  box-shadow: var(--shadow-lg);
+}
+.pricing-card.featured:hover { box-shadow: var(--shadow-float); }
+.pricing-card.featured::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 80% 10%, rgba(210,255,58,.15), transparent 50%),
+    radial-gradient(circle at 20% 90%, rgba(232,89,58,.1), transparent 50%);
+  pointer-events: none;
+}
+
+.pricing-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: .06em;
+  background: var(--lime);
+  color: var(--ink);
+  margin-bottom: 18px;
+}
+
+.pricing-plan {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  letter-spacing: -.01em;
+}
+.pricing-card.featured .pricing-plan { color: var(--cream); }
+
+.pricing-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 22px;
+  line-height: 1.55;
+}
+.pricing-card.featured .pricing-desc { color: var(--muted-2); }
+
+.pricing-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.pricing-amount-n {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 5vw, 54px);
+  line-height: 1;
+  letter-spacing: -.03em;
+  font-weight: 400;
+  font-style: italic;
+}
+.pricing-card.featured .pricing-amount-n { color: var(--lime); }
+.pricing-amount-c {
+  font-size: 15px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.pricing-card.featured .pricing-amount-c { color: var(--muted-2); }
+
+.pricing-period {
+  font-size: 12px;
+  color: var(--muted-2);
+  margin: 0 0 26px;
+  font-family: var(--font-mono);
+  letter-spacing: .04em;
+}
+
+.pricing-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 0 0 22px;
+  border: none;
+}
+.pricing-card.featured .pricing-divider { background: var(--line-dark); }
+
+.pricing-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pricing-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.pricing-features li .pf-check {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: var(--lime);
+  display: grid;
+  place-items: center;
+}
+.pricing-card.featured .pricing-features li .pf-check { background: var(--lime); }
+.pricing-features li .pf-check svg { width: 10px; height: 10px; }
+
+.pricing-cta {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 14px 22px;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 15px;
+  transition: transform .25s ease, background .25s ease, box-shadow .25s ease;
+  border: 1px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink);
+}
+.pricing-cta:hover { background: var(--paper); transform: translateY(-1px); }
+.pricing-card.featured .pricing-cta {
+  background: var(--lime);
+  color: var(--ink);
+  border-color: transparent;
+  font-weight: 600;
+}
+.pricing-card.featured .pricing-cta:hover { background: var(--lime-soft); transform: translateY(-1px); box-shadow: 0 10px 25px -5px rgba(210,255,58,.3); }
+
+.pricing-note {
+  text-align: center;
+  margin-top: 40px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.pricing-note strong { color: var(--ink); font-weight: 600; }
+
 /* ---------- final CTA ---------- */
 .cta {
   padding: clamp(64px, 8vw, 110px) 0;
@@ -1310,6 +1501,7 @@ export default function Welcome() {
     const [activePortal, setActivePortal] = useState<'employee' | 'hr' | 'club'>('employee');
     const [openFaq, setOpenFaq] = useState<number | null>(null);
     const [stickyVisible, setStickyVisible] = useState(false);
+    const [billingAnnual, setBillingAnnual] = useState(true);
     const heroRef = useRef<HTMLElement>(null);
 
     // Nav scroll effect
@@ -1382,6 +1574,7 @@ export default function Welcome() {
                         <a className="nav-link" href="#benefits">للشركات</a>
                         <a className="nav-link" href="#portals">المنصة</a>
                         <a className="nav-link" href="#wwh">ماذا نقدّم</a>
+                        <a className="nav-link" href="#pricing">الباقات</a>
                         <a className="nav-link" href="#cta">ابدأ الآن</a>
                         <a className="nav-link" href="#faq">أسئلة شائعة</a>
                     </div>
@@ -1402,6 +1595,7 @@ export default function Welcome() {
                     <a href="#benefits" onClick={closeDrawer}>للشركات</a>
                     <a href="#portals" onClick={closeDrawer}>المنصة</a>
                     <a href="#wwh" onClick={closeDrawer}>ماذا نقدّم</a>
+                    <a href="#pricing" onClick={closeDrawer}>الباقات</a>
                     <a href="#cta" onClick={closeDrawer}>ابدأ الآن</a>
                     <a href="#faq" onClick={closeDrawer}>أسئلة شائعة</a>
                 </div>
@@ -1702,6 +1896,94 @@ export default function Welcome() {
                 </div>
             </section>
 
+            {/* ========== PRICING ========== */}
+            <section className="pricing section-pad" id="pricing">
+                <div className="wrap">
+                    <div className="section-head reveal">
+                        <div className="eyebrow">الباقات والرسوم</div>
+                        <h2 className="section-title">اشتراكات <span className="serif-en">transparent</span> بدون مفاجآت.</h2>
+                        <p className="section-sub">رسوم اشتراك شهرية واضحة للمنشآت والشركات. اختر الباقة المناسبة وابدأ اليوم.</p>
+                    </div>
+
+                    <div className="pricing-toggle-wrap reveal">
+                        <div className="pricing-toggle">
+                            <button className={billingAnnual ? '' : 'active'} onClick={() => setBillingAnnual(false)}>شهري</button>
+                            <button className={billingAnnual ? 'active' : ''} onClick={() => setBillingAnnual(true)}>سنوي</button>
+                        </div>
+                        {billingAnnual && <span className="pricing-save">وفّر 20%</span>}
+                    </div>
+
+                    <div className="pricing-grid reveal-stagger">
+                        {/* Starter */}
+                        <div className="pricing-card">
+                            <h3 className="pricing-plan">أساسي</h3>
+                            <p className="pricing-desc">للمنشآت الرياضية الصغيرة التي تريد الانضمام لشبكة الشركات.</p>
+                            <div className="pricing-amount">
+                                <span className="pricing-amount-n">{billingAnnual ? '399' : '499'}</span>
+                                <span className="pricing-amount-c">ر.س</span>
+                            </div>
+                            <p className="pricing-period">{billingAnnual ? '/ شهرياً · يُدفع سنوياً' : '/ شهرياً'}</p>
+                            <hr className="pricing-divider" />
+                            <ul className="pricing-features">
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>حتى 3 ملاعب</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>استقبال حجوزات الشركات</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>تسوية شهرية تلقائية</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>لوحة تحكم أساسية</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>دعم عبر البريد الإلكتروني</li>
+                            </ul>
+                            <Link href="/business/register" className="pricing-cta">ابدأ مجاناً لمدة 14 يوم</Link>
+                        </div>
+
+                        {/* Pro — featured */}
+                        <div className="pricing-card featured">
+                            <span className="pricing-badge">الأكثر طلباً</span>
+                            <h3 className="pricing-plan">احترافي</h3>
+                            <p className="pricing-desc">للشركات والمنشآت التي تريد تجربة متكاملة وأقصى استفادة.</p>
+                            <div className="pricing-amount">
+                                <span className="pricing-amount-n">{billingAnnual ? '999' : '1,249'}</span>
+                                <span className="pricing-amount-c">ر.س</span>
+                            </div>
+                            <p className="pricing-period">{billingAnnual ? '/ شهرياً · يُدفع سنوياً' : '/ شهرياً'}</p>
+                            <hr className="pricing-divider" />
+                            <ul className="pricing-features">
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>ملاعب غير محدودة</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>خصومات مخصّصة للشركات</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>تحليلات وتقارير متقدمة</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>قبول تلقائي للحجوزات</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>عروض ترويجية ذكية</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>دعم أولوية عبر الهاتف والواتساب</li>
+                            </ul>
+                            <Link href="/business/register" className="pricing-cta">ابدأ تجربتك المجانية</Link>
+                        </div>
+
+                        {/* Enterprise */}
+                        <div className="pricing-card">
+                            <h3 className="pricing-plan">مؤسسي</h3>
+                            <p className="pricing-desc">للشركات الكبرى والمجموعات التي تحتاج حلولاً مخصّصة ودعماً مكثّفاً.</p>
+                            <div className="pricing-amount">
+                                <span className="pricing-amount-n">مخصّص</span>
+                            </div>
+                            <p className="pricing-period">حسب الحجم والمتطلبات</p>
+                            <hr className="pricing-divider" />
+                            <ul className="pricing-features">
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>كل ميزات الباقة الاحترافية</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>تكامل HRIS مخصّص (SSO)</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>مدير حساب مخصّص</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>SLA مع ضمان وقت التشغيل</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>تقارير تنفيذية ربعية</li>
+                                <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>بيئة بيانات معزولة (PDPL)</li>
+                            </ul>
+                            <a href="#cta" className="pricing-cta">تواصل مع فريق المبيعات</a>
+                        </div>
+                    </div>
+
+                    <p className="pricing-note reveal">
+                        <strong>جميع الباقات تشمل فترة تجريبية مجانية لمدة 14 يوم.</strong><br />
+                        الرسوم لا تشمل ضريبة القيمة المضافة (15%). يمكنك إلغاء اشتراكك في أي وقت بإشعار 30 يوم.
+                    </p>
+                </div>
+            </section>
+
             {/* ========== CTA ========== */}
             <section className="cta" id="cta">
                 <div className="wrap">
@@ -1771,6 +2053,14 @@ export default function Welcome() {
                                 <a href="#" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z" /></svg></a>
                                 <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" /><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg></a>
                             </div>
+                        </div>
+                        <div className="footer-col">
+                            <h4>المنصة</h4>
+                            <ul>
+                                <li><a href="#benefits">للشركات</a></li>
+                                <li><a href="#wwh">ماذا نقدّم</a></li>
+                                <li><a href="#pricing">الباقات والرسوم</a></li>
+                            </ul>
                         </div>
                         <div className="footer-col">
                             <h4>الدعم</h4>
