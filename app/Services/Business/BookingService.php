@@ -99,10 +99,14 @@ class BookingService
             'rejection_reason' => $reason,
         ]);
 
-        // Refund community contribution
+        // Full refund on business rejection (not user-initiated cancellation)
         $contribution = (float) $event->community_contribution;
         if ($contribution > 0 && $event->community) {
             $event->community->increment('balance', $contribution);
+            $event->update([
+                'refund_percentage' => 100,
+                'refund_amount' => $contribution,
+            ]);
         }
 
         ActivityLogService::log(

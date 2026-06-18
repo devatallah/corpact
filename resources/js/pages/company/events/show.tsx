@@ -7,6 +7,14 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import toastr from 'toastr';
 
+interface RefundPreview {
+    percentage: number;
+    refund_amount: number;
+    original_contribution: number;
+    hours_until_event: number;
+    policy_label: string;
+}
+
 interface Props {
     event: Event & {
         community: Community;
@@ -18,13 +26,14 @@ interface Props {
     };
     communityMembers: Employee[];
     joinedIds: number[];
+    refundPreview: RefundPreview | null;
 }
 
-export default function EventShow({ event, communityMembers, joinedIds }: Props) {
+export default function EventShow({ event, communityMembers, joinedIds, refundPreview }: Props) {
     const [processing, setProcessing] = useState<number | null>(null);
     const [cancelProcessing, setCancelProcessing] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
-    const canCancel = ['open', 'waiting_business', 'alternative_proposed'].includes(event.status);
+    const canCancel = ['open', 'waiting_business', 'alternative_proposed', 'confirmed'].includes(event.status);
     const canManageMembers = ['open', 'waiting_business', 'alternative_proposed'].includes(event.status);
 
     const joinedParticipants = event.participants?.filter(
@@ -304,7 +313,7 @@ export default function EventShow({ event, communityMembers, joinedIds }: Props)
                     <div style={{ fontSize: 13, color: '#4A5C78' }}>{event.notes}</div>
                 </div>
             )}
-            {/* Cancel confirmation modal */}
+            {/* Cancel confirmation modal with refund info */}
             {showCancelModal && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div onClick={() => setShowCancelModal(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
@@ -313,9 +322,38 @@ export default function EventShow({ event, communityMembers, joinedIds }: Props)
                             <span style={{ fontSize: 22 }}>⚠</span>
                         </div>
                         <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>إلغاء الفعالية</div>
-                        <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 24 }}>
+                        <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 16 }}>
                             هل أنت متأكد من إلغاء هذه الفعالية؟ لا يمكن التراجع عن هذا الإجراء.
                         </div>
+
+                        {/* Refund policy info */}
+                        {refundPreview && refundPreview.original_contribution > 0 && (
+                            <div style={{ background: '#F8F9FC', border: '1px solid #E4E9F2', borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'right' }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#7A8BA8', marginBottom: 10 }}>سياسة الاسترداد</div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                    <span style={{ fontSize: 12, color: '#7A8BA8' }}>المبلغ المدفوع من المحفظة</span>
+                                    <span style={{ fontSize: 13, fontWeight: 700 }}>{refundPreview.original_contribution.toLocaleString()} ريال</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                    <span style={{ fontSize: 12, color: '#7A8BA8' }}>نسبة الاسترداد</span>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: refundPreview.percentage > 0 ? '#0CA678' : '#E03050' }}>{refundPreview.percentage}%</span>
+                                </div>
+                                <div style={{ height: 1, background: '#E4E9F2', margin: '8px 0' }} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700 }}>مبلغ الاسترداد</span>
+                                    <span style={{ fontSize: 18, fontWeight: 900, color: refundPreview.refund_amount > 0 ? '#0CA678' : '#E03050' }}>
+                                        {refundPreview.refund_amount.toLocaleString()} ريال
+                                    </span>
+                                </div>
+                                <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 8, fontSize: 11, textAlign: 'center', background: refundPreview.percentage === 100 ? '#0CA67818' : refundPreview.percentage > 0 ? '#F59E0B18' : '#E0305018', color: refundPreview.percentage === 100 ? '#0CA678' : refundPreview.percentage > 0 ? '#F59E0B' : '#E03050' }}>
+                                    {refundPreview.policy_label}
+                                    {refundPreview.percentage === 100 && ' — الإلغاء قبل 24 ساعة أو أكثر'}
+                                    {refundPreview.percentage === 50 && ' — الإلغاء قبل 4 إلى 24 ساعة'}
+                                    {refundPreview.percentage === 0 && ' — الإلغاء قبل أقل من 4 ساعات'}
+                                </div>
+                            </div>
+                        )}
+
                         <div style={{ display: 'flex', gap: 10 }}>
                             <button
                                 onClick={() => setShowCancelModal(false)}

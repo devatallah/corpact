@@ -7,6 +7,7 @@ use App\Http\Requests\Company\IndexEventRequest;
 use App\Models\Employee;
 use App\Models\Event;
 use App\Services\Company\CompanyEventService;
+use App\Services\RefundService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -17,6 +18,7 @@ class EventController extends Controller
 {
     public function __construct(
         private CompanyEventService $eventService,
+        private RefundService $refundService,
     ) {}
 
     /**
@@ -67,12 +69,16 @@ class EventController extends Controller
             ->pluck('id')
             ->all();
 
+        $canCancel = ! in_array($event->status, ['cancelled', 'completed', 'rejected']);
+        $refundPreview = $canCancel ? $this->refundService->getRefundPreview($event) : null;
+
         return Inertia::render('company/events/show', [
             'company' => $company,
             'event' => $event,
             'communityMembers' => $communityMembers,
             'joinedIds' => $joinedIds,
             'unreadNotifications' => $unreadNotifications,
+            'refundPreview' => $refundPreview,
         ]);
     }
 
@@ -90,23 +96,23 @@ class EventController extends Controller
     }
 
     /**
-     * Cancel the specified event.
+     * Cancel the specified event with refund policy applied.
      */
     public function cancel(Event $event): RedirectResponse
     {
-        if (! in_array($event->status, ['open', 'waiting_business', 'alternative_proposed'])) {
-            return back()->with('error', 'يمكن إلغاء الفعالية فقط إذا كانت مفتوحة أو بانتظار النادي أو بديل مقترح.');
+        if (! in_array($event->status, ['open', 'waiting_business', 'alternative_proposed', 'confirmed'])) {
+            return back()->with('error', 'يمكن إلغاء الفعالية فقط إذا كانت مفتوحة أو بانتظار النادي أو بديل مقترح أو مؤكدة.');
         }
 
-        // Refund community contribution
-        $contribution = (float) $event->community_contribution;
-        if ($contribution > 0 && $event->community) {
-            $event->community->increment('balance', $contribution);
-        }
+        $refundAmount = $this->refundService->applyRefund($event);
 
         $event->update(['status' => 'cancelled']);
 
-        return back()->with('success', 'تم إلغاء الفعالية بنجاح.');
+        $message = $refundAmount > 0
+            ? "تم إلغاء الفعالية. تم استرداد {$refundAmount} ريال إلى رصيد المجتمع."
+            : 'تم إلغاء الفعالية. لا يوجد استرداد بسبب قرب موعد الفعالية.';
+
+        return back()->with('success', $message);
     }
 
     /**

@@ -34,6 +34,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'player_payment',
     'notes',
     'rejection_reason',
+    'refund_percentage',
+    'refund_amount',
     'status',
 ])]
 class Event extends Model
@@ -57,6 +59,8 @@ class Event extends Model
             'company_subsidy' => 'decimal:2',
             'community_contribution' => 'decimal:2',
             'player_payment' => 'decimal:2',
+            'refund_percentage' => 'integer',
+            'refund_amount' => 'decimal:2',
         ];
     }
 

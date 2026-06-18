@@ -15,6 +15,7 @@ use App\Services\Company\CompanyEventService;
 use App\Services\Employee\ChallengeService;
 use App\Services\Employee\EventCreationService;
 use App\Services\Employee\EventDetailService;
+use App\Services\RefundService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -27,6 +28,7 @@ class EventController extends Controller
         private EventDetailService $eventDetailService,
         private CompanyEventService $companyEventService,
         private ChallengeService $challengeService,
+        private RefundService $refundService,
     ) {}
 
     /**
@@ -145,12 +147,17 @@ class EventController extends Controller
 
         $canManageAlternatives = $event->created_by === $employee->id;
 
+        $canCancel = $event->created_by === $employee->id
+            && ! in_array($event->status, ['cancelled', 'completed', 'rejected']);
+        $refundPreview = $canCancel ? $this->refundService->getRefundPreview($event) : null;
+
         return Inertia::render('employee/events/show', [
             'event' => $detail['event'],
             'payment' => $detail['payment_breakdown'],
             'isJoined' => $isJoined,
             'canManageAlternatives' => $canManageAlternatives,
             'isCreator' => $event->created_by === $employee->id,
+            'refundPreview' => $refundPreview,
         ]);
     }
 
@@ -319,7 +326,21 @@ class EventController extends Controller
     }
 
     /**
-     * Cancel/destroy an event.
+     * Preview the refund amount before cancellation.
+     */
+    public function refundPreview(Event $event): \Illuminate\Http\JsonResponse
+    {
+        if (in_array($event->status, ['cancelled', 'completed'])) {
+            return response()->json(['error' => 'لا يمكن إلغاء فعالية ملغاة أو منتهية.'], 422);
+        }
+
+        $preview = $this->refundService->getRefundPreview($event);
+
+        return response()->json($preview);
+    }
+
+    /**
+     * Cancel/destroy an event with refund policy applied.
      */
     public function destroy(Event $event): RedirectResponse
     {
@@ -327,16 +348,16 @@ class EventController extends Controller
             return back()->with('error', 'لا يمكن إلغاء فعالية ملغاة أو منتهية.');
         }
 
-        // Refund community contribution
-        $contribution = (float) $event->community_contribution;
-        if ($contribution > 0 && $event->community) {
-            $event->community->increment('balance', $contribution);
-        }
+        $refundAmount = $this->refundService->applyRefund($event);
 
         $event->update(['status' => 'cancelled']);
 
+        $message = $refundAmount > 0
+            ? "تم إلغاء الفعالية. تم استرداد {$refundAmount} ريال إلى رصيد المجتمع."
+            : 'تم إلغاء الفعالية. لا يوجد استرداد بسبب قرب موعد الفعالية.';
+
         return redirect()->route('employee.home')
-            ->with('success', 'تم إلغاء الفعالية.');
+            ->with('success', $message);
     }
 
     /**

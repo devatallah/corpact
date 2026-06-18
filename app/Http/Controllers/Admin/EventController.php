@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\IndexEventRequest;
 use App\Models\Event;
 use App\Services\Admin\AdminEventService;
+use App\Services\RefundService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -15,6 +16,7 @@ class EventController extends Controller
 {
     public function __construct(
         private AdminEventService $eventService,
+        private RefundService $refundService,
     ) {}
 
     /**
@@ -60,7 +62,7 @@ class EventController extends Controller
     }
 
     /**
-     * Cancel the specified event.
+     * Cancel the specified event with refund policy applied.
      */
     public function cancel(Event $event): RedirectResponse
     {
@@ -70,15 +72,15 @@ class EventController extends Controller
 
         Gate::authorize('cancel', $event);
 
-        // Refund community contribution
-        $contribution = (float) $event->community_contribution;
-        if ($contribution > 0 && $event->community) {
-            $event->community->increment('balance', $contribution);
-        }
+        $refundAmount = $this->refundService->applyRefund($event);
 
         $event->update(['status' => 'cancelled']);
 
-        return back()->with('success', 'تم إلغاء الفعالية بنجاح.');
+        $message = $refundAmount > 0
+            ? "تم إلغاء الفعالية. تم استرداد {$refundAmount} ريال إلى رصيد المجتمع."
+            : 'تم إلغاء الفعالية. لا يوجد استرداد بسبب قرب موعد الفعالية.';
+
+        return back()->with('success', $message);
     }
 
 }

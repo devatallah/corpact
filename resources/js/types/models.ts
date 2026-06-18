@@ -196,6 +196,8 @@ export interface Event {
     player_payment: number;
     notes: string | null;
     rejection_reason: string | null;
+    refund_percentage: number | null;
+    refund_amount: number | null;
     status: string;
     created_at: string;
     updated_at: string;
