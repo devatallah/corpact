@@ -7,6 +7,7 @@ use App\Http\Requests\Company\IndexEventRequest;
 use App\Models\Employee;
 use App\Models\Event;
 use App\Services\Company\CompanyEventService;
+use App\Services\Employee\EventCreationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -17,6 +18,7 @@ class EventController extends Controller
 {
     public function __construct(
         private CompanyEventService $eventService,
+        private EventCreationService $eventCreationService,
     ) {}
 
     /**
@@ -54,7 +56,7 @@ class EventController extends Controller
         $company = auth('company')->user();
         $unreadNotifications = \App\Models\Notification::where('notifiable_type', \App\Models\Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
 
-        $event->load(['community', 'business', 'category', 'creator', 'participants', 'alternatives']);
+        $event->load(['community', 'business', 'category', 'creator', 'participants', 'alternatives', 'parentEvent']);
 
         // Get all employees from the event's community
         $communityMembers = $event->community
@@ -67,12 +69,27 @@ class EventController extends Controller
             ->pluck('id')
             ->all();
 
+        // Load series info for recurring events
+        $seriesEvents = [];
+        if ($event->isRecurringSeries()) {
+            $seriesEvents = $event->occurrences()
+                ->select('id', 'event_date', 'start_time', 'status', 'participants_count', 'capacity')
+                ->orderBy('event_date')
+                ->get();
+        } elseif ($event->isOccurrence()) {
+            $seriesEvents = Event::where('parent_event_id', $event->parent_event_id)
+                ->select('id', 'event_date', 'start_time', 'status', 'participants_count', 'capacity')
+                ->orderBy('event_date')
+                ->get();
+        }
+
         return Inertia::render('company/events/show', [
             'company' => $company,
             'event' => $event,
             'communityMembers' => $communityMembers,
             'joinedIds' => $joinedIds,
             'unreadNotifications' => $unreadNotifications,
+            'seriesEvents' => $seriesEvents,
         ]);
     }
 
@@ -92,7 +109,7 @@ class EventController extends Controller
     /**
      * Cancel the specified event.
      */
-    public function cancel(Event $event): RedirectResponse
+    public function cancel(Request $request, Event $event): RedirectResponse
     {
         if (! in_array($event->status, ['open', 'waiting_business', 'alternative_proposed'])) {
             return back()->with('error', 'يمكن إلغاء الفعالية فقط إذا كانت مفتوحة أو بانتظار النادي أو بديل مقترح.');
@@ -105,6 +122,12 @@ class EventController extends Controller
         }
 
         $event->update(['status' => 'cancelled']);
+
+        // Cancel entire series if requested
+        if ($request->boolean('cancel_series') && $event->isRecurringSeries()) {
+            $this->eventCreationService->cancelSeries($event);
+            return back()->with('success', 'تم إلغاء سلسلة الفعاليات بالكامل.');
+        }
 
         return back()->with('success', 'تم إلغاء الفعالية بنجاح.');
     }

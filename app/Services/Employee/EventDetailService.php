@@ -21,6 +21,7 @@ class EventDetailService
             'participants',
             'venues',
             'alternatives',
+            'parentEvent',
         ]);
 
         $totalAmount = (float) $event->total_amount;

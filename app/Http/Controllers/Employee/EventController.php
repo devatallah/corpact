@@ -145,12 +145,28 @@ class EventController extends Controller
 
         $canManageAlternatives = $event->created_by === $employee->id;
 
+        // Load series info if this is a recurring event
+        $seriesEvents = [];
+        if ($event->isRecurringSeries()) {
+            $seriesEvents = $event->occurrences()
+                ->select('id', 'event_date', 'start_time', 'status', 'participants_count', 'capacity')
+                ->orderBy('event_date')
+                ->get();
+        } elseif ($event->isOccurrence()) {
+            $event->load('parentEvent');
+            $seriesEvents = Event::where('parent_event_id', $event->parent_event_id)
+                ->select('id', 'event_date', 'start_time', 'status', 'participants_count', 'capacity')
+                ->orderBy('event_date')
+                ->get();
+        }
+
         return Inertia::render('employee/events/show', [
             'event' => $detail['event'],
             'payment' => $detail['payment_breakdown'],
             'isJoined' => $isJoined,
             'canManageAlternatives' => $canManageAlternatives,
             'isCreator' => $event->created_by === $employee->id,
+            'seriesEvents' => $seriesEvents,
         ]);
     }
 
@@ -320,12 +336,17 @@ class EventController extends Controller
 
     /**
      * Cancel/destroy an event.
+     *
+     * If ?cancel_series=1 is passed and the event is a recurring series parent,
+     * all future occurrences are also cancelled.
      */
-    public function destroy(Event $event): RedirectResponse
+    public function destroy(Request $request, Event $event): RedirectResponse
     {
         if (in_array($event->status, ['cancelled', 'completed'])) {
             return back()->with('error', 'لا يمكن إلغاء فعالية ملغاة أو منتهية.');
         }
+
+        $cancelSeries = $request->boolean('cancel_series');
 
         // Refund community contribution
         $contribution = (float) $event->community_contribution;
@@ -334,6 +355,13 @@ class EventController extends Controller
         }
 
         $event->update(['status' => 'cancelled']);
+
+        // Cancel the entire series if requested and event is the parent
+        if ($cancelSeries && $event->isRecurringSeries()) {
+            $this->eventCreationService->cancelSeries($event);
+            return redirect()->route('employee.home')
+                ->with('success', 'تم إلغاء سلسلة الفعاليات بالكامل.');
+        }
 
         return redirect()->route('employee.home')
             ->with('success', 'تم إلغاء الفعالية.');

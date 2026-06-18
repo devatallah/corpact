@@ -91,7 +91,17 @@ export default function EventsIndex({ events, filters, totalEvents, activeEvents
                                                 {event.business?.name ?? '\u2014'}
                                             </td>
                                             <td>
-                                                <div style={{ fontSize: 12 }}>{fmtDate(event.event_date)}</div>
+                                                <div style={{ fontSize: 12 }}>
+                                                    {fmtDate(event.event_date)}
+                                                    {event.recurrence_type && event.recurrence_type !== 'none' && (
+                                                        <span style={{ marginRight: 6, fontSize: 10, background: '#1A5FAB18', color: '#1A5FAB', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
+                                                            {event.recurrence_type === 'daily' ? 'يومي' : event.recurrence_type === 'weekly' ? 'أسبوعي' : 'شهري'}
+                                                        </span>
+                                                    )}
+                                                    {event.parent_event_id && (
+                                                        <span style={{ marginRight: 6, fontSize: 10, background: '#1A5FAB10', color: '#1A5FAB', padding: '1px 4px', borderRadius: 4 }} title="جزء من سلسلة متكررة">🔄</span>
+                                                    )}
+                                                </div>
                                                 <div style={{ fontSize: 11, color: '#7A8BA8' }}>{fmtTime(event.start_time)}</div>
                                             </td>
                                             <td>

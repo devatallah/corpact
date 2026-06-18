@@ -7,6 +7,15 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import toastr from 'toastr';
 
+interface SeriesEvent {
+    id: number;
+    event_date: string;
+    start_time: string;
+    status: string;
+    participants_count: number;
+    capacity: number;
+}
+
 interface Props {
     event: Event & {
         community: Community;
@@ -18,9 +27,10 @@ interface Props {
     };
     communityMembers: Employee[];
     joinedIds: number[];
+    seriesEvents: SeriesEvent[];
 }
 
-export default function EventShow({ event, communityMembers, joinedIds }: Props) {
+export default function EventShow({ event, communityMembers, joinedIds, seriesEvents }: Props) {
     const [processing, setProcessing] = useState<number | null>(null);
     const [cancelProcessing, setCancelProcessing] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
@@ -121,6 +131,76 @@ export default function EventShow({ event, communityMembers, joinedIds }: Props)
                     </div>
                 )}
             </div>
+
+            {/* Recurrence info */}
+            {event.recurrence_type && event.recurrence_type !== 'none' && (
+                <div style={{ ...cardStyle, background: '#1A5FAB08', borderColor: '#1A5FAB33', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>🔄</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#1A5FAB' }}>
+                        فعالية متكررة — {event.recurrence_type === 'daily' ? 'يومي' : event.recurrence_type === 'weekly' ? 'أسبوعي' : 'شهري'}
+                    </span>
+                    {event.recurrence_end_date && (
+                        <span style={{ fontSize: 11, color: '#7A8BA8', marginRight: 'auto' }}>حتى {fmtDate(event.recurrence_end_date)}</span>
+                    )}
+                </div>
+            )}
+            {event.parent_event_id && (
+                <div style={{ ...cardStyle, background: '#1A5FAB08', borderColor: '#1A5FAB33', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>🔄</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#1A5FAB' }}>جزء من سلسلة فعاليات متكررة</span>
+                    <Link
+                        href={`/company/events/${event.parent_event_id}`}
+                        style={{ fontSize: 11, color: '#1A5FAB', marginRight: 'auto', textDecoration: 'underline' }}
+                    >
+                        عرض السلسلة
+                    </Link>
+                </div>
+            )}
+
+            {/* Series timeline */}
+            {seriesEvents && seriesEvents.length > 0 && (
+                <div style={cardStyle}>
+                    <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>
+                        سلسلة الفعاليات ({seriesEvents.length + 1} فعاليات)
+                    </div>
+                    <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {seriesEvents.map((se) => {
+                            const isCurrent = se.id === event.id;
+                            const statusColor = se.status === 'cancelled' ? '#E03050' : se.status === 'completed' ? '#7A8BA8' : '#009E82';
+                            const statusLabel = se.status === 'cancelled' ? 'ملغية' : se.status === 'completed' ? 'منتهية' : `${se.participants_count}/${se.capacity}`;
+                            return (
+                                <Link
+                                    key={se.id}
+                                    href={`/company/events/${se.id}`}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '8px 12px',
+                                        borderRadius: 10,
+                                        textDecoration: 'none',
+                                        background: isCurrent ? '#009E8210' : '#fff',
+                                        border: isCurrent ? '1px solid #009E8233' : '1px solid #E4E9F2',
+                                        color: 'inherit',
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontSize: 12, fontWeight: isCurrent ? 700 : 400, color: isCurrent ? '#009E82' : '#4A5C78' }}>
+                                            {fmtDate(se.event_date)}
+                                        </span>
+                                        <span style={{ fontSize: 11, color: '#7A8BA8' }}>
+                                            {fmtTime(se.start_time)}
+                                        </span>
+                                    </div>
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: statusColor }}>
+                                        {statusLabel}
+                                    </span>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Joined participants */}
             <div style={cardStyle}>

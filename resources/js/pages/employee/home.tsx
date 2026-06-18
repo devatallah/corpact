@@ -571,9 +571,17 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                                     </div>
 
                                     {/* Row 2: Date & Time (right-aligned) */}
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 14, margin: '14px 0' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 14, margin: '14px 0', flexWrap: 'wrap' }}>
                                         <span style={{ fontSize: 13, color: '#4A5C78' }}>📅 {formatArabicDate(event.event_date)}</span>
                                         <span style={{ fontSize: 13, color: '#4A5C78' }}>🕐 {formatArabicTime(event.start_time)}</span>
+                                        {event.recurrence_type && event.recurrence_type !== 'none' && (
+                                            <span style={{ fontSize: 11, background: '#1A5FAB18', color: '#1A5FAB', padding: '2px 8px', borderRadius: 6, fontWeight: 600 }}>
+                                                🔄 {event.recurrence_type === 'daily' ? 'يومي' : event.recurrence_type === 'weekly' ? 'أسبوعي' : 'شهري'}
+                                            </span>
+                                        )}
+                                        {event.parent_event_id && (
+                                            <span style={{ fontSize: 11, color: '#1A5FAB' }} title="جزء من سلسلة متكررة">🔄</span>
+                                        )}
                                     </div>
 
                                     {/* Row 3: Progress bar */}

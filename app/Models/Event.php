@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'discount_amount',
     'category_id',
     'created_by',
+    'parent_event_id',
     'title',
     'event_date',
     'start_time',
@@ -33,6 +34,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'community_contribution',
     'player_payment',
     'notes',
+    'recurrence_type',
+    'recurrence_end_date',
+    'recurrence_days',
     'rejection_reason',
     'status',
 ])]
@@ -57,7 +61,43 @@ class Event extends Model
             'company_subsidy' => 'decimal:2',
             'community_contribution' => 'decimal:2',
             'player_payment' => 'decimal:2',
+            'recurrence_end_date' => 'date:Y-m-d',
+            'recurrence_days' => 'array',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Event, $this>
+     */
+    public function parentEvent(): BelongsTo
+    {
+        return $this->belongsTo(Event::class, 'parent_event_id');
+    }
+
+    /**
+     * @return HasMany<Event, $this>
+     */
+    public function occurrences(): HasMany
+    {
+        return $this->hasMany(Event::class, 'parent_event_id');
+    }
+
+    /**
+     * Whether this event is a recurring series (the parent).
+     */
+    public function isRecurringSeries(): bool
+    {
+        return $this->recurrence_type !== null
+            && $this->recurrence_type !== 'none'
+            && $this->parent_event_id === null;
+    }
+
+    /**
+     * Whether this event is an occurrence of a recurring series.
+     */
+    public function isOccurrence(): bool
+    {
+        return $this->parent_event_id !== null;
     }
 
     /**
