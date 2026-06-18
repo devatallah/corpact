@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateBusinessRequest;
 use App\Models\Business;
 use App\Services\Admin\BusinessService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Password;
 use Inertia\Inertia;
@@ -101,9 +102,18 @@ class BusinessController extends Controller
     /**
      * Approve a pending business.
      */
-    public function approve(Business $business): RedirectResponse
+    public function approve(Request $request, Business $business): RedirectResponse
     {
-        $this->businessService->approve($business);
+        $validated = $request->validate([
+            'commission_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+        ], [
+            'commission_rate.required' => 'نسبة العمولة مطلوبة.',
+            'commission_rate.numeric' => 'نسبة العمولة يجب أن تكون رقما.',
+            'commission_rate.min' => 'نسبة العمولة يجب أن تكون 0 على الأقل.',
+            'commission_rate.max' => 'نسبة العمولة يجب ألا تتجاوز 100.',
+        ]);
+
+        $this->businessService->approve($business, (float) $validated['commission_rate']);
 
         return back()->with('success', 'تمت الموافقة على المنشأة بنجاح.');
     }

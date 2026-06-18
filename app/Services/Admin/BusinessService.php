@@ -36,21 +36,27 @@ class BusinessService
     /**
      * Approve a business application.
      */
-    public function approve(Business $business): Business
+    public function approve(Business $business, ?float $commissionRate = null): Business
     {
         if ($business->status === 'active') {
             throw new \LogicException('النادي مفعّل بالفعل.');
         }
 
-        return DB::transaction(function () use ($business) {
+        return DB::transaction(function () use ($business, $commissionRate) {
             $token = Str::random(64);
 
-            $business->update([
+            $updateData = [
                 'status' => 'active',
                 'approved_at' => now(),
                 'activation_token' => $token,
                 'activation_token_expires_at' => now()->addHours(72),
-            ]);
+            ];
+
+            if ($commissionRate !== null) {
+                $updateData['commission_rate'] = $commissionRate;
+            }
+
+            $business->update($updateData);
 
             ActivityLogService::log(
                 null,
