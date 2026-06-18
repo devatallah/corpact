@@ -215,6 +215,7 @@ export interface Event {
     category?: Category;
     creator?: Employee;
     participants?: Employee[];
+    waitlist_entries?: Employee[];
     alternatives?: EventAlternative[];
     parent_event?: Event;
     occurrences?: Event[];

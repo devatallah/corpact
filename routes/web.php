@@ -341,6 +341,7 @@ Route::prefix('employee')
         Route::get('/detail/{event}', [EmployeeEventController::class, 'show'])->name('events.show');
         Route::post('/detail/{event}/join', [EmployeeEventController::class, 'join'])->name('events.join');
         Route::post('/detail/{event}/leave', [EmployeeEventController::class, 'leave'])->name('events.leave');
+        Route::post('/detail/{event}/leave-waitlist', [EmployeeEventController::class, 'leaveWaitlist'])->name('events.leave-waitlist');
         Route::post('/detail/{event}/alternatives/{alternative}/accept', [EmployeeEventController::class, 'acceptAlternative'])->name('events.accept-alternative');
         Route::post('/detail/{event}/alternatives/{alternative}/reject', [EmployeeEventController::class, 'rejectAlternative'])->name('events.reject-alternative');
         Route::post('/detail/{event}/remove/{employee}', [EmployeeEventController::class, 'removeMember'])->name('events.remove-member');

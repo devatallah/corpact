@@ -143,6 +143,16 @@ class EventController extends Controller
             ->wherePivot('status', 'joined')
             ->exists();
 
+        $waitlistEntry = $event->participants()
+            ->where('employee_id', $employee->id)
+            ->wherePivot('status', 'waitlisted')
+            ->first();
+
+        $isWaitlisted = $waitlistEntry !== null;
+        $waitlistPosition = $isWaitlisted ? $waitlistEntry->pivot->position : null;
+
+        $waitlistCount = $event->waitlistEntries()->count();
+
         $canManageAlternatives = $event->created_by === $employee->id;
 
         // Load series info if this is a recurring event
@@ -164,6 +174,9 @@ class EventController extends Controller
             'event' => $detail['event'],
             'payment' => $detail['payment_breakdown'],
             'isJoined' => $isJoined,
+            'isWaitlisted' => $isWaitlisted,
+            'waitlistPosition' => $waitlistPosition,
+            'waitlistCount' => $waitlistCount,
             'canManageAlternatives' => $canManageAlternatives,
             'isCreator' => $event->created_by === $employee->id,
             'seriesEvents' => $seriesEvents,
@@ -171,58 +184,83 @@ class EventController extends Controller
     }
 
     /**
-     * Join an event.
+     * Join an event (or join the waiting list if full).
      */
     public function join(Event $event): RedirectResponse
     {
         $employee = auth('employee')->user();
+        $joinedWaitlist = false;
 
         try {
-            DB::transaction(function () use ($event, $employee) {
+            DB::transaction(function () use ($event, $employee, &$joinedWaitlist) {
                 // Lock the event row to prevent race conditions
                 $event = Event::lockForUpdate()->findOrFail($event->id);
 
-                if ($event->status !== 'open') {
-                    throw new \RuntimeException('لا يمكن الانضمام إلا للفعاليات المفتوحة.');
+                if (! in_array($event->status, ['open', 'full', 'waiting_business', 'confirmed'])) {
+                    throw new \RuntimeException('لا يمكن الانضمام لهذه الفعالية في حالتها الحالية.');
                 }
 
-                if ($event->participants_count >= $event->capacity) {
-                    throw new \RuntimeException('الفعالية مكتملة العدد.');
-                }
-
-                $alreadyJoined = $event->participants()
+                // Check if already joined or waitlisted
+                $existing = $event->participants()
                     ->where('employee_id', $employee->id)
-                    ->wherePivot('status', 'joined')
-                    ->exists();
+                    ->wherePivotIn('status', ['joined', 'waitlisted'])
+                    ->first();
 
-                if ($alreadyJoined) {
-                    throw new \RuntimeException('أنت منضم بالفعل.');
+                if ($existing) {
+                    $status = $existing->pivot->status;
+                    if ($status === 'joined') {
+                        throw new \RuntimeException('أنت منضم بالفعل.');
+                    }
+                    if ($status === 'waitlisted') {
+                        throw new \RuntimeException('أنت مسجل في قائمة الانتظار بالفعل.');
+                    }
                 }
 
-                $event->participants()->attach($employee->id, [
-                    'status' => 'joined',
-                    'joined_at' => now(),
-                ]);
-
-                $event->increment('participants_count');
-                $event->refresh();
-
-                // Auto-transition to waiting_business when capacity is full
-                if ($event->participants_count >= $event->capacity) {
-                    $event->update(['status' => 'waiting_business']);
-
-                    Notification::create([
-                        'notifiable_type' => \App\Models\Business::class,
-                        'notifiable_id' => $event->business_id,
-                        'type' => 'info',
-                        'title' => 'طلب حجز جديد',
-                        'body' => "طلب حجز جديد للفعالية #{$event->id} — {$event->venues_count} ملعب بتاريخ {$event->event_date->format('Y-m-d')}",
-                        'data' => ['event_id' => $event->id],
+                // If there is room, join directly
+                if ($event->participants_count < $event->capacity && $event->status === 'open') {
+                    $event->participants()->attach($employee->id, [
+                        'status' => 'joined',
+                        'joined_at' => now(),
                     ]);
+
+                    $event->increment('participants_count');
+                    $event->refresh();
+
+                    // Auto-transition to waiting_business when capacity is full
+                    if ($event->participants_count >= $event->capacity) {
+                        $event->update(['status' => 'waiting_business']);
+
+                        Notification::create([
+                            'notifiable_type' => \App\Models\Business::class,
+                            'notifiable_id' => $event->business_id,
+                            'type' => 'info',
+                            'title' => 'طلب حجز جديد',
+                            'body' => "طلب حجز جديد للفعالية #{$event->id} — {$event->venues_count} ملعب بتاريخ {$event->event_date->format('Y-m-d')}",
+                            'data' => ['event_id' => $event->id],
+                        ]);
+                    }
+                } else {
+                    // Event is full — add to waiting list
+                    $maxPosition = (int) DB::table('event_participants')
+                        ->where('event_id', $event->id)
+                        ->where('status', 'waitlisted')
+                        ->max('position');
+
+                    $event->participants()->attach($employee->id, [
+                        'status' => 'waitlisted',
+                        'joined_at' => now(),
+                        'position' => $maxPosition + 1,
+                    ]);
+
+                    $joinedWaitlist = true;
                 }
             });
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
+        }
+
+        if ($joinedWaitlist) {
+            return back()->with('success', 'تم تسجيلك في قائمة الانتظار.');
         }
 
         $this->challengeService->incrementProgress($employee, 'events_count');
@@ -241,24 +279,67 @@ class EventController extends Controller
 
         $employee = auth('employee')->user();
 
-        $event->participants()->detach($employee->id);
-        $event->decrement('participants_count');
+        DB::transaction(function () use ($event, $employee) {
+            $event = Event::lockForUpdate()->findOrFail($event->id);
 
-        // If was waiting_business and someone left, go back to open and notify business
-        if ($event->status === 'waiting_business') {
-            $event->update(['status' => 'open']);
+            $event->participants()->detach($employee->id);
+            $event->decrement('participants_count');
 
-            Notification::create([
-                'notifiable_type' => \App\Models\Business::class,
-                'notifiable_id' => $event->business_id,
-                'type' => 'warning',
-                'title' => 'تغيير في طلب الحجز',
-                'body' => "الفعالية #{$event->id} رجعت لحالة مفتوحة — أحد اللاعبين غادر",
-                'data' => ['event_id' => $event->id],
-            ]);
-        }
+            // Try to promote from waitlist
+            $promoted = $this->promoteFromWaitlist($event);
+
+            // If no one was promoted and the event was waiting_business, revert to open
+            if (! $promoted && $event->status === 'waiting_business') {
+                $event->update(['status' => 'open']);
+
+                Notification::create([
+                    'notifiable_type' => \App\Models\Business::class,
+                    'notifiable_id' => $event->business_id,
+                    'type' => 'warning',
+                    'title' => 'تغيير في طلب الحجز',
+                    'body' => "الفعالية #{$event->id} رجعت لحالة مفتوحة — أحد اللاعبين غادر",
+                    'data' => ['event_id' => $event->id],
+                ]);
+            }
+        });
 
         return back()->with('success', 'تم مغادرة الفعالية.');
+    }
+
+    /**
+     * Leave the waiting list for an event.
+     */
+    public function leaveWaitlist(Event $event): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+
+        $isWaitlisted = $event->participants()
+            ->where('employee_id', $employee->id)
+            ->wherePivot('status', 'waitlisted')
+            ->exists();
+
+        if (! $isWaitlisted) {
+            return back()->with('error', 'أنت غير مسجل في قائمة الانتظار.');
+        }
+
+        DB::transaction(function () use ($event, $employee) {
+            $removedPosition = (int) DB::table('event_participants')
+                ->where('event_id', $event->id)
+                ->where('employee_id', $employee->id)
+                ->where('status', 'waitlisted')
+                ->value('position');
+
+            $event->participants()->detach($employee->id);
+
+            // Reorder remaining waitlist positions
+            DB::table('event_participants')
+                ->where('event_id', $event->id)
+                ->where('status', 'waitlisted')
+                ->where('position', '>', $removedPosition)
+                ->decrement('position');
+        });
+
+        return back()->with('success', 'تم إلغاء تسجيلك من قائمة الانتظار.');
     }
 
     /**
@@ -315,12 +396,19 @@ class EventController extends Controller
             return back()->with('error', 'هذا اللاعب غير منضم.');
         }
 
-        $event->participants()->detach($employee->id);
-        $event->decrement('participants_count');
+        DB::transaction(function () use ($event, $employee) {
+            $event = Event::lockForUpdate()->findOrFail($event->id);
 
-        if ($event->status === 'waiting_business') {
-            $event->update(['status' => 'open']);
-        }
+            $event->participants()->detach($employee->id);
+            $event->decrement('participants_count');
+
+            // Try to promote from waitlist
+            $promoted = $this->promoteFromWaitlist($event);
+
+            if (! $promoted && $event->status === 'waiting_business') {
+                $event->update(['status' => 'open']);
+            }
+        });
 
         Notification::create([
             'notifiable_type' => \App\Models\Employee::class,
@@ -357,6 +445,19 @@ class EventController extends Controller
             }
         }
 
+        // Notify waitlisted members that the event is cancelled
+        $waitlistedIds = $event->waitlistEntries()->pluck('employees.id');
+        foreach ($waitlistedIds as $employeeId) {
+            Notification::create([
+                'notifiable_type' => \App\Models\Employee::class,
+                'notifiable_id' => $employeeId,
+                'type' => 'warning',
+                'title' => 'تم إلغاء الفعالية',
+                'body' => 'تم إلغاء الفعالية التي كنت في قائمة انتظارها.',
+                'data' => ['event_id' => $event->id],
+            ]);
+        }
+
         $event->update(['status' => 'cancelled']);
 
         // Cancel the entire series if requested and event is the parent
@@ -368,6 +469,52 @@ class EventController extends Controller
 
         return redirect()->route('employee.home')
             ->with('success', 'تم إلغاء الفعالية.');
+    }
+
+    /**
+     * Promote the next person from the waiting list to a joined participant.
+     *
+     * Returns true if someone was promoted, false otherwise.
+     */
+    private function promoteFromWaitlist(Event $event): bool
+    {
+        $next = $event->waitlistEntries()->first();
+
+        if (! $next) {
+            return false;
+        }
+
+        $promotedPosition = $next->pivot->position;
+
+        // Update status from waitlisted to joined
+        $event->participants()->updateExistingPivot($next->id, [
+            'status' => 'joined',
+            'joined_at' => now(),
+            'position' => null,
+        ]);
+
+        $event->increment('participants_count');
+
+        // Reorder remaining waitlist positions
+        DB::table('event_participants')
+            ->where('event_id', $event->id)
+            ->where('status', 'waitlisted')
+            ->where('position', '>', $promotedPosition)
+            ->decrement('position');
+
+        // Notify the promoted employee
+        Notification::create([
+            'notifiable_type' => \App\Models\Employee::class,
+            'notifiable_id' => $next->id,
+            'type' => 'success',
+            'title' => 'تم ترقيتك من قائمة الانتظار',
+            'body' => "تم تأكيد مكانك في الفعالية! أحد اللاعبين غادر وأنت الآن منضم.",
+            'data' => ['event_id' => $event->id],
+        ]);
+
+        $this->challengeService->incrementProgress($next, 'events_count');
+
+        return true;
     }
 
     /**

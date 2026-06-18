@@ -20,6 +20,7 @@ class EventParticipant extends Pivot
     {
         return [
             'joined_at' => 'datetime',
+            'position' => 'integer',
         ];
     }
 

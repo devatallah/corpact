@@ -28,16 +28,20 @@ interface Props {
     event: Event & {
         community: Community;
         business: Business;
-        participants: (Employee & { pivot?: { status: string } })[];
+        participants: (Employee & { pivot?: { status: string; position?: number } })[];
+        waitlist_entries: (Employee & { pivot?: { status: string; position?: number } })[];
     };
     payment: PaymentBreakdown;
     isJoined: boolean;
+    isWaitlisted: boolean;
+    waitlistPosition: number | null;
+    waitlistCount: number;
     canManageAlternatives: boolean;
     isCreator: boolean;
     seriesEvents: SeriesEvent[];
 }
 
-export default function EventShow({ event, payment, isJoined, canManageAlternatives, isCreator, seriesEvents }: Props) {
+export default function EventShow({ event, payment, isJoined, isWaitlisted, waitlistPosition, waitlistCount, canManageAlternatives, isCreator, seriesEvents }: Props) {
     const color = event.category?.color ?? event.community?.color ?? '#009E82';
     const pct =
         event.capacity > 0
@@ -48,6 +52,11 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
         (p) => (p as Employee & { pivot?: { status: string } }).pivot?.status === 'joined',
     ) ?? [];
     const emptySlots = Math.max(0, event.capacity - joinedParticipants.length);
+
+    const waitlistEntries = event.waitlist_entries ?? [];
+
+    const isFull = event.participants_count >= event.capacity;
+    const canJoinWaitlist = isFull && !isJoined && !isWaitlisted && !['completed', 'cancelled', 'rejected'].includes(event.status);
 
     const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null);
 
@@ -66,9 +75,21 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
         });
     }
 
+    function handleJoinWaitlist() {
+        router.post(`/employee/detail/${event.id}/join`, {}, {
+            onSuccess: () => toastr.success('تم تسجيلك في قائمة الانتظار'),
+        });
+    }
+
     function handleLeave() {
         router.post(`/employee/detail/${event.id}/leave`, {}, {
             onSuccess: () => toastr.success('تم مغادرة الفعالية'),
+        });
+    }
+
+    function handleLeaveWaitlist() {
+        router.post(`/employee/detail/${event.id}/leave-waitlist`, {}, {
+            onSuccess: () => toastr.success('تم إلغاء تسجيلك من قائمة الانتظار'),
         });
     }
 
@@ -237,6 +258,28 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
                 </div>
             )}
 
+            {/* Waiting list */}
+            {waitlistCount > 0 && (
+                <div className="card" style={{ border: '1px solid #F59E0B33', background: '#F59E0B08' }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12, textAlign: 'right', color: '#F59E0B' }}>
+                        قائمة الانتظار ({waitlistCount})
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {waitlistEntries.map((p, idx) => (
+                            <div key={p.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                                <div
+                                    title={p.name}
+                                    style={{ width: 38, height: 38, borderRadius: '50%', background: '#F59E0B18', color: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, border: '2px dashed #F59E0B44' }}
+                                >
+                                    {p.name?.charAt(0)}
+                                </div>
+                                <span style={{ fontSize: 9, color: '#F59E0B', fontWeight: 600 }}>#{idx + 1}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Alternative proposed */}
             {event.status === 'alternative_proposed' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
                 <div className="card" style={{ border: '1px solid #1A5FAB44', background: '#1A5FAB08' }}>
@@ -346,6 +389,18 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
                 <div style={{ background: '#E4E9F2', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#7A8BA8' }}>
                     {event.status === 'completed' ? 'الفعالية منتهية' : event.status === 'rejected' ? 'الفعالية مرفوضة' : 'الفعالية ملغاة'}
                 </div>
+            ) : isWaitlisted ? (
+                <>
+                    <div style={{ background: '#F59E0B18', border: '1px solid #F59E0B44', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#F59E0B', marginBottom: 12 }}>
+                        أنت في قائمة الانتظار (الترتيب: #{waitlistPosition})
+                    </div>
+                    <button
+                        onClick={handleLeaveWaitlist}
+                        style={{ width: '100%', padding: 14, background: '#E4E9F2', color: '#7A8BA8', border: 'none', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                        إلغاء التسجيل من قائمة الانتظار
+                    </button>
+                </>
             ) : isJoined ? (
                 <>
                     <div style={{ background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color, marginBottom: 12 }}>
@@ -366,6 +421,13 @@ export default function EventShow({ event, payment, isJoined, canManageAlternati
                     style={{ width: '100%', padding: 16, background: color, color: '#fff', border: 'none', borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}
                 >
                     انضم للفعالية
+                </button>
+            ) : canJoinWaitlist ? (
+                <button
+                    onClick={handleJoinWaitlist}
+                    style={{ width: '100%', padding: 16, background: '#F59E0B', color: '#fff', border: 'none', borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                    انضم لقائمة الانتظار {waitlistCount > 0 ? `(${waitlistCount} منتظرين)` : ''}
                 </button>
             ) : event.status === 'waiting_business' ? (
                 <div style={{ background: '#F59E0B18', border: '1px solid #F59E0B44', borderRadius: 16, padding: 16, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#F59E0B' }}>

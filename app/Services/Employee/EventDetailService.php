@@ -19,6 +19,7 @@ class EventDetailService
             'category',
             'creator',
             'participants',
+            'waitlistEntries',
             'venues',
             'alternatives',
             'parentEvent',
