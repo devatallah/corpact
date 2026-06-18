@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AdminRole;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
 use Database\Factories\UserFactory;
@@ -14,7 +15,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'phone', 'avatar', 'status'])]
+#[Fillable(['name', 'email', 'password', 'phone', 'avatar', 'status', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -47,7 +48,24 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => AdminRole::class,
         ];
+    }
+
+    /**
+     * Check if this admin has the given permission.
+     */
+    public function hasPermission(string $permission): bool
+    {
+        return $this->role->hasPermission($permission);
+    }
+
+    /**
+     * Check if this admin has one of the given roles.
+     */
+    public function hasRole(AdminRole ...$roles): bool
+    {
+        return in_array($this->role, $roles, true);
     }
 
     /**

@@ -130,11 +130,27 @@ class Business extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Check if this business account is an accountant.
+     */
+    public function isAccountant(): bool
+    {
+        return $this->role === BusinessRole::Accountant;
+    }
+
+    /**
      * Check if this business account has a specific permission.
      */
     public function hasPermission(string $permission): bool
     {
         return $this->role->can($permission);
+    }
+
+    /**
+     * Check if this business user has one of the given roles.
+     */
+    public function hasRole(BusinessRole ...$roles): bool
+    {
+        return in_array($this->role, $roles, true);
     }
 
     /**

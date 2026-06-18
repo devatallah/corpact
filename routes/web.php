@@ -196,39 +196,46 @@ Route::prefix('admin')
     ->group(function () {
         Route::get('/dash', [AdminDashboardController::class, 'index'])->name('dash');
 
-        Route::resource('companies', AdminCompanyController::class)->except(['show']);
-        Route::post('/companies/{company}/approve', [AdminCompanyController::class, 'approve'])->name('companies.approve');
-        Route::post('/companies/{company}/reject', [AdminCompanyController::class, 'reject'])->name('companies.reject');
-        Route::post('/companies/{company}/reset-password', [AdminCompanyController::class, 'sendResetPassword'])->name('companies.reset-password');
+        // Routes accessible by super_admin and admin only
+        Route::middleware('role:super_admin,admin')->group(function () {
+            Route::resource('companies', AdminCompanyController::class)->except(['show']);
+            Route::post('/companies/{company}/approve', [AdminCompanyController::class, 'approve'])->name('companies.approve');
+            Route::post('/companies/{company}/reject', [AdminCompanyController::class, 'reject'])->name('companies.reject');
+            Route::post('/companies/{company}/reset-password', [AdminCompanyController::class, 'sendResetPassword'])->name('companies.reset-password');
 
-        Route::resource('businesses', AdminBusinessController::class)->except(['show']);
-        Route::post('/businesses/{business}/approve', [AdminBusinessController::class, 'approve'])->name('businesses.approve');
-        Route::post('/businesses/{business}/reject', [AdminBusinessController::class, 'reject'])->name('businesses.reject');
-        Route::post('/businesses/{business}/reset-password', [AdminBusinessController::class, 'sendResetPassword'])->name('businesses.reset-password');
+            Route::resource('businesses', AdminBusinessController::class)->except(['show']);
+            Route::post('/businesses/{business}/approve', [AdminBusinessController::class, 'approve'])->name('businesses.approve');
+            Route::post('/businesses/{business}/reject', [AdminBusinessController::class, 'reject'])->name('businesses.reject');
+            Route::post('/businesses/{business}/reset-password', [AdminBusinessController::class, 'sendResetPassword'])->name('businesses.reset-password');
 
-        Route::resource('employees', AdminEmployeeController::class)->except(['show']);
-        Route::post('/employees/{employee}/reset-password', [AdminEmployeeController::class, 'sendResetPassword'])->name('employees.reset-password');
+            Route::resource('employees', AdminEmployeeController::class)->except(['show']);
+            Route::post('/employees/{employee}/reset-password', [AdminEmployeeController::class, 'sendResetPassword'])->name('employees.reset-password');
 
-        Route::get('communities', [AdminCommunityController::class, 'index'])->name('communities.index');
+            Route::get('communities', [AdminCommunityController::class, 'index'])->name('communities.index');
 
-        Route::resource('categories', AdminCategoryController::class)->except(['show', 'create', 'edit']);
-        Route::post('/categories/{category}/restore', [AdminCategoryController::class, 'restore'])->name('categories.restore');
+            Route::resource('categories', AdminCategoryController::class)->except(['show', 'create', 'edit']);
+            Route::post('/categories/{category}/restore', [AdminCategoryController::class, 'restore'])->name('categories.restore');
 
-        Route::resource('events', AdminEventController::class)->except(['create', 'store', 'edit', 'update']);
-        Route::post('/events/{event}/cancel', [AdminEventController::class, 'cancel'])->name('events.cancel');
+            Route::resource('events', AdminEventController::class)->except(['create', 'store', 'edit', 'update']);
+            Route::post('/events/{event}/cancel', [AdminEventController::class, 'cancel'])->name('events.cancel');
 
+            Route::get('/notifs', [AdminNotificationController::class, 'index'])->name('notifs.index');
+            Route::post('/notifs', [AdminNotificationController::class, 'store'])->name('notifs.store');
+            Route::post('/notifs/{notification}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifs.read');
+            Route::delete('/notifs/{notification}', [AdminNotificationController::class, 'destroy'])->name('notifs.destroy');
+        });
+
+        // Revenue — accessible by all admin roles (accountant can view)
         Route::get('/revenue', [AdminRevenueController::class, 'index'])->name('revenue.index');
 
-        Route::get('/notifs', [AdminNotificationController::class, 'index'])->name('notifs.index');
-        Route::post('/notifs', [AdminNotificationController::class, 'store'])->name('notifs.store');
-        Route::post('/notifs/{notification}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifs.read');
-        Route::delete('/notifs/{notification}', [AdminNotificationController::class, 'destroy'])->name('notifs.destroy');
-
-        Route::get('/admins', [AdminAdminController::class, 'index'])->name('admins.index');
-        Route::post('/admins', [AdminAdminController::class, 'store'])->name('admins.store');
-        Route::put('/admins/{admin}', [AdminAdminController::class, 'update'])->name('admins.update');
-        Route::post('/admins/{admin}/reset-password', [AdminAdminController::class, 'sendResetPassword'])->name('admins.reset-password');
-        Route::delete('/admins/{admin}', [AdminAdminController::class, 'destroy'])->name('admins.destroy');
+        // Admin management — super_admin only
+        Route::middleware('role:super_admin')->group(function () {
+            Route::get('/admins', [AdminAdminController::class, 'index'])->name('admins.index');
+            Route::post('/admins', [AdminAdminController::class, 'store'])->name('admins.store');
+            Route::put('/admins/{admin}', [AdminAdminController::class, 'update'])->name('admins.update');
+            Route::post('/admins/{admin}/reset-password', [AdminAdminController::class, 'sendResetPassword'])->name('admins.reset-password');
+            Route::delete('/admins/{admin}', [AdminAdminController::class, 'destroy'])->name('admins.destroy');
+        });
 
         Route::get('/profile', [AdminProfileController::class, 'index'])->name('profile.index');
         Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
@@ -273,6 +280,7 @@ Route::prefix('business')
             Route::delete('/discounts/{discount}', [BusinessDiscountController::class, 'destroy'])->name('discounts.destroy');
         });
 
+        // Settlements — accessible by both owner and accountant
         Route::middleware('business.permission:settlements.view')->group(function () {
             Route::get('/settlements', [BusinessSettlementController::class, 'index'])->name('settlements.index');
             Route::get('/settlements/{settlement}', [BusinessSettlementController::class, 'show'])->name('settlements.show');

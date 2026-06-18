@@ -17,14 +17,21 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $guard = $this->detectGuard();
+        $user = $guard ? auth($guard)->user() : null;
 
-        $authUser = $guard ? auth($guard)->user() : null;
+        // Resolve role label and permissions for guards that support roles
+        $roleLabel = null;
+        $permissions = [];
 
-        $businessPermissions = null;
+        if ($user && in_array($guard, ['admin', 'business'], true) && isset($user->role)) {
+            $roleLabel = $user->role->label();
+            $permissions = $user->role->permissions();
+        }
+
+        // Business-specific permission sharing (for permission-gated nav)
         $businessRole = null;
-        if ($guard === 'business' && $authUser) {
-            $businessRole = $authUser->role->value;
-            $businessPermissions = $authUser->role->permissions();
+        if ($guard === 'business' && $user) {
+            $businessRole = $user->role->value;
         }
 
         return [
@@ -32,9 +39,11 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'guard' => $guard,
-                'user' => $authUser,
+                'user' => $user,
+                'role_label' => $roleLabel,
+                'permissions' => $permissions,
                 'businessRole' => $businessRole,
-                'businessPermissions' => $businessPermissions,
+                'businessPermissions' => $permissions,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

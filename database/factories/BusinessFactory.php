@@ -31,6 +31,7 @@ class BusinessFactory extends Factory
             'commission_rate' => fake()->randomFloat(2, 8, 15),
             'email_verified_at' => now(),
             'status' => 'active',
+            'role' => 'owner',
             'approved_at' => now(),
         ];
     }

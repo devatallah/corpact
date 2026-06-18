@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\BusinessPermission;
+use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'business.permission' => BusinessPermission::class,
+            'role' => CheckRole::class,
         ]);
 
         $middleware->redirectGuestsTo(function ($request) {

@@ -63,6 +63,14 @@ class DatabaseSeeder extends Seeder
         $admin = User::factory()->create([
             'name' => 'مدير النظام',
             'email' => 'admin@teamat.com',
+            'role' => 'super_admin',
+        ]);
+
+        // Accountant admin for testing
+        User::factory()->create([
+            'name' => 'محاسب المنصة',
+            'email' => 'accountant@teamat.com',
+            'role' => 'accountant',
         ]);
 
         // ╔══════════════════════════════════════════════════════════╗

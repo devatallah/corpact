@@ -1,7 +1,11 @@
+export type AdminRole = 'super_admin' | 'admin' | 'accountant';
+export type BusinessRoleType = 'owner' | 'receptionist' | 'accountant';
+
 export type AdminUser = {
     id: number;
     name: string;
     email: string;
+    role: AdminRole;
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
@@ -29,6 +33,7 @@ export type businessUser = {
     district: string;
     contact_phone: string;
     rating: number;
+    role: BusinessRoleType;
     status: string;
     email_verified_at: string | null;
     created_at: string;
@@ -56,4 +61,8 @@ export type GuardName = 'admin' | 'company' | 'business' | 'employee';
 export type Auth = {
     guard: GuardName | null;
     user: AuthUser | null;
+    role_label: string | null;
+    permissions: string[];
+    businessRole?: string | null;
+    businessPermissions?: string[];
 };

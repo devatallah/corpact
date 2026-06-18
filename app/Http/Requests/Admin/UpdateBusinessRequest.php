@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\BusinessRole;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Enum;
 
 class UpdateBusinessRequest extends FormRequest
 {
@@ -30,6 +32,7 @@ class UpdateBusinessRequest extends FormRequest
             'password' => ['sometimes', 'nullable', 'string', 'min:6'],
             'contact_phone' => ['sometimes', 'string', 'max:20'],
             'commission_rate' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'role' => ['sometimes', 'string', new Enum(BusinessRole::class)],
             'status' => ['sometimes', 'string', 'in:pending,active,rejected,suspended'],
             'category_ids' => ['sometimes', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],

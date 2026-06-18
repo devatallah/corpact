@@ -2,16 +2,21 @@
 
 namespace App\Enums;
 
+/**
+ * Roles for service-provider (business) portal users (businesses table).
+ */
 enum BusinessRole: string
 {
     case Owner = 'owner';
     case Receptionist = 'receptionist';
+    case Accountant = 'accountant';
 
     public function label(): string
     {
         return match ($this) {
             self::Owner => 'مالك',
             self::Receptionist => 'موظف استقبال',
+            self::Accountant => 'محاسب',
         };
     }
 
@@ -55,6 +60,10 @@ enum BusinessRole: string
                 'schedule.view',
                 'profile.view',
             ],
+            self::Accountant => [
+                'settlements.view',
+                'dashboard.view',
+            ],
         };
     }
 
@@ -64,5 +73,10 @@ enum BusinessRole: string
     public function can(string $permission): bool
     {
         return in_array($permission, $this->permissions());
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        return in_array($permission, $this->permissions(), true);
     }
 }
