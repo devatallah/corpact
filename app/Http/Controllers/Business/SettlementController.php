@@ -21,7 +21,7 @@ class SettlementController extends Controller
      */
     public function index(IndexSettlementRequest $request): Response
     {
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
         $filters = $request->validated();
 
         return Inertia::render('business/settlements/index', [

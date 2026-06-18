@@ -24,7 +24,7 @@ class BookingController extends Controller
      */
     public function index(IndexBookingRequest $request): Response
     {
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         $filters = $request->validated();
 
@@ -47,7 +47,7 @@ class BookingController extends Controller
     {
         Gate::authorize('approve', $event);
 
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
         $this->bookingService->approve($business, $event);
 
         return back()->with('success', 'تم قبول الحجز بنجاح.');
@@ -60,7 +60,7 @@ class BookingController extends Controller
     {
         Gate::authorize('reject', $event);
 
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         $data = $request->validated();
 
@@ -76,7 +76,7 @@ class BookingController extends Controller
     {
         Gate::authorize('approve', $event);
 
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         $this->bookingService->proposeAlternative($business, $event, $request->validated());
 

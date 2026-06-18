@@ -132,6 +132,7 @@ export default function businessesIndex({ businesses, stats, filters, categories
                             <th>الفئات</th>
                             <th>المرافق</th>
                             <th>العمولة</th>
+                            <th>الموظفون</th>
                             <th>مسؤول المنشأة</th>
                             <th>الحالة</th>
                             <th>إجراء</th>
@@ -168,6 +169,7 @@ export default function businessesIndex({ businesses, stats, filters, categories
                                     </td>
                                     <td>{business.venues_count ?? 0}</td>
                                     <td style={{ fontWeight: 700, color: '#F5A623' }}>{business.commission_rate ?? 10}%</td>
+                                    <td>{(business as Business & { staff_count?: number }).staff_count ?? 0}</td>
                                     <td>
                                         <div style={{ fontSize: '12px' }}>{business.email ?? '-'}</div>
                                         <div style={{ fontSize: '10px', color: '#6B7A99' }}>{business.contact_phone ?? '-'}</div>

@@ -20,6 +20,7 @@ use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Business\ProfileController as BusinessProfileController;
 use App\Http\Controllers\Business\BookingController as BusinessBookingController;
+use App\Http\Controllers\Business\StaffController as BusinessStaffController;
 use App\Http\Controllers\Business\VenueController as BusinessVenueController;
 use App\Http\Controllers\Business\DashboardController as BusinessDashboardController;
 use App\Http\Controllers\Business\DiscountController as BusinessDiscountController;
@@ -245,32 +246,47 @@ Route::prefix('business')
         Route::get('/dash', [BusinessDashboardController::class, 'index'])->name('dash');
 
         Route::get('/requests', [BusinessBookingController::class, 'index'])->name('bookings.index');
-        Route::post('/requests/{event}/approve', [BusinessBookingController::class, 'approve'])->name('bookings.approve');
-        Route::post('/requests/{event}/reject', [BusinessBookingController::class, 'reject'])->name('bookings.reject');
-        Route::post('/requests/{event}/propose-alternative', [BusinessBookingController::class, 'proposeAlternative'])->name('bookings.propose-alternative');
+        Route::post('/requests/{event}/approve', [BusinessBookingController::class, 'approve'])->middleware('business.permission:bookings.approve')->name('bookings.approve');
+        Route::post('/requests/{event}/reject', [BusinessBookingController::class, 'reject'])->middleware('business.permission:bookings.reject')->name('bookings.reject');
+        Route::post('/requests/{event}/propose-alternative', [BusinessBookingController::class, 'proposeAlternative'])->middleware('business.permission:bookings.propose-alternative')->name('bookings.propose-alternative');
 
         Route::get('/schedule', [BusinessScheduleController::class, 'index'])->name('schedule.index');
-        Route::post('/schedule', [BusinessScheduleController::class, 'store'])->name('schedule.store');
-        Route::put('/schedule/{slot}', [BusinessScheduleController::class, 'update'])->name('schedule.update');
-        Route::delete('/schedule/{slot}', [BusinessScheduleController::class, 'destroy'])->name('schedule.destroy');
+        Route::middleware('business.permission:schedule.manage')->group(function () {
+            Route::post('/schedule', [BusinessScheduleController::class, 'store'])->name('schedule.store');
+            Route::put('/schedule/{slot}', [BusinessScheduleController::class, 'update'])->name('schedule.update');
+            Route::delete('/schedule/{slot}', [BusinessScheduleController::class, 'destroy'])->name('schedule.destroy');
+        });
 
-        Route::resource('venues', BusinessVenueController::class)->except(['show']);
-        Route::post('/venues/{venue}/pricings', [BusinessVenueController::class, 'storePricing'])->name('venues.pricings.store');
-        Route::put('/venues/{venue}/pricings/{pricing}', [BusinessVenueController::class, 'updatePricing'])->name('venues.pricings.update');
-        Route::post('/venues/{venue}/pricings/{pricing}/toggle', [BusinessVenueController::class, 'togglePricing'])->name('venues.pricings.toggle');
-        Route::delete('/venues/{venue}/pricings/{pricing}', [BusinessVenueController::class, 'destroyPricing'])->name('venues.pricings.destroy');
+        Route::middleware('business.permission:venues.view')->group(function () {
+            Route::resource('venues', BusinessVenueController::class)->except(['show']);
+            Route::post('/venues/{venue}/pricings', [BusinessVenueController::class, 'storePricing'])->name('venues.pricings.store');
+            Route::put('/venues/{venue}/pricings/{pricing}', [BusinessVenueController::class, 'updatePricing'])->name('venues.pricings.update');
+            Route::post('/venues/{venue}/pricings/{pricing}/toggle', [BusinessVenueController::class, 'togglePricing'])->name('venues.pricings.toggle');
+            Route::delete('/venues/{venue}/pricings/{pricing}', [BusinessVenueController::class, 'destroyPricing'])->name('venues.pricings.destroy');
+        });
 
-        Route::get('/discounts', [BusinessDiscountController::class, 'index'])->name('discounts.index');
-        Route::get('/discounts/communities/{company}', [BusinessDiscountController::class, 'communities'])->name('discounts.communities');
-        Route::post('/discounts', [BusinessDiscountController::class, 'store'])->name('discounts.store');
-        Route::put('/discounts/{discount}', [BusinessDiscountController::class, 'update'])->name('discounts.update');
-        Route::delete('/discounts/{discount}', [BusinessDiscountController::class, 'destroy'])->name('discounts.destroy');
+        Route::middleware('business.permission:discounts.view')->group(function () {
+            Route::get('/discounts', [BusinessDiscountController::class, 'index'])->name('discounts.index');
+            Route::get('/discounts/communities/{company}', [BusinessDiscountController::class, 'communities'])->name('discounts.communities');
+            Route::post('/discounts', [BusinessDiscountController::class, 'store'])->name('discounts.store');
+            Route::put('/discounts/{discount}', [BusinessDiscountController::class, 'update'])->name('discounts.update');
+            Route::delete('/discounts/{discount}', [BusinessDiscountController::class, 'destroy'])->name('discounts.destroy');
+        });
 
-        Route::get('/settlements', [BusinessSettlementController::class, 'index'])->name('settlements.index');
-        Route::get('/settlements/{settlement}', [BusinessSettlementController::class, 'show'])->name('settlements.show');
+        Route::middleware('business.permission:settlements.view')->group(function () {
+            Route::get('/settlements', [BusinessSettlementController::class, 'index'])->name('settlements.index');
+            Route::get('/settlements/{settlement}', [BusinessSettlementController::class, 'show'])->name('settlements.show');
+        });
 
         Route::get('/profile', [BusinessProfileController::class, 'index'])->name('profile.index');
-        Route::put('/profile', [BusinessProfileController::class, 'update'])->name('profile.update');
+        Route::put('/profile', [BusinessProfileController::class, 'update'])->middleware('business.permission:profile.update')->name('profile.update');
+
+        Route::middleware('business.permission:staff.view')->group(function () {
+            Route::get('/staff', [BusinessStaffController::class, 'index'])->name('staff.index');
+            Route::post('/staff', [BusinessStaffController::class, 'store'])->middleware('business.permission:staff.create')->name('staff.store');
+            Route::put('/staff/{staff}', [BusinessStaffController::class, 'update'])->middleware('business.permission:staff.update')->name('staff.update');
+            Route::delete('/staff/{staff}', [BusinessStaffController::class, 'destroy'])->middleware('business.permission:staff.delete')->name('staff.destroy');
+        });
     });
 
 /*

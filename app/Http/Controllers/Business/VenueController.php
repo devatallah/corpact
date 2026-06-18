@@ -25,7 +25,7 @@ class VenueController extends Controller
      */
     public function index(): Response
     {
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         return Inertia::render('business/venues/index', [
             'business' => $business,
@@ -51,7 +51,7 @@ class VenueController extends Controller
     {
         Gate::authorize('create', Venue::class);
 
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         $data = $request->validated();
 
@@ -79,7 +79,7 @@ class VenueController extends Controller
     {
         Gate::authorize('update', $venue);
 
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
         $data = $request->validated();
 
         $this->venueService->update($business, $venue, $data);
@@ -94,7 +94,7 @@ class VenueController extends Controller
     {
         Gate::authorize('delete', $venue);
 
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         $this->venueService->delete($business, $venue);
 
@@ -107,7 +107,7 @@ class VenueController extends Controller
      */
     public function storePricing(Request $request, Venue $venue): RedirectResponse
     {
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         $data = $request->validate([
             'duration_minutes' => ['required', 'integer', 'in:60,90,120'],
@@ -130,7 +130,7 @@ class VenueController extends Controller
      */
     public function updatePricing(Request $request, Venue $venue, VenuePricing $pricing): RedirectResponse
     {
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         $data = $request->validate([
             'duration_minutes' => ['required', 'integer', 'in:60,90,120'],
@@ -153,7 +153,7 @@ class VenueController extends Controller
      */
     public function togglePricing(Venue $venue, VenuePricing $pricing): RedirectResponse
     {
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
         $this->venueService->ensureOwnership($business, $venue, $pricing);
 
         $newStatus = $pricing->status === 'active' ? 'inactive' : 'active';
@@ -171,7 +171,7 @@ class VenueController extends Controller
      */
     public function destroyPricing(Venue $venue, VenuePricing $pricing): RedirectResponse
     {
-        $business = auth('business')->user();
+        $business = auth('business')->user()->resolvedBusiness();
 
         $this->venueService->deletePricing($business, $venue, $pricing);
 

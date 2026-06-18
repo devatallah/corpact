@@ -27,7 +27,7 @@ class BusinessPolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => $user->id === $business->id,
+            $user instanceof Business => $user->resolvedBusinessId() === $business->id || $user->id === $business->id,
             default => false,
         };
     }
@@ -47,7 +47,7 @@ class BusinessPolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => $user->id === $business->id,
+            $user instanceof Business => $user->resolvedBusinessId() === $business->id && $user->isOwner(),
             default => false,
         };
     }

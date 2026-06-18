@@ -13,14 +13,16 @@ class ProfileController extends Controller
 {
     public function index(): Response
     {
+        $authBusiness = auth('business')->user();
+
         return Inertia::render('business/profile/index', [
-            'business' => auth('business')->user(),
+            'business' => $authBusiness->resolvedBusiness(),
         ]);
     }
 
     public function update(Request $request): RedirectResponse
     {
-        $user = auth('business')->user();
+        $user = auth('business')->user()->resolvedBusiness();
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],

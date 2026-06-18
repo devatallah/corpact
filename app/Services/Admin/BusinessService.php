@@ -19,7 +19,9 @@ class BusinessService
     public function list(array $filters = []): LengthAwarePaginator
     {
         return Business::query()
+            ->whereNull('parent_id')
             ->with(['categories', 'venues'])
+            ->withCount('staff')
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->when(isset($filters['search']), fn ($query) => $query->where(function ($q) use ($filters) {
                 $q->where('name', 'like', '%'.$filters['search'].'%')
@@ -101,6 +103,7 @@ class BusinessService
     public function dashboardStats(): array
     {
         $counts = Business::query()
+            ->whereNull('parent_id')
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status')

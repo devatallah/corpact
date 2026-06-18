@@ -189,6 +189,41 @@ class DatabaseSeeder extends Seeder
             'email_verified_at' => null,
         ]);
 
+        // ── Business Staff (Receptionists) ──
+        Business::create([
+            'name'              => 'سارة المالكي',
+            'email'             => 'reception1@biz1.sa',
+            'password'          => Hash::make('123456'),
+            'city'              => $biz1->city,
+            'district'          => $biz1->district,
+            'role'              => 'receptionist',
+            'parent_id'         => $biz1->id,
+            'status'            => 'active',
+            'email_verified_at' => now(),
+        ]);
+        Business::create([
+            'name'              => 'عبدالله الحربي',
+            'email'             => 'reception2@biz1.sa',
+            'password'          => Hash::make('123456'),
+            'city'              => $biz1->city,
+            'district'          => $biz1->district,
+            'role'              => 'receptionist',
+            'parent_id'         => $biz1->id,
+            'status'            => 'active',
+            'email_verified_at' => now(),
+        ]);
+        Business::create([
+            'name'              => 'منى القحطاني',
+            'email'             => 'reception1@biz2.sa',
+            'password'          => Hash::make('123456'),
+            'city'              => $biz2->city,
+            'district'          => $biz2->district,
+            'role'              => 'receptionist',
+            'parent_id'         => $biz2->id,
+            'status'            => 'active',
+            'email_verified_at' => now(),
+        ]);
+
         // ── Slots / Schedule ──
         $allvenues = $biz1Venues->merge($biz2Venues)->merge($biz3Venues);
         $slotHours = [
