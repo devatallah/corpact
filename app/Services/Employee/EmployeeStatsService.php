@@ -107,13 +107,16 @@ class EmployeeStatsService
      */
     private function topCategory(Employee $employee): ?string
     {
-        $topCategory = $employee->events()
-            ->wherePivot('status', 'joined')
-            ->whereIn('events.status', ['confirmed', 'completed'])
+        $topCategory = DB::table('event_participants')
+            ->join('events', 'events.id', '=', 'event_participants.event_id')
             ->join('categories', 'events.category_id', '=', 'categories.id')
-            ->select('categories.name', DB::raw('COUNT(*) as count'))
+            ->where('event_participants.employee_id', $employee->id)
+            ->where('event_participants.status', 'joined')
+            ->whereIn('events.status', ['confirmed', 'completed'])
+            ->selectRaw('categories.name, COUNT(*) as count')
             ->groupBy('categories.name')
             ->orderByDesc('count')
+            ->limit(1)
             ->first();
 
         return $topCategory?->name;
