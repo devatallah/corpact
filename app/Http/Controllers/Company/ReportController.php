@@ -14,9 +14,6 @@ class ReportController extends Controller
         private ReportService $reportService,
     ) {}
 
-    /**
-     * Show the reports overview.
-     */
     public function index(): Response
     {
         $company = auth('company')->user();
@@ -24,27 +21,28 @@ class ReportController extends Controller
 
         return Inertia::render('company/reports/index', [
             'company' => $company,
-            'participation' => $this->reportService->participationRate($company),
-            'mostActive' => $this->reportService->mostActiveCommunity($company),
-            'budget' => $this->reportService->budgetUtilization($company),
+            'employeeActivity' => $this->reportService->employeeActivity($company),
+            'budgetConsumption' => $this->reportService->budgetConsumption($company),
+            'mostBookedActivities' => $this->reportService->mostBookedActivities($company),
+            'communitiesReport' => $this->reportService->communitiesReport($company),
+            'inactiveEmployees' => $this->reportService->inactiveEmployees($company),
             'unreadNotifications' => $unreadNotifications,
         ]);
     }
 
-    /**
-     * Export the report data.
-     */
     public function export(): StreamedResponse
     {
         $company = auth('company')->user();
         $report = [
-            'participation' => $this->reportService->participationRate($company),
-            'most_active' => $this->reportService->mostActiveCommunity($company),
-            'budget' => $this->reportService->budgetUtilization($company),
+            'employee_activity' => $this->reportService->employeeActivity($company),
+            'budget_consumption' => $this->reportService->budgetConsumption($company),
+            'most_booked_activities' => $this->reportService->mostBookedActivities($company),
+            'communities_report' => $this->reportService->communitiesReport($company),
+            'inactive_employees' => $this->reportService->inactiveEmployees($company),
         ];
 
         return response()->streamDownload(function () use ($report) {
-            echo json_encode($report, JSON_PRETTY_PRINT);
+            echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         }, 'report-'.now()->format('Y-m-d').'.json', [
             'Content-Type' => 'application/json',
         ]);

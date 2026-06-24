@@ -22,6 +22,7 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
         { label: '\u0627\u0644\u0645\u0631\u0627\u0641\u0642', href: '/business/venues', emoji: '\uD83C\uDFDF\uFE0F', permission: 'venues.view' },
         { label: '\u0627\u0644\u062E\u0635\u0648\u0645\u0627\u062A', href: '/business/discounts', emoji: '\uD83C\uDFF7\uFE0F', permission: 'discounts.view' },
         { label: '\u0627\u0644\u062A\u0633\u0648\u064A\u0627\u062A', href: '/business/settlements', emoji: '\uD83D\uDCB0', permission: 'settlements.view' },
+        { label: '\u0627\u0644\u062A\u0642\u0627\u0631\u064A\u0631', href: '/business/reports', emoji: '\uD83D\uDCC8', permission: 'reports.view' },
         { label: '\u0627\u0644\u0645\u0648\u0638\u0641\u0648\u0646', href: '/business/staff', emoji: '\uD83D\uDC65', permission: 'staff.view' },
         { label: '\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A', href: '/business/profile', emoji: '\uD83D\uDC64', permission: 'profile.view' },
     ];

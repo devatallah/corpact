@@ -25,6 +25,7 @@ use App\Http\Controllers\Business\VenueController as BusinessVenueController;
 use App\Http\Controllers\Business\DashboardController as BusinessDashboardController;
 use App\Http\Controllers\Business\DiscountController as BusinessDiscountController;
 use App\Http\Controllers\Business\ScheduleController as BusinessScheduleController;
+use App\Http\Controllers\Business\ReportController as BusinessReportController;
 use App\Http\Controllers\Business\SettlementController as BusinessSettlementController;
 use App\Http\Controllers\Company\LeagueController as CompanyLeagueController;
 use App\Http\Controllers\Employee\CommunityController as EmployeeCommunityController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\Employee\HomeController as EmployeeHomeController;
 use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
 use App\Http\Controllers\Employee\ProfileController as EmployeeProfileController;
 use App\Http\Controllers\Employee\QuickMatchController as EmployeeQuickMatchController;
+use App\Http\Controllers\Employee\ReportController as EmployeeReportController;
 use App\Http\Controllers\Company\ProfileController as CompanyProfileController;
 use App\Http\Controllers\Company\DepartmentController as CompanyDepartmentController;
 use App\Http\Controllers\Company\CommunityController as CompanyCommunityController;
@@ -297,6 +299,8 @@ Route::prefix('business')
             Route::get('/settlements/{settlement}', [BusinessSettlementController::class, 'show'])->name('settlements.show');
         });
 
+        Route::get('/reports', [BusinessReportController::class, 'index'])->middleware('business.permission:reports.view')->name('reports.index');
+
         Route::get('/profile', [BusinessProfileController::class, 'index'])->name('profile.index');
         Route::put('/profile', [BusinessProfileController::class, 'update'])->middleware('business.permission:profile.update')->name('profile.update');
 
@@ -408,6 +412,8 @@ Route::prefix('employee')
         Route::get('/notifications', [EmployeeNotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{notification}/read', [EmployeeNotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::post('/notifications/read-all', [EmployeeNotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
+
+        Route::get('/reports', [EmployeeReportController::class, 'index'])->name('reports.index');
 
         Route::get('/profile', [EmployeeProfileController::class, 'index'])->name('profile.index');
         Route::put('/profile', [EmployeeProfileController::class, 'update'])->name('profile.update');

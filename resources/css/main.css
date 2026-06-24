@@ -66,6 +66,17 @@ nav{flex:1;padding:12px 8px;}
   .stat{min-width:calc(50% - 10px);padding:14px;}
 }
 
+/* Print styles for report pages */
+@media print {
+  body { display: block !important; background: #fff !important; }
+  .sidebar, .menu-toggle, .sidebar-backdrop, .topbar, .bottom-nav, .phone { display: contents !important; width: 100% !important; }
+  .sidebar, .menu-toggle, .sidebar-backdrop, .topbar, .bottom-nav { display: none !important; }
+  .main, .content { padding: 0 !important; }
+  .no-print { display: none !important; }
+  .card, .stat { break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+
 /* Responsive - Small Mobile */
 @media(max-width:480px){
   .main{padding:14px 8px;padding-top:56px;}

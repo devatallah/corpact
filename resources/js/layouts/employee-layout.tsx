@@ -5,7 +5,7 @@ const navTabs = [
     { label: 'استكشاف', href: '/employee/explore', emoji: '🧭' },
     { label: 'جديد', href: '/employee/create', emoji: '➕', special: true },
     { label: 'مجتمعي', href: '/employee/community', emoji: '👥' },
-    { label: 'حسابي', href: '/employee/profile', emoji: '👤' },
+    { label: 'تقاريري', href: '/employee/reports', emoji: '📊' },
 ];
 
 export default function EmployeeLayout({ children }: { children: React.ReactNode }) {

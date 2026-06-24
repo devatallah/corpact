@@ -45,6 +45,7 @@ enum BusinessRole: string
                 'discounts.update',
                 'discounts.delete',
                 'settlements.view',
+                'reports.view',
                 'profile.view',
                 'profile.update',
                 'staff.view',
@@ -62,6 +63,7 @@ enum BusinessRole: string
             ],
             self::Accountant => [
                 'settlements.view',
+                'reports.view',
                 'dashboard.view',
             ],
         };
