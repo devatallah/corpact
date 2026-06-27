@@ -32,9 +32,9 @@ export default function NotificationsIndex({ notifications, unreadCount }: Props
     }
 
     function getIconBg(notification: Notification, isUnread: boolean): string {
-        if (notification.type === 'weekly_digest') return isUnread ? '#8B5CF618' : '#F3F0FF';
-        if (isNudge(notification)) return isUnread ? '#F59E0B18' : '#FFFBEB';
-        return isUnread ? '#009E8218' : '#F4F6FA';
+        if (notification.type === 'weekly_digest') return isUnread ? '#8B5CF615' : '#F3F0FF';
+        if (isNudge(notification)) return isUnread ? '#F59E0B15' : '#FFFBEB';
+        return isUnread ? '#18A86B15' : '#F5F5F5';
     }
 
     function getTargetUrl(notification: Notification): string | null {
@@ -58,20 +58,27 @@ export default function NotificationsIndex({ notifications, unreadCount }: Props
         }
     }
 
+    function getUnreadBorderColor(notification: Notification): string {
+        if (notification.type === 'weekly_digest') return '#8B5CF6';
+        if (isNudge(notification)) return '#D97706';
+        return '#18A86B';
+    }
+
     return (
         <EmployeeLayout>
             <Head title="الإشعارات" />
 
             {/* Header */}
-            <div style={{ padding: '16px 0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                    <div style={{ fontSize: 20, fontWeight: 800 }}>الإشعارات</div>
-                    <div style={{ fontSize: 12, color: '#7A8BA8' }}>{unreadCount} غير مقروءة</div>
+                    <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.5px' }}>الإشعارات</h1>
+                    <p style={{ fontSize: 14, color: '#666', marginTop: 4 }}>{unreadCount} غير مقروءة</p>
                 </div>
                 {unreadCount > 0 && (
                     <button
                         onClick={markAllRead}
-                        style={{ background: 'transparent', border: 'none', fontSize: 12, color: '#009E82', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                        className="btn btn-outline"
+                        style={{ fontSize: 13 }}
                     >
                         تحديد الكل
                     </button>
@@ -80,97 +87,92 @@ export default function NotificationsIndex({ notifications, unreadCount }: Props
 
             {/* Notification list */}
             {items.length > 0 ? (
-                items.map((notification) => {
-                    const isUnread = !notification.read_at;
-                    return (
-                        <button
-                            key={notification.id}
-                            type="button"
-                            onClick={() => handleClick(notification)}
-                            className="card"
-                            style={{
-                                display: 'flex',
-                                gap: 12,
-                                width: '100%',
-                                textAlign: 'right',
-                                cursor: 'pointer',
-                                ...(isUnread
-                                    ? notification.type === 'weekly_digest'
-                                        ? { borderColor: '#8B5CF644', borderRight: '3px solid #8B5CF6' }
-                                        : isNudge(notification)
-                                            ? { borderColor: '#F59E0B44', borderRight: '3px solid #F59E0B' }
-                                            : { borderColor: '#009E8244', borderRight: '3px solid #009E82' }
-                                    : {}),
-                            }}
-                        >
-                            <div style={{ width: 40, height: 40, borderRadius: 12, background: getIconBg(notification, isUnread), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
-                                {getIcon(notification)}
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 13, ...(isUnread ? { fontWeight: 600 } : { color: '#0F1923' }), lineHeight: 1.5 }}>
-                                    {notification.title ?? notification.body}
+                <div className="list-card">
+                    {items.map((notification) => {
+                        const isUnread = !notification.read_at;
+                        return (
+                            <button
+                                key={notification.id}
+                                type="button"
+                                onClick={() => handleClick(notification)}
+                                className="list-row"
+                                style={{
+                                    width: '100%',
+                                    textAlign: 'right',
+                                    background: 'none',
+                                    border: 'none',
+                                    borderBottom: '1px solid #EBEBEB',
+                                    fontFamily: 'inherit',
+                                    ...(isUnread ? { borderRight: `3px solid ${getUnreadBorderColor(notification)}` } : {}),
+                                }}
+                            >
+                                <div style={{ width: 40, height: 40, borderRadius: 12, background: getIconBg(notification, isUnread), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                                    {getIcon(notification)}
                                 </div>
-                                {notification.type === 'weekly_digest' && notification.data ? (
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
-                                        <div style={{ background: '#F4F6FA', borderRadius: 8, padding: '6px 10px', fontSize: 11 }}>
-                                            <span style={{ fontWeight: 700 }}>{String(notification.data.upcoming_events_count ?? 0)}</span>{' '}
-                                            <span style={{ color: '#7A8BA8' }}>فعاليات قادمة</span>
-                                        </div>
-                                        <div style={{ background: '#F4F6FA', borderRadius: 8, padding: '6px 10px', fontSize: 11 }}>
-                                            <span style={{ fontWeight: 700 }}>{String(notification.data.new_members_count ?? 0)}</span>{' '}
-                                            <span style={{ color: '#7A8BA8' }}>أعضاء جدد</span>
-                                        </div>
-                                        <div style={{ background: '#F4F6FA', borderRadius: 8, padding: '6px 10px', fontSize: 11 }}>
-                                            <span style={{ fontWeight: 700 }}>{String(notification.data.matches_played ?? 0)}</span>{' '}
-                                            <span style={{ color: '#7A8BA8' }}>مباريات</span>
-                                        </div>
-                                        <div style={{ background: '#F4F6FA', borderRadius: 8, padding: '6px 10px', fontSize: 11 }}>
-                                            <span style={{ fontWeight: 700 }}>🔥 {String(notification.data.streak ?? 0)}</span>{' '}
-                                            <span style={{ color: '#7A8BA8' }}>أسابيع متتالية</span>
-                                        </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 14, ...(isUnread ? { fontWeight: 600 } : { color: '#0A0A0A' }), lineHeight: 1.5 }}>
+                                        {notification.title ?? notification.body}
                                     </div>
-                                ) : isNudge(notification) && notification.body ? (
-                                    <div style={{ fontSize: 12, color: '#92400E', marginTop: 4, background: '#FFFBEB', borderRadius: 8, padding: '6px 10px', lineHeight: 1.6 }}>
-                                        {notification.body}
+                                    {notification.type === 'weekly_digest' && notification.data ? (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+                                            <div style={{ background: '#F5F5F5', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}>
+                                                <span style={{ fontWeight: 600 }}>{String(notification.data.upcoming_events_count ?? 0)}</span>{' '}
+                                                <span style={{ color: '#999' }}>فعاليات قادمة</span>
+                                            </div>
+                                            <div style={{ background: '#F5F5F5', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}>
+                                                <span style={{ fontWeight: 600 }}>{String(notification.data.new_members_count ?? 0)}</span>{' '}
+                                                <span style={{ color: '#999' }}>أعضاء جدد</span>
+                                            </div>
+                                            <div style={{ background: '#F5F5F5', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}>
+                                                <span style={{ fontWeight: 600 }}>{String(notification.data.matches_played ?? 0)}</span>{' '}
+                                                <span style={{ color: '#999' }}>مباريات</span>
+                                            </div>
+                                            <div style={{ background: '#F5F5F5', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}>
+                                                <span style={{ fontWeight: 600 }}>🔥 {String(notification.data.streak ?? 0)}</span>{' '}
+                                                <span style={{ color: '#999' }}>أسابيع متتالية</span>
+                                            </div>
+                                        </div>
+                                    ) : isNudge(notification) && notification.body ? (
+                                        <div style={{ fontSize: 13, color: '#92400E', marginTop: 6, background: '#FFFBEB', borderRadius: 8, padding: '6px 10px', lineHeight: 1.6 }}>
+                                            {notification.body}
+                                        </div>
+                                    ) : (
+                                        notification.body && notification.title && (
+                                            <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{notification.body}</div>
+                                        )
+                                    )}
+                                    <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{fmtDateTime(notification.created_at)}</div>
+                                </div>
+                                {isUnread && (
+                                    <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: getUnreadBorderColor(notification), marginTop: 6, flexShrink: 0 }} />
                                     </div>
-                                ) : (
-                                    notification.body && notification.title && (
-                                        <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 2 }}>{notification.body}</div>
-                                    )
                                 )}
-                                <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 4 }}>{fmtDateTime(notification.created_at)}</div>
-                            </div>
-                            {isUnread && (
-                                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: isNudge(notification) ? '#F59E0B' : '#009E82', marginTop: 6, flexShrink: 0 }} />
-                                </div>
-                            )}
-                        </button>
-                    );
-                })
+                            </button>
+                        );
+                    })}
+                </div>
             ) : (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#7A8BA8', fontSize: 13 }}>لا توجد إشعارات</div>
+                <div className="empty">
+                    <div className="ico">📭</div>
+                    <div className="txt">لا توجد إشعارات</div>
+                </div>
             )}
 
             {/* Pagination */}
             {!Array.isArray(notifications) && notifications.last_page > 1 && (
-                <div style={{ padding: '16px 0', textAlign: 'center' }}>
+                <div style={{ padding: '20px 0', textAlign: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
                         {notifications.links.map((link, i) => (
                             <button
                                 key={i}
                                 disabled={!link.url}
                                 onClick={() => link.url && router.get(link.url)}
+                                className={`pill${link.active ? ' on' : ''}`}
                                 style={{
-                                    padding: '6px 12px',
-                                    borderRadius: 8,
-                                    border: '1px solid #E4E9F2',
-                                    background: link.active ? '#009E82' : '#fff',
-                                    color: link.active ? '#fff' : '#7A8BA8',
-                                    fontSize: 12,
                                     cursor: link.url ? 'pointer' : 'default',
-                                    fontFamily: 'inherit',
                                     opacity: link.url ? 1 : 0.5,
+                                    padding: '6px 12px',
                                 }}
                                 dangerouslySetInnerHTML={{ __html: link.label }}
                             />

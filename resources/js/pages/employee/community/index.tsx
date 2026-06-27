@@ -19,69 +19,69 @@ export default function CommunityIndex({ communities }: Props) {
         <EmployeeLayout>
             <Head title="مجتمعاتي" />
 
-            <div style={{ padding: '16px 0 20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>المجتمعات</div>
-                    <Link
-                        href="/employee/community-requests"
-                        style={{
-                            fontSize: 11, color: '#3B5BDB', fontWeight: 700, textDecoration: 'none',
-                            background: '#3B5BDB10', padding: '4px 12px', borderRadius: 8,
-                        }}
-                    >
+            <div style={{ marginBottom: 28 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.5px' }}>مجتمعاتي</h1>
+                    <Link href="/employee/community-requests" className="btn btn-outline" style={{ fontSize: 13 }}>
                         اقتراح مجتمع
                     </Link>
                 </div>
-                <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 12 }}>
-                    {communities.length > 0 ? (
-                        communities.map((community) => {
-                            const color = community.category?.color ?? community.color ?? '#009E82';
-                            return (
-                                <Link
-                                    key={community.id}
-                                    href={`/employee/community/${community.id}`}
-                                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, textDecoration: 'none', color: 'inherit' }}
-                                >
-                                    <div style={{ width: 52, height: 52, borderRadius: 16, background: `${color}33`, border: `2px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <CategoryIcon icon={community.category?.icon} size={28} />
-                                    </div>
-                                    <div style={{ fontSize: 10, color, fontWeight: 700 }}>{community.name}</div>
-                                </Link>
-                            );
-                        })
-                    ) : (
-                        <div style={{ fontSize: 13, color: '#7A8BA8', padding: 12 }}>لم تنضم لأي مجتمع بعد</div>
-                    )}
-                </div>
             </div>
 
-            {communities.length > 0 ? (
-                communities.map((community) => {
-                    const color = community.category?.color ?? community.color ?? '#009E82';
-                    return (
-                        <Link
-                            key={community.id}
-                            href={`/employee/community/${community.id}`}
-                            className="card"
-                            style={{ borderColor: `${color}33`, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
-                        >
-                            <div style={{ width: 46, height: 46, borderRadius: 12, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <CategoryIcon icon={community.category?.icon} size={28} />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 14, fontWeight: 700 }}>{community.name}</div>
-                                <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#7A8BA8', marginTop: 2 }}>
-                                    <span>👥 {community.members_count} عضو</span>
-                                    <span>📅 {community.events_count} فعالية نشطة</span>
+            {/* Community icons row */}
+            {communities.length > 0 && (
+                <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 16, marginBottom: 12 }}>
+                    {communities.map((community) => {
+                        const color = community.category?.color ?? community.color ?? '#18A86B';
+                        return (
+                            <Link
+                                key={community.id}
+                                href={`/employee/community/${community.id}`}
+                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0, textDecoration: 'none', color: 'inherit' }}
+                            >
+                                <div style={{ width: 52, height: 52, borderRadius: 16, background: `${color}20`, border: `2px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <CategoryIcon icon={community.category?.icon} size={28} />
                                 </div>
-                            </div>
-                        </Link>
-                    );
-                })
+                                <div style={{ fontSize: 11, color, fontWeight: 600 }}>{community.name}</div>
+                            </Link>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Community cards */}
+            {communities.length > 0 ? (
+                <div className="list-card">
+                    {communities.map((community) => {
+                        const color = community.category?.color ?? community.color ?? '#18A86B';
+                        return (
+                            <Link
+                                key={community.id}
+                                href={`/employee/community/${community.id}`}
+                                className="list-row"
+                                style={{ textDecoration: 'none', color: 'inherit' }}
+                            >
+                                <div style={{ width: 44, height: 44, borderRadius: 12, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <CategoryIcon icon={community.category?.icon} size={26} />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 14, fontWeight: 600 }}>{community.name}</div>
+                                    <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#999', marginTop: 3 }}>
+                                        <span>👥 {community.members_count} عضو</span>
+                                        <span>📅 {community.events_count} فعالية نشطة</span>
+                                    </div>
+                                </div>
+                            </Link>
+                        );
+                    })}
+                </div>
             ) : (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#7A8BA8', fontSize: 13 }}>
-                    لم تنضم لأي مجتمع بعد.{' '}
-                    <Link href="/employee/explore" style={{ color: '#009E82', fontWeight: 700 }}>اكتشف المجتمعات</Link>
+                <div className="empty">
+                    <div className="ico">🏠</div>
+                    <div className="txt">
+                        لم تنضم لأي مجتمع بعد.{' '}
+                        <Link href="/employee/explore" style={{ color: '#18A86B', fontWeight: 600 }}>اكتشف المجتمعات</Link>
+                    </div>
                 </div>
             )}
         </EmployeeLayout>

@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function LeagueShow({ community, league, standings, isLeader }: Props) {
-    const color = community.category?.color ?? community.color ?? '#009E82';
+    const color = community.category?.color ?? community.color ?? '#18A86B';
     const matches = league.matches ?? [];
     const isKnockout = league.format === 'knockout';
     const formatLabel = league.format === 'knockout' ? 'خروج المغلوب'
@@ -84,30 +84,31 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
             <Head title={league.name} />
 
             {/* Breadcrumb */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, marginTop: 16 }}>
-                <Link href={`/employee/community/${community.id}?tab=leagues`} style={{ color: '#7A8BA8', textDecoration: 'none', fontSize: 13 }}>← {community.name}</Link>
-                <span style={{ color: '#C8D0E0' }}>/</span>
-                <span style={{ fontWeight: 700, fontSize: 14 }}>{league.name}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, paddingTop: 4 }}>
+                <Link href={`/employee/community/${community.id}?tab=leagues`} style={{ color: '#999', textDecoration: 'none', fontSize: 13 }}>← {community.name}</Link>
+                <span style={{ color: '#EBEBEB' }}>/</span>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>{league.name}</span>
             </div>
 
             {/* Header */}
-            <div className="card" style={{ borderColor: `${color}33`, marginBottom: 12 }}>
+            <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                        <div style={{ fontSize: 18, fontWeight: 800 }}>{league.name}</div>
-                        <div style={{ fontSize: 12, color: '#7A8BA8', marginTop: 4 }}>
+                        <div style={{ fontSize: 20, fontWeight: 700 }}>{league.name}</div>
+                        <div style={{ fontSize: 13, color: '#999', marginTop: 4 }}>
                             {formatLabel} · {league.departments?.length ?? 0} أقسام · {playedCount}/{totalCount} مباراة
                         </div>
                     </div>
-                    <span className="badge" style={league.status === 'active' ? { background: '#009E8218', color: '#009E82' } : { background: '#6B7A9918', color: '#6B7A99' }}>
+                    <span className={`badge ${league.status === 'active' ? 'b-confirmed' : 'b-completed'}`}>
                         {league.status === 'active' ? 'جارية' : 'منتهية'}
                     </span>
                 </div>
                 {isLeader && (
-                    <div style={{ marginTop: 10 }}>
+                    <div style={{ marginTop: 12 }}>
                         <button
                             onClick={() => setShowDelete(true)}
-                            style={{ fontSize: 11, color: '#E03050', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                            className="btn btn-danger"
+                            style={{ fontSize: 12, padding: '6px 14px' }}
                         >
                             حذف البطولة
                         </button>
@@ -116,13 +117,12 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
             </div>
 
             {/* View tabs */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
                 {views.map((v) => (
                     <button
                         key={v.key}
-                        className="pill"
+                        className={`pill${activeView === v.key ? ' on' : ''}`}
                         onClick={() => setActiveView(v.key)}
-                        style={activeView === v.key ? { background: color, color: '#fff' } : { background: '#E4E9F2', color: '#7A8BA8' }}
                     >
                         {v.label}
                     </button>
@@ -134,7 +134,7 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                 <div className="card" style={{ padding: 0, overflow: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, whiteSpace: 'nowrap' }}>
                         <thead>
-                            <tr style={{ background: '#F7F8FA' }}>
+                            <tr style={{ background: '#FAFAFA' }}>
                                 <th style={{ padding: '10px 8px', textAlign: 'center', width: 30 }}>#</th>
                                 <th style={{ padding: '10px 8px', textAlign: 'right' }}>القسم</th>
                                 <th style={{ padding: '10px 4px', textAlign: 'center', width: 28 }}>لع</th>
@@ -144,24 +144,24 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                                 <th style={{ padding: '10px 4px', textAlign: 'center', width: 28 }}>+</th>
                                 <th style={{ padding: '10px 4px', textAlign: 'center', width: 28 }}>-</th>
                                 <th style={{ padding: '10px 4px', textAlign: 'center', width: 30 }}>+/-</th>
-                                <th style={{ padding: '10px 8px', textAlign: 'center', width: 36, fontWeight: 900, color }}>نق</th>
+                                <th style={{ padding: '10px 8px', textAlign: 'center', width: 36, fontWeight: 700, color }}>نق</th>
                             </tr>
                         </thead>
                         <tbody>
                             {standings.map((row, i) => (
-                                <tr key={row.department.id} style={{ borderTop: '1px solid #F0F2F6', background: i === 0 ? `${color}06` : undefined }}>
-                                    <td style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 700, color: i === 0 ? color : '#7A8BA8' }}>{i + 1}</td>
-                                    <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 700, color: '#1A1A2E' }}>{row.department.name}</td>
-                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#4A5C78' }}>{row.played}</td>
-                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#009E82', fontWeight: 600 }}>{row.won}</td>
-                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#7A8BA8' }}>{row.drawn}</td>
-                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#E03050', fontWeight: 600 }}>{row.lost}</td>
-                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#4A5C78' }}>{row.gf}</td>
-                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#4A5C78' }}>{row.ga}</td>
-                                    <td style={{ padding: '10px 4px', textAlign: 'center', fontWeight: 600, color: row.gd > 0 ? '#009E82' : row.gd < 0 ? '#E03050' : '#7A8BA8' }}>
+                                <tr key={row.department.id} style={{ borderTop: '1px solid #EBEBEB', background: i === 0 ? `${color}06` : undefined }}>
+                                    <td style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 600, color: i === 0 ? color : '#999' }}>{i + 1}</td>
+                                    <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 600, color: '#0A0A0A' }}>{row.department.name}</td>
+                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#666' }}>{row.played}</td>
+                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#18A86B', fontWeight: 600 }}>{row.won}</td>
+                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#999' }}>{row.drawn}</td>
+                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#EF4444', fontWeight: 600 }}>{row.lost}</td>
+                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#666' }}>{row.gf}</td>
+                                    <td style={{ padding: '10px 4px', textAlign: 'center', color: '#666' }}>{row.ga}</td>
+                                    <td style={{ padding: '10px 4px', textAlign: 'center', fontWeight: 600, color: row.gd > 0 ? '#18A86B' : row.gd < 0 ? '#EF4444' : '#999' }}>
                                         {row.gd > 0 ? '+' : ''}{row.gd}
                                     </td>
-                                    <td style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 900, fontSize: 14, color }}>{row.points}</td>
+                                    <td style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 700, fontSize: 14, color }}>{row.points}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -173,7 +173,12 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
             {activeView === 'matches' && (() => {
                 const assignedMatches = matches.filter(m => m.department_a_id && m.department_b_id);
                 if (assignedMatches.length === 0) {
-                    return <div style={{ textAlign: 'center', padding: 24, color: '#7A8BA8', fontSize: 13 }}>لا توجد مباريات بعد</div>;
+                    return (
+                        <div className="empty">
+                            <div className="ico">⚽</div>
+                            <div className="txt">لا توجد مباريات بعد</div>
+                        </div>
+                    );
                 }
                 const grouped = groupByRound(assignedMatches);
                 const getRoundLabel = (roundNum: string, roundMatches: LeagueMatch[]) => {
@@ -187,33 +192,36 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                             const regular = roundMatches.filter(m => !m.is_third_place);
                             const thirdPlace = roundMatches.find(m => m.is_third_place);
                             return (
-                                <div key={roundNum} style={{ marginBottom: 16 }}>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#7A8BA8', marginBottom: 8, paddingRight: 4 }}>
-                                        {getRoundLabel(roundNum, roundMatches)}
+                                <div key={roundNum} className="section">
+                                    <div className="section-head">
+                                        <div className="section-title" style={{ fontSize: 13, color: '#999' }}>
+                                            {getRoundLabel(roundNum, roundMatches)}
+                                        </div>
                                     </div>
                                     {regular.map((match) => (
-                                        <div key={match.id} className="card" style={{ marginBottom: 6 }}>
+                                        <div key={match.id} className="card">
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                                                <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: 13 }}>
+                                                <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: 14 }}>
                                                     {match.department_a?.name ?? '—'}
                                                 </div>
                                                 <div style={{
                                                     minWidth: 70, textAlign: 'center', padding: '6px 12px',
-                                                    borderRadius: 8, fontWeight: 900, fontSize: 16,
-                                                    background: match.status === 'played' ? `${color}15` : '#F7F8FA',
-                                                    color: match.status === 'played' ? color : '#7A8BA8',
+                                                    borderRadius: 10, fontWeight: 700, fontSize: 16,
+                                                    background: match.status === 'played' ? `${color}12` : '#FAFAFA',
+                                                    color: match.status === 'played' ? color : '#999',
                                                 }}>
                                                     {formatScore(match)}
                                                 </div>
-                                                <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: 13 }}>
+                                                <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: 14 }}>
                                                     {match.department_b?.name ?? '—'}
                                                 </div>
                                             </div>
                                             {isLeader && (
-                                                <div style={{ textAlign: 'center', marginTop: 8 }}>
+                                                <div style={{ textAlign: 'center', marginTop: 10 }}>
                                                     <button
                                                         onClick={() => openScoreModal(match)}
-                                                        style={{ fontSize: 11, color, background: 'none', border: `1px solid ${color}33`, borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontFamily: 'inherit' }}
+                                                        className="btn btn-outline"
+                                                        style={{ fontSize: 12, padding: '5px 14px' }}
                                                     >
                                                         {match.status === 'played' ? 'تعديل النتيجة' : 'تسجيل النتيجة'}
                                                     </button>
@@ -222,32 +230,33 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                                         </div>
                                     ))}
                                     {thirdPlace && (
-                                        <div key={thirdPlace.id}>
-                                            <div style={{ fontSize: 11, fontWeight: 600, color: '#7A8BA8', marginBottom: 6, marginTop: 10, paddingRight: 4 }}>المركز الثالث</div>
-                                            <div className="card" style={{ marginBottom: 6 }}>
+                                        <div>
+                                            <div style={{ fontSize: 12, fontWeight: 600, color: '#999', marginBottom: 8, marginTop: 12 }}>المركز الثالث</div>
+                                            <div className="card">
                                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                                                    <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: 13 }}>
+                                                    <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: 14 }}>
                                                         {thirdPlace.department_a?.name ?? '—'}
                                                     </div>
                                                     <div style={{
                                                         minWidth: 70, textAlign: 'center', padding: '6px 12px',
-                                                        borderRadius: 8, fontWeight: 900, fontSize: 16,
-                                                        background: thirdPlace.status === 'played' ? `${color}15` : '#F7F8FA',
-                                                        color: thirdPlace.status === 'played' ? color : '#7A8BA8',
+                                                        borderRadius: 10, fontWeight: 700, fontSize: 16,
+                                                        background: thirdPlace.status === 'played' ? `${color}12` : '#FAFAFA',
+                                                        color: thirdPlace.status === 'played' ? color : '#999',
                                                     }}>
                                                         {thirdPlace.status === 'played'
                                                             ? `${thirdPlace.score_a} - ${thirdPlace.score_b}`
                                                             : 'vs'}
                                                     </div>
-                                                    <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: 13 }}>
+                                                    <div style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: 14 }}>
                                                         {thirdPlace.department_b?.name ?? '—'}
                                                     </div>
                                                 </div>
                                                 {isLeader && (
-                                                    <div style={{ textAlign: 'center', marginTop: 8 }}>
+                                                    <div style={{ textAlign: 'center', marginTop: 10 }}>
                                                         <button
                                                             onClick={() => openScoreModal(thirdPlace)}
-                                                            style={{ fontSize: 11, color, background: 'none', border: `1px solid ${color}33`, borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontFamily: 'inherit' }}
+                                                            className="btn btn-outline"
+                                                            style={{ fontSize: 12, padding: '5px 14px' }}
                                                         >
                                                             {thirdPlace.status === 'played' ? 'تعديل النتيجة' : 'تسجيل النتيجة'}
                                                         </button>
@@ -274,8 +283,8 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                             return (
                                 <div key={roundNum} style={{ display: 'flex', flexDirection: 'column', minWidth: 190 }}>
                                     <div style={{
-                                        fontSize: 11, fontWeight: 700, color: '#fff', textAlign: 'center',
-                                        marginBottom: 12, background: color, borderRadius: 8, padding: '6px 12px',
+                                        fontSize: 12, fontWeight: 600, color: '#fff', textAlign: 'center',
+                                        marginBottom: 12, background: color, borderRadius: 10, padding: '6px 12px',
                                     }}>
                                         {label}
                                     </div>
@@ -287,8 +296,8 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                                     {thirdPlace && (
                                         <div style={{ marginTop: 16 }}>
                                             <div style={{
-                                                fontSize: 11, fontWeight: 700, color: '#7A8BA8', textAlign: 'center',
-                                                marginBottom: 8, background: '#F0F2F6', borderRadius: 8, padding: '4px 10px',
+                                                fontSize: 12, fontWeight: 600, color: '#999', textAlign: 'center',
+                                                marginBottom: 8, background: '#F0F0F0', borderRadius: 10, padding: '5px 10px',
                                             }}>
                                                 المركز الثالث
                                             </div>
@@ -305,31 +314,24 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
             {/* Score entry modal */}
             {editingMatch && (
                 <div
+                    className="modal-overlay"
                     onClick={() => setEditingMatch(null)}
-                    style={{
-                        position: 'fixed', inset: 0, zIndex: 1000,
-                        background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(4px)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: 16,
-                    }}
                 >
                     <div
+                        className="modal"
                         onClick={(e) => e.stopPropagation()}
-                        style={{
-                            background: '#fff', borderRadius: 16, padding: 24,
-                            width: '100%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,.2)',
-                        }}
                     >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                            <div style={{ fontSize: 16, fontWeight: 800 }}>تسجيل النتيجة</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <div style={{ fontSize: 18, fontWeight: 700 }}>تسجيل النتيجة</div>
                             <button
                                 onClick={() => setEditingMatch(null)}
-                                style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E2E8F4', background: '#F7F8FA', cursor: 'pointer', fontSize: 16, color: '#7A8BA8' }}
+                                className="btn btn-outline"
+                                style={{ padding: '4px 12px', fontSize: 16 }}
                             >×</button>
                         </div>
 
                         {editingMatch.round_label && (
-                            <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 16, textAlign: 'center', background: '#F7F8FA', borderRadius: 8, padding: '6px 12px' }}>
+                            <div style={{ fontSize: 13, color: '#999', marginBottom: 20, textAlign: 'center', background: '#FAFAFA', borderRadius: 10, padding: '8px 12px' }}>
                                 {editingMatch.round_label}{editingMatch.is_third_place ? ' (المركز الثالث)' : ''}
                             </div>
                         )}
@@ -337,7 +339,7 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                         <form onSubmit={submitScore}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
                                 <div style={{ flex: 1, textAlign: 'center' }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: '#4A5C78' }}>{editingMatch.department_a?.name ?? '—'}</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, color: '#666' }}>{editingMatch.department_a?.name ?? '—'}</div>
                                     <input
                                         type="number"
                                         min="0"
@@ -345,18 +347,15 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                                         onChange={(e) => scoreForm.setData('score_a', e.target.value)}
                                         required
                                         style={{
-                                            width: '100%', textAlign: 'center', padding: '14px 8px',
-                                            fontSize: 28, fontWeight: 900, border: `2px solid #E2E8F4`,
-                                            borderRadius: 12, outline: 'none', fontFamily: 'inherit',
-                                            background: '#F7F8FA',
+                                            textAlign: 'center', padding: '14px 8px',
+                                            fontSize: 28, fontWeight: 700,
+                                            background: '#FAFAFA',
                                         }}
-                                        onFocus={(e) => e.target.style.borderColor = color}
-                                        onBlur={(e) => e.target.style.borderColor = '#E2E8F4'}
                                     />
                                 </div>
-                                <div style={{ fontSize: 24, fontWeight: 900, color: '#C8D0E0', marginTop: 28 }}>:</div>
+                                <div style={{ fontSize: 24, fontWeight: 700, color: '#EBEBEB', marginTop: 28 }}>:</div>
                                 <div style={{ flex: 1, textAlign: 'center' }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: '#4A5C78' }}>{editingMatch.department_b?.name ?? '—'}</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, color: '#666' }}>{editingMatch.department_b?.name ?? '—'}</div>
                                     <input
                                         type="number"
                                         min="0"
@@ -364,20 +363,17 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                                         onChange={(e) => scoreForm.setData('score_b', e.target.value)}
                                         required
                                         style={{
-                                            width: '100%', textAlign: 'center', padding: '14px 8px',
-                                            fontSize: 28, fontWeight: 900, border: `2px solid #E2E8F4`,
-                                            borderRadius: 12, outline: 'none', fontFamily: 'inherit',
-                                            background: '#F7F8FA',
+                                            textAlign: 'center', padding: '14px 8px',
+                                            fontSize: 28, fontWeight: 700,
+                                            background: '#FAFAFA',
                                         }}
-                                        onFocus={(e) => e.target.style.borderColor = color}
-                                        onBlur={(e) => e.target.style.borderColor = '#E2E8F4'}
                                     />
                                 </div>
                             </div>
 
                             {isKnockout && isDraw && (
-                                <div style={{ marginBottom: 16 }}>
-                                    <div style={{ fontSize: 12, fontWeight: 700, textAlign: 'center', color: '#D4820A', marginBottom: 10, background: '#D4820A10', borderRadius: 8, padding: '6px 12px' }}>
+                                <div style={{ marginBottom: 20 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 600, textAlign: 'center', color: '#D97706', marginBottom: 12, background: '#FEF3C7', borderRadius: 10, padding: '8px 12px' }}>
                                         تعادل — أدخل نتيجة ركلات الترجيح
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -390,16 +386,14 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                                                 required
                                                 placeholder="0"
                                                 style={{
-                                                    width: '100%', textAlign: 'center', padding: '10px 8px',
-                                                    fontSize: 22, fontWeight: 900, border: '2px solid #D4820A33',
-                                                    borderRadius: 10, outline: 'none', fontFamily: 'inherit',
+                                                    textAlign: 'center', padding: '10px 8px',
+                                                    fontSize: 22, fontWeight: 700,
+                                                    borderColor: '#D97706',
                                                     background: '#FFFBF5',
                                                 }}
-                                                onFocus={(e) => e.target.style.borderColor = '#D4820A'}
-                                                onBlur={(e) => e.target.style.borderColor = '#D4820A33'}
                                             />
                                         </div>
-                                        <div style={{ fontSize: 20, fontWeight: 900, color: '#D4820A' }}>:</div>
+                                        <div style={{ fontSize: 20, fontWeight: 700, color: '#D97706' }}>:</div>
                                         <div style={{ flex: 1, textAlign: 'center' }}>
                                             <input
                                                 type="number"
@@ -409,13 +403,11 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                                                 required
                                                 placeholder="0"
                                                 style={{
-                                                    width: '100%', textAlign: 'center', padding: '10px 8px',
-                                                    fontSize: 22, fontWeight: 900, border: '2px solid #D4820A33',
-                                                    borderRadius: 10, outline: 'none', fontFamily: 'inherit',
+                                                    textAlign: 'center', padding: '10px 8px',
+                                                    fontSize: 22, fontWeight: 700,
+                                                    borderColor: '#D97706',
                                                     background: '#FFFBF5',
                                                 }}
-                                                onFocus={(e) => e.target.style.borderColor = '#D4820A'}
-                                                onBlur={(e) => e.target.style.borderColor = '#D4820A33'}
                                             />
                                         </div>
                                     </div>
@@ -423,19 +415,17 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                             )}
 
                             {Object.values(scoreForm.errors).map((err, i) => (
-                                <div key={i} style={{ fontSize: 12, color: '#E03050', marginBottom: 4, textAlign: 'center' }}>{err}</div>
+                                <div key={i} className="field-error" style={{ textAlign: 'center', marginBottom: 4 }}>{err}</div>
                             ))}
 
-                            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
                                 <button
                                     type="submit"
+                                    className="btn btn-primary"
                                     disabled={scoreForm.processing}
                                     style={{
-                                        flex: 1, padding: '12px', borderRadius: 10, border: 'none',
-                                        background: color, color: '#fff', fontSize: 14, fontWeight: 700,
-                                        cursor: scoreForm.processing ? 'not-allowed' : 'pointer',
+                                        flex: 1,
                                         opacity: scoreForm.processing ? 0.6 : 1,
-                                        fontFamily: 'inherit',
                                     }}
                                 >
                                     حفظ النتيجة
@@ -443,12 +433,7 @@ export default function LeagueShow({ community, league, standings, isLeader }: P
                                 <button
                                     type="button"
                                     onClick={() => setEditingMatch(null)}
-                                    style={{
-                                        padding: '12px 20px', borderRadius: 10,
-                                        border: '1px solid #E2E8F4', background: '#F7F8FA',
-                                        color: '#7A8BA8', fontSize: 14, fontWeight: 700,
-                                        cursor: 'pointer', fontFamily: 'inherit',
-                                    }}
+                                    className="btn btn-outline"
                                 >
                                     إلغاء
                                 </button>
@@ -482,32 +467,29 @@ function BracketMatch({ match, color, isLeader, onEdit }: { match: LeagueMatch; 
     );
 
     return (
-        <div
-            style={{
-                borderRadius: 12, overflow: 'hidden', minWidth: 180,
-                background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,.06)',
-                border: isPlayed ? `1px solid ${color}33` : '1px solid #E4E9F2',
-            }}
-        >
+        <div style={{
+            borderRadius: 12, overflow: 'hidden', minWidth: 180,
+            background: '#fff', border: isPlayed ? `1px solid ${color}33` : '1px solid #EBEBEB',
+        }}>
             {/* Team A */}
             <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '10px 14px', borderBottom: '1px solid #F0F2F6',
-                background: winnerA ? `${color}0A` : '#fff',
+                padding: '10px 14px', borderBottom: '1px solid #EBEBEB',
+                background: winnerA ? `${color}08` : '#fff',
             }}>
                 <span style={{
-                    fontSize: 13, fontWeight: winnerA ? 800 : 500,
-                    color: match.department_a_id ? (winnerA ? '#1A1A2E' : '#4A5C78') : '#C8D0E0',
+                    fontSize: 13, fontWeight: winnerA ? 700 : 400,
+                    color: match.department_a_id ? (winnerA ? '#0A0A0A' : '#666') : '#EBEBEB',
                 }}>
                     {match.department_a?.name ?? '—'}
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     {hasPenalties && (
-                        <span style={{ fontSize: 10, color: '#D4820A', fontWeight: 600 }}>({match.penalty_a})</span>
+                        <span style={{ fontSize: 10, color: '#D97706', fontWeight: 600 }}>({match.penalty_a})</span>
                     )}
                     <span style={{
-                        fontSize: 14, fontWeight: 800, minWidth: 22, textAlign: 'center',
-                        color: winnerA ? color : '#7A8BA8',
+                        fontSize: 14, fontWeight: 700, minWidth: 22, textAlign: 'center',
+                        color: winnerA ? color : '#999',
                     }}>
                         {match.score_a ?? ''}
                     </span>
@@ -517,21 +499,21 @@ function BracketMatch({ match, color, isLeader, onEdit }: { match: LeagueMatch; 
             <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '10px 14px',
-                background: winnerB ? `${color}0A` : '#fff',
+                background: winnerB ? `${color}08` : '#fff',
             }}>
                 <span style={{
-                    fontSize: 13, fontWeight: winnerB ? 800 : 500,
-                    color: match.department_b_id ? (winnerB ? '#1A1A2E' : '#4A5C78') : '#C8D0E0',
+                    fontSize: 13, fontWeight: winnerB ? 700 : 400,
+                    color: match.department_b_id ? (winnerB ? '#0A0A0A' : '#666') : '#EBEBEB',
                 }}>
                     {match.department_b?.name ?? '—'}
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     {hasPenalties && (
-                        <span style={{ fontSize: 10, color: '#D4820A', fontWeight: 600 }}>({match.penalty_b})</span>
+                        <span style={{ fontSize: 10, color: '#D97706', fontWeight: 600 }}>({match.penalty_b})</span>
                     )}
                     <span style={{
-                        fontSize: 14, fontWeight: 800, minWidth: 22, textAlign: 'center',
-                        color: winnerB ? color : '#7A8BA8',
+                        fontSize: 14, fontWeight: 700, minWidth: 22, textAlign: 'center',
+                        color: winnerB ? color : '#999',
                     }}>
                         {match.score_b ?? ''}
                     </span>
@@ -542,9 +524,9 @@ function BracketMatch({ match, color, isLeader, onEdit }: { match: LeagueMatch; 
                 <div
                     onClick={() => onEdit(match)}
                     style={{
-                        textAlign: 'center', padding: '6px', fontSize: 11, fontWeight: 600,
-                        color, cursor: 'pointer', borderTop: '1px solid #F0F2F6',
-                        background: '#FAFBFC',
+                        textAlign: 'center', padding: '7px', fontSize: 12, fontWeight: 600,
+                        color, cursor: 'pointer', borderTop: '1px solid #EBEBEB',
+                        background: '#FAFAFA',
                     }}
                 >
                     {isPlayed ? 'تعديل' : 'تسجيل النتيجة'}

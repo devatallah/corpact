@@ -1,40 +1,124 @@
-/* Employee mobile layout */
-body{background:#F4F6FA;color:#0F1923;justify-content:center;}
-.phone{width:430px;min-height:100vh;background:#F4F6FA;position:relative;}
-.topbar{position:sticky;top:0;z-index:10;background:rgba(244,246,250,.95);backdrop-filter:blur(12px);border-bottom:1px solid #E4E9F2;padding:10px 16px;display:flex;align-items:center;gap:10px;}
-.logo-ar{font-size:15px;font-weight:900;background:linear-gradient(90deg,#009E82,#D4820A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.logo-en{font-size:9px;letter-spacing:2px;color:#7A8BA8;}
-.content{padding:0 16px 100px;}
+/* ─── Employee Portal — New Design System ─── */
+body{background:#FAFAFA;color:#0A0A0A;justify-content:center;}
 
-/* Screens */
-.screen{display:none;}
-.screen.on{display:block;}
+/* ─── Top Navigation ─── */
+.topnav{background:#fff;border-bottom:1px solid #EBEBEB;position:sticky;top:0;z-index:50;}
+.topnav-inner{max-width:900px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+.topnav-right{display:flex;align-items:center;gap:20px;}
+.topnav-logo{font-size:20px;font-weight:700;color:#0A0A0A;letter-spacing:-.5px;}
+.topnav-links{display:flex;gap:4px;}
+.topnav-link{padding:6px 14px;border-radius:99px;font-size:13px;font-weight:500;color:#999;text-decoration:none;transition:all .15s;}
+.topnav-link:hover{color:#0A0A0A;background:#F5F5F5;}
+.topnav-link.on{color:#0A0A0A;background:#F0F0F0;font-weight:600;}
+.topnav-left{display:flex;align-items:center;gap:12px;}
+.topnav-bell{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:background .15s;position:relative;}
+.topnav-bell:hover{background:#F5F5F5;}
+.topnav-bell .dot{position:absolute;top:6px;right:6px;width:6px;height:6px;background:#EF4444;border-radius:50%;}
+.topnav-avatar{width:34px;height:34px;border-radius:50%;background:#18A86B;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer;}
+.topnav-new{background:#18A86B;color:#fff;border:none;border-radius:99px;padding:7px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;display:flex;align-items:center;gap:6px;}
+.topnav-new:hover{background:#0E7C4A;}
+.hamburger{display:none;width:34px;height:34px;border-radius:8px;align-items:center;justify-content:center;cursor:pointer;font-size:18px;background:none;border:none;}
 
-/* Bottom nav */
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:430px;background:rgba(255,255,255,.95);backdrop-filter:blur(16px);border-top:1px solid #E4E9F2;display:flex;z-index:20;}
-.nb{flex:1;padding:10px 0 12px;display:flex;flex-direction:column;align-items:center;gap:3px;background:transparent;border:none;cursor:pointer;font-family:inherit;position:relative;}
-.nb .ico{font-size:20px;}
-.nb .lbl{font-size:9px;color:#7A8BA8;}
-.nb.on .lbl{color:#009E82;font-weight:700;}
-.nb.on::after{content:'';position:absolute;bottom:0;width:20px;height:2px;background:#009E82;border-radius:2px;}
-.nb-special{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#009E82,#00A888);display:flex;align-items:center;justify-content:center;font-size:20px;margin-top:-12px;box-shadow:0 4px 20px rgba(0,198,154,.4);}
+/* ─── Main Content ─── */
+.emain{max-width:900px;margin:0 auto;padding:24px 24px 80px;}
 
-/* Card & UI elements */
-.card{background:#fff;border:1px solid #E4E9F2;border-radius:16px;padding:16px;margin-bottom:12px;}
-.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;}
-.pill{padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-family:inherit;}
-.bar-wrap{height:6px;background:#E4E9F2;border-radius:6px;overflow:hidden;}
-.bar-fill{height:100%;border-radius:6px;}
-.notif-dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:#E03050;border:2px solid #F4F6FA;}
-.row{display:flex;gap:12px;align-items:center;}
-.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
+/* ─── Mobile Bottom Nav ─── */
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.95);backdrop-filter:blur(20px);border-top:1px solid #EBEBEB;padding:6px 0 env(safe-area-inset-bottom,8px);z-index:50;}
+.mob-nav-inner{display:flex;justify-content:space-around;}
+.mob-link{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:#999;text-decoration:none;padding:6px 12px;font-weight:500;}
+.mob-link.on{color:#18A86B;}
+.mob-link .ico{font-size:20px;}
+.mob-new{width:44px;height:44px;border-radius:50%;background:#18A86B;display:flex;align-items:center;justify-content:center;font-size:20px;margin-top:-14px;color:#fff;box-shadow:0 2px 12px rgba(24,168,107,.3);}
 
-/* Employee responsive */
-@media(max-width:480px){
-  .phone{width:100%;}
-  .bottom-nav{width:100%;left:0;transform:none;}
+/* ─── Card ─── */
+.card{background:#fff;border:1px solid #EBEBEB;border-radius:12px;padding:16px;margin-bottom:12px;transition:border-color .15s;}
+.card:hover{border-color:#CCC;}
+
+/* ─── Badge ─── */
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:600;}
+
+/* ─── Pill / Filter ─── */
+.pill{padding:6px 14px;border-radius:99px;border:1px solid #EBEBEB;background:#fff;cursor:pointer;font-size:13px;font-family:inherit;font-weight:500;color:#666;transition:all .15s;}
+.pill:hover{border-color:#CCC;}
+.pill.on{background:#0A0A0A;color:#fff;border-color:#0A0A0A;}
+
+/* ─── Bar ─── */
+.bar-wrap{height:6px;background:#EBEBEB;border-radius:6px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:6px;background:#18A86B;}
+
+/* ─── Avatar ─── */
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex-shrink:0;background:#F0F0F0;color:#666;}
+
+/* ─── Table List (events, leaderboard) ─── */
+.list-card{background:#fff;border:1px solid #EBEBEB;border-radius:16px;overflow:hidden;}
+.list-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid #EBEBEB;transition:background .1s;cursor:pointer;}
+.list-row:last-child{border-bottom:none;}
+.list-row:hover{background:#FAFAFA;}
+
+/* ─── Section ─── */
+.section{margin-bottom:28px;}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.section-title{font-size:15px;font-weight:600;}
+.section-link{font-size:12px;color:#18A86B;text-decoration:none;font-weight:500;}
+.section-link:hover{text-decoration:underline;}
+
+/* ─── Metric ─── */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px;}
+.metric{background:#fff;border:1px solid #EBEBEB;border-radius:12px;padding:16px;transition:border-color .15s;}
+.metric:hover{border-color:#CCC;}
+.metric .value{font-size:28px;font-weight:700;letter-spacing:-1px;line-height:1;}
+.metric .label{font-size:11px;color:#999;margin-top:6px;font-weight:500;}
+.metric .change{font-size:11px;color:#18A86B;margin-top:4px;font-weight:500;}
+
+/* ─── Streak ─── */
+.streak-bar{background:#0A0A0A;border-radius:16px;padding:16px 20px;margin-bottom:28px;display:flex;align-items:center;gap:14px;color:#fff;}
+.streak-bar .icon{font-size:28px;}
+.streak-bar .info{flex:1;}
+.streak-bar .num{font-size:20px;font-weight:700;}
+.streak-bar .sub{font-size:12px;color:rgba(255,255,255,.6);}
+.streak-bar .sbadge{background:#18A86B;border-radius:99px;padding:5px 14px;font-size:12px;font-weight:600;}
+
+/* ─── Form inputs ─── */
+input,select,textarea{font-family:inherit;border:1px solid #EBEBEB;border-radius:10px;padding:10px 14px;font-size:13px;background:#fff;color:#0A0A0A;width:100%;transition:border-color .15s;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:#18A86B;}
+.field-error{color:#EF4444;font-size:12px;margin-top:4px;font-weight:500;}
+
+/* ─── Buttons ─── */
+.btn{border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+.btn-primary{background:#18A86B;color:#fff;}
+.btn-primary:hover{background:#0E7C4A;}
+.btn-outline{background:#fff;color:#0A0A0A;border:1px solid #EBEBEB;}
+.btn-outline:hover{border-color:#CCC;background:#FAFAFA;}
+.btn-danger{background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;}
+.btn-danger:hover{background:#FEE2E2;}
+.btn-full{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;}
+
+/* ─── Status badges ─── */
+.b-confirmed,.b-active{background:#ECFDF3;color:#18A86B;}
+.b-open,.b-pending,.b-waiting_business{background:#FEF3C7;color:#D97706;}
+.b-completed{background:#F0F0F0;color:#666;}
+.b-cancelled,.b-rejected{background:#FEF2F2;color:#EF4444;}
+
+/* ─── Empty state ─── */
+.empty{text-align:center;padding:40px 20px;color:#999;}
+.empty .ico{font-size:32px;margin-bottom:8px;}
+.empty .txt{font-size:14px;font-weight:500;}
+
+/* ─── Modal overlay ─── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:#fff;border-radius:16px;padding:24px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;}
+.modal-dark{background:#1A1A1A;color:#fff;}
+
+/* ─── Responsive ─── */
+@media(max-width:640px){
+  .topnav-links,.topnav-new{display:none;}
+  .hamburger{display:flex;}
+  .mob-nav{display:block;}
+  .emain{padding:16px 16px 90px;}
+  .metrics{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .metric .value{font-size:24px;}
 }
-@media(min-width:481px) and (max-width:768px){
-  .phone{width:100%;max-width:520px;}
-  .bottom-nav{width:100%;max-width:520px;}
+@media(min-width:641px){
+  .hamburger{display:none;}
+  .mob-nav{display:none;}
 }

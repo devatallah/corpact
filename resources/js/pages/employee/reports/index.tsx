@@ -103,361 +103,175 @@ export default function EmployeeReports({
             <Head title="تقاريري" />
 
             {/* Page Header */}
-            <div style={{ padding: '16px 0 20px' }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#0F1923' }}>
-                    📊 تقاريري
+            <div style={{ marginBottom: 28 }}>
+                <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.5px' }}>📊 تقاريري</h1>
+                <p style={{ fontSize: 14, color: '#666', marginTop: 4 }}>{employee.name}</p>
+            </div>
+
+            {/* 4 Stat Cards */}
+            <div className="metrics">
+                <div className="metric" style={{ borderTop: '3px solid #1A56DB' }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>📊</div>
+                    <div className="value">{myStats.total_activities}</div>
+                    <div className="label">إجمالي أنشطتي</div>
                 </div>
-                <div style={{ fontSize: 13, color: '#7A8BA8', marginTop: 3 }}>
-                    {employee.name}
+                <div className="metric" style={{ borderTop: '3px solid #0F7B6C' }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>⏱️</div>
+                    <div className="value">{myStats.total_hours}</div>
+                    <div className="label">ساعات النشاط</div>
+                </div>
+                <div className="metric" style={{ borderTop: '3px solid #059669' }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>💰</div>
+                    <div className="value">{budget.total_used.toLocaleString()}</div>
+                    <div className="label">إنفاق الدعم</div>
+                </div>
+                <div className="metric" style={{ borderTop: '3px solid #0A0A0A' }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>👥</div>
+                    <div className="value">{myStats.unique_people}</div>
+                    <div className="label">زملاء شاركت معهم</div>
                 </div>
             </div>
 
-            {/* 4 Stat Cards Row */}
-            <div style={{ display: 'flex', gap: 10, marginBottom: 20, overflowX: 'auto', paddingBottom: 4 }}>
-                {/* Total Activities */}
-                <div style={{
-                    minWidth: 130,
-                    flexShrink: 0,
-                    background: '#fff',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: 12,
-                    padding: 20,
-                    borderTop: '3px solid #1A56DB',
-                }}>
-                    <div style={{ fontSize: 22 }}>📊</div>
-                    <div style={{ fontSize: 24, fontWeight: 900, color: '#0F1923', marginTop: 8 }}>
-                        {myStats.total_activities}
-                    </div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#4A5C78', marginTop: 2 }}>إجمالي أنشطتي</div>
-                    <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 1 }}>نشاطاً</div>
+            {/* Budget Card */}
+            <div ref={budgetRef} className="card" style={{ marginBottom: 16, padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid #EBEBEB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: 15, fontWeight: 600 }}>💳 ميزانية الدعم</div>
+                    <button className="no-print btn btn-outline" onClick={() => printCard(budgetRef.current, 'ميزانية الدعم')} style={{ fontSize: 12, padding: '4px 10px' }}>
+                        ⬇️ تحميل
+                    </button>
                 </div>
 
-                {/* Total Hours */}
-                <div style={{
-                    minWidth: 130,
-                    flexShrink: 0,
-                    background: '#fff',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: 12,
-                    padding: 20,
-                    borderTop: '3px solid #0F7B6C',
-                }}>
-                    <div style={{ fontSize: 22 }}>⏱️</div>
-                    <div style={{ fontSize: 24, fontWeight: 900, color: '#0F1923', marginTop: 8 }}>
-                        {myStats.total_hours}
+                <div style={{ padding: 16 }}>
+                    {/* Progress bar label */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontSize: 13, color: '#999' }}>هذا الشهر</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#18A86B' }}>{budget.this_month_used.toLocaleString()} ر</span>
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#4A5C78', marginTop: 2 }}>ساعات النشاط</div>
-                    <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 1 }}>ساعة مجموع</div>
-                </div>
 
-                {/* Budget Used */}
-                <div style={{
-                    minWidth: 130,
-                    flexShrink: 0,
-                    background: '#fff',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: 12,
-                    padding: 20,
-                    borderTop: '3px solid #059669',
-                }}>
-                    <div style={{ fontSize: 22 }}>💰</div>
-                    <div style={{ fontSize: 24, fontWeight: 900, color: '#0F1923', marginTop: 8 }}>
-                        {budget.total_used.toLocaleString()}
+                    {/* Progress bar */}
+                    <div className="bar-wrap" style={{ height: 10, marginBottom: 10 }}>
+                        <div className="bar-fill" style={{ width: `${monthlyPct}%`, minWidth: monthlyPct > 0 ? 12 : 0, transition: 'width 0.5s ease' }} />
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#4A5C78', marginTop: 2 }}>إنفاق الدعم</div>
-                    <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 1 }}>ريال هذا العام</div>
-                </div>
 
-                {/* Unique People */}
-                <div style={{
-                    minWidth: 130,
-                    flexShrink: 0,
-                    background: '#fff',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: 12,
-                    padding: 20,
-                    borderTop: '3px solid #111827',
-                }}>
-                    <div style={{ fontSize: 22 }}>👥</div>
-                    <div style={{ fontSize: 24, fontWeight: 900, color: '#0F1923', marginTop: 8 }}>
-                        {myStats.unique_people}
+                    {/* Meta */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#999', marginBottom: 16 }}>
+                        <span>المستخدم: <span style={{ fontWeight: 600, color: '#0A0A0A' }}>{budget.this_month_used.toLocaleString()} ر</span></span>
+                        <span>الإجمالي السنوي: <span style={{ fontWeight: 600, color: '#0A0A0A' }}>{budget.total_used.toLocaleString()} ر</span></span>
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#4A5C78', marginTop: 2 }}>زملاء شاركت معهم</div>
-                    <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 1 }}>شخصاً مختلفاً</div>
+
+                    <div style={{ height: 1, background: '#EBEBEB', marginBottom: 14 }} />
+
+                    {/* Renewal date */}
+                    <div style={{ fontSize: 13, color: '#999', marginBottom: 14 }}>
+                        🔄 تجدد ميزانيتك في <span style={{ fontWeight: 600, color: '#0A0A0A' }}>{budget.renewal_date}</span>
+                    </div>
+
+                    {/* Category breakdown pills */}
+                    {budget.breakdown.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            {budget.breakdown.map((item, idx) => (
+                                <span
+                                    key={idx}
+                                    className="badge b-confirmed"
+                                    style={{ fontSize: 13, padding: '5px 14px' }}
+                                >
+                                    {item.category_name}: {item.amount.toLocaleString()} ر
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Two-column grid */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
-
-                {/* Budget Card */}
-                <div ref={budgetRef} style={{
-                    background: '#fff',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: 12,
-                    overflow: 'hidden',
-                }}>
-                    <div style={{
-                        padding: '16px 20px',
-                        borderBottom: '1px solid #E5E7EB',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                    }}>
-                        <div style={{ fontSize: 15, fontWeight: 700 }}>ميزانية الدعم</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <button className="no-print" onClick={() => printCard(budgetRef.current, 'ميزانية الدعم')} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '4px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', color: '#7A8BA8', display: 'flex', alignItems: 'center', gap: 3 }}>
-                                ⬇️ تحميل
-                            </button>
-                            <span style={{ fontSize: 18 }}>💳</span>
-                        </div>
-                    </div>
-
-                    <div style={{ padding: 20 }}>
-                        {/* Progress bar label */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                            <div style={{ fontSize: 12, color: '#7A8BA8' }}>هذا الشهر</div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0F7B6C' }}>
-                                {budget.this_month_used.toLocaleString()} ر
-                            </div>
-                        </div>
-
-                        {/* Progress bar */}
-                        <div style={{ height: 10, background: '#E5E7EB', borderRadius: 99, overflow: 'hidden', marginBottom: 10 }}>
-                            <div style={{
-                                height: '100%',
-                                width: `${monthlyPct}%`,
-                                background: 'linear-gradient(90deg, #0F7B6C, #059669)',
-                                borderRadius: 99,
-                                transition: 'width 0.5s ease',
-                                minWidth: monthlyPct > 0 ? 12 : 0,
-                            }} />
-                        </div>
-
-                        {/* Meta */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#7A8BA8', marginBottom: 16 }}>
-                            <span>المستخدم: <span style={{ fontWeight: 700, color: '#0F1923' }}>{budget.this_month_used.toLocaleString()} ر</span></span>
-                            <span>الإجمالي السنوي: <span style={{ fontWeight: 700, color: '#0F1923' }}>{budget.total_used.toLocaleString()} ر</span></span>
-                        </div>
-
-                        {/* Separator */}
-                        <div style={{ height: 1, background: '#E5E7EB', marginBottom: 14 }} />
-
-                        {/* Renewal date */}
-                        <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 14 }}>
-                            🔄 تجدد ميزانيتك في{' '}
-                            <span style={{ fontWeight: 700, color: '#0F1923' }}>{budget.renewal_date}</span>
-                        </div>
-
-                        {/* Category breakdown pills */}
-                        {budget.breakdown.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                {budget.breakdown.map((item, idx) => (
-                                    <span
-                                        key={idx}
-                                        style={{
-                                            background: '#EBF0FE',
-                                            color: '#1A56DB',
-                                            borderRadius: 99,
-                                            padding: '5px 14px',
-                                            fontSize: 13,
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        {item.category_name}: {item.amount.toLocaleString()} ر
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+            {/* My Stats Card */}
+            <div ref={statsRef} className="card" style={{ marginBottom: 16, padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid #EBEBEB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: 15, fontWeight: 600 }}>⭐ إحصائياتي</div>
+                    <button className="no-print btn btn-outline" onClick={() => printCard(statsRef.current, 'إحصائياتي')} style={{ fontSize: 12, padding: '4px 10px' }}>
+                        ⬇️ تحميل
+                    </button>
                 </div>
 
-                {/* My Stats Card */}
-                <div ref={statsRef} style={{
-                    background: '#fff',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: 12,
-                    overflow: 'hidden',
-                }}>
-                    <div style={{
-                        padding: '16px 20px',
-                        borderBottom: '1px solid #E5E7EB',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                    }}>
-                        <div style={{ fontSize: 15, fontWeight: 700 }}>إحصائياتي</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <button className="no-print" onClick={() => printCard(statsRef.current, 'إحصائياتي')} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '4px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', color: '#7A8BA8', display: 'flex', alignItems: 'center', gap: 3 }}>
-                                ⬇️ تحميل
-                            </button>
-                            <span style={{ fontSize: 18 }}>⭐</span>
+                <div style={{ padding: 16 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        {/* Favorite Activity */}
+                        <div className="card" style={{ background: '#FAFAFA', marginBottom: 0 }}>
+                            <div style={{ fontSize: 12, color: '#999', marginBottom: 8, fontWeight: 500 }}>نشاطي المفضل</div>
+                            {myStats.favorite_activity ? (
+                                <>
+                                    <div style={{ fontSize: 20, marginBottom: 4 }}>{myStats.favorite_activity.icon ?? '🏃'}</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{myStats.favorite_activity.name}</div>
+                                    <div style={{ fontSize: 12, color: '#999' }}>{myStats.favorite_activity.count} من {myStats.total_activities} نشاط</div>
+                                </>
+                            ) : (
+                                <div style={{ fontSize: 13, color: '#999' }}>لا يوجد بعد</div>
+                            )}
                         </div>
-                    </div>
 
-                    <div style={{ padding: 20 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        {/* Longest Streak */}
+                        <div className="card" style={{ background: '#FAFAFA', marginBottom: 0 }}>
+                            <div style={{ fontSize: 12, color: '#999', marginBottom: 8, fontWeight: 500 }}>أطول streak</div>
+                            <div style={{ fontSize: 22, marginBottom: 4 }}>🔥</div>
+                            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{myStats.longest_streak} أسابيع</div>
+                            <div style={{ fontSize: 12, color: '#999' }}>متواصلة</div>
+                        </div>
 
-                            {/* Favorite Activity */}
-                            <div style={{
-                                background: '#F9FAFB',
-                                borderRadius: 10,
-                                padding: '14px 12px',
-                            }}>
-                                <div style={{ fontSize: 11, color: '#7A8BA8', marginBottom: 8, fontWeight: 600 }}>نشاطي المفضل</div>
-                                {myStats.favorite_activity ? (
-                                    <>
-                                        <div style={{ fontSize: 20, marginBottom: 4 }}>
-                                            {myStats.favorite_activity.icon ?? '🏃'}
-                                        </div>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0F1923', marginBottom: 3 }}>
-                                            {myStats.favorite_activity.name}
-                                        </div>
-                                        <div style={{ fontSize: 11, color: '#7A8BA8' }}>
-                                            {myStats.favorite_activity.count} من {myStats.total_activities} نشاط
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div style={{ fontSize: 12, color: '#7A8BA8' }}>لا يوجد بعد</div>
-                                )}
-                            </div>
+                        {/* This Month */}
+                        <div className="card" style={{ background: '#FAFAFA', marginBottom: 0 }}>
+                            <div style={{ fontSize: 12, color: '#999', marginBottom: 8, fontWeight: 500 }}>هذا الشهر</div>
+                            <div style={{ fontSize: 28, fontWeight: 700, color: '#18A86B', letterSpacing: '-1px', lineHeight: 1, marginBottom: 4 }}>{myStats.events_this_month}</div>
+                            <div style={{ fontSize: 12, color: '#999' }}>أنشطة</div>
+                        </div>
 
-                            {/* Longest Streak */}
-                            <div style={{
-                                background: '#F9FAFB',
-                                borderRadius: 10,
-                                padding: '14px 12px',
-                            }}>
-                                <div style={{ fontSize: 11, color: '#7A8BA8', marginBottom: 8, fontWeight: 600 }}>أطول streak</div>
-                                <div style={{ fontSize: 22, marginBottom: 4 }}>🔥</div>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: '#0F1923', marginBottom: 3 }}>
-                                    {myStats.longest_streak} أسابيع
-                                </div>
-                                <div style={{ fontSize: 11, color: '#7A8BA8' }}>متواصلة</div>
-                            </div>
-
-                            {/* This Month */}
-                            <div style={{
-                                background: '#F9FAFB',
-                                borderRadius: 10,
-                                padding: '14px 12px',
-                            }}>
-                                <div style={{ fontSize: 11, color: '#7A8BA8', marginBottom: 8, fontWeight: 600 }}>هذا الشهر</div>
-                                <div style={{ fontSize: 24, fontWeight: 900, color: '#1A56DB', marginBottom: 3 }}>
-                                    {myStats.events_this_month}
-                                </div>
-                                <div style={{ fontSize: 12, color: '#7A8BA8' }}>أنشطة</div>
-                            </div>
-
-                            {/* Community Rank */}
-                            <div style={{
-                                background: '#F9FAFB',
-                                borderRadius: 10,
-                                padding: '14px 12px',
-                            }}>
-                                <div style={{ fontSize: 11, color: '#7A8BA8', marginBottom: 8, fontWeight: 600 }}>ترتيبي في المجتمع</div>
-                                {myStats.community_rank ? (
-                                    <>
-                                        <div style={{ fontSize: 22, marginBottom: 4 }}>
-                                            {getRankEmoji(myStats.community_rank.rank)}
-                                        </div>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0F1923', marginBottom: 3 }}>
-                                            {myStats.community_rank.community_name}
-                                        </div>
-                                        <div style={{ fontSize: 11, color: '#7A8BA8' }}>
-                                            من {myStats.community_rank.total} عضو
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div style={{ fontSize: 12, color: '#7A8BA8' }}>غير مصنّف بعد</div>
-                                )}
-                            </div>
-
+                        {/* Community Rank */}
+                        <div className="card" style={{ background: '#FAFAFA', marginBottom: 0 }}>
+                            <div style={{ fontSize: 12, color: '#999', marginBottom: 8, fontWeight: 500 }}>ترتيبي في المجتمع</div>
+                            {myStats.community_rank ? (
+                                <>
+                                    <div style={{ fontSize: 22, marginBottom: 4 }}>{getRankEmoji(myStats.community_rank.rank)}</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{myStats.community_rank.community_name}</div>
+                                    <div style={{ fontSize: 12, color: '#999' }}>من {myStats.community_rank.total} عضو</div>
+                                </>
+                            ) : (
+                                <div style={{ fontSize: 13, color: '#999' }}>غير مصنّف بعد</div>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Activity Log Card */}
-            <div ref={activityRef} style={{
-                background: '#fff',
-                border: '1px solid #E5E7EB',
-                borderRadius: 12,
-                overflow: 'hidden',
-                marginBottom: 24,
-            }}>
+            <div ref={activityRef} className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 24 }}>
                 {/* Card Header */}
-                <div style={{
-                    padding: '16px 20px',
-                    borderBottom: '1px solid #E5E7EB',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: 10,
-                }}>
-                    <div style={{ fontSize: 15, fontWeight: 700 }}>سجل أنشطتي</div>
-                    <button className="no-print" onClick={() => printCard(activityRef.current, 'سجل أنشطتي')} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '4px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', color: '#7A8BA8', display: 'flex', alignItems: 'center', gap: 3 }}>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid #EBEBEB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: 15, fontWeight: 600 }}>سجل أنشطتي</div>
+                    <button className="no-print btn btn-outline" onClick={() => printCard(activityRef.current, 'سجل أنشطتي')} style={{ fontSize: 12, padding: '4px 10px' }}>
                         ⬇️ تحميل
                     </button>
                 </div>
 
                 {/* Filter Buttons */}
-                <div style={{
-                    padding: '12px 20px',
-                    borderBottom: '1px solid #E5E7EB',
-                    display: 'flex',
-                    gap: 8,
-                    overflowX: 'auto',
-                    flexWrap: 'nowrap',
-                }}>
-                    {/* All button */}
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid #EBEBEB', display: 'flex', gap: 8, overflowX: 'auto' }}>
                     <button
                         onClick={() => handleFilter(null)}
-                        style={{
-                            padding: '6px 14px',
-                            borderRadius: 8,
-                            fontSize: 13,
-                            border: currentFilter === null ? '1px solid #1A56DB' : '1px solid #E5E7EB',
-                            background: currentFilter === null ? '#EBF0FE' : '#fff',
-                            color: currentFilter === null ? '#1A56DB' : '#4A5C78',
-                            fontWeight: currentFilter === null ? 600 : 400,
-                            cursor: 'pointer',
-                            flexShrink: 0,
-                            whiteSpace: 'nowrap',
-                        }}
+                        className={`pill${currentFilter === null ? ' on' : ''}`}
                     >
                         الكل
                     </button>
-
-                    {/* Category filter buttons */}
-                    {categories.map((cat) => {
-                        const isActive = currentFilter === cat;
-                        return (
-                            <button
-                                key={cat}
-                                onClick={() => handleFilter(cat)}
-                                style={{
-                                    padding: '6px 14px',
-                                    borderRadius: 8,
-                                    fontSize: 13,
-                                    border: isActive ? '1px solid #1A56DB' : '1px solid #E5E7EB',
-                                    background: isActive ? '#EBF0FE' : '#fff',
-                                    color: isActive ? '#1A56DB' : '#4A5C78',
-                                    fontWeight: isActive ? 600 : 400,
-                                    cursor: 'pointer',
-                                    flexShrink: 0,
-                                    whiteSpace: 'nowrap',
-                                }}
-                            >
-                                {cat}
-                            </button>
-                        );
-                    })}
+                    {categories.map((cat) => (
+                        <button
+                            key={cat}
+                            onClick={() => handleFilter(cat)}
+                            className={`pill${currentFilter === cat ? ' on' : ''}`}
+                            style={{ whiteSpace: 'nowrap' }}
+                        >
+                            {cat}
+                        </button>
+                    ))}
                 </div>
 
                 {/* Activity Timeline */}
-                <div style={{ padding: '0 20px' }}>
+                <div>
                     {activityLog.length > 0 ? (
                         activityLog.map((item, idx) => {
                             const color = getCategoryColor(item.category_name);
@@ -467,40 +281,25 @@ export default function EmployeeReports({
                             return (
                                 <div
                                     key={idx}
-                                    style={{
-                                        display: 'flex',
-                                        gap: 16,
-                                        padding: '14px 0',
-                                        borderBottom: isLast ? 'none' : '1px solid #E5E7EB',
-                                        alignItems: 'flex-start',
-                                    }}
+                                    className="list-row"
+                                    style={{ cursor: 'default', borderBottom: isLast ? 'none' : undefined }}
                                 >
                                     {/* Category Icon */}
-                                    <div style={{
-                                        width: 40,
-                                        height: 40,
-                                        borderRadius: 10,
-                                        background: `${color}18`,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: 18,
-                                        flexShrink: 0,
-                                    }}>
+                                    <div style={{ width: 40, height: 40, borderRadius: 10, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
                                         {item.category_icon ?? '🏃'}
                                     </div>
 
                                     {/* Content */}
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#0F1923', marginBottom: 4 }}>
+                                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>
                                             {item.category_name}
                                             {item.business_name && (
-                                                <span style={{ fontWeight: 400, color: '#7A8BA8' }}>
+                                                <span style={{ fontWeight: 400, color: '#999' }}>
                                                     {' — '}{item.business_name}
                                                 </span>
                                             )}
                                         </div>
-                                        <div style={{ fontSize: 12, color: '#7A8BA8', lineHeight: 1.6 }}>
+                                        <div style={{ fontSize: 12, color: '#999', lineHeight: 1.6 }}>
                                             {formatArabicDate(item.event_date)}
                                             {' · '}
                                             {formatArabicTime(item.start_time)}
@@ -511,27 +310,16 @@ export default function EmployeeReports({
                                     </div>
 
                                     {/* Amount */}
-                                    <div style={{
-                                        fontWeight: 700,
-                                        fontSize: 14,
-                                        color: '#1A56DB',
-                                        flexShrink: 0,
-                                        paddingTop: 2,
-                                    }}>
+                                    <div style={{ fontWeight: 700, fontSize: 14, color: '#18A86B', flexShrink: 0 }}>
                                         {item.company_subsidy} ر
                                     </div>
                                 </div>
                             );
                         })
                     ) : (
-                        <div style={{
-                            textAlign: 'center',
-                            padding: '32px 20px',
-                            color: '#7A8BA8',
-                            fontSize: 13,
-                        }}>
-                            <div style={{ fontSize: 32, marginBottom: 10 }}>📭</div>
-                            <div>لا توجد أنشطة مسجّلة</div>
+                        <div className="empty">
+                            <div className="ico">📭</div>
+                            <div className="txt">لا توجد أنشطة مسجّلة</div>
                         </div>
                     )}
                 </div>

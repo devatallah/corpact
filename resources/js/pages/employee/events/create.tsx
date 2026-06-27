@@ -228,23 +228,27 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
         <EmployeeLayout>
             <Head title="إنشاء فعالية" />
 
-            <div style={{ padding: '16px 0 20px' }}>
-                <div style={{ fontSize: 11, color: '#7A8BA8' }}>إنشاء فعالية جديدة</div>
-                <div style={{ fontSize: 20, fontWeight: 800 }}>اختر التفاصيل</div>
+            <div style={{ marginBottom: 28 }}>
+                <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.5px' }}>إنشاء فعالية</h1>
+                <p style={{ fontSize: 14, color: '#666', marginTop: 4 }}>اختر تفاصيل الفعالية الجديدة</p>
             </div>
 
             {/* Step indicators */}
-            <div style={{ display: 'flex', gap: 6, marginBottom: 24 }}>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
                 {[1, 2, 3].map((n) => (
-                    <div key={n} style={{ flex: 1, height: 4, borderRadius: 4, background: n <= step ? '#009E82' : '#E4E9F2' }} />
+                    <div key={n} className="bar-wrap" style={{ flex: 1 }}>
+                        {n <= step && <div className="bar-fill" style={{ width: '100%' }} />}
+                    </div>
                 ))}
             </div>
 
             <form onSubmit={handleSubmit}>
                 {/* === STEP 1: Pick Community === */}
                 {step === 1 && (
-                    <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>اختر المجتمع</div>
+                    <div className="section">
+                        <div className="section-head">
+                            <div className="section-title">اختر المجتمع</div>
+                        </div>
 
                         {communities.length > 0 ? (
                             communities.map((community) => {
@@ -254,26 +258,30 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                                         key={community.id}
                                         onClick={() => selectCommunity(community)}
                                         className="card"
-                                        style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', border: `2px solid ${isSelected ? '#009E82' : '#E4E9F2'}`, marginBottom: 10 }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', borderColor: isSelected ? '#18A86B' : undefined }}
                                     >
                                         <div><CategoryIcon icon={community.category?.icon} size={28} /></div>
                                         <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: 14, fontWeight: 700 }}>{community.name}</div>
-                                            <div style={{ fontSize: 11, color: '#7A8BA8' }}>{community.members_count} عضو</div>
+                                            <div style={{ fontSize: 14, fontWeight: 600 }}>{community.name}</div>
+                                            <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{community.members_count} عضو</div>
                                         </div>
-                                        {isSelected && <div style={{ color: '#009E82', fontWeight: 700 }}>✓</div>}
+                                        {isSelected && <div style={{ color: '#18A86B', fontWeight: 700, fontSize: 18 }}>✓</div>}
                                     </div>
                                 );
                             })
                         ) : (
-                            <div style={{ textAlign: 'center', padding: 24, color: '#7A8BA8', fontSize: 13 }}>لم تنضم لأي مجتمع بعد. انضم لمجتمع أولا.</div>
+                            <div className="empty">
+                                <div className="ico">📭</div>
+                                <div className="txt">لم تنضم لأي مجتمع بعد. انضم لمجتمع أولا.</div>
+                            </div>
                         )}
 
                         <button
                             type="button"
                             onClick={() => setStep(2)}
                             disabled={!data.community_id}
-                            style={{ width: '100%', padding: 16, background: '#009E82', color: '#000', border: 'none', borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', marginTop: 14 }}
+                            className="btn btn-primary btn-full"
+                            style={{ marginTop: 14, padding: '14px 20px', opacity: !data.community_id ? 0.5 : 1 }}
                         >
                             التالي
                         </button>
@@ -283,28 +291,28 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                 {/* === STEP 2: Business, Date, Duration, Players === */}
                 {step === 2 && (
                     <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>المنشأة والموعد</div>
+                        <div className="section-head" style={{ marginBottom: 16 }}>
+                            <div className="section-title">المنشأة والموعد</div>
+                        </div>
 
                         {/* Business select */}
-                        <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 6 }}>اختر المنشأة</div>
-                        <div style={{ position: 'relative', marginBottom: 16 }}>
+                        <div style={{ marginBottom: 16 }}>
+                            <label style={{ fontSize: 13, color: '#666', marginBottom: 6, display: 'block' }}>اختر المنشأة</label>
                             <select
                                 value={data.business_id}
                                 onChange={(e) => handlebusinessChange(e.target.value)}
-                                style={{ width: '100%', padding: '12px 14px', background: '#fff', border: '1px solid #E4E9F2', borderRadius: 12, fontSize: 13, appearance: 'none', cursor: 'pointer', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
                             >
                                 <option value="">اختر المنشأة...</option>
                                 {filteredbusinesses.map((business) => (
                                     <option key={business.id} value={business.id}>{business.name}</option>
                                 ))}
                             </select>
-                            <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#7A8BA8', pointerEvents: 'none' }}>▼</div>
                         </div>
 
                         {/* Venue multi-select */}
                         {selectedBusiness && availablevenues.length > 0 && (
                             <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 6 }}>اختر المرافق ({data.venue_ids.length})</div>
+                                <label style={{ fontSize: 13, color: '#666', marginBottom: 6, display: 'block' }}>اختر المرافق ({data.venue_ids.length})</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                     {availablevenues.map((venue) => {
                                         const isSelected = data.venue_ids.includes(venue.id);
@@ -312,24 +320,24 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                                             <div
                                                 key={venue.id}
                                                 onClick={() => togglevenue(venue.id)}
+                                                className="card"
                                                 style={{
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'space-between',
-                                                    padding: '12px 14px',
-                                                    background: isSelected ? '#009E8208' : '#fff',
-                                                    border: `2px solid ${isSelected ? '#009E82' : '#E4E9F2'}`,
-                                                    borderRadius: 12,
                                                     cursor: 'pointer',
+                                                    marginBottom: 0,
+                                                    borderColor: isSelected ? '#18A86B' : undefined,
+                                                    background: isSelected ? '#18A86B08' : '#fff',
                                                 }}
                                             >
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                    <div style={{ width: 18, height: 18, borderRadius: 4, ...(isSelected ? { background: '#009E82', display: 'flex', alignItems: 'center', justifyContent: 'center' } : { border: '2px solid #E4E9F2' }) }}>
+                                                    <div style={{ width: 18, height: 18, borderRadius: 4, ...(isSelected ? { background: '#18A86B', display: 'flex', alignItems: 'center', justifyContent: 'center' } : { border: '2px solid #EBEBEB' }) }}>
                                                         {isSelected && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}
                                                     </div>
-                                                    <span style={{ fontSize: 14, fontWeight: 700 }}>{venue.name}</span>
+                                                    <span style={{ fontSize: 14, fontWeight: 600 }}>{venue.name}</span>
                                                 </div>
-                                                <span style={{ fontSize: 11, color: '#7A8BA8' }}>{venue.category?.name ?? ''}</span>
+                                                <span style={{ fontSize: 12, color: '#999' }}>{venue.category?.name ?? ''}</span>
                                             </div>
                                         );
                                     })}
@@ -338,28 +346,27 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                         )}
 
                         {/* Date & Time */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                             <div>
-                                <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 6 }}>التاريخ</div>
+                                <label style={{ fontSize: 13, color: '#666', marginBottom: 6, display: 'block' }}>التاريخ</label>
                                 <input
                                     type="date"
                                     value={data.date}
                                     onChange={(e) => setData('date', e.target.value)}
-                                    style={{ width: '100%', background: '#fff', border: '1px solid #E4E9F2', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit' }}
                                 />
                             </div>
                             <div>
-                                <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 6 }}>الوقت</div>
+                                <label style={{ fontSize: 13, color: '#666', marginBottom: 6, display: 'block' }}>الوقت</label>
                                 <TimePicker value={data.time} onChange={(v) => setData('time', v)} />
                             </div>
                         </div>
 
                         {/* Duration (pricing) with peak/off-peak badges */}
                         <div style={{ marginBottom: 16 }}>
-                            <div style={{ fontSize: 12, color: '#7A8BA8', fontWeight: 600, marginBottom: 8 }}>مدة الحجز</div>
+                            <label style={{ fontSize: 13, color: '#666', fontWeight: 600, marginBottom: 8, display: 'block' }}>مدة الحجز</label>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {loadingPricings ? (
-                                    <div style={{ padding: '12px 14px', background: '#fff', border: '2px solid #E4E9F2', borderRadius: 12, fontSize: 13, color: '#7A8BA8', textAlign: 'center' }}>جاري تحميل الأسعار...</div>
+                                    <div className="card" style={{ textAlign: 'center', color: '#999', fontSize: 13, marginBottom: 0 }}>جاري تحميل الأسعار...</div>
                                 ) : availablePricings.length > 0 ? (
                                     availablePricings.map((p) => {
                                         const isSelected = Number(data.venue_pricing_id) === p.id;
@@ -372,28 +379,33 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                                             <div
                                                 key={p.id}
                                                 onClick={() => setData('venue_pricing_id', p.id)}
-                                                style={{ padding: '12px 14px', background: isSelected ? '#009E8208' : '#fff', border: `2px solid ${isSelected ? '#009E82' : '#E4E9F2'}`, borderRadius: 12, cursor: 'pointer' }}
+                                                className="card"
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    marginBottom: 0,
+                                                    borderColor: isSelected ? '#18A86B' : undefined,
+                                                    background: isSelected ? '#18A86B08' : '#fff',
+                                                }}
                                             >
                                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                        <div style={{ width: 18, height: 18, borderRadius: '50%', ...(isSelected ? { background: '#009E82', display: 'flex', alignItems: 'center', justifyContent: 'center' } : { border: '2px solid #E4E9F2' }) }}>
+                                                        <div style={{ width: 18, height: 18, borderRadius: '50%', ...(isSelected ? { background: '#18A86B', display: 'flex', alignItems: 'center', justifyContent: 'center' } : { border: '2px solid #EBEBEB' }) }}>
                                                             {isSelected && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} />}
                                                         </div>
-                                                        <span style={{ fontSize: 14, fontWeight: 700 }}>{p.duration_minutes} دقيقة</span>
-                                                        {/* Peak badge */}
+                                                        <span style={{ fontSize: 14, fontWeight: 600 }}>{p.duration_minutes} دقيقة</span>
                                                         {p.is_peak ? (
-                                                            <span style={{ background: '#E03050', color: '#fff', borderRadius: 4, padding: '1px 6px', fontSize: 9, fontWeight: 700 }}>ذروة</span>
+                                                            <span className="badge b-cancelled" style={{ fontSize: 9, padding: '1px 8px' }}>ذروة</span>
                                                         ) : (
-                                                            <span style={{ background: '#10B981', color: '#fff', borderRadius: 4, padding: '1px 6px', fontSize: 9, fontWeight: 700 }}>خارج الذروة</span>
+                                                            <span className="badge b-confirmed" style={{ fontSize: 9, padding: '1px 8px' }}>خارج الذروة</span>
                                                         )}
-                                                        {p.label && <span style={{ fontSize: 10, color: '#7A8BA8' }}>{p.label}</span>}
+                                                        {p.label && <span style={{ fontSize: 11, color: '#999' }}>{p.label}</span>}
                                                     </div>
-                                                    <span style={{ fontSize: 14, fontWeight: 800, color: isSelected ? '#009E82' : '#0F1923' }}>{durationTotal.toLocaleString()} ريال</span>
+                                                    <span style={{ fontSize: 14, fontWeight: 700, color: isSelected ? '#18A86B' : '#0A0A0A' }}>{durationTotal.toLocaleString()} ريال</span>
                                                 </div>
                                                 {selectedVenues.length > 1 && (
                                                     <div style={{ marginTop: 8, marginRight: 26, display: 'flex', flexDirection: 'column', gap: 2 }}>
                                                         {perVenue.map((c) => (
-                                                            <div key={c.name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#7A8BA8' }}>
+                                                            <div key={c.name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#999' }}>
                                                                 <span>{c.name}</span>
                                                                 <span>{c.price.toLocaleString()} ريال</span>
                                                             </div>
@@ -404,7 +416,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                                         );
                                     })
                                 ) : (
-                                    <div style={{ padding: '12px 14px', background: '#fff', border: '2px solid #E4E9F2', borderRadius: 12, fontSize: 13, color: '#7A8BA8', textAlign: 'center' }}>
+                                    <div className="card" style={{ textAlign: 'center', color: '#999', fontSize: 13, marginBottom: 0 }}>
                                         {!selectedBusiness ? 'اختر المنشأة أولا' : selectedVenues.length === 0 ? 'اختر المرافق أولا' : !data.date || !data.time ? 'حدد التاريخ والوقت لعرض الأسعار المتاحة' : 'لا توجد أسعار متاحة لهذا الوقت'}
                                     </div>
                                 )}
@@ -413,23 +425,23 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
 
                         {/* Players count */}
                         <div style={{ marginBottom: 16 }}>
-                            <div style={{ fontSize: 12, color: '#7A8BA8', fontWeight: 600, marginBottom: 8 }}>عدد اللاعبين</div>
+                            <label style={{ fontSize: 13, color: '#666', fontWeight: 600, marginBottom: 8, display: 'block' }}>عدد اللاعبين</label>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <button type="button" onClick={() => setData('capacity', Math.max(2, data.capacity - 1))} style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid #E4E9F2', background: '#fff', fontSize: 20, cursor: 'pointer', fontFamily: 'inherit' }}>−</button>
+                                <button type="button" onClick={() => setData('capacity', Math.max(2, data.capacity - 1))} className="btn btn-outline" style={{ width: 40, height: 40, padding: 0, fontSize: 20 }}>−</button>
                                 <input
                                     type="number"
                                     value={data.capacity}
                                     min={2}
                                     onChange={(e) => setData('capacity', Math.max(2, parseInt(e.target.value) || 2))}
-                                    style={{ flex: 1, textAlign: 'center', padding: 10, background: '#fff', border: '1px solid #009E82', borderRadius: 10, fontSize: 18, fontWeight: 800, outline: 'none' }}
+                                    style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 700, borderColor: '#18A86B' }}
                                 />
-                                <button type="button" onClick={() => setData('capacity', data.capacity + 1)} style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid #E4E9F2', background: '#fff', fontSize: 20, cursor: 'pointer', fontFamily: 'inherit' }}>+</button>
+                                <button type="button" onClick={() => setData('capacity', data.capacity + 1)} className="btn btn-outline" style={{ width: 40, height: 40, padding: 0, fontSize: 20 }}>+</button>
                             </div>
                         </div>
 
                         {/* Recurrence */}
                         <div style={{ marginBottom: 16 }}>
-                            <div style={{ fontSize: 12, color: '#7A8BA8', fontWeight: 600, marginBottom: 8 }}>التكرار</div>
+                            <label style={{ fontSize: 13, color: '#666', fontWeight: 600, marginBottom: 8, display: 'block' }}>التكرار</label>
                             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                 {([
                                     { value: 'none', label: 'مرة واحدة' },
@@ -439,27 +451,19 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                                 ] as const).map((opt) => {
                                     const isSelected = data.recurrence_type === opt.value;
                                     return (
-                                        <div
+                                        <button
                                             key={opt.value}
+                                            type="button"
                                             onClick={() => setData((prev) => ({
                                                 ...prev,
                                                 recurrence_type: opt.value,
                                                 recurrence_end_date: opt.value === 'none' ? '' : prev.recurrence_end_date,
                                                 recurrence_days: opt.value === 'weekly' ? prev.recurrence_days : [],
                                             }))}
-                                            style={{
-                                                padding: '8px 16px',
-                                                borderRadius: 10,
-                                                border: `2px solid ${isSelected ? '#009E82' : '#E4E9F2'}`,
-                                                background: isSelected ? '#009E8210' : '#fff',
-                                                cursor: 'pointer',
-                                                fontSize: 13,
-                                                fontWeight: isSelected ? 700 : 400,
-                                                color: isSelected ? '#009E82' : '#4A5C78',
-                                            }}
+                                            className={`pill${isSelected ? ' on' : ''}`}
                                         >
                                             {opt.label}
-                                        </div>
+                                        </button>
                                     );
                                 })}
                             </div>
@@ -468,13 +472,12 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                         {/* Recurrence end date */}
                         {data.recurrence_type !== 'none' && (
                             <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 6 }}>تاريخ انتهاء التكرار</div>
+                                <label style={{ fontSize: 13, color: '#666', marginBottom: 6, display: 'block' }}>تاريخ انتهاء التكرار</label>
                                 <input
                                     type="date"
                                     value={data.recurrence_end_date}
                                     min={data.date || undefined}
                                     onChange={(e) => setData('recurrence_end_date', e.target.value)}
-                                    style={{ width: '100%', background: '#fff', border: '1px solid #E4E9F2', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit' }}
                                 />
                             </div>
                         )}
@@ -482,7 +485,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                         {/* Weekly day selection */}
                         {data.recurrence_type === 'weekly' && (
                             <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 12, color: '#7A8BA8', fontWeight: 600, marginBottom: 8 }}>أيام التكرار</div>
+                                <label style={{ fontSize: 13, color: '#666', fontWeight: 600, marginBottom: 8, display: 'block' }}>أيام التكرار</label>
                                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                     {([
                                         { value: 0, label: 'أحد' },
@@ -510,12 +513,12 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    border: `2px solid ${isSelected ? '#009E82' : '#E4E9F2'}`,
-                                                    background: isSelected ? '#009E82' : '#fff',
-                                                    color: isSelected ? '#fff' : '#4A5C78',
+                                                    border: isSelected ? '2px solid #18A86B' : '1px solid #EBEBEB',
+                                                    background: isSelected ? '#18A86B' : '#fff',
+                                                    color: isSelected ? '#fff' : '#666',
                                                     cursor: 'pointer',
                                                     fontSize: 11,
-                                                    fontWeight: 700,
+                                                    fontWeight: 600,
                                                 }}
                                             >
                                                 {day.label}
@@ -528,7 +531,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
 
                         {/* Recurrence summary */}
                         {data.recurrence_type !== 'none' && data.recurrence_end_date && (
-                            <div style={{ background: '#009E8210', border: '1px solid #009E8233', borderRadius: 12, padding: '10px 14px', fontSize: 12, color: '#009E82', marginBottom: 16 }}>
+                            <div className="card" style={{ background: '#ECFDF3', borderColor: '#18A86B33', fontSize: 13, color: '#0E7C4A' }}>
                                 {data.recurrence_type === 'daily' && `سيتم إنشاء فعالية يومية من ${data.date} حتى ${data.recurrence_end_date}`}
                                 {data.recurrence_type === 'weekly' && `سيتم إنشاء فعالية أسبوعية${data.recurrence_days.length > 0 ? ` في الأيام المختارة` : ''} من ${data.date} حتى ${data.recurrence_end_date}`}
                                 {data.recurrence_type === 'monthly' && `سيتم إنشاء فعالية شهرية من ${data.date} حتى ${data.recurrence_end_date}`}
@@ -538,7 +541,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                         {/* Discount selection */}
                         {matchingDiscounts.length > 0 && totalPrice > 0 && (
                             <div style={{ marginBottom: 16 }}>
-                                <div style={{ fontSize: 12, color: '#7A8BA8', fontWeight: 600, marginBottom: 8 }}>خصومات متاحة</div>
+                                <label style={{ fontSize: 13, color: '#666', fontWeight: 600, marginBottom: 8, display: 'block' }}>خصومات متاحة</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                     {matchingDiscounts.map((d) => {
                                         const isSelected = data.discount_id === d.id;
@@ -549,24 +552,24 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                                             <div
                                                 key={d.id}
                                                 onClick={() => setData('discount_id', isSelected ? null : d.id)}
+                                                className="card"
                                                 style={{
-                                                    padding: '10px 14px',
-                                                    background: isSelected ? '#C8410A08' : '#fff',
-                                                    border: `2px solid ${isSelected ? '#C8410A' : '#E4E9F2'}`,
-                                                    borderRadius: 12,
                                                     cursor: 'pointer',
+                                                    marginBottom: 0,
+                                                    borderColor: isSelected ? '#D97706' : undefined,
+                                                    background: isSelected ? '#FEF3C708' : '#fff',
                                                 }}
                                             >
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                        <div style={{ width: 18, height: 18, borderRadius: '50%', ...(isSelected ? { background: '#C8410A', display: 'flex', alignItems: 'center', justifyContent: 'center' } : { border: '2px solid #E4E9F2' }) }}>
+                                                        <div style={{ width: 18, height: 18, borderRadius: '50%', ...(isSelected ? { background: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' } : { border: '2px solid #EBEBEB' }) }}>
                                                             {isSelected && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} />}
                                                         </div>
                                                         <div>
-                                                            <div style={{ fontSize: 13, fontWeight: 700, color: isSelected ? '#C8410A' : '#1C1410' }}>
+                                                            <div style={{ fontSize: 13, fontWeight: 600, color: isSelected ? '#D97706' : '#0A0A0A' }}>
                                                                 {d.name || (d.type === 'percentage' ? `${d.value}% خصم` : `${Number(d.value).toLocaleString()} ر.س خصم`)}
                                                             </div>
-                                                            <div style={{ fontSize: 11, color: '#8A7868', display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+                                                            <div style={{ fontSize: 12, color: '#999', display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
                                                                 <span>{d.type === 'percentage' ? `${d.value}%` : `${Number(d.value).toLocaleString()} ر.س`}</span>
                                                                 <span>{d.usage === 'one_time' ? 'مرة واحدة' : 'فترة زمنية'}</span>
                                                                 {d.start_time && d.end_time && <span>{d.start_time.slice(0, 5)} - {d.end_time.slice(0, 5)}</span>}
@@ -574,7 +577,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div style={{ fontSize: 15, fontWeight: 900, color: isSelected ? '#C8410A' : '#8A7868' }}>
+                                                    <div style={{ fontSize: 15, fontWeight: 700, color: isSelected ? '#D97706' : '#999' }}>
                                                         {amt.toLocaleString()} ر.س
                                                     </div>
                                                 </div>
@@ -586,70 +589,70 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                         )}
 
                         {/* Live price summary */}
-                        <div style={{ background: '#009E8210', border: '1px solid #009E8233', borderRadius: 14, padding: '14px 16px', marginBottom: 20 }}>
+                        <div className="card" style={{ background: '#ECFDF3', borderColor: '#18A86B33', marginBottom: 20 }}>
                             {/* Wallet balance */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                <span style={{ fontSize: 12, color: '#7A8BA8' }}>رصيد محفظة المجتمع</span>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: '#0F1923' }}>{communityBalance.toLocaleString()} ريال</span>
+                                <span style={{ fontSize: 13, color: '#666' }}>رصيد محفظة المجتمع</span>
+                                <span style={{ fontSize: 13, fontWeight: 600 }}>{communityBalance.toLocaleString()} ريال</span>
                             </div>
 
-                            <div style={{ height: 1, background: '#009E8222', margin: '8px 0' }} />
+                            <div style={{ height: 1, background: '#18A86B22', margin: '8px 0' }} />
 
                             {/* Total */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: '#0F1923' }}>إجمالي الحجز</span>
-                                <span style={{ fontSize: 14, fontWeight: 800, color: '#0F1923' }}>{totalPrice.toLocaleString()} ريال</span>
+                                <span style={{ fontSize: 13, fontWeight: 600 }}>إجمالي الحجز</span>
+                                <span style={{ fontSize: 14, fontWeight: 700 }}>{totalPrice.toLocaleString()} ريال</span>
                             </div>
 
                             {/* Per-venue breakdown */}
                             {venuePrices.map((c) => (
                                 <div key={c.name} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, paddingRight: 10 }}>
-                                    <span style={{ fontSize: 11, color: '#7A8BA8' }}>{c.name}</span>
-                                    <span style={{ fontSize: 11, color: '#7A8BA8' }}>{c.price.toLocaleString()} ريال</span>
+                                    <span style={{ fontSize: 12, color: '#999' }}>{c.name}</span>
+                                    <span style={{ fontSize: 12, color: '#999' }}>{c.price.toLocaleString()} ريال</span>
                                 </div>
                             ))}
 
                             {/* Discount deduction */}
                             {discountAmount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 }}>
-                                    <span style={{ fontSize: 12, color: '#C8410A' }}>خصم المنشأة</span>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#C8410A' }}>-{discountAmount.toLocaleString()} ريال</span>
+                                    <span style={{ fontSize: 13, color: '#D97706' }}>خصم المنشأة</span>
+                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#D97706' }}>-{discountAmount.toLocaleString()} ريال</span>
                                 </div>
                             )}
 
                             {/* Community wallet deduction */}
                             {communityContribution > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 }}>
-                                    <span style={{ fontSize: 12, color: '#7A8BA8' }}>خصم من المحفظة</span>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#009E82' }}>{communityContribution.toLocaleString()} ريال</span>
+                                    <span style={{ fontSize: 13, color: '#666' }}>خصم من المحفظة</span>
+                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#18A86B' }}>{communityContribution.toLocaleString()} ريال</span>
                                 </div>
                             )}
 
                             {/* Remaining after wallet */}
                             {communityContribution > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                    <span style={{ fontSize: 12, color: '#7A8BA8' }}>المتبقي على اللاعبين</span>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#0F1923' }}>{afterWallet.toLocaleString()} ريال</span>
+                                    <span style={{ fontSize: 13, color: '#666' }}>المتبقي على اللاعبين</span>
+                                    <span style={{ fontSize: 13, fontWeight: 600 }}>{afterWallet.toLocaleString()} ريال</span>
                                 </div>
                             )}
 
-                            <div style={{ height: 1, background: '#009E8222', margin: '8px 0' }} />
+                            <div style={{ height: 1, background: '#18A86B22', margin: '8px 0' }} />
 
                             {/* Per player */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: 13, fontWeight: 700 }}>حصة كل لاعب</span>
-                                <span style={{ fontSize: 20, fontWeight: 900, color: '#009E82' }}>{perPlayer.toLocaleString()} ريال</span>
+                                <span style={{ fontSize: 14, fontWeight: 600 }}>حصة كل لاعب</span>
+                                <span style={{ fontSize: 22, fontWeight: 700, color: '#18A86B' }}>{perPlayer.toLocaleString()} ريال</span>
                             </div>
                             {perPlayer <= 0 && totalPrice > 0 && (
-                                <div style={{ marginTop: 8, background: '#009E8218', borderRadius: 8, padding: '6px 10px', fontSize: 11, color: '#009E82', textAlign: 'center' }}>
+                                <div style={{ marginTop: 8, background: '#18A86B18', borderRadius: 10, padding: '6px 10px', fontSize: 12, color: '#18A86B', textAlign: 'center' }}>
                                     مغطى بالكامل من رصيد المجتمع
                                 </div>
                             )}
                         </div>
 
                         <div style={{ display: 'flex', gap: 10 }}>
-                            <button type="button" onClick={() => setStep(1)} style={{ flex: 1, padding: 16, background: '#E4E9F2', color: '#7A8BA8', border: 'none', borderRadius: 16, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>رجوع</button>
-                            <button type="button" onClick={() => setStep(3)} style={{ flex: 2, padding: 16, background: '#009E82', color: '#000', border: 'none', borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>التالي</button>
+                            <button type="button" onClick={() => setStep(1)} className="btn btn-outline" style={{ flex: 1, padding: '14px 20px' }}>رجوع</button>
+                            <button type="button" onClick={() => setStep(3)} className="btn btn-primary" style={{ flex: 2, padding: '14px 20px' }}>التالي</button>
                         </div>
                     </div>
                 )}
@@ -657,43 +660,48 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                 {/* === STEP 3: Review & Submit === */}
                 {step === 3 && (
                     <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>مراجعة الفعالية</div>
+                        <div className="section-head" style={{ marginBottom: 16 }}>
+                            <div className="section-title">مراجعة الفعالية</div>
+                        </div>
 
-                        <div className="card" style={{ borderColor: '#009E8233', marginBottom: 20 }}>
+                        <div className="card" style={{ borderColor: '#18A86B33', marginBottom: 20 }}>
                             {reviewRows.map((row, i) => (
-                                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', ...(i < reviewRows.length - 1 ? { borderBottom: '1px solid #E4E9F2' } : {}) }}>
-                                    <span style={{ fontSize: 12, color: '#7A8BA8' }}>{row.label}</span>
-                                    <span style={{ fontSize: 13, fontWeight: 700 }}>{row.value}</span>
+                                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', ...(i < reviewRows.length - 1 ? { borderBottom: '1px solid #EBEBEB' } : {}) }}>
+                                    <span style={{ fontSize: 13, color: '#999' }}>{row.label}</span>
+                                    <span style={{ fontSize: 13, fontWeight: 600 }}>{row.value}</span>
                                 </div>
                             ))}
                             {discountAmount > 0 && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #E4E9F2' }}>
-                                    <span style={{ fontSize: 12, color: '#C8410A' }}>خصم المنشأة</span>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#C8410A' }}>-{discountAmount.toLocaleString()} ريال</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #EBEBEB' }}>
+                                    <span style={{ fontSize: 13, color: '#D97706' }}>خصم المنشأة</span>
+                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#D97706' }}>-{discountAmount.toLocaleString()} ريال</span>
                                 </div>
                             )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
-                                <span style={{ fontSize: 12, color: '#7A8BA8' }}>حصة كل لاعب</span>
-                                <span style={{ fontSize: 15, fontWeight: 900, color: '#009E82' }}>{perPlayer.toLocaleString()} ريال</span>
+                                <span style={{ fontSize: 13, color: '#999' }}>حصة كل لاعب</span>
+                                <span style={{ fontSize: 16, fontWeight: 700, color: '#18A86B' }}>{perPlayer.toLocaleString()} ريال</span>
                             </div>
                         </div>
 
-                        <div style={{ background: '#009E8218', border: '1px solid #009E8233', borderRadius: 12, padding: '10px 14px', fontSize: 12, color: '#009E82', marginBottom: 20 }}>سيُرسل طلب الحجز للمنشأة بعد اكتمال عدد اللاعبين</div>
+                        <div className="card" style={{ background: '#ECFDF3', borderColor: '#18A86B33', fontSize: 13, color: '#0E7C4A', marginBottom: 20 }}>
+                            سيُرسل طلب الحجز للمنشأة بعد اكتمال عدد اللاعبين
+                        </div>
 
                         {Object.keys(errors).length > 0 && (
-                            <div style={{ background: '#E0305018', border: '1px solid #E0305033', borderRadius: 12, padding: '10px 14px', fontSize: 12, color: '#E03050', marginBottom: 16 }}>
+                            <div className="card" style={{ background: '#FEF2F2', borderColor: '#FECACA', marginBottom: 16 }}>
                                 {Object.values(errors).map((err, i) => (
-                                    <div key={i}>{err}</div>
+                                    <div key={i} className="field-error">{err}</div>
                                 ))}
                             </div>
                         )}
 
                         <div style={{ display: 'flex', gap: 10 }}>
-                            <button type="button" onClick={() => setStep(2)} style={{ flex: 1, padding: 16, background: '#E4E9F2', color: '#7A8BA8', border: 'none', borderRadius: 16, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>رجوع</button>
+                            <button type="button" onClick={() => setStep(2)} className="btn btn-outline" style={{ flex: 1, padding: '14px 20px' }}>رجوع</button>
                             <button
                                 type="submit"
                                 disabled={processing}
-                                style={{ flex: 2, padding: 16, background: 'linear-gradient(135deg,#009E82,#00A888)', color: '#000', border: 'none', borderRadius: 16, fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 24px rgba(0,158,130,.3)' }}
+                                className="btn btn-primary"
+                                style={{ flex: 2, padding: '14px 20px', opacity: processing ? 0.6 : 1 }}
                             >
                                 نشر الفعالية
                             </button>

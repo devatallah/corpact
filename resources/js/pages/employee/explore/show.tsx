@@ -13,25 +13,27 @@ export default function ExploreShow({ business }: Props) {
             <Head title={business.name} />
 
             {/* Back link */}
-            <div style={{ padding: '16px 0 8px' }}>
-                <Link href="/employee/explore" style={{ fontSize: 13, color: '#7A8BA8', textDecoration: 'none' }}>← العودة للاستكشاف</Link>
+            <div style={{ marginBottom: 8, paddingTop: 4 }}>
+                <Link href="/employee/explore" style={{ fontSize: 13, color: '#999', textDecoration: 'none' }}>← العودة للاستكشاف</Link>
             </div>
 
             {/* Business name */}
-            <div style={{ padding: '12px 0 20px' }}>
-                <div style={{ fontSize: 22, fontWeight: 800 }}>{business.name}</div>
-                <div style={{ fontSize: 13, color: '#7A8BA8', marginTop: 4 }}>
+            <div style={{ marginBottom: 28 }}>
+                <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.5px' }}>{business.name}</h1>
+                <p style={{ fontSize: 14, color: '#666', marginTop: 4 }}>
                     {[business.district, business.city].filter(Boolean).join('، ')}
-                </div>
+                </p>
             </div>
 
-            {/* Sports */}
+            {/* Categories */}
             {business.categories && business.categories.length > 0 && (
-                <div style={{ marginBottom: 20 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>الفئات</div>
+                <div className="section">
+                    <div className="section-head">
+                        <div className="section-title">الفئات</div>
+                    </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {business.categories.map(( cat) => (
-                            <span key={cat.id} style={{ background: '#009E8218', color: '#009E82', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 20 }}>
+                        {business.categories.map((cat) => (
+                            <span key={cat.id} className="badge b-confirmed" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 12px' }}>
                                 <CategoryIcon icon={cat.icon} size={16} /> {cat.name}
                             </span>
                         ))}
@@ -39,37 +41,41 @@ export default function ExploreShow({ business }: Props) {
                 </div>
             )}
 
-            {/* venues */}
+            {/* Venues */}
             {business.venues && business.venues.length > 0 ? (
-                <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>المرافق ({business.venues.length})</div>
-                    {business.venues.map((venue) => {
-                        const badge = venue.status === 'active'
-                            ? { bg: '#0CA67818', color: '#0CA678', label: 'نشط' }
-                            : { bg: '#E0305018', color: '#E03050', label: 'مغلق' };
-                        return (
-                            <div key={venue.id} className="card" style={{ marginBottom: 10 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div>
-                                        <div style={{ fontSize: 14, fontWeight: 700 }}>{venue.name}</div>
-                                        <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 2 }}>{venue.category?.name ?? '-'}</div>
+                <div className="section">
+                    <div className="section-head">
+                        <div className="section-title">المرافق ({business.venues.length})</div>
+                    </div>
+                    <div className="list-card">
+                        {business.venues.map((venue) => {
+                            const badgeClass = venue.status === 'active' ? 'b-confirmed' : 'b-cancelled';
+                            const badgeLabel = venue.status === 'active' ? 'نشط' : 'مغلق';
+                            return (
+                                <div key={venue.id} className="list-row" style={{ cursor: 'default' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: 14, fontWeight: 600 }}>{venue.name}</div>
+                                        <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{venue.category?.name ?? '-'}</div>
                                     </div>
-                                    <span style={{ background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{badge.label}</span>
+                                    <span className={`badge ${badgeClass}`}>{badgeLabel}</span>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
             ) : (
-                <div style={{ textAlign: 'center', padding: '30px 20px', color: '#7A8BA8', fontSize: 13 }}>لا توجد مرافق متاحة حاليا</div>
+                <div className="empty">
+                    <div className="ico">🏟️</div>
+                    <div className="txt">لا توجد مرافق متاحة حاليا</div>
+                </div>
             )}
 
             {/* Contact info */}
             {(business.contact_phone || business.email) && (
-                <div style={{ marginTop: 20, padding: 16, background: '#F0F2F8', borderRadius: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>معلومات التواصل</div>
-                    {business.email && <div style={{ fontSize: 12, color: '#4A5C78', marginBottom: 4 }} dir="ltr">{business.email}</div>}
-                    {business.contact_phone && <div style={{ fontSize: 12, color: '#4A5C78' }} dir="ltr">{business.contact_phone}</div>}
+                <div className="card" style={{ background: '#FAFAFA' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>معلومات التواصل</div>
+                    {business.email && <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }} dir="ltr">{business.email}</div>}
+                    {business.contact_phone && <div style={{ fontSize: 13, color: '#666' }} dir="ltr">{business.contact_phone}</div>}
                 </div>
             )}
         </EmployeeLayout>

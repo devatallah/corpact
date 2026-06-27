@@ -10,7 +10,7 @@ interface Props {
 }
 
 export default function LeagueCreate({ community, departments }: Props) {
-    const color = community.category?.color ?? community.color ?? '#009E82';
+    const color = community.category?.color ?? community.color ?? '#18A86B';
 
     const form = useForm({
         name: '',
@@ -66,72 +66,81 @@ export default function LeagueCreate({ community, departments }: Props) {
         <EmployeeLayout>
             <Head title="إنشاء بطولة" />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, marginTop: 16 }}>
-                <Link href={`/employee/community/${community.id}?tab=leagues`} style={{ color: '#7A8BA8', textDecoration: 'none', fontSize: 13 }}>← {community.name}</Link>
-                <span style={{ color: '#C8D0E0' }}>/</span>
-                <span style={{ fontWeight: 700, fontSize: 14 }}>إنشاء بطولة</span>
+            {/* Breadcrumb */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, paddingTop: 4 }}>
+                <Link href={`/employee/community/${community.id}?tab=leagues`} style={{ color: '#999', textDecoration: 'none', fontSize: 13 }}>← {community.name}</Link>
+                <span style={{ color: '#EBEBEB' }}>/</span>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>إنشاء بطولة</span>
+            </div>
+
+            <div style={{ marginBottom: 28 }}>
+                <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.5px' }}>إنشاء بطولة</h1>
             </div>
 
             {Object.keys(form.errors).length > 0 && (
-                <div className="card" style={{ background: '#E0305010', borderColor: '#E0305033', marginBottom: 12 }}>
+                <div className="card" style={{ background: '#FEF2F2', borderColor: '#FECACA' }}>
                     {Object.values(form.errors).map((err, i) => (
-                        <div key={i} style={{ fontSize: 12, color: '#E03050', marginBottom: 2 }}>{err}</div>
+                        <div key={i} className="field-error" style={{ marginTop: 0 }}>{err}</div>
                     ))}
                 </div>
             )}
 
             <form onSubmit={handleSubmit}>
                 {/* Name */}
-                <div className="card" style={{ marginBottom: 12 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#4A5C78', marginBottom: 8, display: 'block' }}>اسم البطولة *</label>
+                <div className="card">
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#0A0A0A', marginBottom: 8, display: 'block' }}>اسم البطولة *</label>
                     <input
                         type="text"
                         value={form.data.name}
                         onChange={(e) => form.setData('name', e.target.value)}
                         placeholder="مثال: بطولة البادل الأولى"
                         required
-                        style={{ width: '100%', padding: '10px 14px', border: '1px solid #E2E8F4', borderRadius: 10, fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
                     />
                 </div>
 
                 {/* Format */}
-                <div className="card" style={{ marginBottom: 12 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#4A5C78', marginBottom: 10, display: 'block' }}>نظام البطولة *</label>
+                <div className="card">
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#0A0A0A', marginBottom: 12, display: 'block' }}>نظام البطولة *</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {formatOptions.map((opt) => (
-                            <label
-                                key={opt.value}
-                                style={{
-                                    display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px',
-                                    border: `2px solid ${form.data.format === opt.value ? color : '#E2E8F4'}`,
-                                    borderRadius: 10, cursor: 'pointer', transition: 'border-color .15s',
-                                    background: form.data.format === opt.value ? `${color}08` : '#fff',
-                                }}
-                            >
-                                <input
-                                    type="radio"
-                                    name="format"
-                                    value={opt.value}
-                                    checked={form.data.format === opt.value}
-                                    onChange={() => form.setData('format', opt.value)}
-                                    style={{ marginTop: 2 }}
-                                />
-                                <div>
-                                    <div style={{ fontSize: 13, fontWeight: 700 }}>{opt.label}</div>
-                                    <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 2 }}>{opt.desc}</div>
-                                </div>
-                            </label>
-                        ))}
+                        {formatOptions.map((opt) => {
+                            const selected = form.data.format === opt.value;
+                            return (
+                                <label
+                                    key={opt.value}
+                                    className="card"
+                                    style={{
+                                        display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer',
+                                        marginBottom: 0, padding: '12px 14px',
+                                        borderColor: selected ? color : '#EBEBEB',
+                                        borderWidth: selected ? 2 : 1,
+                                        background: selected ? `${color}08` : '#fff',
+                                    }}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="format"
+                                        value={opt.value}
+                                        checked={selected}
+                                        onChange={() => form.setData('format', opt.value)}
+                                        style={{ marginTop: 2, width: 'auto' }}
+                                    />
+                                    <div>
+                                        <div style={{ fontSize: 14, fontWeight: 600 }}>{opt.label}</div>
+                                        <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{opt.desc}</div>
+                                    </div>
+                                </label>
+                            );
+                        })}
                     </div>
                 </div>
 
                 {/* Departments selection */}
-                <div className="card" style={{ marginBottom: 12 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#4A5C78', marginBottom: 4, display: 'block' }}>
+                <div className="card">
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#0A0A0A', marginBottom: 6, display: 'block' }}>
                         الأقسام المشاركة * ({count} مختار)
                     </label>
                     {isKnockout && (
-                        <div style={{ fontSize: 11, color: count > 0 && !isPowerOf2 ? '#E03050' : '#7A8BA8', marginBottom: 10 }}>
+                        <div style={{ fontSize: 12, color: count > 0 && !isPowerOf2 ? '#EF4444' : '#999', marginBottom: 12 }}>
                             {count > 0 && !isPowerOf2
                                 ? `عدد الأقسام يجب أن يكون 2 أو 4 أو 8 أو 16 (الحالي: ${count})`
                                 : 'اختر 2 أو 4 أو 8 أو 16 قسم'}
@@ -145,12 +154,8 @@ export default function LeagueCreate({ community, departments }: Props) {
                                     key={dept.id}
                                     type="button"
                                     onClick={() => toggleDepartment(dept.id)}
-                                    style={{
-                                        padding: '8px 16px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                        border: `2px solid ${selected ? color : '#E2E8F4'}`,
-                                        background: selected ? `${color}15` : '#fff',
-                                        color: selected ? color : '#4A5C78',
-                                    }}
+                                    className={`pill${selected ? ' on' : ''}`}
+                                    style={selected ? { background: color, borderColor: color } : undefined}
                                 >
                                     {selected ? '✓ ' : ''}{dept.name}
                                 </button>
@@ -158,41 +163,44 @@ export default function LeagueCreate({ community, departments }: Props) {
                         })}
                     </div>
                     {departments.length === 0 && (
-                        <div style={{ fontSize: 12, color: '#7A8BA8', padding: 12, textAlign: 'center' }}>لا توجد أقسام — أنشئ أقساماً من بوابة الشركة أولاً</div>
+                        <div className="empty">
+                            <div className="txt">لا توجد أقسام — أنشئ أقساماً من بوابة الشركة أولاً</div>
+                        </div>
                     )}
                 </div>
 
-                {/* Knockout: seed order / matchup arrangement */}
+                {/* Knockout: seed order */}
                 {isKnockout && seedOrder.length >= 2 && isPowerOf2 && (
-                    <div className="card" style={{ marginBottom: 12 }}>
-                        <label style={{ fontSize: 12, fontWeight: 700, color: '#4A5C78', marginBottom: 4, display: 'block' }}>ترتيب المواجهات</label>
-                        <div style={{ fontSize: 11, color: '#7A8BA8', marginBottom: 10 }}>رتّب الأقسام — كل زوج متجاور سيتقابل في الدور الأول</div>
-                        {seedOrder.map((deptId, index) => {
-                            const dept = departments.find(d => d.id === deptId);
-                            const isTop = index % 2 === 0;
-                            return (
-                                <div
-                                    key={deptId}
-                                    style={{
-                                        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-                                        background: isTop ? '#F7F8FA' : '#fff',
-                                        borderRadius: 8,
-                                        borderBottom: index % 2 === 1 ? `2px solid ${color}33` : 'none',
-                                        marginBottom: index % 2 === 1 ? 8 : 0,
-                                    }}
-                                >
-                                    <span style={{ fontSize: 12, color: '#7A8BA8', width: 20 }}>{index + 1}</span>
-                                    <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{dept?.name}</span>
-                                    <div style={{ display: 'flex', gap: 4 }}>
-                                        <button type="button" onClick={() => moveSeed(index, -1)} disabled={index === 0}
-                                            style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid #E2E8F4', background: '#fff', cursor: 'pointer', fontSize: 14 }}>↑</button>
-                                        <button type="button" onClick={() => moveSeed(index, 1)} disabled={index === seedOrder.length - 1}
-                                            style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid #E2E8F4', background: '#fff', cursor: 'pointer', fontSize: 14 }}>↓</button>
+                    <div className="card">
+                        <label style={{ fontSize: 13, fontWeight: 600, color: '#0A0A0A', marginBottom: 4, display: 'block' }}>ترتيب المواجهات</label>
+                        <div style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>رتّب الأقسام — كل زوج متجاور سيتقابل في الدور الأول</div>
+                        <div className="list-card">
+                            {seedOrder.map((deptId, index) => {
+                                const dept = departments.find(d => d.id === deptId);
+                                const isTop = index % 2 === 0;
+                                return (
+                                    <div
+                                        key={deptId}
+                                        className="list-row"
+                                        style={{
+                                            cursor: 'default',
+                                            background: isTop ? '#FAFAFA' : '#fff',
+                                            borderBottom: index % 2 === 1 ? `2px solid ${color}33` : undefined,
+                                        }}
+                                    >
+                                        <span style={{ fontSize: 13, color: '#999', width: 20 }}>{index + 1}</span>
+                                        <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{dept?.name}</span>
+                                        <div style={{ display: 'flex', gap: 4 }}>
+                                            <button type="button" onClick={() => moveSeed(index, -1)} disabled={index === 0}
+                                                className="btn btn-outline" style={{ padding: '4px 10px', fontSize: 14 }}>↑</button>
+                                            <button type="button" onClick={() => moveSeed(index, 1)} disabled={index === seedOrder.length - 1}
+                                                className="btn btn-outline" style={{ padding: '4px 10px', fontSize: 14 }}>↓</button>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                        <div style={{ marginTop: 12, fontSize: 11, color: '#7A8BA8' }}>
+                                );
+                            })}
+                        </div>
+                        <div style={{ marginTop: 12, fontSize: 12, color: '#999' }}>
                             المواجهات: {seedOrder.reduce<string[]>((acc, _, i) => {
                                 if (i % 2 === 0 && i + 1 < seedOrder.length) {
                                     const a = departments.find(d => d.id === seedOrder[i])?.name;
@@ -207,13 +215,11 @@ export default function LeagueCreate({ community, departments }: Props) {
 
                 <button
                     type="submit"
+                    className="btn btn-primary btn-full"
                     disabled={form.processing || !knockoutValid || count < 2}
                     style={{
-                        width: '100%', padding: '14px', borderRadius: 12, border: 'none',
-                        background: color, color: '#fff', fontSize: 14, fontWeight: 700,
-                        cursor: form.processing || !knockoutValid || count < 2 ? 'not-allowed' : 'pointer',
                         opacity: form.processing || !knockoutValid || count < 2 ? 0.5 : 1,
-                        fontFamily: 'inherit',
+                        cursor: form.processing || !knockoutValid || count < 2 ? 'not-allowed' : 'pointer',
                     }}
                 >
                     إنشاء البطولة
