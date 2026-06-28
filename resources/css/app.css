@@ -332,37 +332,8 @@ table.portal-table tr:last-child td{border-bottom:none;}
    EMPLOYEE PORTAL (mobile-first)
    ══════════════════════════════════════════ */
 
-.portal-employee{font-family:Tahoma,Arial,sans-serif;background:#F4F6FA;color:#0F1923;display:flex;justify-content:center;min-height:100vh;}
-.portal-employee .phone{width:430px;min-height:100vh;background:#F4F6FA;position:relative;}
-.portal-employee .topbar{position:sticky;top:0;z-index:10;background:rgba(244,246,250,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #E4E9F2;padding:10px 16px;display:flex;align-items:center;gap:10px;}
-.portal-employee .logo-ar{font-size:15px;font-weight:900;background:linear-gradient(90deg,#009E82,#D4820A);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
-.portal-employee .logo-en{font-size:9px;letter-spacing:2px;color:#7A8BA8;}
-.portal-employee .content{padding:0 16px 100px;}
-
-.portal-employee .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:430px;background:rgba(255,255,255,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid #E4E9F2;display:flex;z-index:20;}
-.portal-employee .nb{flex:1;padding:10px 0 12px;display:flex;flex-direction:column;align-items:center;gap:3px;background:transparent;border:none;cursor:pointer;font-family:inherit;position:relative;text-decoration:none;color:#7A8BA8;font-size:9px;}
-.portal-employee .nb .ico{font-size:20px;}
-.portal-employee .nb.on{color:#009E82;font-weight:700;}
-.portal-employee .nb.on::after{content:'';position:absolute;bottom:0;width:20px;height:2px;background:#009E82;border-radius:2px;}
-.portal-employee .nb-special{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#009E82,#00A888);display:flex;align-items:center;justify-content:center;font-size:20px;margin-top:-12px;box-shadow:0 4px 20px rgba(0,198,154,.4);color:#fff;}
-
-.portal-employee .card{background:#fff;border:1px solid #E4E9F2;border-radius:16px;padding:16px;margin-bottom:12px;}
-.portal-employee .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;}
-.portal-employee .pill{padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-family:inherit;}
-.portal-employee .bar-wrap{height:6px;background:#E4E9F2;border-radius:6px;overflow:hidden;}
-.portal-employee .bar-fill{height:100%;border-radius:6px;}
-.portal-employee .notif-dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:#E03050;border:2px solid #F4F6FA;}
-.portal-employee .row{display:flex;gap:12px;align-items:center;}
-.portal-employee .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
-
-@media(max-width:480px){
-  .portal-employee .phone{width:100%;}
-  .portal-employee .bottom-nav{width:100%;left:0;transform:none;}
-}
-@media(min-width:481px) and (max-width:768px){
-  .portal-employee .phone{width:100%;max-width:520px;}
-  .portal-employee .bottom-nav{width:100%;max-width:520px;}
-}
+/* Employee portal styles moved to resources/css/employee.css */
+.portal-employee{font-family:'Readex Pro',Tahoma,Arial,sans-serif;background:#FAFAFA;color:#0A0A0A;display:block;min-height:100vh;width:100%;}
 
 
 /* ══════════════════════════════════════════
