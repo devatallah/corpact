@@ -18,10 +18,10 @@ export default function EmployeeCreate() {
             <Head title="دعوة موظف" />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <Link href="/company/employees" style={{ color: '#999', textDecoration: 'none', fontSize: 14 }}>
+                <Link href="/company/employees" style={{ color: '#7A8BA8', textDecoration: 'none', fontSize: 14 }}>
                     ← الموظفون
                 </Link>
-                <span style={{ color: '#EBEBEB' }}>/</span>
+                <span style={{ color: '#C8D0E0' }}>/</span>
                 <span style={{ fontWeight: 700 }}>دعوة موظف جديد</span>
             </div>
 
@@ -33,15 +33,16 @@ export default function EmployeeCreate() {
                 </div>
             )}
 
-            <div className="card" style={{ maxWidth: 500 }}>
+            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 32, maxWidth: 500 }}>
                 <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>دعوة موظف</div>
-                <div style={{ fontSize: 13, color: '#999', marginBottom: 20 }}>سيصل الموظف رابط دعوة للانضمام للمنصة</div>
+                <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 20 }}>سيصل الموظف رابط دعوة للانضمام للمنصة</div>
                 <form onSubmit={handleSubmit}>
                     <div className="fg" style={{ marginBottom: 24 }}>
-                        <label>البريد الإلكتروني *</label>
+                        <label className="fl">البريد الإلكتروني *</label>
                         <input
                             type="email"
                             dir="ltr"
+                            className="fi"
                             placeholder="employee@company.com"
                             value={form.data.email}
                             onChange={(e) => form.setData('email', e.target.value)}
@@ -50,13 +51,12 @@ export default function EmployeeCreate() {
                     </div>
 
                     <div style={{ display: 'flex', gap: 10 }}>
-                        <button type="submit" className="ac-btn" style={{ flex: 1 }} disabled={form.processing}>
+                        <button type="submit" style={{ flex: 1, padding: 12, background: '#3B5BDB', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} disabled={form.processing}>
                             إرسال الدعوة
                         </button>
                         <Link
                             href="/company/employees"
-                            className="ac-btn secondary"
-                            style={{ padding: '12px 24px', textDecoration: 'none', textAlign: 'center' }}
+                            style={{ padding: '12px 24px', background: '#E2E8F4', borderRadius: 10, color: '#4A5C78', fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
                         >
                             إلغاء
                         </Link>

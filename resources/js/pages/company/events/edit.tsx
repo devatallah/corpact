@@ -33,10 +33,10 @@ export default function EventEdit({ event }: Props) {
             <Head title={`تعديل فعالية #${event.id}`} />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <Link href="/company/events" style={{ color: '#999', textDecoration: 'none', fontSize: 14 }}>
+                <Link href="/company/events" style={{ color: '#7A8BA8', textDecoration: 'none', fontSize: 14 }}>
                     ← الفعاليات
                 </Link>
-                <span style={{ color: '#EBEBEB' }}>/</span>
+                <span style={{ color: '#C8D0E0' }}>/</span>
                 <span style={{ fontWeight: 700 }}>تعديل فعالية #{event.id}</span>
             </div>
 
@@ -48,9 +48,9 @@ export default function EventEdit({ event }: Props) {
                 </div>
             )}
 
-            <div className="card" style={{ maxWidth: 600 }}>
+            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 32, maxWidth: 600 }}>
                 <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>تعديل الفعالية</div>
-                <div style={{ fontSize: 13, color: '#999', marginBottom: 20 }}>
+                <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 20 }}>
                     {event.community?.name ?? '-'} — {event.business?.name ?? '-'} — {event.category?.name ?? '-'}
                 </div>
                 <form onSubmit={handleSubmit}>
@@ -106,8 +106,7 @@ export default function EventEdit({ event }: Props) {
                         </button>
                         <Link
                             href="/company/events"
-                            className="ac-btn secondary"
-                            style={{ padding: '12px 24px', textDecoration: 'none', textAlign: 'center' }}
+                            style={{ padding: '12px 24px', background: '#E2E8F4', borderRadius: 10, color: '#4A5C78', fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
                         >
                             إلغاء
                         </Link>

@@ -36,22 +36,22 @@ export default function venueCreate({ categories }: Props) {
 
             {/* Breadcrumb */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <Link href="/business/venues" style={{ color: '#999', textDecoration: 'none', fontSize: 14 }}>← المرافق</Link>
-                <span style={{ color: '#EBEBEB' }}>/</span>
-                <span style={{ fontWeight: 700, color: '#0A0A0A' }}>إضافة مرفق</span>
+                <Link href="/business/venues" style={{ color: '#8A7868', textDecoration: 'none', fontSize: 14 }}>← المرافق</Link>
+                <span style={{ color: '#C8D0E0' }}>/</span>
+                <span style={{ fontWeight: 700 }}>إضافة مرفق</span>
             </div>
 
             {/* Errors */}
             {Object.keys(form.errors).length > 0 && (
-                <div style={{ background: '#EF444410', border: '1px solid #EF444433', borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
+                <div style={{ background: '#C8410A10', border: '1px solid #C8410A33', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
                     {Object.values(form.errors).map((error, i) => (
-                        <p key={i} style={{ fontSize: 12, color: '#EF4444', margin: '0 0 4px' }}>{error}</p>
+                        <p key={i} style={{ fontSize: 12, color: '#C8410A', margin: '0 0 4px' }}>{error}</p>
                     ))}
                 </div>
             )}
 
-            <div className="card" style={{ maxWidth: 500, padding: 32 }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#0A0A0A', marginBottom: 20 }}>إضافة مرفق جديد</div>
+            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 32, maxWidth: 500 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>إضافة مرفق جديد</div>
                 <form onSubmit={handleSubmit}>
                     <div className="fg" style={{ marginBottom: 16 }}>
                         <label>اسم المرفق *</label>
@@ -120,15 +120,14 @@ export default function venueCreate({ categories }: Props) {
                         <button
                             type="submit"
                             disabled={form.processing}
-                            className="ac-btn"
-                            style={{ flex: 1 }}
+                            className="act-btn btn-reject"
+                            style={{ flex: 1, background: '#C8410A', color: '#fff', borderColor: '#C8410A' }}
                         >
                             حفظ
                         </button>
                         <Link
                             href="/business/venues"
-                            className="btn btn-outline"
-                            style={{ padding: '12px 24px', textAlign: 'center', textDecoration: 'none' }}
+                            style={{ padding: '12px 24px', background: '#E2E8F4', borderRadius: 10, color: '#4A5C78', fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
                         >
                             إلغاء
                         </Link>

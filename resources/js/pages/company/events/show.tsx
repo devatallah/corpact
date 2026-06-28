@@ -71,14 +71,18 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
         });
     }
 
+    const cardStyle: React.CSSProperties = { background: '#fff', border: '1px solid #E4E9F2', borderRadius: 14, padding: '16px 18px', marginBottom: 14 };
+    const labelStyle: React.CSSProperties = { fontSize: 11, color: '#7A8BA8' };
+    const valueStyle: React.CSSProperties = { fontSize: 14, fontWeight: 700 };
+
     return (
         <CompanyLayout>
             <Head title={`فعالية #${event.id}`} />
 
             {/* Breadcrumb */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 13 }}>
-                <Link href="/company/events" style={{ color: '#999', textDecoration: 'none' }}>الفعاليات</Link>
-                <span style={{ color: '#EBEBEB' }}>/</span>
+                <Link href="/company/events" style={{ color: '#7A8BA8', textDecoration: 'none' }}>الفعاليات</Link>
+                <span style={{ color: '#C0C8D8' }}>/</span>
                 <span style={{ fontWeight: 700 }}>فعالية #{event.id}</span>
             </div>
 
@@ -88,7 +92,7 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                     <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>
                         <CategoryIcon icon={event.category?.icon} size={16} /> {event.community?.name}
                     </div>
-                    <div style={{ fontSize: 13, color: '#999' }}>
+                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>
                         {event.business?.name} — {fmtDate(event.event_date)} — {fmtTime(event.start_time)}
                     </div>
                 </div>
@@ -98,7 +102,7 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                         <button
                             onClick={() => setShowCancelModal(true)}
                             disabled={cancelProcessing}
-                            style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E03050', background: 'none', color: '#E03050', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: cancelProcessing ? 0.5 : 1 }}
+                            style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #E03050', background: 'none', color: '#E03050', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: cancelProcessing ? 0.5 : 1 }}
                         >
                             إلغاء الفعالية
                         </button>
@@ -108,31 +112,31 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
 
             {/* Info cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 20 }}>
-                <div className="card">
-                    <div style={{ fontSize: 11, color: '#999' }}>اللاعبون</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: fillPercent >= 100 ? '#18A86B' : undefined }}>
+                <div style={cardStyle}>
+                    <div style={labelStyle}>اللاعبون</div>
+                    <div style={{ ...valueStyle, color: fillPercent >= 100 ? '#0CA678' : undefined }}>
                         {event.participants_count}/{event.capacity}
                     </div>
-                    <div className="bar-w" style={{ marginTop: 8 }}>
-                        <div className="bar-f" style={{ width: `${fillPercent}%`, background: '#18A86B' }} />
+                    <div style={{ height: 4, background: '#E4E9F2', borderRadius: 4, marginTop: 8, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${fillPercent}%`, background: '#0CA678', borderRadius: 4 }} />
                     </div>
                 </div>
-                <div className="card">
-                    <div style={{ fontSize: 11, color: '#999' }}>عدد المرافق</div>
-                    <div style={{ fontSize: 14, fontWeight: 700 }}>{event.venues_count}</div>
+                <div style={cardStyle}>
+                    <div style={labelStyle}>عدد المرافق</div>
+                    <div style={valueStyle}>{event.venues_count}</div>
                 </div>
-                <div className="card">
-                    <div style={{ fontSize: 11, color: '#999' }}>إجمالي التكلفة</div>
-                    <div style={{ fontSize: 14, fontWeight: 700 }}>{Number(event.total_amount).toLocaleString()} ريال</div>
+                <div style={cardStyle}>
+                    <div style={labelStyle}>إجمالي التكلفة</div>
+                    <div style={valueStyle}>{Number(event.total_amount).toLocaleString()} ريال</div>
                 </div>
-                <div className="card">
-                    <div style={{ fontSize: 11, color: '#999' }}>حصة كل لاعب</div>
-                    <div style={{ fontSize: 14, fontWeight: 700 }}>{Number(event.cost_per_person).toLocaleString()} ريال</div>
+                <div style={cardStyle}>
+                    <div style={labelStyle}>حصة كل لاعب</div>
+                    <div style={valueStyle}>{Number(event.cost_per_person).toLocaleString()} ريال</div>
                 </div>
                 {Number(event.community_contribution) > 0 && (
-                    <div className="card">
-                        <div style={{ fontSize: 11, color: '#999' }}>خصم من المحفظة</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#18A86B' }}>{Number(event.community_contribution).toLocaleString()} ريال</div>
+                    <div style={cardStyle}>
+                        <div style={labelStyle}>خصم من المحفظة</div>
+                        <div style={{ ...valueStyle, color: '#009E82' }}>{Number(event.community_contribution).toLocaleString()} ريال</div>
                         {!event.budget_deducted_at && (
                             <div style={{ fontSize: 10, color: '#B8860A', marginTop: 4 }}>بانتظار موافقة المنشأة</div>
                         )}
@@ -142,23 +146,23 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
 
             {/* Recurrence info */}
             {event.recurrence_type && event.recurrence_type !== 'none' && (
-                <div className="card" style={{ background: '#18A86B08', borderColor: '#18A86B33', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ ...cardStyle, background: '#1A5FAB08', borderColor: '#1A5FAB33', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 16 }}>🔄</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#18A86B' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#1A5FAB' }}>
                         فعالية متكررة — {event.recurrence_type === 'daily' ? 'يومي' : event.recurrence_type === 'weekly' ? 'أسبوعي' : 'شهري'}
                     </span>
                     {event.recurrence_end_date && (
-                        <span style={{ fontSize: 11, color: '#999', marginRight: 'auto' }}>حتى {fmtDate(event.recurrence_end_date)}</span>
+                        <span style={{ fontSize: 11, color: '#7A8BA8', marginRight: 'auto' }}>حتى {fmtDate(event.recurrence_end_date)}</span>
                     )}
                 </div>
             )}
             {event.parent_event_id && (
-                <div className="card" style={{ background: '#18A86B08', borderColor: '#18A86B33', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ ...cardStyle, background: '#1A5FAB08', borderColor: '#1A5FAB33', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 16 }}>🔄</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#18A86B' }}>جزء من سلسلة فعاليات متكررة</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#1A5FAB' }}>جزء من سلسلة فعاليات متكررة</span>
                     <Link
                         href={`/company/events/${event.parent_event_id}`}
-                        style={{ fontSize: 11, color: '#18A86B', marginRight: 'auto', textDecoration: 'underline' }}
+                        style={{ fontSize: 11, color: '#1A5FAB', marginRight: 'auto', textDecoration: 'underline' }}
                     >
                         عرض السلسلة
                     </Link>
@@ -167,15 +171,15 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
 
             {/* Series timeline */}
             {seriesEvents && seriesEvents.length > 0 && (
-                <div className="card">
+                <div style={cardStyle}>
                     <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>
                         سلسلة الفعاليات ({seriesEvents.length + 1} فعاليات)
                     </div>
                     <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {seriesEvents.map((se) => {
                             const isCurrent = se.id === event.id;
-                            const statusColor = se.status === 'cancelled' ? '#E03050' : se.status === 'completed' ? '#999' : '#18A86B';
-                            const statusLbl = se.status === 'cancelled' ? 'ملغية' : se.status === 'completed' ? 'منتهية' : `${se.participants_count}/${se.capacity}`;
+                            const statusColor = se.status === 'cancelled' ? '#E03050' : se.status === 'completed' ? '#7A8BA8' : '#009E82';
+                            const statusLabel = se.status === 'cancelled' ? 'ملغية' : se.status === 'completed' ? 'منتهية' : `${se.participants_count}/${se.capacity}`;
                             return (
                                 <Link
                                     key={se.id}
@@ -187,21 +191,21 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                                         padding: '8px 12px',
                                         borderRadius: 10,
                                         textDecoration: 'none',
-                                        background: isCurrent ? '#18A86B10' : '#fff',
-                                        border: isCurrent ? '1px solid #18A86B33' : '1px solid #EBEBEB',
+                                        background: isCurrent ? '#009E8210' : '#fff',
+                                        border: isCurrent ? '1px solid #009E8233' : '1px solid #E4E9F2',
                                         color: 'inherit',
                                     }}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <span style={{ fontSize: 12, fontWeight: isCurrent ? 700 : 400, color: isCurrent ? '#18A86B' : '#666' }}>
+                                        <span style={{ fontSize: 12, fontWeight: isCurrent ? 700 : 400, color: isCurrent ? '#009E82' : '#4A5C78' }}>
                                             {fmtDate(se.event_date)}
                                         </span>
-                                        <span style={{ fontSize: 11, color: '#999' }}>
+                                        <span style={{ fontSize: 11, color: '#7A8BA8' }}>
                                             {fmtTime(se.start_time)}
                                         </span>
                                     </div>
                                     <span style={{ fontSize: 11, fontWeight: 600, color: statusColor }}>
-                                        {statusLbl}
+                                        {statusLabel}
                                     </span>
                                 </Link>
                             );
@@ -224,32 +228,32 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
             )}
 
             {/* Joined participants */}
-            <div className="card">
+            <div style={cardStyle}>
                 <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>
                     المنضمون ({joinedParticipants.length}/{event.capacity})
                 </div>
                 {joinedParticipants.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: '#999', fontSize: 13, padding: '16px 0' }}>
+                    <div style={{ textAlign: 'center', color: '#7A8BA8', fontSize: 13, padding: '16px 0' }}>
                         لا يوجد منضمون بعد
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {joinedParticipants.map((p) => (
-                            <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#FAFAFA', borderRadius: 10 }}>
+                            <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#F8F9FC', borderRadius: 10 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#18A86B20', color: '#18A86B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
+                                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#009E8220', color: '#009E82', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
                                         {p.name?.charAt(0)}
                                     </div>
                                     <div>
                                         <div style={{ fontSize: 13, fontWeight: 700 }}>{p.name}</div>
-                                        <div style={{ fontSize: 11, color: '#999' }}>{p.email}</div>
+                                        <div style={{ fontSize: 11, color: '#7A8BA8' }}>{p.email}</div>
                                     </div>
                                 </div>
                                 {canManageMembers && (
                                     <button
                                         onClick={() => toggleMember(p.id, true)}
                                         disabled={processing === p.id}
-                                        style={{ background: 'none', border: '1px solid #E03050', color: '#E03050', borderRadius: 10, padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: processing === p.id ? 0.5 : 1 }}
+                                        style={{ background: 'none', border: '1px solid #E03050', color: '#E03050', borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: processing === p.id ? 0.5 : 1 }}
                                     >
                                         إزالة
                                     </button>
@@ -262,15 +266,15 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
 
             {/* Add members from community */}
             {canManageMembers && (
-                <div className="card">
+                <div style={cardStyle}>
                     <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>
                         أعضاء المجتمع
                     </div>
-                    <div style={{ fontSize: 12, color: '#999', marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 12 }}>
                         اختر الموظفين لإضافتهم أو إزالتهم من الفعالية
                     </div>
                     {communityMembers.length === 0 ? (
-                        <div style={{ textAlign: 'center', color: '#999', fontSize: 13, padding: '16px 0' }}>
+                        <div style={{ textAlign: 'center', color: '#7A8BA8', fontSize: 13, padding: '16px 0' }}>
                             لا يوجد أعضاء في المجتمع
                         </div>
                     ) : (
@@ -285,32 +289,32 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                                         style={{
                                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                             padding: '10px 12px', borderRadius: 10,
-                                            background: isJoined ? '#18A86B08' : '#fff',
-                                            border: `1px solid ${isJoined ? '#18A86B44' : '#EBEBEB'}`,
+                                            background: isJoined ? '#009E8208' : '#fff',
+                                            border: `1px solid ${isJoined ? '#009E8244' : '#E4E9F2'}`,
                                         }}
                                     >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                             <div style={{
                                                 width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 fontSize: 14, fontWeight: 700,
-                                                background: isJoined ? '#18A86B20' : '#EBEBEB20',
-                                                color: isJoined ? '#18A86B' : '#999',
+                                                background: isJoined ? '#009E8220' : '#E4E9F220',
+                                                color: isJoined ? '#009E82' : '#7A8BA8',
                                             }}>
                                                 {member.name?.charAt(0)}
                                             </div>
                                             <div>
                                                 <div style={{ fontSize: 13, fontWeight: 600 }}>{member.name}</div>
-                                                <div style={{ fontSize: 11, color: '#999' }}>{member.email}</div>
+                                                <div style={{ fontSize: 11, color: '#7A8BA8' }}>{member.email}</div>
                                             </div>
                                         </div>
                                         <button
                                             onClick={() => toggleMember(member.id, isJoined)}
                                             disabled={isProcessing || (!isJoined && isFull)}
                                             style={{
-                                                background: isJoined ? 'none' : '#18A86B',
+                                                background: isJoined ? 'none' : '#009E82',
                                                 border: isJoined ? '1px solid #E03050' : 'none',
                                                 color: isJoined ? '#E03050' : '#fff',
-                                                borderRadius: 10, padding: '6px 14px', fontSize: 11, fontWeight: 700,
+                                                borderRadius: 8, padding: '6px 14px', fontSize: 11, fontWeight: 700,
                                                 cursor: isProcessing || (!isJoined && isFull) ? 'not-allowed' : 'pointer',
                                                 fontFamily: 'inherit',
                                                 opacity: isProcessing || (!isJoined && isFull) ? 0.5 : 1,
@@ -333,42 +337,42 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
 
             {/* Proposed Alternatives */}
             {event.status === 'alternative_proposed' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
-                <div className="card">
-                    <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14, color: '#18A86B' }}>
+                <div style={cardStyle}>
+                    <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14, color: '#1A5FAB' }}>
                         وقت بديل مقترح من المنشأة
                     </div>
                     {event.alternatives.filter((a) => a.status === 'proposed').map((alt) => (
-                        <div key={alt.id} style={{ background: '#18A86B08', border: '1px solid #18A86B22', borderRadius: 12, padding: 16, marginBottom: 10 }}>
+                        <div key={alt.id} style={{ background: '#1A5FAB08', border: '1px solid #1A5FAB22', borderRadius: 12, padding: 16, marginBottom: 10 }}>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 12 }}>
                                 <div>
-                                    <div style={{ fontSize: 11, color: '#999' }}>التاريخ</div>
+                                    <div style={{ fontSize: 11, color: '#7A8BA8' }}>التاريخ</div>
                                     <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtDate(alt.proposed_date)}</div>
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: 11, color: '#999' }}>من</div>
+                                    <div style={{ fontSize: 11, color: '#7A8BA8' }}>من</div>
                                     <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtTime(alt.proposed_start_time)}</div>
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: 11, color: '#999' }}>إلى</div>
+                                    <div style={{ fontSize: 11, color: '#7A8BA8' }}>إلى</div>
                                     <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtTime(alt.proposed_end_time)}</div>
                                 </div>
                                 {alt.proposed_venues_count && (
                                     <div>
-                                        <div style={{ fontSize: 11, color: '#999' }}>عدد المرافق</div>
+                                        <div style={{ fontSize: 11, color: '#7A8BA8' }}>عدد المرافق</div>
                                         <div style={{ fontSize: 14, fontWeight: 700 }}>{alt.proposed_venues_count}</div>
                                     </div>
                                 )}
                                 {alt.proposed_amount && (
                                     <div>
-                                        <div style={{ fontSize: 11, color: '#999' }}>المبلغ</div>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#18A86B' }}>{Number(alt.proposed_amount).toLocaleString()} ريال</div>
+                                        <div style={{ fontSize: 11, color: '#7A8BA8' }}>المبلغ</div>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#1A5FAB' }}>{Number(alt.proposed_amount).toLocaleString()} ريال</div>
                                     </div>
                                 )}
                             </div>
                             {alt.notes && (
-                                <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>{alt.notes}</div>
+                                <div style={{ fontSize: 12, color: '#4A5C78', marginBottom: 12 }}>{alt.notes}</div>
                             )}
-                            <div style={{ fontSize: 12, color: '#999', textAlign: 'center', padding: '8px 0' }}>
+                            <div style={{ fontSize: 12, color: '#7A8BA8', textAlign: 'center', padding: '8px 0' }}>
                                 بانتظار رد منشئ الفعالية
                             </div>
                         </div>
@@ -378,15 +382,19 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
 
             {/* Accepted/Rejected alternatives history */}
             {event.alternatives && event.alternatives.filter((a) => a.status !== 'proposed').length > 0 && (
-                <div className="card">
-                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: '#999' }}>سجل البدائل</div>
+                <div style={cardStyle}>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: '#7A8BA8' }}>سجل البدائل</div>
                     {event.alternatives.filter((a) => a.status !== 'proposed').map((alt) => (
-                        <div key={alt.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #EBEBEB' }}>
+                        <div key={alt.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #E4E9F2' }}>
                             <div style={{ fontSize: 12 }}>
                                 {fmtDate(alt.proposed_date)} — {fmtTime(alt.proposed_start_time)} إلى {fmtTime(alt.proposed_end_time)}
                                 {alt.proposed_amount ? ` — ${Number(alt.proposed_amount).toLocaleString()} ريال` : ''}
                             </div>
-                            <span className={`badge ${alt.status === 'accepted' ? 'b-confirmed' : 'b-rejected'}`}>
+                            <span style={{
+                                fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
+                                background: alt.status === 'accepted' ? '#0CA67818' : '#E0305018',
+                                color: alt.status === 'accepted' ? '#0CA678' : '#E03050',
+                            }}>
                                 {alt.status === 'accepted' ? 'مقبول' : 'مرفوض'}
                             </span>
                         </div>
@@ -396,9 +404,9 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
 
             {/* Notes */}
             {event.notes && (
-                <div className="card">
+                <div style={cardStyle}>
                     <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>ملاحظات</div>
-                    <div style={{ fontSize: 13, color: '#666' }}>{event.notes}</div>
+                    <div style={{ fontSize: 13, color: '#4A5C78' }}>{event.notes}</div>
                 </div>
             )}
 
@@ -411,30 +419,30 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                             <span style={{ fontSize: 22 }}>⚠</span>
                         </div>
                         <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>إلغاء الفعالية</div>
-                        <div style={{ fontSize: 13, color: '#999', marginBottom: 16 }}>
+                        <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 16 }}>
                             هل أنت متأكد من إلغاء هذه الفعالية؟ لا يمكن التراجع عن هذا الإجراء.
                         </div>
 
                         {/* Refund policy info */}
                         {refundPreview && refundPreview.original_contribution > 0 && (
-                            <div style={{ background: '#FAFAFA', border: '1px solid #EBEBEB', borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'right' }}>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: '#999', marginBottom: 10 }}>سياسة الاسترداد</div>
+                            <div style={{ background: '#F8F9FC', border: '1px solid #E4E9F2', borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'right' }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#7A8BA8', marginBottom: 10 }}>سياسة الاسترداد</div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                    <span style={{ fontSize: 12, color: '#999' }}>المبلغ المدفوع من المحفظة</span>
+                                    <span style={{ fontSize: 12, color: '#7A8BA8' }}>المبلغ المدفوع من المحفظة</span>
                                     <span style={{ fontSize: 13, fontWeight: 700 }}>{refundPreview.original_contribution.toLocaleString()} ريال</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                    <span style={{ fontSize: 12, color: '#999' }}>نسبة الاسترداد</span>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: refundPreview.percentage > 0 ? '#18A86B' : '#E03050' }}>{refundPreview.percentage}%</span>
+                                    <span style={{ fontSize: 12, color: '#7A8BA8' }}>نسبة الاسترداد</span>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: refundPreview.percentage > 0 ? '#0CA678' : '#E03050' }}>{refundPreview.percentage}%</span>
                                 </div>
-                                <div style={{ height: 1, background: '#EBEBEB', margin: '8px 0' }} />
+                                <div style={{ height: 1, background: '#E4E9F2', margin: '8px 0' }} />
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: 13, fontWeight: 700 }}>مبلغ الاسترداد</span>
-                                    <span style={{ fontSize: 18, fontWeight: 900, color: refundPreview.refund_amount > 0 ? '#18A86B' : '#E03050' }}>
+                                    <span style={{ fontSize: 18, fontWeight: 900, color: refundPreview.refund_amount > 0 ? '#0CA678' : '#E03050' }}>
                                         {refundPreview.refund_amount.toLocaleString()} ريال
                                     </span>
                                 </div>
-                                <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 8, fontSize: 11, textAlign: 'center', background: refundPreview.percentage === 100 ? '#18A86B18' : refundPreview.percentage > 0 ? '#F59E0B18' : '#E0305018', color: refundPreview.percentage === 100 ? '#18A86B' : refundPreview.percentage > 0 ? '#F59E0B' : '#E03050' }}>
+                                <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 8, fontSize: 11, textAlign: 'center', background: refundPreview.percentage === 100 ? '#0CA67818' : refundPreview.percentage > 0 ? '#F59E0B18' : '#E0305018', color: refundPreview.percentage === 100 ? '#0CA678' : refundPreview.percentage > 0 ? '#F59E0B' : '#E03050' }}>
                                     {refundPreview.policy_label}
                                     {refundPreview.percentage === 100 && ' — الإلغاء قبل 24 ساعة أو أكثر'}
                                     {refundPreview.percentage === 50 && ' — الإلغاء قبل 4 إلى 24 ساعة'}
@@ -446,8 +454,7 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                         <div style={{ display: 'flex', gap: 10 }}>
                             <button
                                 onClick={() => setShowCancelModal(false)}
-                                className="ac-btn secondary"
-                                style={{ flex: 1, padding: '10px 0' }}
+                                style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: '1px solid #E4E9F2', background: '#fff', color: '#4A5C78', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
                             >
                                 تراجع
                             </button>

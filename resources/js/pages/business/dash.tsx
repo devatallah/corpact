@@ -24,14 +24,14 @@ export default function businessDashboard({ business, stats, pendingEvents }: Pr
             <Head title="الرئيسية" />
 
             {/* Business Header */}
-            <div style={{ background: 'linear-gradient(135deg,#0A0A0A,#1a1a1a)', borderRadius: 12, padding: '24px 28px', marginBottom: 24, color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: 'linear-gradient(135deg,#1C1410,#2A1F18)', borderRadius: 20, padding: '24px 28px', marginBottom: 24, color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', letterSpacing: 2, marginBottom: 4 }}>TEAMAT &middot; business PORTAL</div>
                     <div style={{ fontSize: 24, fontWeight: 900 }}>{business.name}</div>
                     <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', marginTop: 4 }}>{business.district}، {business.city}</div>
                 </div>
                 <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: '#18A86B' }}>{business.rating ?? '0.0'} ⭐</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#F5A623' }}>{business.rating ?? '0.0'} ⭐</div>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>{(business.total_bookings ?? 0).toLocaleString()} حجز إجمالي</div>
                 </div>
             </div>
@@ -43,7 +43,7 @@ export default function businessDashboard({ business, stats, pendingEvents }: Pr
                     label="طلبات معلقة"
                     value={stats.pending_requests}
                     change="تحتاج ردك الآن"
-                    color="#18A86B"
+                    color="#C8410A"
                 />
                 <StatCard
                     emoji="✅"
@@ -57,7 +57,7 @@ export default function businessDashboard({ business, stats, pendingEvents }: Pr
                     label="الإيرادات"
                     value={`${stats.monthly_revenue.toLocaleString()} ر`}
                     change="هذا الشهر"
-                    color="#18A86B"
+                    color="#B8860A"
                 />
                 <StatCard
                     emoji="🏢"
@@ -71,10 +71,10 @@ export default function businessDashboard({ business, stats, pendingEvents }: Pr
             <div className="card">
                 <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14, display: 'flex', justifyContent: 'space-between' }}>
                     طلبات تحتاج ردك
-                    <Link href="/business/requests" className="ac-btn secondary" style={{ fontSize: 12, padding: '6px 14px' }}>عرض الكل</Link>
+                    <Link href="/business/requests" style={{ background: '#C8410A18', color: '#C8410A', border: 'none', borderRadius: 10, padding: '6px 14px', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>عرض الكل</Link>
                 </div>
                 {pendingEvents.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: 20, color: '#999', fontSize: 13 }}>لا توجد طلبات معلقة حالياً</div>
+                    <div style={{ textAlign: 'center', padding: 20, color: '#8A7868', fontSize: 13 }}>لا توجد طلبات معلقة حالياً</div>
                 ) : (
                     pendingEvents.map((event, index) => (
                         <Link
@@ -82,9 +82,9 @@ export default function businessDashboard({ business, stats, pendingEvents }: Pr
                             href="/business/requests"
                             style={{
                                 display: 'block',
-                                background: '#FAFAFA',
-                                border: '1px solid #EBEBEB',
-                                borderRight: '3px solid #18A86B',
+                                background: '#F7F4F0',
+                                border: '1px solid #EAE4DC',
+                                borderRight: '3px solid #C8410A',
                                 borderRadius: 12,
                                 padding: '12px 14px',
                                 cursor: 'pointer',
@@ -95,13 +95,13 @@ export default function businessDashboard({ business, stats, pendingEvents }: Pr
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                                 <div style={{ fontSize: 13, fontWeight: 700 }}>{event.company?.name}</div>
-                                <div style={{ fontSize: 11, color: '#999' }}>{fmtDateTime(event.created_at)}</div>
+                                <div style={{ fontSize: 11, color: '#8A7868' }}>{fmtDateTime(event.created_at)}</div>
                             </div>
                             <div style={{ display: 'flex', gap: 14 }}>
-                                <span style={{ fontSize: 11, color: '#999' }}>
+                                <span style={{ fontSize: 11, color: '#8A7868' }}>
                                     <CategoryIcon icon={event.category?.icon} size={14} /> {event.category?.name} &middot; {event.venues_count} {event.venues_count > 1 ? 'مرافق' : 'مرفق'} &middot; {fmtDate(event.event_date)}
                                 </span>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: '#18A86B' }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: '#B8860A' }}>
                                     {event.total_amount.toLocaleString()} ريال
                                 </span>
                             </div>

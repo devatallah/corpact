@@ -1,99 +1,41 @@
-/* ─── Company Portal — Unified Design System ─── */
-body{background:#FAFAFA;color:#0A0A0A;}
+/* Company theme colors */
+body{background:#F0F2F8;color:#0F1923;}
+.sidebar{width:220px;background:#1A2035;}
+.ni{color:rgba(255,255,255,.6);}
+.ni:hover{background:rgba(255,255,255,.05);}
+.ni.on{background:rgba(255,255,255,.08);color:#fff;font-weight:700;border-right-color:#00D4AA;}
+.logo .ar{background:linear-gradient(90deg,#00D4AA,#F5A623);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.co-info{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.1);}
+.co-info .lbl{font-size:10px;color:rgba(255,255,255,.3);margin-bottom:2px;}
+.co-info .nm{font-weight:700;color:#fff;font-size:12px;}
+.co-info .sb{font-size:10px;color:rgba(255,255,255,.4);}
 
-/* ─── Top Navigation ─── */
-.topnav{background:#fff;border-bottom:1px solid #EBEBEB;position:sticky;top:0;z-index:50;}
-.topnav-inner{max-width:900px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;}
-.topnav-right{display:flex;align-items:center;gap:20px;}
-.topnav-logo{font-size:20px;font-weight:700;color:#0A0A0A;letter-spacing:-.5px;text-decoration:none;}
-.topnav-links{display:flex;gap:4px;flex-wrap:wrap;}
-.topnav-link{padding:6px 14px;border-radius:99px;font-size:13px;font-weight:500;color:#999;text-decoration:none;transition:all .15s;white-space:nowrap;}
-.topnav-link:hover{color:#0A0A0A;background:#F5F5F5;}
-.topnav-link.on{color:#0A0A0A;background:#F0F0F0;font-weight:600;}
-.topnav-left{display:flex;align-items:center;gap:12px;}
-.topnav-bell{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:background .15s;position:relative;text-decoration:none;}
-.topnav-bell:hover{background:#F5F5F5;}
-.topnav-bell .dot{position:absolute;top:6px;right:6px;width:6px;height:6px;background:#EF4444;border-radius:50%;}
-.topnav-avatar{width:34px;height:34px;border-radius:50%;background:#18A86B;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;}
-.hamburger{display:none;width:34px;height:34px;border-radius:8px;align-items:center;justify-content:center;cursor:pointer;font-size:18px;background:none;border:none;}
+/* Company card/table/stat theme */
+.card{background:#fff;border:1px solid #E2E8F4;}
+.stat{background:#fff;border:1px solid #E2E8F4;}
+.sec-title{font-size:15px;font-weight:800;color:#0F1923;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+th{background:#F0F2F8;color:#7A8BA8;}
+td{border-top:1px solid #E2E8F4;}
+.fbtn{border:1px solid #E2E8F4;background:#fff;color:#7A8BA8;}
+.fbtn.on{background:#3B5BDB;color:#fff;border-color:#3B5BDB;}
 
-/* ─── Main Content ─── */
-.main{max-width:900px;margin:0 auto;padding:24px 24px 80px;}
+/* Company-specific elements */
+.bar-w{height:6px;background:#E2E8F4;border-radius:6px;overflow:hidden;}
+.bar-f{height:100%;border-radius:6px;}
+.ac-btn{background:#3B5BDB;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s;}
+.ac-btn:hover{background:#2B4BC9;}
+.ac-btn.secondary{background:#EEF2FF;color:#3B5BDB;}
+.ac-btn.secondary:hover{background:#DEE5FF;}
 
-/* ─── Card ─── */
-.card{background:#fff;border:1px solid #EBEBEB;border-radius:12px;padding:16px;margin-bottom:12px;transition:border-color .15s;}
-.sec-title{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+/* Company hamburger */
+.menu-toggle{background:#1A2035;border:1px solid rgba(255,255,255,.15);}
 
-/* ─── Stat ─── */
-.stat{background:#fff;border:1px solid #EBEBEB;border-radius:12px;padding:18px;transition:border-color .15s;}
-.stat:hover{border-color:#CCC;}
-
-/* ─── Table ─── */
-th{background:#FAFAFA;color:#999;font-weight:600;font-size:12px;}
-td{border-top:1px solid #EBEBEB;}
-
-/* ─── Filter buttons ─── */
-.fbtn{border:1px solid #EBEBEB;background:#fff;color:#666;border-radius:99px;transition:all .15s;}
-.fbtn:hover{border-color:#CCC;}
-.fbtn.on{background:#0A0A0A;color:#fff;border-color:#0A0A0A;}
-
-/* ─── Action buttons ─── */
-.ac-btn{background:#18A86B;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;}
-.ac-btn:hover{background:#0E7C4A;}
-.ac-btn.secondary{background:#ECFDF3;color:#18A86B;}
-.ac-btn.secondary:hover{background:#D1FAE5;}
-
-/* ─── Badge ─── */
-.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:600;}
-
-/* ─── Bar ─── */
-.bar-w{height:6px;background:#EBEBEB;border-radius:6px;overflow:hidden;}
-.bar-f{height:100%;border-radius:6px;background:#18A86B;}
-
-/* ─── Form ─── */
-input,select,textarea{font-family:inherit;border:1px solid #EBEBEB;border-radius:10px;padding:10px 14px;font-size:13px;background:#fff;color:#0A0A0A;width:100%;transition:border-color .15s;outline:none;}
-input:focus,select:focus,textarea:focus{border-color:#18A86B;}
-.field-error{color:#EF4444;font-size:12px;margin-top:4px;font-weight:500;}
-
-/* ─── Buttons ─── */
-.btn{border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
-.btn-primary{background:#18A86B;color:#fff;}
-.btn-primary:hover{background:#0E7C4A;}
-.btn-outline{background:#fff;color:#0A0A0A;border:1px solid #EBEBEB;}
-.btn-outline:hover{border-color:#CCC;background:#FAFAFA;}
-.btn-danger{background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;}
-.btn-danger:hover{background:#FEE2E2;}
-.btn-full{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;}
-
-/* ─── Status ─── */
-.b-active,.b-confirmed{background:#ECFDF3;color:#18A86B;}
-.b-pending,.b-waiting{background:#FEF3C7;color:#D97706;}
-.b-completed{background:#F0F0F0;color:#666;}
-.b-cancelled,.b-rejected{background:#FEF2F2;color:#EF4444;}
-
-/* ─── Mobile Bottom Nav ─── */
-.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.95);backdrop-filter:blur(20px);border-top:1px solid #EBEBEB;padding:6px 0 env(safe-area-inset-bottom,8px);z-index:50;}
-.mob-nav-inner{display:flex;justify-content:space-around;}
-.mob-link{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:#999;text-decoration:none;padding:6px 12px;font-weight:500;}
-.mob-link.on{color:#18A86B;}
-.mob-link .ico{font-size:18px;}
-
-/* ─── Responsive ─── */
+/* Company responsive overrides */
+@media(max-width:1024px){
+  div[style*="grid-template-columns:1.4fr 1fr"]{grid-template-columns:1fr !important;}
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important;}
+}
 @media(max-width:768px){
-  .topnav-links{display:none;}
-  .hamburger{display:flex;}
-  .mob-nav{display:block;}
-  .main{padding:16px 16px 90px;}
-  .stat-row{gap:10px;}
-  .stat{min-width:calc(50% - 10px);padding:14px;}
   table{min-width:550px;}
   div[style*="overflow:auto"]{overflow-x:auto !important;-webkit-overflow-scrolling:touch;}
-}
-@media(min-width:769px){
-  .hamburger{display:none;}
-  .mob-nav{display:none;}
-}
-@media(max-width:480px){
-  .main{padding:14px 8px 90px;}
-  .stat{min-width:100%;}
 }

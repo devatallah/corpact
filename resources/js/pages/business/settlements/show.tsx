@@ -24,7 +24,7 @@ export default function SettlementShow({ settlement }: Props) {
         rows.push({
             label: 'العمولة',
             value: `-${settlement.commission_amount.toLocaleString()} ر`,
-            color: '#EF4444',
+            color: '#C8410A',
         });
     }
 
@@ -52,14 +52,14 @@ export default function SettlementShow({ settlement }: Props) {
 
             {/* Breadcrumb */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <Link href="/business/settlements" style={{ color: '#999', textDecoration: 'none', fontSize: 14 }}>← التسويات</Link>
-                <span style={{ color: '#EBEBEB' }}>/</span>
-                <span style={{ fontWeight: 700, color: '#0A0A0A' }}>تسوية #{settlement.id}</span>
+                <Link href="/business/settlements" style={{ color: '#8A7868', textDecoration: 'none', fontSize: 14 }}>← التسويات</Link>
+                <span style={{ color: '#C8D0E0' }}>/</span>
+                <span style={{ fontWeight: 700 }}>تسوية #{settlement.id}</span>
             </div>
 
-            <div className="card" style={{ maxWidth: 600, padding: 32 }}>
+            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 32, maxWidth: 600 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#0A0A0A' }}>تفاصيل التسوية</div>
+                    <div style={{ fontSize: 18, fontWeight: 700 }}>تفاصيل التسوية</div>
                     <StatusBadge status={settlement.status} />
                 </div>
 
@@ -71,15 +71,15 @@ export default function SettlementShow({ settlement }: Props) {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 padding: '12px 0',
-                                borderBottom: i < rows.length - 1 ? '1px solid #EBEBEB' : undefined,
+                                borderBottom: i < rows.length - 1 ? '1px solid #E2E8F4' : undefined,
                             }}
                         >
-                            <span style={{ fontSize: 13, color: '#999' }}>{row.label}</span>
+                            <span style={{ fontSize: 13, color: '#7A8BA8' }}>{row.label}</span>
                             <span
                                 style={{
                                     fontSize: row.highlight ? 16 : 13,
                                     fontWeight: row.highlight ? 900 : 600,
-                                    color: row.highlight ? '#18A86B' : row.color ?? '#0A0A0A',
+                                    color: row.highlight ? '#1A7A4A' : row.color ?? undefined,
                                 }}
                             >
                                 {row.value}
@@ -91,11 +91,15 @@ export default function SettlementShow({ settlement }: Props) {
                 <div style={{ marginTop: 24 }}>
                     <Link
                         href="/business/settlements"
-                        className="btn btn-outline btn-full"
                         style={{
                             display: 'block',
                             textAlign: 'center',
                             padding: 12,
+                            background: '#E2E8F4',
+                            borderRadius: 10,
+                            color: '#4A5C78',
+                            fontSize: 14,
+                            fontWeight: 700,
                             textDecoration: 'none',
                         }}
                     >

@@ -22,8 +22,8 @@ interface Props {
 const TYPE_LABELS: Record<string, string> = { fixed: 'مبلغ ثابت', percentage: 'نسبة مئوية' };
 const USAGE_LABELS: Record<string, string> = { one_time: 'مرة واحدة', date_range: 'فترة زمنية' };
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
-    active: { bg: '#18A86B20', color: '#18A86B' },
-    expired: { bg: '#99999920', color: '#999' },
+    active: { bg: '#10B98120', color: '#10B981' },
+    expired: { bg: '#8A786820', color: '#8A7868' },
 };
 
 export default function DiscountsIndex({ discounts, companies }: Props) {
@@ -128,7 +128,8 @@ export default function DiscountsIndex({ discounts, companies }: Props) {
                 </div>
                 <button
                     onClick={() => { form.setData({ company_id: '', community_id: '', name: '', type: 'percentage', value: '', usage: 'one_time', starts_at: '', expires_at: '', start_time: '', end_time: '', status: 'active' }); setCommunities([]); setShowCreate(true); }}
-                    className="ac-btn"
+                    className="act-btn btn-reject"
+                    style={{ background: '#C8410A', color: '#fff', borderColor: '#C8410A' }}
                 >
                     + إضافة خصم
                 </button>
@@ -136,7 +137,7 @@ export default function DiscountsIndex({ discounts, companies }: Props) {
 
             <div>
                 {discounts.length === 0 ? (
-                    <div className="card" style={{ textAlign: 'center', padding: 40, color: '#999' }}>
+                    <div className="card" style={{ textAlign: 'center', padding: 40, color: '#8A7868' }}>
                         <div style={{ fontSize: 40, marginBottom: 12 }}>🏷️</div>
                         <div style={{ fontSize: 15, fontWeight: 700 }}>لا توجد خصومات</div>
                         <div style={{ fontSize: 12, marginTop: 4 }}>أنشئ خصمك الأول من الزر أعلاه</div>
@@ -150,14 +151,14 @@ export default function DiscountsIndex({ discounts, companies }: Props) {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                            <span style={{ fontSize: 15, fontWeight: 800, color: '#0A0A0A' }}>
+                                            <span style={{ fontSize: 15, fontWeight: 800 }}>
                                                 {discount.name || formatValue(discount)}
                                             </span>
-                                            <span className="badge" style={{ background: statusStyle.bg, color: statusStyle.color }}>
+                                            <span style={{ background: statusStyle.bg, color: statusStyle.color, borderRadius: 6, padding: '2px 8px', fontSize: 10, fontWeight: 700 }}>
                                                 {discount.status === 'active' ? 'نشط' : 'منتهي'}
                                             </span>
                                         </div>
-                                        <div style={{ fontSize: 12, color: '#999', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                        <div style={{ fontSize: 12, color: '#8A7868', display: 'flex', flexDirection: 'column', gap: 3 }}>
                                             <span>{discount.company?.name} — {discount.community?.name}</span>
                                             <span>
                                                 {TYPE_LABELS[discount.type]}: {formatValue(discount)}
@@ -179,15 +180,13 @@ export default function DiscountsIndex({ discounts, companies }: Props) {
                                     <div style={{ display: 'flex', gap: 6 }}>
                                         <button
                                             onClick={() => setEditingItem(discount)}
-                                            className="btn btn-outline"
-                                            style={{ padding: '5px 12px', fontSize: 12 }}
+                                            style={{ background: '#F7F4F0', border: '1px solid #EAE4DC', borderRadius: 8, padding: '5px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
                                         >
                                             تعديل
                                         </button>
                                         <button
                                             onClick={() => handleDelete(discount)}
-                                            className="btn btn-danger"
-                                            style={{ padding: '5px 12px', fontSize: 12 }}
+                                            style={{ background: '#E0305010', border: '1px solid #E0305033', borderRadius: 8, padding: '5px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#E03050' }}
                                         >
                                             حذف
                                         </button>
@@ -227,7 +226,7 @@ export default function DiscountsIndex({ discounts, companies }: Props) {
                                         <option value="percentage">نسبة مئوية (%)</option>
                                         <option value="fixed">مبلغ ثابت (ر.س)</option>
                                     </select>
-                                    {form.errors.type && <div className="field-error">{form.errors.type}</div>}
+                                    {form.errors.type && <div className="form-error">{form.errors.type}</div>}
                                 </div>
                                 <div className="fg">
                                     <label>القيمة {form.data.type === 'percentage' ? '(%)' : '(ر.س)'}</label>
@@ -239,7 +238,7 @@ export default function DiscountsIndex({ discounts, companies }: Props) {
                                         onChange={(e) => form.setData('value', e.target.value)}
                                         required
                                     />
-                                    {form.errors.value && <div className="field-error">{form.errors.value}</div>}
+                                    {form.errors.value && <div className="form-error">{form.errors.value}</div>}
                                 </div>
                             </div>
 
@@ -260,7 +259,7 @@ export default function DiscountsIndex({ discounts, companies }: Props) {
                                                 <option key={c.id} value={c.id}>{c.name}</option>
                                             ))}
                                         </select>
-                                        {form.errors.company_id && <div className="field-error">{form.errors.company_id}</div>}
+                                        {form.errors.company_id && <div className="form-error">{form.errors.company_id}</div>}
                                     </div>
                                     <div className="fg">
                                         <label>المجتمع</label>
@@ -275,7 +274,7 @@ export default function DiscountsIndex({ discounts, companies }: Props) {
                                                 <option key={c.id} value={c.id}>{c.name} ({c.category?.name})</option>
                                             ))}
                                         </select>
-                                        {form.errors.community_id && <div className="field-error">{form.errors.community_id}</div>}
+                                        {form.errors.community_id && <div className="form-error">{form.errors.community_id}</div>}
                                     </div>
                                 </div>
                             )}
@@ -295,9 +294,9 @@ export default function DiscountsIndex({ discounts, companies }: Props) {
                                                     flex: 1,
                                                     padding: '10px 14px',
                                                     borderRadius: 10,
-                                                    border: `2px solid ${isActive ? '#18A86B' : '#EBEBEB'}`,
-                                                    background: isActive ? '#18A86B10' : '#fff',
-                                                    color: isActive ? '#18A86B' : '#999',
+                                                    border: `2px solid ${isActive ? '#C8410A' : '#EAE4DC'}`,
+                                                    background: isActive ? '#C8410A10' : '#fff',
+                                                    color: isActive ? '#C8410A' : '#8A7868',
                                                     fontSize: 13,
                                                     fontWeight: 700,
                                                     cursor: 'pointer',
@@ -309,7 +308,7 @@ export default function DiscountsIndex({ discounts, companies }: Props) {
                                         );
                                     })}
                                 </div>
-                                {form.errors.usage && <div className="field-error">{form.errors.usage}</div>}
+                                {form.errors.usage && <div className="form-error">{form.errors.usage}</div>}
                             </div>
 
                             {/* Date range (only for date_range) */}
@@ -323,7 +322,7 @@ export default function DiscountsIndex({ discounts, companies }: Props) {
                                             onChange={(e) => form.setData('starts_at', e.target.value)}
                                             required
                                         />
-                                        {form.errors.starts_at && <div className="field-error">{form.errors.starts_at}</div>}
+                                        {form.errors.starts_at && <div className="form-error">{form.errors.starts_at}</div>}
                                     </div>
                                     <div className="fg">
                                         <label>تاريخ الانتهاء</label>
@@ -333,24 +332,24 @@ export default function DiscountsIndex({ discounts, companies }: Props) {
                                             onChange={(e) => form.setData('expires_at', e.target.value)}
                                             required
                                         />
-                                        {form.errors.expires_at && <div className="field-error">{form.errors.expires_at}</div>}
+                                        {form.errors.expires_at && <div className="form-error">{form.errors.expires_at}</div>}
                                     </div>
                                 </div>
                             )}
 
                             {/* Time restriction */}
                             <div style={{ marginBottom: 12 }}>
-                                <label style={{ display: 'block', fontSize: 12, color: '#999', fontWeight: 600, marginBottom: 8 }}>
+                                <label style={{ display: 'block', fontSize: 12, color: '#8A7868', fontWeight: 600, marginBottom: 8 }}>
                                     تقييد بساعات محددة (اختياري)
                                 </label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ fontSize: 11, color: '#999', minWidth: 30 }}>من</span>
-                                    <TimePicker value={form.data.start_time} onChange={(v) => form.setData('start_time', v)} style={{ padding: '8px 10px', borderRadius: 10, border: '1px solid #EBEBEB', fontSize: 13 }} />
-                                    <span style={{ fontSize: 11, color: '#999', minWidth: 30 }}>إلى</span>
-                                    <TimePicker value={form.data.end_time} onChange={(v) => form.setData('end_time', v)} style={{ padding: '8px 10px', borderRadius: 10, border: '1px solid #EBEBEB', fontSize: 13 }} />
+                                    <span style={{ fontSize: 11, color: '#8A7868', minWidth: 30 }}>من</span>
+                                    <TimePicker value={form.data.start_time} onChange={(v) => form.setData('start_time', v)} style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #EAE4DC', fontSize: 13 }} />
+                                    <span style={{ fontSize: 11, color: '#8A7868', minWidth: 30 }}>إلى</span>
+                                    <TimePicker value={form.data.end_time} onChange={(v) => form.setData('end_time', v)} style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #EAE4DC', fontSize: 13 }} />
                                 </div>
-                                {form.errors.start_time && <div className="field-error">{form.errors.start_time}</div>}
-                                {form.errors.end_time && <div className="field-error">{form.errors.end_time}</div>}
+                                {form.errors.start_time && <div className="form-error">{form.errors.start_time}</div>}
+                                {form.errors.end_time && <div className="form-error">{form.errors.end_time}</div>}
                             </div>
 
                             {/* Status (only when editing) */}
