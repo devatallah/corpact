@@ -1,5 +1,6 @@
 /* ─── Employee Portal — New Design System ─── */
-body{background:#FAFAFA;color:#0A0A0A;font-family:'Readex Pro',Tahoma,Arial,sans-serif;}
+body{background:#FAFAFA;color:#0A0A0A;font-family:'Readex Pro',Tahoma,Arial,sans-serif;display:block;}
+.portal-employee{width:100%;min-height:100vh;}
 
 /* ─── Top Navigation ─── */
 .topnav{background:#fff;border-bottom:1px solid #EBEBEB;position:sticky;top:0;z-index:50;}
