@@ -1,4 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
+import '../../css/main.css';
+import '../../css/employee.css';
 
 const navLinks = [
     { label: 'الرئيسية', href: '/employee/home' },
