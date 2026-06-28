@@ -56,11 +56,11 @@ interface Props {
     inactiveEmployees: InactiveEmployeeItem[];
 }
 
-const breakdownColors = ['#1A56DB', '#0F7B6C', '#B45309', '#059669'];
+const breakdownColors = ['#18A86B', '#0E7C4A', '#D4820A', '#18A86B'];
 
-function StatusBadge({ status }: { status: 'active' | 'moderate' | 'inactive' }) {
+function ReportStatusBadge({ status }: { status: 'active' | 'moderate' | 'inactive' }) {
     const map = {
-        active: { bg: '#D1FAE5', color: '#059669', label: 'نشط' },
+        active: { bg: '#18A86B18', color: '#18A86B', label: 'نشط' },
         moderate: { bg: '#FEF3C7', color: '#B45309', label: 'متوسط' },
         inactive: { bg: '#FEE2E2', color: '#DC2626', label: 'خامل' },
     };
@@ -89,8 +89,8 @@ function ChangeBadge({ change_pct }: { change_pct: number | null }) {
                 borderRadius: 99,
                 fontSize: 11,
                 fontWeight: 600,
-                background: '#F3F4F6',
-                color: '#6B7280',
+                background: '#FAFAFA',
+                color: '#999',
             }}>
                 —
             </span>
@@ -104,8 +104,8 @@ function ChangeBadge({ change_pct }: { change_pct: number | null }) {
                 borderRadius: 99,
                 fontSize: 11,
                 fontWeight: 600,
-                background: '#D1FAE5',
-                color: '#059669',
+                background: '#18A86B18',
+                color: '#18A86B',
             }}>
                 ↑ {change_pct}%
             </span>
@@ -151,42 +151,29 @@ export default function ReportsIndex({
             : `↓ ${Math.abs(diff).toFixed(1)}% عن الشهر الماضي`;
     })();
 
-    const cardStyle: React.CSSProperties = {
-        background: '#fff',
-        border: '1px solid #E5E7EB',
-        borderRadius: 12,
-        marginBottom: 20,
-        overflow: 'hidden',
-    };
-
     const cardHeaderStyle: React.CSSProperties = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '16px 20px',
-        borderBottom: '1px solid #E5E7EB',
-    };
-
-    const tableStyle: React.CSSProperties = {
-        width: '100%',
-        borderCollapse: 'collapse',
+        borderBottom: '1px solid #EBEBEB',
     };
 
     const thStyle: React.CSSProperties = {
-        background: '#F9FAFB',
+        background: '#FAFAFA',
         padding: '12px 14px',
         textAlign: 'right',
         fontWeight: 600,
         fontSize: 13,
-        color: '#374151',
-        borderBottom: '1px solid #E5E7EB',
+        color: '#0A0A0A',
+        borderBottom: '1px solid #EBEBEB',
     };
 
     const tdStyle: React.CSSProperties = {
         padding: '12px 14px',
         fontSize: 14,
-        color: '#111827',
-        borderBottom: '1px solid #E5E7EB',
+        color: '#0A0A0A',
+        borderBottom: '1px solid #EBEBEB',
     };
 
     return (
@@ -195,8 +182,8 @@ export default function ReportsIndex({
 
             {/* Page header */}
             <div style={{ marginBottom: 24 }}>
-                <h1 className="page-title">التقارير والإحصائيات</h1>
-                <p className="page-sub">ملخص شامل لأداء البرنامج</p>
+                <div className="page-title">التقارير والإحصائيات</div>
+                <div className="page-sub">ملخص شامل لأداء البرنامج</div>
             </div>
 
             {/* Alert box */}
@@ -216,7 +203,7 @@ export default function ReportsIndex({
                     fontWeight: 500,
                 }}>
                     <span>
-                        ⚠ تنبيه: {inactiveEmployees.length} موظفاً لم يشاركوا في أي نشاط خلال آخر ٣٠ يوماً.
+                        تنبيه: {inactiveEmployees.length} موظفاً لم يشاركوا في أي نشاط خلال آخر 30 يوماً.
                     </span>
                     <a
                         href="#inactive"
@@ -238,71 +225,55 @@ export default function ReportsIndex({
                     emoji="📊"
                     label="الموظفون المنضمون"
                     value={employeeActivity.total_employees}
-                    change={`↑ ${employeeActivity.participated_at_least_once} شارك فعلياً`}
-                    color="#1A56DB"
+                    change={`${employeeActivity.participated_at_least_once} شارك فعلياً`}
+                    color="#18A86B"
                 />
                 <StatCard
                     emoji="📈"
                     label="معدل المشاركة"
                     value={`${employeeActivity.participation_rate}%`}
                     change={monthlyChange ?? undefined}
-                    color="#0F7B6C"
+                    color="#0E7C4A"
                 />
                 <StatCard
                     emoji="💰"
                     label="الميزانية المتبقية"
                     value={budgetConsumption.remaining.toLocaleString()}
                     change={`من أصل ${budgetConsumption.total_budget.toLocaleString()} ريال`}
-                    color="#B45309"
+                    color="#D4820A"
                 />
                 <StatCard
                     emoji="🎯"
                     label="إجمالي الحجوزات"
                     value={totalBookings}
-                    color="#111827"
+                    color="#0A0A0A"
                 />
             </div>
 
             {/* Two-column grid */}
             <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
                 {/* Budget consumption card */}
-                <div ref={budgetRef} style={{ ...cardStyle, flex: '1 1 340px', minWidth: 0 }}>
+                <div ref={budgetRef} className="card" style={{ flex: '1 1 340px', minWidth: 0, padding: 0, overflow: 'hidden' }}>
                     <div style={cardHeaderStyle}>
-                        <span className="sec-title" style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>
+                        <span className="sec-title" style={{ margin: 0 }}>
                             استهلاك الميزانية
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{
-                                display: 'inline-block',
-                                padding: '4px 10px',
-                                borderRadius: 99,
-                                fontSize: 11,
-                                fontWeight: 600,
-                                background: '#DBEAFE',
-                                color: '#1A56DB',
-                            }}>
+                            <span className="badge" style={{ background: '#18A86B18', color: '#18A86B' }}>
                                 {budgetConsumption.used_pct}% مُستخدم
                             </span>
-                            <button className="no-print" onClick={() => printCard(budgetRef.current, 'استهلاك الميزانية')} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                ⬇️ تحميل
+                            <button className="no-print" onClick={() => printCard(budgetRef.current, 'استهلاك الميزانية')} style={{ background: 'none', border: '1px solid #EBEBEB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#999', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                تحميل
                             </button>
                         </div>
                     </div>
 
                     <div style={{ padding: '20px 20px 0' }}>
                         {/* Large progress bar */}
-                        <div style={{
-                            height: 24,
-                            borderRadius: 8,
-                            background: '#E5E7EB',
-                            overflow: 'hidden',
-                            marginBottom: 12,
-                        }}>
-                            <div style={{
+                        <div className="bar-w" style={{ height: 24, marginBottom: 12 }}>
+                            <div className="bar-f" style={{
                                 width: `${Math.min(budgetConsumption.used_pct, 100)}%`,
-                                height: '100%',
-                                background: '#1A56DB',
-                                borderRadius: 8,
+                                background: '#18A86B',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'flex-end',
@@ -324,15 +295,15 @@ export default function ReportsIndex({
                             display: 'flex',
                             justifyContent: 'space-between',
                             fontSize: 13,
-                            color: '#6B7280',
+                            color: '#999',
                             marginBottom: 16,
                         }}>
-                            <span>المستخدم: <strong style={{ color: '#111827' }}>{budgetConsumption.used.toLocaleString()}</strong></span>
-                            <span>المتبقي: <strong style={{ color: '#059669' }}>{budgetConsumption.remaining.toLocaleString()}</strong></span>
-                            <span>الكلي: <strong style={{ color: '#111827' }}>{budgetConsumption.total_budget.toLocaleString()}</strong></span>
+                            <span>المستخدم: <strong style={{ color: '#0A0A0A' }}>{budgetConsumption.used.toLocaleString()}</strong></span>
+                            <span>المتبقي: <strong style={{ color: '#18A86B' }}>{budgetConsumption.remaining.toLocaleString()}</strong></span>
+                            <span>الكلي: <strong style={{ color: '#0A0A0A' }}>{budgetConsumption.total_budget.toLocaleString()}</strong></span>
                         </div>
 
-                        <hr style={{ border: 'none', borderTop: '1px solid #E5E7EB', margin: '0 0 16px' }} />
+                        <hr style={{ border: 'none', borderTop: '1px solid #EBEBEB', margin: '0 0 16px' }} />
 
                         {/* Per-community breakdown */}
                         <div style={{ paddingBottom: 20 }}>
@@ -343,24 +314,17 @@ export default function ReportsIndex({
                                         justifyContent: 'space-between',
                                         fontSize: 13,
                                         marginBottom: 6,
-                                        color: '#374151',
+                                        color: '#0A0A0A',
                                     }}>
                                         <span style={{ fontWeight: 500 }}>{item.community_name}</span>
-                                        <span style={{ color: '#6B7280' }}>
+                                        <span style={{ color: '#999' }}>
                                             {item.amount.toLocaleString()} ({item.pct}%)
                                         </span>
                                     </div>
-                                    <div style={{
-                                        height: 8,
-                                        background: '#E5E7EB',
-                                        borderRadius: 99,
-                                        overflow: 'hidden',
-                                    }}>
-                                        <div style={{
+                                    <div className="bar-w" style={{ height: 8 }}>
+                                        <div className="bar-f" style={{
                                             width: `${Math.min(item.pct, 100)}%`,
-                                            height: '100%',
                                             background: breakdownColors[i % breakdownColors.length],
-                                            borderRadius: 99,
                                             transition: 'width 0.4s ease',
                                         }} />
                                     </div>
@@ -371,17 +335,17 @@ export default function ReportsIndex({
                 </div>
 
                 {/* Most booked activities card */}
-                <div ref={activitiesRef} style={{ ...cardStyle, flex: '1 1 300px', minWidth: 0 }}>
+                <div ref={activitiesRef} className="card" style={{ flex: '1 1 300px', minWidth: 0, padding: 0, overflow: 'hidden' }}>
                     <div style={cardHeaderStyle}>
-                        <span className="sec-title" style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>
+                        <span className="sec-title" style={{ margin: 0 }}>
                             الأنشطة الأكثر حجزاً
                         </span>
-                        <button className="no-print" onClick={() => printCard(activitiesRef.current, 'الأنشطة الأكثر حجزاً')} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            ⬇️ تحميل
+                        <button className="no-print" onClick={() => printCard(activitiesRef.current, 'الأنشطة الأكثر حجزاً')} style={{ background: 'none', border: '1px solid #EBEBEB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#999', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            تحميل
                         </button>
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                        <table style={tableStyle}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr>
                                     <th style={{ ...thStyle, width: 36 }}>#</th>
@@ -393,7 +357,7 @@ export default function ReportsIndex({
                             <tbody>
                                 {mostBookedActivities.map((activity, i) => (
                                     <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
-                                        <td style={{ ...tdStyle, color: '#9CA3AF', fontWeight: 600 }}>{i + 1}</td>
+                                        <td style={{ ...tdStyle, color: '#999', fontWeight: 600 }}>{i + 1}</td>
                                         <td style={{ ...tdStyle, fontWeight: 500 }}>{activity.category_name}</td>
                                         <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 700 }}>
                                             {activity.bookings.toLocaleString()}
@@ -405,7 +369,7 @@ export default function ReportsIndex({
                                 ))}
                                 {mostBookedActivities.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF' }}>
+                                        <td colSpan={4} style={{ ...tdStyle, textAlign: 'center', color: '#999' }}>
                                             لا توجد بيانات
                                         </td>
                                     </tr>
@@ -417,17 +381,17 @@ export default function ReportsIndex({
             </div>
 
             {/* Communities health table */}
-            <div ref={communitiesRef} style={cardStyle}>
+            <div ref={communitiesRef} className="card" style={{ padding: 0, overflow: 'hidden', marginTop: 20 }}>
                 <div style={cardHeaderStyle}>
-                    <span className="sec-title" style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>
+                    <span className="sec-title" style={{ margin: 0 }}>
                         صحة المجتمعات
                     </span>
-                    <button className="no-print" onClick={() => printCard(communitiesRef.current, 'صحة المجتمعات')} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        ⬇️ تحميل
+                    <button className="no-print" onClick={() => printCard(communitiesRef.current, 'صحة المجتمعات')} style={{ background: 'none', border: '1px solid #EBEBEB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#999', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        تحميل
                     </button>
                 </div>
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={tableStyle}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr>
                                 <th style={thStyle}>المجتمع</th>
@@ -450,17 +414,17 @@ export default function ReportsIndex({
                                     <td style={{ ...tdStyle, textAlign: 'center' }}>
                                         <span style={{ fontWeight: 600 }}>{community.attendance_rate}%</span>
                                     </td>
-                                    <td style={{ ...tdStyle, color: community.leader_name ? '#111827' : '#9CA3AF' }}>
+                                    <td style={{ ...tdStyle, color: community.leader_name ? '#0A0A0A' : '#999' }}>
                                         {community.leader_name ?? '—'}
                                     </td>
                                     <td style={{ ...tdStyle, textAlign: 'center' }}>
-                                        <StatusBadge status={community.status} />
+                                        <ReportStatusBadge status={community.status} />
                                     </td>
                                 </tr>
                             ))}
                             {communitiesReport.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF' }}>
+                                    <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', color: '#999' }}>
                                         لا توجد مجتمعات
                                     </td>
                                 </tr>
@@ -471,30 +435,22 @@ export default function ReportsIndex({
             </div>
 
             {/* Inactive employees table */}
-            <div ref={inactiveRef} id="inactive" style={cardStyle}>
+            <div ref={inactiveRef} id="inactive" className="card" style={{ padding: 0, overflow: 'hidden', marginTop: 20 }}>
                 <div style={cardHeaderStyle}>
-                    <span className="sec-title" style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>
+                    <span className="sec-title" style={{ margin: 0 }}>
                         موظفون غير مشاركين
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{
-                            display: 'inline-block',
-                            padding: '4px 10px',
-                            borderRadius: 99,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            background: '#FEE2E2',
-                            color: '#DC2626',
-                        }}>
+                        <span className="badge" style={{ background: '#FEE2E2', color: '#DC2626' }}>
                             {inactiveEmployees.length}
                         </span>
-                        <button className="no-print" onClick={() => printCard(inactiveRef.current, 'موظفون غير مشاركين')} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            ⬇️ تحميل
+                        <button className="no-print" onClick={() => printCard(inactiveRef.current, 'موظفون غير مشاركين')} style={{ background: 'none', border: '1px solid #EBEBEB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#999', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            تحميل
                         </button>
                     </div>
                 </div>
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={tableStyle}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr>
                                 <th style={thStyle}>الموظف</th>
@@ -508,28 +464,20 @@ export default function ReportsIndex({
                             {inactiveEmployees.map((employee, i) => (
                                 <tr key={employee.id} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
                                     <td style={{ ...tdStyle, fontWeight: 600 }}>{employee.name}</td>
-                                    <td style={{ ...tdStyle, color: '#6B7280', direction: 'ltr', textAlign: 'right' }}>
+                                    <td style={{ ...tdStyle, color: '#999', direction: 'ltr', textAlign: 'right' }}>
                                         {employee.email}
                                     </td>
-                                    <td style={{ ...tdStyle, textAlign: 'center', color: '#6B7280' }}>
+                                    <td style={{ ...tdStyle, textAlign: 'center', color: '#999' }}>
                                         {employee.joined_date}
                                     </td>
-                                    <td style={{ ...tdStyle, color: employee.community_name ? '#111827' : '#9CA3AF' }}>
+                                    <td style={{ ...tdStyle, color: employee.community_name ? '#0A0A0A' : '#999' }}>
                                         {employee.community_name ?? '—'}
                                     </td>
                                     <td style={{ ...tdStyle, textAlign: 'center' }}>
                                         {employee.last_event_date ? (
-                                            <span style={{ color: '#6B7280' }}>{employee.last_event_date}</span>
+                                            <span style={{ color: '#999' }}>{employee.last_event_date}</span>
                                         ) : (
-                                            <span style={{
-                                                display: 'inline-block',
-                                                padding: '2px 10px',
-                                                borderRadius: 99,
-                                                fontSize: 11,
-                                                fontWeight: 600,
-                                                background: '#FEE2E2',
-                                                color: '#DC2626',
-                                            }}>
+                                            <span className="badge" style={{ background: '#FEE2E2', color: '#DC2626' }}>
                                                 لم يشارك أبداً
                                             </span>
                                         )}
@@ -538,7 +486,7 @@ export default function ReportsIndex({
                             ))}
                             {inactiveEmployees.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', color: '#9CA3AF' }}>
+                                    <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', color: '#999' }}>
                                         جميع الموظفين نشطون
                                     </td>
                                 </tr>

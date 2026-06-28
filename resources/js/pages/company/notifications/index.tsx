@@ -38,7 +38,7 @@ export default function NotificationsIndex({ notifications, unreadCount }: Props
                 {unreadCount > 0 && (
                     <button
                         onClick={markAllRead}
-                        style={{ background: '#EEF2FF', color: '#3B5BDB', border: 'none', borderRadius: 10, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                        className="ac-btn secondary"
                     >
                         تحديد الكل
                     </button>
@@ -47,7 +47,7 @@ export default function NotificationsIndex({ notifications, unreadCount }: Props
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {notifications.data.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: 32, color: '#7A8BA8', fontSize: 13 }}>
+                    <div style={{ textAlign: 'center', padding: 32, color: '#999', fontSize: 13 }}>
                         لا توجد إشعارات
                     </div>
                 ) : (
@@ -60,36 +60,34 @@ export default function NotificationsIndex({ notifications, unreadCount }: Props
                                 onClick={() => isUnread && router.post(`/company/notifications/${notification.id}/read`, {}, {
                                     onSuccess: () => toastr.success('تم تحديد الإشعار كمقروء'),
                                 })}
+                                className="card"
                                 style={{
-                                    background: '#fff',
-                                    border: isUnread ? '1px solid #E0305044' : '1px solid #E2E8F4',
-                                    ...(isUnread ? { borderRight: '4px solid #E03050' } : {}),
-                                    borderRadius: 14,
-                                    padding: '14px 18px',
+                                    ...(isUnread ? { borderColor: '#E0305044', borderRight: '4px solid #E03050' } : {}),
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 14,
                                     cursor: isUnread ? 'pointer' : 'default',
+                                    marginBottom: 0,
                                 }}
                             >
                                 <div style={{
                                     width: 40, height: 40, borderRadius: 12,
-                                    background: isUnread ? '#E0305018' : '#F0F2F8',
+                                    background: isUnread ? '#E0305018' : '#FAFAFA',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     fontSize: 20, flexShrink: 0,
                                 }}>
                                     {notificationEmoji(notification.type)}
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 13, ...(isUnread ? { fontWeight: 700 } : { color: '#0F1923' }), lineHeight: 1.5 }}>
+                                    <div style={{ fontSize: 13, ...(isUnread ? { fontWeight: 700 } : { color: '#0A0A0A' }), lineHeight: 1.5 }}>
                                         {notification.title}
                                     </div>
                                     {notification.body && (
-                                        <div style={{ fontSize: 12, color: isUnread ? '#4A5C78' : '#7A8BA8', lineHeight: 1.4, marginTop: 2 }}>
+                                        <div style={{ fontSize: 12, color: isUnread ? '#666' : '#999', lineHeight: 1.4, marginTop: 2 }}>
                                             {notification.body}
                                         </div>
                                     )}
-                                    <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 4 }}>
+                                    <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
                                         {fmtDateTime(notification.created_at)}
                                     </div>
                                 </div>

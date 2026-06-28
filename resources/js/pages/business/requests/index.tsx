@@ -29,15 +29,15 @@ const statusFilters = [
 function statusBorderColor(status: string): string {
     switch (status) {
         case 'waiting_business':
-            return '#B8860A';
+            return '#D97706';
         case 'confirmed':
-            return '#1A7A4A';
+            return '#18A86B';
         case 'rejected':
-            return '#C8410A';
+            return '#EF4444';
         case 'alternative_proposed':
             return '#1A5FAB';
         default:
-            return '#8A7868';
+            return '#999';
     }
 }
 
@@ -84,12 +84,12 @@ function RequestCard({ event }: { event: Event }) {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
                 <div>
-                    <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>{event.company?.name}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: '#0A0A0A', marginBottom: 6 }}>{event.company?.name}</div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <span className={`badge b-${event.status}`} style={{ background: `${statusBorderColor(event.status)}18`, color: statusBorderColor(event.status) }}>
+                        <span className="badge" style={{ background: `${statusBorderColor(event.status)}18`, color: statusBorderColor(event.status) }}>
                             <CategoryIcon icon={event.category?.icon} size={14} /> {event.category?.name}
                         </span>
-                        <span style={{ fontSize: 11, color: '#8A7868' }}>{fmtDateTime(event.created_at)}</span>
+                        <span style={{ fontSize: 11, color: '#999' }}>{fmtDateTime(event.created_at)}</span>
                     </div>
                 </div>
                 <StatusBadge status={event.status} />
@@ -115,11 +115,11 @@ function RequestCard({ event }: { event: Event }) {
                 </div>
                 <div className="ri">
                     <div className="rl">💰 إجمالي المبلغ</div>
-                    <div className="rv" style={{ color: '#1A7A4A', fontSize: 16 }}>{event.total_amount.toLocaleString()} ريال</div>
+                    <div className="rv" style={{ color: '#18A86B', fontSize: 16 }}>{event.total_amount.toLocaleString()} ريال</div>
                 </div>
                 <div className="ri">
                     <div className="rl">📐 الحساب</div>
-                    <div className="rv" style={{ color: '#8A7868', fontSize: 11 }}>
+                    <div className="rv" style={{ color: '#999', fontSize: 11 }}>
                         {event.venues_count} مرفق &times; {event.venues_count > 0 ? Math.round(event.total_amount / event.venues_count).toLocaleString() : 0} ر
                     </div>
                 </div>
@@ -165,7 +165,7 @@ function RequestCard({ event }: { event: Event }) {
 
             {/* Rejection reason */}
             {event.status === 'rejected' && event.rejection_reason && (
-                <div style={{ background: '#C8410A18', border: '1px solid #C8410A33', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#C8410A', fontWeight: 700, marginTop: 10 }}>
+                <div style={{ background: '#EF444418', border: '1px solid #EF444433', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#EF4444', fontWeight: 700, marginTop: 10 }}>
                     سبب الرفض: {event.rejection_reason}
                 </div>
             )}
@@ -182,26 +182,26 @@ function RequestCard({ event }: { event: Event }) {
                                 value={altForm.data.proposed_date}
                                 onChange={(e) => altForm.setData('proposed_date', e.target.value)}
                             />
-                            {altForm.errors.proposed_date && <div style={{ fontSize: 11, color: '#C8410A', marginTop: 4 }}>{altForm.errors.proposed_date}</div>}
+                            {altForm.errors.proposed_date && <div className="field-error">{altForm.errors.proposed_date}</div>}
                         </div>
                         <div className="fg">
                             <label>وقت البداية</label>
                             <TimePicker value={altForm.data.proposed_start_time} onChange={(v) => altForm.setData('proposed_start_time', v)} />
-                            {altForm.errors.proposed_start_time && <div style={{ fontSize: 11, color: '#C8410A', marginTop: 4 }}>{altForm.errors.proposed_start_time}</div>}
+                            {altForm.errors.proposed_start_time && <div className="field-error">{altForm.errors.proposed_start_time}</div>}
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
                         <button
-                            className="act-btn btn-alt"
-                            style={{ flex: 2, background: '#1A5FAB', color: '#fff', borderColor: '#1A5FAB' }}
+                            className="btn btn-primary"
+                            style={{ flex: 2, background: '#1A5FAB', borderColor: '#1A5FAB' }}
                             onClick={submitAlternative}
                             disabled={altForm.processing || !altForm.data.proposed_date || !altForm.data.proposed_start_time}
                         >
                             {altForm.processing ? 'جارٍ الإرسال...' : 'إرسال الوقت البديل'}
                         </button>
                         <button
-                            className="act-btn"
-                            style={{ flex: 1, background: '#EAE4DC', color: '#8A7868', border: 'none' }}
+                            className="btn btn-outline"
+                            style={{ flex: 1 }}
                             onClick={() => { setShowAlt(false); altForm.reset(); }}
                         >
                             إلغاء
@@ -212,8 +212,8 @@ function RequestCard({ event }: { event: Event }) {
 
             {/* Reject reason dialog */}
             {showRejectDialog && (
-                <div style={{ background: 'rgba(200,65,10,.06)', border: '1px solid rgba(200,65,10,.25)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#C8410A', marginBottom: 12 }}>سبب الرفض</div>
+                <div style={{ background: 'rgba(239,68,68,.06)', border: '1px solid rgba(239,68,68,.25)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#EF4444', marginBottom: 12 }}>سبب الرفض</div>
                     <div className="fg" style={{ marginBottom: 12 }}>
                         <textarea
                             value={rejectForm.data.reason}
@@ -222,12 +222,12 @@ function RequestCard({ event }: { event: Event }) {
                             style={{ minHeight: 80 }}
                         />
                         {rejectForm.errors.reason && (
-                            <div style={{ fontSize: 11, color: '#C8410A', marginTop: 4 }}>{rejectForm.errors.reason}</div>
+                            <div className="field-error">{rejectForm.errors.reason}</div>
                         )}
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
                         <button
-                            className="act-btn btn-reject"
+                            className="btn btn-danger"
                             style={{ flex: 2 }}
                             onClick={submitReject}
                             disabled={rejectForm.processing || !rejectForm.data.reason.trim()}
@@ -235,8 +235,8 @@ function RequestCard({ event }: { event: Event }) {
                             {rejectForm.processing ? 'جارٍ الرفض...' : 'تأكيد الرفض'}
                         </button>
                         <button
-                            className="act-btn"
-                            style={{ flex: 1, background: '#EAE4DC', color: '#8A7868', border: 'none' }}
+                            className="btn btn-outline"
+                            style={{ flex: 1 }}
                             onClick={() => { setShowRejectDialog(false); rejectForm.reset(); }}
                         >
                             إلغاء
@@ -249,21 +249,21 @@ function RequestCard({ event }: { event: Event }) {
             {event.status === 'waiting_business' && !showAlt && !showRejectDialog && (
                 <div style={{ display: 'flex', gap: 10 }}>
                     <button
-                        className="act-btn btn-reject"
+                        className="btn btn-danger"
                         style={{ flex: 1 }}
                         onClick={handleReject}
                     >
                         رفض
                     </button>
                     <button
-                        className="act-btn btn-alt"
-                        style={{ flex: 1, background: '#D4820A20', color: '#D4820A', border: '1px solid #D4820A44' }}
+                        className="btn btn-outline"
+                        style={{ flex: 1, color: '#D97706', borderColor: '#D97706' }}
                         onClick={() => setShowAlt(true)}
                     >
                         وقت بديل
                     </button>
                     <button
-                        className="act-btn btn-approve"
+                        className="ac-btn"
                         style={{ flex: 2 }}
                         onClick={handleApprove}
                     >
@@ -292,7 +292,7 @@ export default function BookingRequests({ business, events, filters, pendingCoun
 
             <div>
                 {events.data.length === 0 ? (
-                    <div className="card" style={{ textAlign: 'center', padding: 40, color: '#8A7868' }}>
+                    <div className="card" style={{ textAlign: 'center', padding: 40, color: '#999' }}>
                         <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
                         <div style={{ fontSize: 15, fontWeight: 700 }}>لا توجد طلبات حجز</div>
                     </div>

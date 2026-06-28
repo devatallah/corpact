@@ -83,13 +83,13 @@ function formatDateShort(dateStr: string): string {
 
 const statusColors: Record<string, string> = {
     open: '#3B5BDB',
-    waiting_business: '#B8860A',
-    confirmed: '#1A7A4A',
+    waiting_business: '#D97706',
+    confirmed: '#18A86B',
     full: '#6B7A99',
-    alternative_proposed: '#C8410A',
+    alternative_proposed: '#1A5FAB',
     completed: '#2E7D32',
     cancelled: '#9E9E9E',
-    rejected: '#D32F2F',
+    rejected: '#EF4444',
 };
 
 export default function businessSchedule({ schedule, date }: Props) {
@@ -117,19 +117,20 @@ export default function businessSchedule({ schedule, date }: Props) {
                 <div style={{ display: 'flex', gap: 8 }}>
                     <Link
                         href={`/business/schedule?date=${weekOffset(weekStart, -1)}`}
-                        style={{ padding: '8px 16px', borderRadius: 10, background: '#fff', border: '1px solid #EAE4DC', color: '#1C1410', fontSize: 13, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
+                        style={{ padding: '8px 16px', borderRadius: 10, background: '#fff', border: '1px solid #EBEBEB', color: '#0A0A0A', fontSize: 13, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
                     >
                         ← الأسبوع السابق
                     </Link>
                     <Link
                         href={`/business/schedule?date=${todayStr()}`}
-                        style={{ padding: '8px 16px', borderRadius: 10, background: '#C8410A', color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
+                        className="ac-btn"
+                        style={{ padding: '8px 16px', fontSize: 13, textDecoration: 'none' }}
                     >
                         اليوم
                     </Link>
                     <Link
                         href={`/business/schedule?date=${weekOffset(weekStart, 1)}`}
-                        style={{ padding: '8px 16px', borderRadius: 10, background: '#fff', border: '1px solid #EAE4DC', color: '#1C1410', fontSize: 13, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
+                        style={{ padding: '8px 16px', borderRadius: 10, background: '#fff', border: '1px solid #EBEBEB', color: '#0A0A0A', fontSize: 13, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
                     >
                         الأسبوع التالي →
                     </Link>
@@ -140,8 +141,7 @@ export default function businessSchedule({ schedule, date }: Props) {
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', flexWrap: 'wrap' }}>
                 <button
                     onClick={() => setSelectedvenue(null)}
-                    className="fbtn"
-                    style={!selectedVenue ? { background: '#C8410A', color: '#fff', borderColor: '#C8410A' } : {}}
+                    className={`fbtn${!selectedVenue ? ' on' : ''}`}
                 >
                     كل المرافق
                 </button>
@@ -149,8 +149,7 @@ export default function businessSchedule({ schedule, date }: Props) {
                     <button
                         key={venue.id}
                         onClick={() => setSelectedvenue(venue.id)}
-                        className="fbtn"
-                        style={selectedVenue === venue.id ? { background: '#C8410A', color: '#fff', borderColor: '#C8410A' } : {}}
+                        className={`fbtn${selectedVenue === venue.id ? ' on' : ''}`}
                     >
                         {venue.name}
                     </button>
@@ -161,44 +160,44 @@ export default function businessSchedule({ schedule, date }: Props) {
             <div style={{ display: 'flex', gap: 14, marginBottom: 16, flexWrap: 'wrap' }}>
                 {[
                     { label: 'مفتوح', color: '#3B5BDB' },
-                    { label: 'بانتظار المنشأة', color: '#B8860A' },
-                    { label: 'مؤكد', color: '#1A7A4A' },
+                    { label: 'بانتظار المنشأة', color: '#D97706' },
+                    { label: 'مؤكد', color: '#18A86B' },
                     { label: 'مكتمل العدد', color: '#6B7A99' },
-                    { label: 'بديل مقترح', color: '#C8410A' },
+                    { label: 'بديل مقترح', color: '#1A5FAB' },
                     { label: 'منتهي', color: '#2E7D32' },
                     { label: 'ملغي', color: '#9E9E9E' },
-                    { label: 'مرفوض', color: '#D32F2F' },
+                    { label: 'مرفوض', color: '#EF4444' },
                 ].map((item) => (
                     <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ width: 12, height: 12, borderRadius: 4, background: item.color }} />
-                        <span style={{ fontSize: 12, color: '#8A7868' }}>{item.label}</span>
+                        <span style={{ fontSize: 12, color: '#999' }}>{item.label}</span>
                     </div>
                 ))}
             </div>
 
             {/* Week Grid */}
-            <div style={{ background: '#fff', border: '1px solid #EAE4DC', borderRadius: 16, overflow: 'hidden' }}>
+            <div style={{ background: '#fff', border: '1px solid #EBEBEB', borderRadius: 12, overflow: 'hidden' }}>
                 <div style={{ overflowX: 'auto' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '60px repeat(7, 1fr)', minWidth: 800 }}>
                         {/* Header Row */}
-                        <div style={{ background: '#F7F4F0', padding: '10px 8px', borderBottom: '1px solid #EAE4DC', fontSize: 11, color: '#8A7868', fontWeight: 600, textAlign: 'center' }}>
+                        <div style={{ background: '#FAFAFA', padding: '10px 8px', borderBottom: '1px solid #EBEBEB', fontSize: 11, color: '#999', fontWeight: 600, textAlign: 'center' }}>
                             الوقت
                         </div>
                         {days.map((day) => (
                             <div
                                 key={day.date}
                                 style={{
-                                    background: isToday(day.date) ? '#C8410A10' : '#F7F4F0',
+                                    background: isToday(day.date) ? '#18A86B10' : '#FAFAFA',
                                     padding: '8px 4px',
-                                    borderBottom: '1px solid #EAE4DC',
-                                    borderRight: '1px solid #EAE4DC',
+                                    borderBottom: '1px solid #EBEBEB',
+                                    borderRight: '1px solid #EBEBEB',
                                     textAlign: 'center',
                                 }}
                             >
-                                <div style={{ fontSize: 12, fontWeight: 700, color: isToday(day.date) ? '#C8410A' : '#1C1410' }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: isToday(day.date) ? '#18A86B' : '#0A0A0A' }}>
                                     {day.day_name}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#8A7868' }}>
+                                <div style={{ fontSize: 11, color: '#999' }}>
                                     {formatDateShort(day.date)}
                                 </div>
                             </div>
@@ -211,9 +210,9 @@ export default function businessSchedule({ schedule, date }: Props) {
                                     style={{
                                         padding: '0 6px',
                                         fontSize: 10,
-                                        color: '#8A7868',
+                                        color: '#999',
                                         fontWeight: 600,
-                                        borderBottom: '1px solid #F0EDE8',
+                                        borderBottom: '1px solid #F5F5F5',
                                         display: 'flex',
                                         alignItems: 'flex-start',
                                         justifyContent: 'center',
@@ -236,11 +235,11 @@ export default function businessSchedule({ schedule, date }: Props) {
                                         <div
                                             key={`${day.date}-${hour}`}
                                             style={{
-                                                borderBottom: '1px solid #F0EDE8',
-                                                borderRight: '1px solid #F0EDE8',
+                                                borderBottom: '1px solid #F5F5F5',
+                                                borderRight: '1px solid #F5F5F5',
                                                 position: 'relative',
                                                 height: 60,
-                                                background: isToday(day.date) ? '#C8410A05' : 'transparent',
+                                                background: isToday(day.date) ? '#18A86B05' : 'transparent',
                                                 padding: 2,
                                             }}
                                         >
@@ -268,7 +267,7 @@ export default function businessSchedule({ schedule, date }: Props) {
                                                         <div style={{ fontSize: 10, fontWeight: 700, color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                             <CategoryIcon icon={ev.category_icon} size={14} /> {ev.company_name ?? ev.category_name}
                                                         </div>
-                                                        <div style={{ fontSize: 9, color: '#8A7868', whiteSpace: 'nowrap' }}>
+                                                        <div style={{ fontSize: 9, color: '#999', whiteSpace: 'nowrap' }}>
                                                             {ev.start_time?.slice(0, 5)} · {ev.duration_minutes}د {venueNames ? `· ${venueNames}` : ''}
                                                         </div>
                                                     </div>
@@ -301,29 +300,29 @@ export default function businessSchedule({ schedule, date }: Props) {
 
                             {selectedEvent.company_name && (
                                 <div>
-                                    <div style={{ fontSize: 11, color: '#8A7868', marginBottom: 2 }}>الشركة</div>
+                                    <div style={{ fontSize: 11, color: '#999', marginBottom: 2 }}>الشركة</div>
                                     <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedEvent.company_name}</div>
                                 </div>
                             )}
 
                             <div className="frow">
                                 <div className="fg">
-                                    <div style={{ fontSize: 11, color: '#8A7868', marginBottom: 2 }}>الوقت</div>
+                                    <div style={{ fontSize: 11, color: '#999', marginBottom: 2 }}>الوقت</div>
                                     <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedEvent.start_time?.slice(0, 5)}</div>
                                 </div>
                                 <div className="fg">
-                                    <div style={{ fontSize: 11, color: '#8A7868', marginBottom: 2 }}>المدة</div>
+                                    <div style={{ fontSize: 11, color: '#999', marginBottom: 2 }}>المدة</div>
                                     <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedEvent.duration_minutes} دقيقة</div>
                                 </div>
                             </div>
 
                             <div className="frow">
                                 <div className="fg">
-                                    <div style={{ fontSize: 11, color: '#8A7868', marginBottom: 2 }}>اللاعبون</div>
+                                    <div style={{ fontSize: 11, color: '#999', marginBottom: 2 }}>اللاعبون</div>
                                     <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedEvent.participants_count}/{selectedEvent.capacity}</div>
                                 </div>
                                 <div className="fg">
-                                    <div style={{ fontSize: 11, color: '#8A7868', marginBottom: 2 }}>المرافق</div>
+                                    <div style={{ fontSize: 11, color: '#999', marginBottom: 2 }}>المرافق</div>
                                     <div style={{ fontSize: 14, fontWeight: 600 }}>
                                         {venues.filter((c) => selectedEvent.venue_ids.includes(c.id)).map((c) => c.name).join(', ') || '-'}
                                     </div>

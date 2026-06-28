@@ -5,7 +5,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { useState, useEffect, useRef, useCallback, useMemo, type FormEvent } from 'react';
 import toastr from 'toastr';
 
-const COLORS = ['#0CA678', '#D4820A', '#5B3FCC', '#3B5BDB', '#E03050', '#8B5CF6'];
+const COLORS = ['#18A86B', '#D4820A', '#5B3FCC', '#18A86B', '#E03050', '#8B5CF6'];
 
 interface Props {
     communities: Community[];
@@ -36,7 +36,7 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
     const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
     const [selectedLeaderName, setSelectedLeaderName] = useState('');
     const leaderRef = useRef<HTMLDivElement>(null);
-    const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+    const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
     const searchLeader = useCallback((q: string) => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -108,7 +108,7 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
                 </div>
                 <button
                     onClick={() => { setShowCreate(true); setEditingItem(null); form.reset(); setLeaderQuery(''); setSelectedLeaderName(''); setLeaderResults([]); }}
-                    style={{ background: '#3B5BDB', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                    className="ac-btn"
                 >
                     + إنشاء مجتمع
                 </button>
@@ -116,7 +116,7 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
 
             {communities.length === 0 ? (
                 <div className="card" style={{ textAlign: 'center', padding: 32 }}>
-                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا توجد مجتمعات بعد</div>
+                    <div style={{ fontSize: 13, color: '#999' }}>لا توجد مجتمعات بعد</div>
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
@@ -129,12 +129,8 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
                         return (
                             <div
                                 key={community.id}
-                                style={{
-                                    background: '#fff',
-                                    borderRadius: 20,
-                                    overflow: 'hidden',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03)',
-                                }}
+                                className="card"
+                                style={{ padding: 0, overflow: 'hidden' }}
                             >
                                 {/* Colored top band */}
                                 <div style={{ height: 5, background: color }} />
@@ -148,30 +144,31 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
                                         </div>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEditingItem(community); setShowCreate(false); }}
-                                            style={{ background: '#F1F5F9', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#64748B', cursor: 'pointer', fontFamily: 'inherit' }}
+                                            className="ac-btn secondary"
+                                            style={{ fontSize: 13, padding: '8px 16px' }}
                                         >
                                             تعديل
                                         </button>
                                     </div>
 
                                     {/* Leader */}
-                                    <div style={{ fontSize: 14, color: '#94A3B8', marginBottom: 24, paddingRight: 54 }}>
+                                    <div style={{ fontSize: 14, color: '#999', marginBottom: 24, paddingRight: 54 }}>
                                         {community.leader?.name ?? '\u2014'}
                                     </div>
 
                                     {/* Stats */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0, background: '#F8FAFC', borderRadius: 14, padding: '20px 0' }}>
-                                        <div style={{ textAlign: 'center', borderLeft: '1px solid #E8ECF4' }}>
-                                            <div style={{ fontSize: 26, fontWeight: 800, color: '#0F1923' }}>{activeMembers}</div>
-                                            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4, fontWeight: 500 }}>عضو</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0, background: '#FAFAFA', borderRadius: 14, padding: '20px 0' }}>
+                                        <div style={{ textAlign: 'center', borderLeft: '1px solid #EBEBEB' }}>
+                                            <div style={{ fontSize: 26, fontWeight: 800, color: '#0A0A0A' }}>{activeMembers}</div>
+                                            <div style={{ fontSize: 12, color: '#999', marginTop: 4, fontWeight: 500 }}>عضو</div>
                                         </div>
-                                        <div style={{ textAlign: 'center', borderLeft: '1px solid #E8ECF4' }}>
-                                            <div style={{ fontSize: 26, fontWeight: 800, color: '#0F1923' }}>{eventCount}</div>
-                                            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4, fontWeight: 500 }}>فعالية</div>
+                                        <div style={{ textAlign: 'center', borderLeft: '1px solid #EBEBEB' }}>
+                                            <div style={{ fontSize: 26, fontWeight: 800, color: '#0A0A0A' }}>{eventCount}</div>
+                                            <div style={{ fontSize: 12, color: '#999', marginTop: 4, fontWeight: 500 }}>فعالية</div>
                                         </div>
                                         <div style={{ textAlign: 'center' }}>
                                             <div style={{ fontSize: 22, fontWeight: 800, color }}>{balance.toLocaleString()}</div>
-                                            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4, fontWeight: 500 }}>ريال</div>
+                                            <div style={{ fontSize: 12, color: '#999', marginTop: 4, fontWeight: 500 }}>ريال</div>
                                         </div>
                                     </div>
                                 </div>
@@ -219,7 +216,7 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
                                     {showLeaderDropdown && leaderResults.length > 0 && (
                                         <div style={{
                                             position: 'absolute', top: '100%', right: 0, left: 0, zIndex: 50,
-                                            background: '#fff', border: '1px solid #E4E9F2', borderRadius: 10,
+                                            background: '#fff', border: '1px solid #EBEBEB', borderRadius: 10,
                                             boxShadow: '0 8px 24px rgba(0,0,0,.1)', maxHeight: 200, overflowY: 'auto',
                                             marginTop: 4,
                                         }}>
@@ -234,14 +231,14 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
                                                     }}
                                                     style={{
                                                         padding: '10px 14px', cursor: 'pointer', fontSize: 13,
-                                                        borderBottom: '1px solid #F1F5F9',
-                                                        background: String(emp.id) === form.data.leader_id ? '#3B5BDB08' : undefined,
+                                                        borderBottom: '1px solid #FAFAFA',
+                                                        background: String(emp.id) === form.data.leader_id ? '#18A86B08' : undefined,
                                                     }}
-                                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#F8F9FC')}
-                                                    onMouseLeave={(e) => (e.currentTarget.style.background = String(emp.id) === form.data.leader_id ? '#3B5BDB08' : '')}
+                                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#FAFAFA')}
+                                                    onMouseLeave={(e) => (e.currentTarget.style.background = String(emp.id) === form.data.leader_id ? '#18A86B08' : '')}
                                                 >
                                                     <div style={{ fontWeight: 600 }}>{emp.name}</div>
-                                                    <div style={{ fontSize: 11, color: '#7A8BA8' }}>{emp.email}</div>
+                                                    <div style={{ fontSize: 11, color: '#999' }}>{emp.email}</div>
                                                 </div>
                                             ))}
                                         </div>

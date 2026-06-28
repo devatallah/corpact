@@ -43,13 +43,13 @@ export default function HrDashboard({ company, stats, communityParticipation, re
                     label="الموظفون النشطون"
                     value={stats.active_employees}
                     change={`من ${company.employee_count} موظف`}
-                    color="#3B5BDB"
+                    color="#18A86B"
                 />
                 <StatCard
                     emoji="🏘️"
                     label="المجتمعات النشطة"
                     value={stats.communities}
-                    color="#0CA678"
+                    color="#18A86B"
                 />
                 <StatCard
                     emoji="📅"
@@ -69,7 +69,7 @@ export default function HrDashboard({ company, stats, communityParticipation, re
                 <div className="card" style={{ marginBottom: 0 }}>
                     <div className="sec-title">نشاط المجتمعات</div>
                     {communityParticipation.length === 0 ? (
-                        <div style={{ fontSize: 13, color: '#7A8BA8', padding: '16px 0' }}>
+                        <div style={{ fontSize: 13, color: '#999', padding: '16px 0' }}>
                             لا توجد مجتمعات بعد
                         </div>
                     ) : (
@@ -77,12 +77,12 @@ export default function HrDashboard({ company, stats, communityParticipation, re
                             <div key={i} style={{ marginBottom: 12 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                                     <span style={{ fontSize: 13, fontWeight: 700 }}>{cp.community_name}</span>
-                                    <span style={{ fontSize: 11, color: '#7A8BA8' }}>
+                                    <span style={{ fontSize: 11, color: '#999' }}>
                                         {cp.member_count}/{cp.total_employees}
                                     </span>
                                 </div>
                                 <div className="bar-w">
-                                    <div className="bar-f" style={{ width: `${cp.rate}%`, background: '#0CA678' }} />
+                                    <div className="bar-f" style={{ width: `${cp.rate}%`, background: '#18A86B' }} />
                                 </div>
                             </div>
                         ))
@@ -92,7 +92,7 @@ export default function HrDashboard({ company, stats, communityParticipation, re
                 <div className="card" style={{ marginBottom: 0 }}>
                     <div className="sec-title">آخر النشاطات</div>
                     {recentActivity.length === 0 ? (
-                        <div style={{ fontSize: 13, color: '#7A8BA8', padding: '16px 0' }}>
+                        <div style={{ fontSize: 13, color: '#999', padding: '16px 0' }}>
                             لا توجد نشاطات حديثة
                         </div>
                     ) : (
@@ -100,7 +100,7 @@ export default function HrDashboard({ company, stats, communityParticipation, re
                             <div key={activity.id} style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
                                 <div style={{
                                     width: 34, height: 34, borderRadius: 10,
-                                    background: '#0CA67818', display: 'flex',
+                                    background: '#18A86B18', display: 'flex',
                                     alignItems: 'center', justifyContent: 'center',
                                     fontSize: 16, flexShrink: 0
                                 }}>
@@ -108,7 +108,7 @@ export default function HrDashboard({ company, stats, communityParticipation, re
                                 </div>
                                 <div>
                                     <div style={{ fontSize: 12, lineHeight: 1.4 }}>{activity.description}</div>
-                                    <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 3 }}>
+                                    <div style={{ fontSize: 10, color: '#999', marginTop: 3 }}>
                                         {fmtDateTime(activity.created_at)}
                                     </div>
                                 </div>
@@ -127,10 +127,10 @@ export default function HrDashboard({ company, stats, communityParticipation, re
                             <div className="card">
                                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>الأقسام</div>
                                 {leaderboard.top_departments.slice(0, 5).map((dept, idx) => (
-                                    <div key={dept.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: idx < leaderboard.top_departments.length - 1 ? '1px solid #F0EDE8' : 'none' }}>
-                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: rankColors[idx] ?? '#E4E9F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
+                                    <div key={dept.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: idx < leaderboard.top_departments.length - 1 ? '1px solid #EBEBEB' : 'none' }}>
+                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: rankColors[idx] ?? '#EBEBEB', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
                                         <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{dept.name}</div>
-                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#8A7868' }}>{dept.events_count}</div>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#666' }}>{dept.events_count}</div>
                                     </div>
                                 ))}
                             </div>
@@ -140,13 +140,13 @@ export default function HrDashboard({ company, stats, communityParticipation, re
                             <div className="card">
                                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>الموظفين الأكثر نشاطا</div>
                                 {leaderboard.top_employees.slice(0, 5).map((emp, idx) => (
-                                    <div key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: idx < leaderboard.top_employees.length - 1 ? '1px solid #F0EDE8' : 'none' }}>
-                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: rankColors[idx] ?? '#E4E9F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
+                                    <div key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: idx < leaderboard.top_employees.length - 1 ? '1px solid #EBEBEB' : 'none' }}>
+                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: rankColors[idx] ?? '#EBEBEB', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.name}</div>
-                                            {emp.department_name && <div style={{ fontSize: 10, color: '#8A7868' }}>{emp.department_name}</div>}
+                                            {emp.department_name && <div style={{ fontSize: 10, color: '#666' }}>{emp.department_name}</div>}
                                         </div>
-                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#8A7868' }}>{emp.events_count}</div>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#666' }}>{emp.events_count}</div>
                                     </div>
                                 ))}
                             </div>

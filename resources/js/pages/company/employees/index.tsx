@@ -71,12 +71,12 @@ export default function EmployeesIndex({ employees, departments, filters, active
                     <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="🔍 ابحث..."
-                        style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', width: 180, fontFamily: 'inherit' }}
+                        placeholder="ابحث..."
+                        style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #EBEBEB', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', width: 180, fontFamily: 'inherit' }}
                     />
                     <button
                         onClick={() => setShowInvite(!showInvite)}
-                        style={{ background: '#3B5BDB', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                        className="ac-btn"
                     >
                         + دعوة موظف
                     </button>
@@ -90,7 +90,7 @@ export default function EmployeesIndex({ employees, departments, filters, active
                             دعوة موظف جديد
                             <button className="close-btn" onClick={() => setShowInvite(false)}>×</button>
                         </h3>
-                        <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 16 }}>سيصله إيميل دعوة للانضمام للمنصة</div>
+                        <div style={{ fontSize: 13, color: '#999', marginBottom: 16 }}>سيصله إيميل دعوة للانضمام للمنصة</div>
                         <form onSubmit={handleInvite}>
                             <div className="fg" style={{ marginBottom: 16 }}>
                                 <label>البريد الإلكتروني</label>
@@ -112,8 +112,8 @@ export default function EmployeesIndex({ employees, departments, filters, active
                 </div>
             )}
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, overflow: 'auto' }}>
-                <table className="portal-table">
+            <div className="card" style={{ padding: 0, overflow: 'auto' }}>
+                <table>
                     <thead>
                         <tr>
                             <th>الموظف</th>
@@ -127,7 +127,7 @@ export default function EmployeesIndex({ employees, departments, filters, active
                     <tbody>
                         {employees.data.length === 0 ? (
                             <tr>
-                                <td colSpan={6} style={{ textAlign: 'center', padding: 24, color: '#7A8BA8', fontSize: 13 }}>
+                                <td colSpan={6} style={{ textAlign: 'center', padding: 24, color: '#999', fontSize: 13 }}>
                                     لا يوجد موظفون بعد
                                 </td>
                             </tr>
@@ -136,16 +136,16 @@ export default function EmployeesIndex({ employees, departments, filters, active
                                 <tr key={employee.id}>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#3B5BDB18', color: '#3B5BDB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
+                                            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#18A86B18', color: '#18A86B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
                                                 {employee.name.charAt(0)}
                                             </div>
                                             <div>
                                                 <div style={{ fontSize: 13, fontWeight: 600 }}>{employee.name}</div>
-                                                <div style={{ fontSize: 11, color: '#7A8BA8' }} dir="ltr">{employee.email}</div>
+                                                <div style={{ fontSize: 11, color: '#999' }} dir="ltr">{employee.email}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td style={{ color: '#7A8BA8', fontSize: 12 }}>
+                                    <td style={{ color: '#999', fontSize: 12 }}>
                                         {employee.department?.name ?? '\u2014'}
                                     </td>
                                     <td>
@@ -154,16 +154,16 @@ export default function EmployeesIndex({ employees, departments, filters, active
                                                 <span
                                                     key={c.id}
                                                     className="badge"
-                                                    style={{ background: '#0CA67818', color: '#0CA678', marginLeft: 4 }}
+                                                    style={{ background: '#18A86B18', color: '#18A86B', marginLeft: 4 }}
                                                 >
                                                     <CategoryIcon icon={c.category?.icon} size={14} /> {c.name}
                                                 </span>
                                             ))
                                         ) : (
-                                            <span style={{ color: '#7A8BA8', fontSize: 12 }}>{'\u2014'}</span>
+                                            <span style={{ color: '#999', fontSize: 12 }}>{'\u2014'}</span>
                                         )}
                                     </td>
-                                    <td style={{ fontWeight: 700, ...(employee.events_count === 0 ? { color: '#7A8BA8' } : {}) }}>
+                                    <td style={{ fontWeight: 700, ...(employee.events_count === 0 ? { color: '#999' } : {}) }}>
                                         {employee.events_count ?? 0}
                                     </td>
                                     <td>
@@ -172,7 +172,8 @@ export default function EmployeesIndex({ employees, departments, filters, active
                                     <td>
                                         <button
                                             onClick={() => setEditingItem(employee)}
-                                            style={{ background: '#3B5BDB18', color: '#3B5BDB', border: '1px solid #3B5BDB33', borderRadius: 8, padding: '5px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                                            className="ac-btn secondary"
+                                            style={{ fontSize: 12, padding: '5px 14px' }}
                                         >
                                             تعديل
                                         </button>

@@ -17,8 +17,8 @@ export default function LeaguesIndex({ leagues }: Props) {
                 <div className="page-sub">{leagues.total} بطولة في مجتمعات الشركة</div>
             </div>
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, overflow: 'auto' }}>
-                <table className="portal-table">
+            <div className="card" style={{ padding: 0, overflow: 'auto' }}>
+                <table>
                     <thead>
                         <tr>
                             <th>البطولة</th>
@@ -33,7 +33,7 @@ export default function LeaguesIndex({ leagues }: Props) {
                     <tbody>
                         {leagues.data.length === 0 ? (
                             <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', padding: 24, color: '#7A8BA8', fontSize: 13 }}>لا توجد بطولات</td>
+                                <td colSpan={7} style={{ textAlign: 'center', padding: 24, color: '#999', fontSize: 13 }}>لا توجد بطولات</td>
                             </tr>
                         ) : (
                             leagues.data.map((league) => {
@@ -42,19 +42,20 @@ export default function LeaguesIndex({ leagues }: Props) {
                                 return (
                                     <tr key={league.id}>
                                         <td style={{ fontWeight: 600 }}>{league.name}</td>
-                                        <td style={{ color: '#7A8BA8', fontSize: 12 }}>{league.community?.name ?? '—'}</td>
+                                        <td style={{ color: '#999', fontSize: 12 }}>{league.community?.name ?? '—'}</td>
                                         <td style={{ fontSize: 12 }}>{formatLabel}</td>
                                         <td>{league.departments?.length ?? 0}</td>
                                         <td>{league.matches_count ?? 0}</td>
                                         <td>
-                                            <span className="badge" style={league.status === 'active' ? { background: '#009E8218', color: '#009E82' } : { background: '#6B7A9918', color: '#6B7A99' }}>
+                                            <span className={`badge ${league.status === 'active' ? 'b-active' : 'b-completed'}`}>
                                                 {league.status === 'active' ? 'جارية' : 'منتهية'}
                                             </span>
                                         </td>
                                         <td>
                                             <Link
                                                 href={`/company/leagues/${league.id}`}
-                                                style={{ background: '#3B5BDB18', color: '#3B5BDB', border: '1px solid #3B5BDB33', borderRadius: 8, padding: '5px 14px', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
+                                                className="ac-btn secondary"
+                                                style={{ fontSize: 12, padding: '5px 14px', textDecoration: 'none' }}
                                             >
                                                 عرض
                                             </Link>

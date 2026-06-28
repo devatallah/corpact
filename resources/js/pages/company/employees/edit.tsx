@@ -31,10 +31,10 @@ export default function EmployeeEdit({ employee, departments }: Props) {
             <Head title={`تعديل: ${employee.name}`} />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <Link href="/company/employees" style={{ color: '#7A8BA8', textDecoration: 'none', fontSize: 14 }}>
+                <Link href="/company/employees" style={{ color: '#999', textDecoration: 'none', fontSize: 14 }}>
                     ← الموظفون
                 </Link>
-                <span style={{ color: '#C8D0E0' }}>/</span>
+                <span style={{ color: '#EBEBEB' }}>/</span>
                 <span style={{ fontWeight: 700 }}>تعديل: {employee.name}</span>
             </div>
 
@@ -46,14 +46,13 @@ export default function EmployeeEdit({ employee, departments }: Props) {
                 </div>
             )}
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 32, maxWidth: 500 }}>
+            <div className="card" style={{ maxWidth: 500 }}>
                 <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>تعديل بيانات الموظف</div>
                 <form onSubmit={handleSubmit}>
                     <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">الاسم</label>
+                        <label>الاسم</label>
                         <input
                             type="text"
-                            className="fi"
                             placeholder="اسم الموظف"
                             value={form.data.name}
                             onChange={(e) => form.setData('name', e.target.value)}
@@ -61,10 +60,9 @@ export default function EmployeeEdit({ employee, departments }: Props) {
                     </div>
 
                     <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">البريد الإلكتروني</label>
+                        <label>البريد الإلكتروني</label>
                         <input
                             type="email"
-                            className="fi"
                             dir="ltr"
                             placeholder="email@example.com"
                             value={form.data.email}
@@ -73,10 +71,9 @@ export default function EmployeeEdit({ employee, departments }: Props) {
                     </div>
 
                     <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">كلمة المرور الجديدة</label>
+                        <label>كلمة المرور الجديدة</label>
                         <input
                             type="password"
-                            className="fi"
                             dir="ltr"
                             placeholder="اتركه فارغاً للإبقاء على الحالية"
                             value={form.data.password}
@@ -85,10 +82,9 @@ export default function EmployeeEdit({ employee, departments }: Props) {
                     </div>
 
                     <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">رقم الجوال</label>
+                        <label>رقم الجوال</label>
                         <input
                             type="text"
-                            className="fi"
                             dir="ltr"
                             placeholder="05xxxxxxxx"
                             value={form.data.phone}
@@ -97,9 +93,8 @@ export default function EmployeeEdit({ employee, departments }: Props) {
                     </div>
 
                     <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">القسم</label>
+                        <label>القسم</label>
                         <select
-                            className="fi"
                             value={form.data.department_id}
                             onChange={(e) => form.setData('department_id', e.target.value)}
                         >
@@ -111,9 +106,8 @@ export default function EmployeeEdit({ employee, departments }: Props) {
                     </div>
 
                     <div className="fg" style={{ marginBottom: 24 }}>
-                        <label className="fl">الحالة</label>
+                        <label>الحالة</label>
                         <select
-                            className="fi"
                             value={form.data.status}
                             onChange={(e) => form.setData('status', e.target.value)}
                         >
@@ -128,7 +122,8 @@ export default function EmployeeEdit({ employee, departments }: Props) {
                         </button>
                         <Link
                             href="/company/employees"
-                            style={{ padding: '12px 24px', background: '#E2E8F4', borderRadius: 10, color: '#4A5C78', fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
+                            className="ac-btn secondary"
+                            style={{ padding: '12px 24px', textDecoration: 'none', textAlign: 'center' }}
                         >
                             إلغاء
                         </Link>

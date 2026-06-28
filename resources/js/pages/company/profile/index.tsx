@@ -39,13 +39,13 @@ export default function CompanyProfile({ company }: Props) {
             <Head title="الملف الشخصي" />
 
             <div className="page-title">الملف الشخصي</div>
-            <div className="page-sub">تعديل بيانات الحساب وكلمة المرور</div>
+            <div className="page-sub" style={{ marginBottom: 24 }}>تعديل بيانات الحساب وكلمة المرور</div>
 
             <div className="card" style={{ maxWidth: 600 }}>
                 {Object.keys(form.errors).length > 0 && (
-                    <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
+                    <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
                         {Object.values(form.errors).map((error, i) => (
-                            <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
+                            <p key={i} style={{ fontSize: 12, color: '#E03050', margin: '0 0 4px' }}>{error}</p>
                         ))}
                     </div>
                 )}
@@ -95,8 +95,8 @@ export default function CompanyProfile({ company }: Props) {
                         </div>
                     </div>
 
-                    <div style={{ borderTop: '1px solid #232A3E', margin: '20px 0', paddingTop: '20px' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '16px' }}>تغيير كلمة المرور</div>
+                    <div style={{ borderTop: '1px solid #EBEBEB', margin: '20px 0', paddingTop: 20 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#0A0A0A', marginBottom: 16 }}>تغيير كلمة المرور</div>
                         <div className="frow">
                             <div className="fg">
                                 <label>كلمة المرور الحالية *</label>

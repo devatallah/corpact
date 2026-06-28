@@ -56,18 +56,18 @@ export default function DepartmentsIndex({ departments }: Props) {
         <CompanyLayout>
             <Head title="الأقسام" />
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <div className="page-title">إدارة الأقسام</div>
-                <button onClick={() => { setShowCreate(true); setEditingItem(null); form.reset(); }} className="act-btn btn-approve">
+                <button onClick={() => { setShowCreate(true); setEditingItem(null); form.reset(); }} className="ac-btn">
                     إضافة قسم
                 </button>
             </div>
-            <div className="page-sub">
+            <div className="page-sub" style={{ marginBottom: 24 }}>
                 {departments.length} قسم مسجّل
             </div>
 
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <table className="portal-table">
+                <table>
                     <thead>
                         <tr>
                             <th>اسم القسم</th>
@@ -78,7 +78,7 @@ export default function DepartmentsIndex({ departments }: Props) {
                     <tbody>
                         {departments.length === 0 ? (
                             <tr>
-                                <td colSpan={3} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
+                                <td colSpan={3} style={{ textAlign: 'center', color: '#999', padding: 20 }}>
                                     لا توجد أقسام بعد
                                 </td>
                             </tr>
@@ -88,10 +88,11 @@ export default function DepartmentsIndex({ departments }: Props) {
                                     <td style={{ fontWeight: 700 }}>{dept.name}</td>
                                     <td>{dept.employees_count}</td>
                                     <td>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                        <div style={{ display: 'flex', gap: 6 }}>
                                             <button
                                                 onClick={() => { setEditingItem(dept); setShowCreate(false); }}
-                                                className="act-btn btn-view"
+                                                className="ac-btn secondary"
+                                                style={{ fontSize: 12, padding: '5px 14px' }}
                                             >
                                                 تعديل
                                             </button>
@@ -114,9 +115,9 @@ export default function DepartmentsIndex({ departments }: Props) {
                         </h3>
 
                         {Object.keys(form.errors).length > 0 && (
-                            <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
+                            <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
                                 {Object.values(form.errors).map((error, i) => (
-                                    <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
+                                    <p key={i} style={{ fontSize: 12, color: '#E03050', margin: '0 0 4px' }}>{error}</p>
                                 ))}
                             </div>
                         )}

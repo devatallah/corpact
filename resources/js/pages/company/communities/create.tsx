@@ -45,10 +45,10 @@ export default function CommunityCreate({ employees, categories }: Props) {
             <Head title="إنشاء مجتمع" />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <Link href="/company/communities" style={{ color: '#7A8BA8', textDecoration: 'none', fontSize: 14 }}>
+                <Link href="/company/communities" style={{ color: '#999', textDecoration: 'none', fontSize: 14 }}>
                     ← المجتمعات
                 </Link>
-                <span style={{ color: '#C8D0E0' }}>/</span>
+                <span style={{ color: '#EBEBEB' }}>/</span>
                 <span style={{ fontWeight: 700 }}>إنشاء مجتمع</span>
             </div>
 
@@ -60,14 +60,13 @@ export default function CommunityCreate({ employees, categories }: Props) {
                 </div>
             )}
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 32, maxWidth: 600 }}>
+            <div className="card" style={{ maxWidth: 600 }}>
                 <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>إنشاء مجتمع جديد</div>
                 <form onSubmit={handleSubmit}>
                     <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">اسم المجتمع *</label>
+                        <label>اسم المجتمع *</label>
                         <input
                             type="text"
-                            className="fi"
                             placeholder="مثال: فريق كرة القدم"
                             value={form.data.name}
                             onChange={(e) => form.setData('name', e.target.value)}
@@ -76,9 +75,8 @@ export default function CommunityCreate({ employees, categories }: Props) {
                     </div>
 
                     <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">الوصف</label>
+                        <label>الوصف</label>
                         <textarea
-                            className="fi"
                             rows={3}
                             placeholder="وصف المجتمع..."
                             value={form.data.description}
@@ -89,9 +87,8 @@ export default function CommunityCreate({ employees, categories }: Props) {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                         <div className="fg">
-                            <label className="fl">الفئة *</label>
+                            <label>الفئة *</label>
                             <select
-                                className="fi"
                                 value={form.data.parent_category_id}
                                 onChange={(e) => {
                                     const parentId = e.target.value;
@@ -112,9 +109,8 @@ export default function CommunityCreate({ employees, categories }: Props) {
                             </select>
                         </div>
                         <div className="fg">
-                            <label className="fl">الفئة الفرعية *</label>
+                            <label>الفئة الفرعية *</label>
                             <select
-                                className="fi"
                                 value={form.data.category_id}
                                 onChange={(e) => form.setData('category_id', e.target.value)}
                                 disabled={!form.data.parent_category_id || subcategories.length === 0}
@@ -128,9 +124,8 @@ export default function CommunityCreate({ employees, categories }: Props) {
                     </div>
 
                     <div className="fg" style={{ marginBottom: 24 }}>
-                        <label className="fl">القائد *</label>
+                        <label>القائد *</label>
                         <select
-                            className="fi"
                             value={form.data.leader_id}
                             onChange={(e) => form.setData('leader_id', e.target.value)}
                             required
@@ -150,7 +145,8 @@ export default function CommunityCreate({ employees, categories }: Props) {
                         </button>
                         <Link
                             href="/company/communities"
-                            style={{ padding: '12px 24px', background: '#E2E8F4', borderRadius: 10, color: '#4A5C78', fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
+                            className="ac-btn secondary"
+                            style={{ padding: '12px 24px', textDecoration: 'none', textAlign: 'center' }}
                         >
                             إلغاء
                         </Link>

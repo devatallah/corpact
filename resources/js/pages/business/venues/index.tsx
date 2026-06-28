@@ -30,7 +30,7 @@ function emptyPricingForm(): PricingFormData {
     return { duration_minutes: '60', price: '', is_peak: false, label: '', start_time: '', end_time: '', days: [] };
 }
 
-/* ── Pricing Form (shared for add & edit) ── */
+/* -- Pricing Form (shared for add & edit) -- */
 function PricingForm({ data, onChange, onSubmit, onCancel, processing, submitLabel }: {
     data: PricingFormData;
     onChange: (field: keyof PricingFormData, value: unknown) => void;
@@ -46,13 +46,13 @@ function PricingForm({ data, onChange, onSubmit, onCancel, processing, submitLab
     }
 
     return (
-        <form onSubmit={onSubmit} style={{ background: '#fff', border: '2px solid #C8410A33', borderRadius: 10, padding: '12px 14px', marginTop: 8 }}>
+        <form onSubmit={onSubmit} style={{ background: '#fff', border: '2px solid #18A86B33', borderRadius: 10, padding: '12px 14px', marginTop: 8 }}>
             {/* Duration + Price */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <select
                     value={data.duration_minutes}
                     onChange={(e) => onChange('duration_minutes', e.target.value)}
-                    style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid #EAE4DC', fontSize: 13, background: '#fff', outline: 'none', fontFamily: 'inherit' }}
+                    style={{ padding: '7px 10px', borderRadius: 10, border: '1px solid #EBEBEB', fontSize: 13, background: '#fff', outline: 'none', fontFamily: 'inherit' }}
                 >
                     {DURATIONS.map((d) => (
                         <option key={d} value={String(d)}>{d} دقيقة</option>
@@ -65,9 +65,9 @@ function PricingForm({ data, onChange, onSubmit, onCancel, processing, submitLab
                     value={data.price}
                     onChange={(e) => onChange('price', e.target.value)}
                     required
-                    style={{ width: 100, padding: '7px 10px', borderRadius: 8, border: '1px solid #EAE4DC', fontSize: 13, background: '#fff', outline: 'none', textAlign: 'center' }}
+                    style={{ width: 100, padding: '7px 10px', borderRadius: 10, border: '1px solid #EBEBEB', fontSize: 13, background: '#fff', outline: 'none', textAlign: 'center' }}
                 />
-                <span style={{ fontSize: 12, color: '#8A7868' }}>ريال</span>
+                <span style={{ fontSize: 12, color: '#999' }}>ريال</span>
             </div>
 
             {/* Peak toggle + label */}
@@ -79,7 +79,7 @@ function PricingForm({ data, onChange, onSubmit, onCancel, processing, submitLab
                         onChange={(e) => onChange('is_peak', e.target.checked)}
                         style={{ width: 16, height: 16, accentColor: '#E03050', cursor: 'pointer' }}
                     />
-                    <span style={{ color: data.is_peak ? '#E03050' : '#8A7868', fontWeight: 600 }}>
+                    <span style={{ color: data.is_peak ? '#E03050' : '#999', fontWeight: 600 }}>
                         {data.is_peak ? 'ذروة' : 'خارج الذروة'}
                     </span>
                 </label>
@@ -88,16 +88,16 @@ function PricingForm({ data, onChange, onSubmit, onCancel, processing, submitLab
                     placeholder="تسمية (مثال: ساعات المساء)"
                     value={data.label}
                     onChange={(e) => onChange('label', e.target.value)}
-                    style={{ flex: 1, padding: '6px 10px', borderRadius: 6, border: '1px solid #EAE4DC', fontSize: 12, background: '#fff', outline: 'none' }}
+                    style={{ flex: 1, padding: '6px 10px', borderRadius: 10, border: '1px solid #EBEBEB', fontSize: 12, background: '#fff', outline: 'none' }}
                 />
             </div>
 
             {/* Time range */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: 11, color: '#8A7868', minWidth: 30 }}>من</span>
-                <TimePicker value={data.start_time} onChange={(v) => onChange('start_time', v)} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #EAE4DC', fontSize: 12 }} />
-                <span style={{ fontSize: 11, color: '#8A7868', minWidth: 30 }}>إلى</span>
-                <TimePicker value={data.end_time} onChange={(v) => onChange('end_time', v)} style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #EAE4DC', fontSize: 12 }} />
+                <span style={{ fontSize: 11, color: '#999', minWidth: 30 }}>من</span>
+                <TimePicker value={data.start_time} onChange={(v) => onChange('start_time', v)} style={{ padding: '6px 8px', borderRadius: 10, border: '1px solid #EBEBEB', fontSize: 12 }} />
+                <span style={{ fontSize: 11, color: '#999', minWidth: 30 }}>إلى</span>
+                <TimePicker value={data.end_time} onChange={(v) => onChange('end_time', v)} style={{ padding: '6px 8px', borderRadius: 10, border: '1px solid #EBEBEB', fontSize: 12 }} />
             </div>
 
             {/* Days */}
@@ -105,7 +105,7 @@ function PricingForm({ data, onChange, onSubmit, onCancel, processing, submitLab
                 {DAY_LABELS.map((label, dayIdx) => {
                     const isActive = data.days.includes(dayIdx);
                     return (
-                        <button key={dayIdx} type="button" onClick={() => toggleDay(dayIdx)} style={{ padding: '4px 8px', borderRadius: 6, border: `1px solid ${isActive ? '#C8410A' : '#EAE4DC'}`, background: isActive ? '#C8410A' : '#fff', color: isActive ? '#fff' : '#8A7868', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        <button key={dayIdx} type="button" onClick={() => toggleDay(dayIdx)} style={{ padding: '4px 8px', borderRadius: 10, border: `1px solid ${isActive ? '#18A86B' : '#EBEBEB'}`, background: isActive ? '#18A86B' : '#fff', color: isActive ? '#fff' : '#999', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                             {label}
                         </button>
                     );
@@ -114,14 +114,14 @@ function PricingForm({ data, onChange, onSubmit, onCancel, processing, submitLab
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: 8 }}>
-                <button type="submit" disabled={processing} style={{ background: '#C8410A', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{submitLabel}</button>
-                <button type="button" onClick={onCancel} style={{ background: '#F7F4F0', color: '#8A7868', border: '1px solid #EAE4DC', borderRadius: 8, padding: '6px 16px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>إلغاء</button>
+                <button type="submit" disabled={processing} className="ac-btn" style={{ padding: '6px 16px', fontSize: 12 }}>{submitLabel}</button>
+                <button type="button" onClick={onCancel} className="btn btn-outline" style={{ padding: '6px 16px', fontSize: 12 }}>إلغاء</button>
             </div>
         </form>
     );
 }
 
-/* ── Main Component ── */
+/* -- Main Component -- */
 export default function venuesIndex({ business, venues, categories }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<Venue | null>(null);
@@ -232,8 +232,7 @@ export default function venuesIndex({ business, venues, categories }: Props) {
                 </div>
                 <button
                     onClick={() => { venueForm.reset(); setShowCreate(true); }}
-                    className="act-btn btn-reject"
-                    style={{ background: '#C8410A', color: '#fff', borderColor: '#C8410A' }}
+                    className="ac-btn"
                 >
                     + إضافة مرفق
                 </button>
@@ -241,7 +240,7 @@ export default function venuesIndex({ business, venues, categories }: Props) {
 
             <div>
                 {venues.length === 0 ? (
-                    <div className="card" style={{ textAlign: 'center', padding: 40, color: '#8A7868' }}>
+                    <div className="card" style={{ textAlign: 'center', padding: 40, color: '#999' }}>
                         <div style={{ fontSize: 40, marginBottom: 12 }}>🏟️</div>
                         <div style={{ fontSize: 15, fontWeight: 700 }}>لا توجد مرافق مسجلة</div>
                         <div style={{ fontSize: 12, marginTop: 4 }}>أضف مرفقك الأول من الزر أعلاه</div>
@@ -252,17 +251,17 @@ export default function venuesIndex({ business, venues, categories }: Props) {
                             {/* Venue header */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                    <div style={{ width: 48, height: 48, borderRadius: 14, background: '#F7F4F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ width: 48, height: 48, borderRadius: 12, background: '#FAFAFA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <CategoryIcon icon={venue.category?.icon} size={26} />
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: 15, fontWeight: 800 }}>{venue.name}</div>
-                                        <div style={{ fontSize: 12, color: '#8A7868' }}>{venue.category?.name ?? ''}</div>
+                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0A0A0A' }}>{venue.name}</div>
+                                        <div style={{ fontSize: 12, color: '#999' }}>{venue.category?.name ?? ''}</div>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                     <StatusBadge status={venue.status} />
-                                    <button onClick={() => setEditingItem(venue)} style={{ background: '#F7F4F0', border: '1px solid #EAE4DC', borderRadius: 8, padding: '5px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>تعديل</button>
+                                    <button onClick={() => setEditingItem(venue)} className="btn btn-outline" style={{ padding: '5px 12px', fontSize: 12 }}>تعديل</button>
                                 </div>
                             </div>
 
@@ -271,33 +270,33 @@ export default function venuesIndex({ business, venues, categories }: Props) {
                                 <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
                                     {venue.pricings.map((pricing) => (
                                         <div key={pricing.id}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: pricing.status === 'inactive' ? '#F7F4F0AA' : '#F7F4F0', border: '1px solid #EAE4DC', borderRadius: 8, padding: '6px 10px', fontSize: 11, color: '#1C1410', flexWrap: 'wrap', opacity: pricing.status === 'inactive' ? 0.5 : 1 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: pricing.status === 'inactive' ? '#FAFAFAAA' : '#FAFAFA', border: '1px solid #EBEBEB', borderRadius: 10, padding: '6px 10px', fontSize: 11, color: '#0A0A0A', flexWrap: 'wrap', opacity: pricing.status === 'inactive' ? 0.5 : 1 }}>
                                                 <span style={{ fontWeight: 700 }}>{pricing.duration_minutes} دقيقة — {pricing.price.toLocaleString()} ريال</span>
                                                 {pricing.is_peak ? (
-                                                    <span style={{ background: '#E03050', color: '#fff', borderRadius: 4, padding: '1px 6px', fontSize: 10 }}>ذروة</span>
+                                                    <span style={{ background: '#E03050', color: '#fff', borderRadius: 99, padding: '1px 6px', fontSize: 10 }}>ذروة</span>
                                                 ) : (
-                                                    <span style={{ background: '#10B981', color: '#fff', borderRadius: 4, padding: '1px 6px', fontSize: 10 }}>خارج الذروة</span>
+                                                    <span style={{ background: '#18A86B', color: '#fff', borderRadius: 99, padding: '1px 6px', fontSize: 10 }}>خارج الذروة</span>
                                                 )}
                                                 {pricing.status === 'inactive' && (
-                                                    <span style={{ background: '#8A7868', color: '#fff', borderRadius: 4, padding: '1px 6px', fontSize: 10 }}>معطّل</span>
+                                                    <span style={{ background: '#999', color: '#fff', borderRadius: 99, padding: '1px 6px', fontSize: 10 }}>معطّل</span>
                                                 )}
-                                                {pricing.label && <span style={{ color: '#8A7868' }}>{pricing.label}</span>}
+                                                {pricing.label && <span style={{ color: '#999' }}>{pricing.label}</span>}
                                                 {pricing.start_time && pricing.end_time && (
-                                                    <span style={{ color: '#8A7868' }}>{pricing.start_time.slice(0, 5)} - {pricing.end_time.slice(0, 5)}</span>
+                                                    <span style={{ color: '#999' }}>{pricing.start_time.slice(0, 5)} - {pricing.end_time.slice(0, 5)}</span>
                                                 )}
                                                 {pricing.days && pricing.days.length > 0 && (
-                                                    <span style={{ color: '#8A7868' }}>{pricing.days.map((d) => DAY_LABELS[d]).join('، ')}</span>
+                                                    <span style={{ color: '#999' }}>{pricing.days.map((d) => DAY_LABELS[d]).join('، ')}</span>
                                                 )}
                                                 {/* Action buttons */}
                                                 <div style={{ marginRight: 'auto', display: 'flex', gap: 4 }}>
                                                     <button
                                                         onClick={() => router.post(`/business/venues/${venue.id}/pricings/${pricing.id}/toggle`, {}, { preserveScroll: true })}
-                                                        style={{ background: 'none', border: `1px solid ${pricing.status === 'active' ? '#F59E0B33' : '#10B98133'}`, borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: pricing.status === 'active' ? '#F59E0B' : '#10B981' }}
+                                                        style={{ background: 'none', border: `1px solid ${pricing.status === 'active' ? '#F59E0B33' : '#18A86B33'}`, borderRadius: 99, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: pricing.status === 'active' ? '#F59E0B' : '#18A86B' }}
                                                     >
                                                         {pricing.status === 'active' ? 'تعطيل' : 'تفعيل'}
                                                     </button>
-                                                    <button onClick={() => startEditPricing(pricing)} style={{ background: 'none', border: '1px solid #EAE4DC', borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: '#8A7868' }}>تعديل</button>
-                                                    <button onClick={() => deletePricing(venue.id, pricing.id)} style={{ background: 'none', border: '1px solid #E0305033', borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: '#E03050' }}>حذف</button>
+                                                    <button onClick={() => startEditPricing(pricing)} style={{ background: 'none', border: '1px solid #EBEBEB', borderRadius: 99, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: '#999' }}>تعديل</button>
+                                                    <button onClick={() => deletePricing(venue.id, pricing.id)} style={{ background: 'none', border: '1px solid #E0305033', borderRadius: 99, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: '#E03050' }}>حذف</button>
                                                 </div>
                                             </div>
 
@@ -333,7 +332,8 @@ export default function venuesIndex({ business, venues, categories }: Props) {
                             {addingPricingFor !== venue.id && (
                                 <button
                                     onClick={() => startAddPricing(venue.id)}
-                                    style={{ marginTop: 10, width: '100%', background: '#C8410A', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 0', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                                    className="ac-btn btn-full"
+                                    style={{ marginTop: 10, fontSize: 12 }}
                                 >
                                     + إضافة سعر
                                 </button>
@@ -356,7 +356,7 @@ export default function venuesIndex({ business, venues, categories }: Props) {
                                 <div className="fg">
                                     <label>اسم المرفق</label>
                                     <input type="text" value={venueForm.data.name} onChange={(e) => venueForm.setData('name', e.target.value)} required />
-                                    {venueForm.errors.name && <div className="form-error">{venueForm.errors.name}</div>}
+                                    {venueForm.errors.name && <div className="field-error">{venueForm.errors.name}</div>}
                                 </div>
                                 <div className="fg">
                                     <label>الفئة</label>
@@ -378,7 +378,7 @@ export default function venuesIndex({ business, venues, categories }: Props) {
                                             <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
                                         ))}
                                     </select>
-                                    {venueForm.errors.category_id && <div className="form-error">{venueForm.errors.category_id}</div>}
+                                    {venueForm.errors.category_id && <div className="field-error">{venueForm.errors.category_id}</div>}
                                 </div>
                             </div>
                             <div className="frow">
@@ -402,7 +402,7 @@ export default function venuesIndex({ business, venues, categories }: Props) {
                                         <option value="closed">مغلق</option>
                                             <option value="maintenance">صيانة</option>
                                     </select>
-                                    {venueForm.errors.status && <div className="form-error">{venueForm.errors.status}</div>}
+                                    {venueForm.errors.status && <div className="field-error">{venueForm.errors.status}</div>}
                                 </div>
                             </div>
                             <div className="panel-actions">

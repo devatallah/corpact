@@ -19,7 +19,7 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
     const distForm = useForm({ community_id: communities[0]?.id?.toString() ?? '', amount: '' });
     const [selectedCommunity, setSelectedCommunity] = useState<number | null>(communities[0]?.id ?? null);
 
-    const COLORS = ['#0CA678', '#D4820A', '#5B3FCC', '#3B5BDB', '#E03050', '#8B5CF6'];
+    const COLORS = ['#18A86B', '#D4820A', '#5B3FCC', '#18A86B', '#E03050', '#8B5CF6'];
 
     function handleCharge(e: FormEvent) {
         e.preventDefault();
@@ -55,7 +55,7 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
             <div className="page-sub" style={{ marginBottom: 24 }}>إدارة الميزانية وشحن رصيد المجتمعات</div>
 
             {/* Balance Card */}
-            <div style={{ background: 'linear-gradient(135deg,#1A2035,#252D45)', borderRadius: 20, padding: '24px 28px', marginBottom: 20, color: '#fff' }}>
+            <div style={{ background: 'linear-gradient(135deg,#0A0A0A,#1a1a1a)', borderRadius: 16, padding: '24px 28px', marginBottom: 20, color: '#fff' }}>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', letterSpacing: 1, marginBottom: 4 }}>رصيد المحفظة المتاح</div>
                 <div style={{ fontSize: 40, fontWeight: 900 }}>
                     {(wallet?.balance ?? 0).toLocaleString()} <span style={{ fontSize: 18 }}>ريال</span>
@@ -72,7 +72,7 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
 
             {/* Charge Form */}
             {showCharge && (
-                <div style={{ background: '#fff', border: '1px solid #3B5BDB44', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                <div className="card" style={{ borderColor: '#18A86B44', marginBottom: 16 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>شحن رصيد جديد</div>
                     <form onSubmit={handleCharge} style={{ display: 'flex', gap: 10 }}>
                         <input
@@ -81,7 +81,7 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
                             dir="rtl"
                             value={chargeForm.data.amount}
                             onChange={(e) => chargeForm.setData('amount', e.target.value)}
-                            style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 14, background: '#F0F2F8', outline: 'none', direction: 'rtl' }}
+                            style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1px solid #EBEBEB', fontSize: 14, background: '#FAFAFA', outline: 'none', direction: 'rtl' }}
                         />
                         <button type="submit" className="ac-btn" disabled={chargeForm.processing}>شحن</button>
                     </form>
@@ -94,12 +94,12 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
             )}
 
             {/* Community Distribution */}
-            <div style={{ background: '#fff', border: '2px solid #3B5BDB33', borderRadius: 16, padding: 22, marginBottom: 16 }}>
+            <div className="card" style={{ borderColor: '#18A86B33', borderWidth: 2, marginBottom: 16 }}>
                 <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>شحن رصيد مجتمع</div>
-                <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 16 }}>اختر المجتمع وحدد المبلغ — يُخصم من المحفظة ويُضاف للمجتمع</div>
+                <div style={{ fontSize: 12, color: '#999', marginBottom: 16 }}>اختر المجتمع وحدد المبلغ — يُخصم من المحفظة ويُضاف للمجتمع</div>
                 <form onSubmit={handleDistribute}>
                     {communities.length === 0 ? (
-                        <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا توجد مجتمعات</div>
+                        <div style={{ fontSize: 13, color: '#999' }}>لا توجد مجتمعات</div>
                     ) : (
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
                             {communities.map((community, index) => {
@@ -113,12 +113,12 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
                                         style={{
                                             display: 'flex', alignItems: 'center', gap: 6,
                                             padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
-                                            border: `2px solid ${isSelected ? color : '#E2E8F4'}`,
-                                            background: isSelected ? `${color}12` : '#F0F2F8',
+                                            border: `2px solid ${isSelected ? color : '#EBEBEB'}`,
+                                            background: isSelected ? `${color}12` : '#FAFAFA',
                                         }}
                                     >
                                         <CategoryIcon icon={community.category?.icon} size={20} />
-                                        <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? color : '#4A5C78' }}>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? color : '#666' }}>
                                             {community.name}
                                         </span>
                                     </div>
@@ -133,7 +133,7 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
                             dir="rtl"
                             value={distForm.data.amount}
                             onChange={(e) => distForm.setData('amount', e.target.value)}
-                            style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 15, fontWeight: 700, background: '#F0F2F8', outline: 'none', direction: 'rtl' }}
+                            style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1px solid #EBEBEB', fontSize: 15, fontWeight: 700, background: '#FAFAFA', outline: 'none', direction: 'rtl' }}
                         />
                         <button type="submit" className="ac-btn" disabled={distForm.processing}>
                             شحن ←
@@ -149,7 +149,7 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
 
             {/* Transactions */}
             {transactions.length > 0 && (
-                <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 22 }}>
+                <div className="card">
                     <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>آخر العمليات</div>
                     {transactions.map((tx, index) => (
                         <div
@@ -157,7 +157,7 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
                             style={{
                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                 padding: '10px 0',
-                                ...(index < transactions.length - 1 ? { borderBottom: '1px solid #E2E8F4' } : {}),
+                                ...(index < transactions.length - 1 ? { borderBottom: '1px solid #EBEBEB' } : {}),
                             }}
                         >
                             <div>
@@ -165,9 +165,9 @@ export default function WalletIndex({ wallet, communities, transactions }: Props
                                     {tx.type === 'credit' ? 'شحن رصيد' : 'صرف لمجتمع'}
                                     {tx.community ? ` \u2014 ${tx.community.name}` : ''}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#7A8BA8' }}>{fmtDateTime(tx.created_at)}</div>
+                                <div style={{ fontSize: 11, color: '#999' }}>{fmtDateTime(tx.created_at)}</div>
                             </div>
-                            <div style={{ fontSize: 14, fontWeight: 800, color: tx.type === 'credit' ? '#0CA678' : '#E03050' }}>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: tx.type === 'credit' ? '#18A86B' : '#E03050' }}>
                                 {tx.type === 'credit' ? '+' : '-'}{tx.amount.toLocaleString()} ر
                             </div>
                         </div>

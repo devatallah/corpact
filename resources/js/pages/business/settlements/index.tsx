@@ -38,7 +38,7 @@ export default function SettlementsIndex({ business, settlements, totals, filter
                     emoji="💰"
                     label="إجمالي الإيرادات"
                     value={`${totals.total_net.toLocaleString()} ر`}
-                    color="#B8860A"
+                    color="#18A86B"
                 />
                 <StatCard
                     emoji="✅"
@@ -60,7 +60,7 @@ export default function SettlementsIndex({ business, settlements, totals, filter
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="🔍 ابحث بالشركة..."
-                    style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #EAE4DC', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
+                    style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #EBEBEB', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
                 />
             </div>
 
@@ -79,7 +79,7 @@ export default function SettlementsIndex({ business, settlements, totals, filter
                         <tbody>
                             {settlements.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} style={{ textAlign: 'center', padding: 30, color: '#8A7868' }}>
+                                    <td colSpan={4} style={{ textAlign: 'center', padding: 30, color: '#999' }}>
                                         لا توجد تسويات حالياً
                                     </td>
                                 </tr>
@@ -93,17 +93,17 @@ export default function SettlementsIndex({ business, settlements, totals, filter
                                         }
                                     >
                                         <td>
-                                            <div style={{ fontSize: 13, fontWeight: 700 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0A0A0A' }}>
                                                 {settlement.company?.name}
                                             </div>
-                                            <div style={{ fontSize: 11, color: '#8A7868' }}>
+                                            <div style={{ fontSize: 11, color: '#999' }}>
                                                 {settlement.period}
                                             </div>
                                         </td>
                                         <td style={{ fontWeight: 700 }}>
                                             {settlement.events_count} حجوزات
                                         </td>
-                                        <td style={{ fontSize: 16, fontWeight: 900, color: '#1A7A4A' }}>
+                                        <td style={{ fontSize: 16, fontWeight: 900, color: '#18A86B' }}>
                                             {settlement.net_amount.toLocaleString()} ريال
                                         </td>
                                         <td>
@@ -120,13 +120,13 @@ export default function SettlementsIndex({ business, settlements, totals, filter
             <Pagination links={settlements.links} />
 
             {/* Info Box */}
-            <div style={{ background: '#1A5FAB18', border: '1px solid #1A5FAB33', borderRadius: 14, padding: '14px 18px', display: 'flex', gap: 12 }}>
+            <div style={{ background: '#1A5FAB18', border: '1px solid #1A5FAB33', borderRadius: 12, padding: '14px 18px', display: 'flex', gap: 12 }}>
                 <div style={{ fontSize: 22 }}>ℹ️</div>
                 <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#1A5FAB', marginBottom: 4 }}>
                         كيف تعمل التسويات؟
                     </div>
-                    <div style={{ fontSize: 12, color: '#4A3828', lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 12, color: '#0A0A0A', lineHeight: 1.6 }}>
                         بعد خصم عمولة المنصة ({business.commission_rate ?? 10}%)، يُحول الصافي
                         لحسابك خلال 3 أيام عمل من تاريخ الفعالية.
                     </div>

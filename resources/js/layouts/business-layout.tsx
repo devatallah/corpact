@@ -1,55 +1,97 @@
-import { usePage } from '@inertiajs/react';
-import PortalSidebar from '@/components/portal-sidebar';
-import type { NavItem } from '@/components/portal-sidebar';
+import { Link, router, usePage } from '@inertiajs/react';
 import type { Auth } from '@/types/auth';
 
+const allNavLinks = [
+    { label: 'لوحة التحكم', href: '/business/dash', permission: 'dashboard.view' },
+    { label: 'طلبات الحجز', href: '/business/requests', permission: 'bookings.view' },
+    { label: 'الجدول', href: '/business/schedule', permission: 'schedule.view' },
+    { label: 'المرافق', href: '/business/venues', permission: 'venues.view' },
+    { label: 'التسويات', href: '/business/settlements', permission: 'settlements.view' },
+    { label: 'التقارير', href: '/business/reports', permission: 'reports.view' },
+];
+
+const moreLinks = [
+    { label: 'الخصومات', href: '/business/discounts', permission: 'discounts.view' },
+    { label: 'الموظفون', href: '/business/staff', permission: 'staff.view' },
+];
+
 export default function BusinessLayout({ children }: { children: React.ReactNode }) {
-    const props = usePage<{ auth: Auth }>().props;
+    const { url, props } = usePage<{ auth: Auth }>();
     const { auth } = props;
-    const pendingCount = (props as Record<string, unknown>).pendingCount as number | undefined;
-
     const permissions = (auth.businessPermissions ?? auth.permissions ?? []) as string[];
-    const role = auth.businessRole as string | undefined;
+    const user = auth.user as { name?: string } | undefined;
+    const name = user?.name ?? 'المنشأة';
+    const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2);
 
-    function can(permission: string): boolean {
+    function can(permission: string) {
         return permissions.includes(permission);
     }
 
-    const allNavItems: (NavItem & { permission?: string })[] = [
-        { label: '\u0644\u0648\u062D\u0629 \u0627\u0644\u062A\u062D\u0643\u0645', href: '/business/dash', emoji: '\uD83D\uDCCA', permission: 'dashboard.view' },
-        { label: '\u0637\u0644\u0628\u0627\u062A \u0627\u0644\u062D\u062C\u0632', href: '/business/requests', emoji: '\uD83D\uDCCB', badge: pendingCount, permission: 'bookings.view' },
-        { label: '\u0627\u0644\u062C\u062F\u0648\u0644', href: '/business/schedule', emoji: '\uD83D\uDDD3\uFE0F', permission: 'schedule.view' },
-        { label: '\u0627\u0644\u0645\u0631\u0627\u0641\u0642', href: '/business/venues', emoji: '\uD83C\uDFDF\uFE0F', permission: 'venues.view' },
-        { label: '\u0627\u0644\u062E\u0635\u0648\u0645\u0627\u062A', href: '/business/discounts', emoji: '\uD83C\uDFF7\uFE0F', permission: 'discounts.view' },
-        { label: '\u0627\u0644\u062A\u0633\u0648\u064A\u0627\u062A', href: '/business/settlements', emoji: '\uD83D\uDCB0', permission: 'settlements.view' },
-        { label: '\u0627\u0644\u062A\u0642\u0627\u0631\u064A\u0631', href: '/business/reports', emoji: '\uD83D\uDCC8', permission: 'reports.view' },
-        { label: '\u0627\u0644\u0645\u0648\u0638\u0641\u0648\u0646', href: '/business/staff', emoji: '\uD83D\uDC65', permission: 'staff.view' },
-        { label: '\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A', href: '/business/profile', emoji: '\uD83D\uDC64', permission: 'profile.view' },
-    ];
+    function isActive(href: string) {
+        if (href === '/business/dash') return url === '/business/dash';
+        return url.startsWith(href);
+    }
 
-    const navItems: NavItem[] = allNavItems
-        .filter(item => !item.permission || can(item.permission))
-        .map(({ permission, ...item }) => item);
+    const visibleNavLinks = allNavLinks.filter(l => can(l.permission));
+    const visibleMoreLinks = moreLinks.filter(l => can(l.permission));
 
-    const user = auth.user as { name: string; district?: string; city?: string } | undefined;
-    const roleLabel = auth.role_label;
-    const subText = [
-        roleLabel,
-        user?.district && user?.city ? `${user.district}\u060C ${user.city}` : null,
-    ].filter(Boolean).join(' - ');
+    const mobTabs = [
+        { label: 'الرئيسية', href: '/business/dash', emoji: '📊', permission: 'dashboard.view' },
+        { label: 'الحجوزات', href: '/business/requests', emoji: '📋', permission: 'bookings.view' },
+        { label: 'المرافق', href: '/business/venues', emoji: '🏟️', permission: 'venues.view' },
+        { label: 'التسويات', href: '/business/settlements', emoji: '💰', permission: 'settlements.view' },
+        { label: 'المزيد', href: '/business/profile', emoji: '⋯', permission: 'profile.view' },
+    ].filter(t => can(t.permission));
 
     return (
         <div className="portal-business" dir="rtl">
-            <PortalSidebar
-                portalTag="business"
-                userLabel={user?.name ?? '\u0627\u0644\u0645\u0646\u0634\u0623\u0629'}
-                userSub={subText || undefined}
-                navItems={navItems}
-                logoutUrl="/business/logout"
-                infoStyle="company"
-            />
-            <div className="main">
-                {children}
+            <nav className="topnav">
+                <div className="topnav-inner">
+                    <div className="topnav-right">
+                        <Link href="/business/dash" className="topnav-logo">تيمات</Link>
+                        <div className="topnav-links">
+                            {visibleNavLinks.map((link) => (
+                                <Link key={link.href} href={link.href} className={`topnav-link${isActive(link.href) ? ' on' : ''}`}>
+                                    {link.label}
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="topnav-left">
+                        <Link href="/business/profile" className="topnav-avatar">{initials}</Link>
+                        <button
+                            className="hamburger"
+                            onClick={() => {
+                                const el = document.getElementById('biz-mob-menu');
+                                if (el) el.style.display = el.style.display === 'block' ? 'none' : 'block';
+                            }}
+                        >☰</button>
+                    </div>
+                </div>
+                <div id="biz-mob-menu" style={{ display: 'none', padding: '8px 24px 16px', borderTop: '1px solid #EBEBEB' }}>
+                    {[...visibleNavLinks, ...visibleMoreLinks].map((link) => (
+                        <Link key={link.href} href={link.href} style={{ display: 'block', padding: '10px 0', fontSize: 14, fontWeight: isActive(link.href) ? 600 : 400, color: isActive(link.href) ? '#0A0A0A' : '#666', textDecoration: 'none', borderBottom: '1px solid #F5F5F5' }}>
+                            {link.label}
+                        </Link>
+                    ))}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        <Link href="/business/profile" style={{ flex: 1, textAlign: 'center', padding: 8, borderRadius: 8, background: '#F5F5F5', fontSize: 13, fontWeight: 500, color: '#0A0A0A', textDecoration: 'none' }}>الملف الشخصي</Link>
+                        <button onClick={() => router.post('/business/logout')} style={{ flex: 1, padding: 8, borderRadius: 8, background: '#FEF2F2', fontSize: 13, fontWeight: 500, color: '#EF4444', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>تسجيل خروج</button>
+                    </div>
+                </div>
+            </nav>
+
+            <div className="main">{children}</div>
+
+            <div className="mob-nav">
+                <div className="mob-nav-inner">
+                    {mobTabs.map((tab) => (
+                        <Link key={tab.href} href={tab.href} className={`mob-link${isActive(tab.href) ? ' on' : ''}`}>
+                            <span className="ico">{tab.emoji}</span>
+                            <span>{tab.label}</span>
+                        </Link>
+                    ))}
+                </div>
             </div>
         </div>
     );

@@ -43,9 +43,9 @@ interface Props {
 const DAY_NAMES = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
 
 const HEATMAP_COLORS: Record<string, { bg: string; color: string }> = {
-    low: { bg: '#EBF0FE', color: '#1A56DB' },
-    medium: { bg: '#93C5FD', color: '#1e3a8a' },
-    high: { bg: '#1A56DB', color: '#fff' },
+    low: { bg: '#18A86B15', color: '#18A86B' },
+    medium: { bg: '#18A86B40', color: '#0E7C4A' },
+    high: { bg: '#18A86B', color: '#fff' },
 };
 
 function formatRelativeDate(dateStr: string | null): string {
@@ -93,27 +93,27 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                         label="حجوزات من تيمات"
                         value={overview.bookings}
                         change={bookingsChange}
-                        color="#1A56DB"
+                        color="#18A86B"
                     />
                     <StatCard
                         emoji="💵"
                         label="إيرادات من تيمات"
                         value={overview.revenue.toLocaleString()}
                         change="ريال هذا الشهر"
-                        color="#0F7B6C"
+                        color="#0E7C4A"
                     />
                     <StatCard
                         emoji="🏢"
                         label="الشركات الحاجزة"
                         value={overview.companies}
-                        color="#111827"
+                        color="#0A0A0A"
                     />
                     <StatCard
                         emoji="📊"
                         label="متوسط الحجز"
                         value={overview.avg_booking}
                         change="ريال / حجز"
-                        color="#B45309"
+                        color="#D97706"
                     />
                 </div>
 
@@ -123,7 +123,7 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                     <div className="card" ref={revenueRef}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                             <h2 className="sec-title" style={{ margin: 0 }}>الإيرادات الشهرية</h2>
-                            <button className="no-print" onClick={() => printCard(revenueRef.current, 'الإيرادات الشهرية')} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>⬇️ تحميل</button>
+                            <button className="no-print" onClick={() => printCard(revenueRef.current, 'الإيرادات الشهرية')} style={{ background: 'none', border: '1px solid #EBEBEB', borderRadius: 10, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#999', display: 'flex', alignItems: 'center', gap: 4 }}>⬇️ تحميل</button>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
                             {monthlyRevenue.map((item) => {
@@ -146,14 +146,14 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                                                 borderRadius: '4px 4px 0 0',
                                                 width: '100%',
                                                 height: `${heightPct}%`,
-                                                backgroundColor: item.is_current ? '#1A56DB' : '#EBF0FE',
+                                                backgroundColor: item.is_current ? '#18A86B' : '#18A86B20',
                                                 minHeight: 4,
                                             }}
                                         />
                                         <span
                                             style={{
                                                 fontSize: 10,
-                                                color: item.is_current ? '#1A56DB' : '#6B7280',
+                                                color: item.is_current ? '#18A86B' : '#999',
                                                 fontWeight: item.is_current ? 700 : 400,
                                                 whiteSpace: 'nowrap',
                                             }}
@@ -164,14 +164,14 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                                 );
                             })}
                         </div>
-                        <p style={{ fontSize: 11, color: '#6B7280', marginTop: 12 }}>الأرقام بالريال السعودي</p>
+                        <p style={{ fontSize: 11, color: '#999', marginTop: 12 }}>الأرقام بالريال السعودي</p>
                     </div>
 
                     {/* Top Companies Table */}
                     <div className="card" ref={companiesRef}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                             <h2 className="sec-title" style={{ margin: 0 }}>الشركات الأكثر حجزاً</h2>
-                            <button className="no-print" onClick={() => printCard(companiesRef.current, 'الشركات الأكثر حجزاً')} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>⬇️ تحميل</button>
+                            <button className="no-print" onClick={() => printCard(companiesRef.current, 'الشركات الأكثر حجزاً')} style={{ background: 'none', border: '1px solid #EBEBEB', borderRadius: 10, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#999', display: 'flex', alignItems: 'center', gap: 4 }}>⬇️ تحميل</button>
                         </div>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                             <thead>
@@ -180,13 +180,13 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                                         <th
                                             key={col}
                                             style={{
-                                                background: '#F9FAFB',
+                                                background: '#FAFAFA',
                                                 padding: '10px 14px',
                                                 textAlign: 'right',
                                                 fontWeight: 600,
                                                 fontSize: 12,
-                                                color: '#6B7280',
-                                                borderBottom: '1px solid #E5E7EB',
+                                                color: '#999',
+                                                borderBottom: '1px solid #EBEBEB',
                                             }}
                                         >
                                             {col}
@@ -201,7 +201,7 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                                         style={{ cursor: 'default' }}
                                         onMouseEnter={(e) => {
                                             Array.from((e.currentTarget as HTMLTableRowElement).cells).forEach(
-                                                (td) => ((td as HTMLTableCellElement).style.background = '#F9FAFB'),
+                                                (td) => ((td as HTMLTableCellElement).style.background = '#FAFAFA'),
                                             );
                                         }}
                                         onMouseLeave={(e) => {
@@ -213,8 +213,9 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                                         <td
                                             style={{
                                                 padding: '12px 14px',
-                                                borderBottom: idx === topCompanies.length - 1 ? 'none' : '1px solid #E5E7EB',
+                                                borderBottom: idx === topCompanies.length - 1 ? 'none' : '1px solid #EBEBEB',
                                                 fontWeight: 600,
+                                                color: '#0A0A0A',
                                             }}
                                         >
                                             {company.company_name}
@@ -222,7 +223,7 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                                         <td
                                             style={{
                                                 padding: '12px 14px',
-                                                borderBottom: idx === topCompanies.length - 1 ? 'none' : '1px solid #E5E7EB',
+                                                borderBottom: idx === topCompanies.length - 1 ? 'none' : '1px solid #EBEBEB',
                                             }}
                                         >
                                             {company.bookings}
@@ -230,7 +231,7 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                                         <td
                                             style={{
                                                 padding: '12px 14px',
-                                                borderBottom: idx === topCompanies.length - 1 ? 'none' : '1px solid #E5E7EB',
+                                                borderBottom: idx === topCompanies.length - 1 ? 'none' : '1px solid #EBEBEB',
                                             }}
                                         >
                                             {company.revenue.toLocaleString()} ر
@@ -238,8 +239,8 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                                         <td
                                             style={{
                                                 padding: '12px 14px',
-                                                borderBottom: idx === topCompanies.length - 1 ? 'none' : '1px solid #E5E7EB',
-                                                color: '#6B7280',
+                                                borderBottom: idx === topCompanies.length - 1 ? 'none' : '1px solid #EBEBEB',
+                                                color: '#999',
                                             }}
                                         >
                                             {formatRelativeDate(company.last_booking)}
@@ -256,12 +257,12 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                     {/* Header with legend */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                         <h2 className="sec-title" style={{ margin: 0 }}>الأوقات الأكثر طلباً — هذا الشهر</h2>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: '#6B7280' }}>
-                            <button className="no-print" onClick={() => printCard(heatmapRef.current, 'الأوقات الأكثر طلباً')} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>⬇️ تحميل</button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: '#999' }}>
+                            <button className="no-print" onClick={() => printCard(heatmapRef.current, 'الأوقات الأكثر طلباً')} style={{ background: 'none', border: '1px solid #EBEBEB', borderRadius: 10, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#999', display: 'flex', alignItems: 'center', gap: 4 }}>⬇️ تحميل</button>
                             {[
-                                { label: 'منخفض', bg: '#EBF0FE' },
-                                { label: 'متوسط', bg: '#93C5FD' },
-                                { label: 'مرتفع', bg: '#1A56DB' },
+                                { label: 'منخفض', bg: '#18A86B15' },
+                                { label: 'متوسط', bg: '#18A86B40' },
+                                { label: 'مرتفع', bg: '#18A86B' },
                             ].map((item) => (
                                 <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                     <div
@@ -296,7 +297,7 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                                 style={{
                                     fontSize: 11,
                                     fontWeight: 600,
-                                    color: '#6B7280',
+                                    color: '#999',
                                     textAlign: 'center',
                                     paddingBottom: 4,
                                 }}
@@ -313,7 +314,7 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                                     key={`label-${slotData.slot}`}
                                     style={{
                                         fontSize: 11,
-                                        color: '#6B7280',
+                                        color: '#999',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'flex-end',
@@ -356,11 +357,11 @@ export default function BusinessReportsIndex({ business, overview, monthlyRevenu
                     <div
                         style={{
                             marginTop: 16,
-                            backgroundColor: '#FEF3C7',
-                            borderRadius: 8,
+                            backgroundColor: '#18A86B15',
+                            borderRadius: 10,
                             padding: '12px 14px',
                             fontSize: 13,
-                            color: '#B45309',
+                            color: '#0E7C4A',
                         }}
                     >
                         💡 الأوقات الأقل طلباً مناسبة لعروض تيمات الخاصة دون تعارض مع الحجز المباشر.
