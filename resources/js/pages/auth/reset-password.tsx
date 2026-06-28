@@ -9,41 +9,44 @@ type Props = {
     email: string;
 };
 
-const portalMeta: Record<string, {
-    focusColor: string;
-    btnGradient: string;
-    btnShadow: string;
-    linkColor: string;
-}> = {
-    employee: {
-        focusColor: '#009E82',
-        btnGradient: 'linear-gradient(135deg,#009E82,#00C49A)',
-        btnShadow: '0 6px 20px rgba(0,158,130,.3)',
-        linkColor: '#009E82',
-    },
-    company: {
-        focusColor: '#3B5BDB',
-        btnGradient: 'linear-gradient(135deg,#3B5BDB,#5B7EFF)',
-        btnShadow: '0 6px 20px rgba(59,91,219,.3)',
-        linkColor: '#3B5BDB',
-    },
-    business: {
-        focusColor: '#C8410A',
-        btnGradient: 'linear-gradient(135deg,#1C1410,#3A2820)',
-        btnShadow: '0 6px 20px rgba(0,0,0,.3)',
-        linkColor: '#C8410A',
-    },
-    admin: {
-        focusColor: '#E03050',
-        btnGradient: 'linear-gradient(135deg,#E03050,#FF4466)',
-        btnShadow: '0 6px 20px rgba(224,48,80,.3)',
-        linkColor: '#E03050',
-    },
-};
-
 function guardPrefix(guard: GuardName) {
     return guard === 'company' ? 'company' : guard;
 }
+
+const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px 14px',
+    border: '1px solid #E8E2D8',
+    borderRadius: 12,
+    fontSize: 14,
+    color: '#1A1A18',
+    background: '#F5F0E8',
+    outline: 'none',
+    direction: 'ltr',
+    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+};
+
+const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: 13,
+    color: '#8A8A7A',
+    fontWeight: 500,
+    marginBottom: 6,
+    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+};
+
+const btnStyle: React.CSSProperties = {
+    width: '100%',
+    padding: 14,
+    background: '#1A1A18',
+    color: '#C8F135',
+    border: 'none',
+    borderRadius: 12,
+    fontSize: 15,
+    fontWeight: 700,
+    fontFamily: "'Cairo', sans-serif",
+    cursor: 'pointer',
+};
 
 export default function ResetPassword({ guard, guardLabel, token, email }: Props) {
     const { data, setData, post, processing, errors } = useForm({
@@ -52,7 +55,6 @@ export default function ResetPassword({ guard, guardLabel, token, email }: Props
         password: '',
         password_confirmation: '',
     });
-    const cfg = portalMeta[guard] ?? portalMeta.employee;
 
     function submit(e: FormEvent) {
         e.preventDefault();
@@ -63,33 +65,48 @@ export default function ResetPassword({ guard, guardLabel, token, email }: Props
         <>
             <Head title={`إعادة تعيين كلمة المرور — ${guardLabel}`} />
 
-            <style>{`
-                *{margin:0;padding:0;box-sizing:border-box;}
-                body{font-family:Tahoma,Arial,sans-serif;}
-                .rp-wrap{min-height:100vh;background:linear-gradient(135deg,#0A0F1E,#1A2035);display:flex;align-items:center;justify-content:center;padding:20px;}
-                .rp-inp{width:100%;padding:12px 14px;border:1px solid #E4E9F2;border-radius:12px;font-size:14px;color:#0F1923;background:#F4F6FA;outline:none;direction:ltr;font-family:inherit;transition:border-color .15s;}
-                .rp-inp:focus{border-color:${cfg.focusColor};background:#fff;}
-                .rp-submit:hover{transform:translateY(-1px);}
-            `}</style>
-
-            <div className="rp-wrap" dir="rtl">
-                <div style={{ width: '100%', maxWidth: 400 }}>
-                    {/* Logo */}
-                    <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                        <div style={{ fontSize: 32, fontWeight: 900, background: 'linear-gradient(90deg,#009E82,#D4820A)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>تيمات</div>
-                        <div style={{ fontSize: 11, letterSpacing: 3, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>TEAMAT</div>
+            <div dir="rtl" style={{
+                minHeight: '100vh',
+                background: '#F5F0E8',
+                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+            }}>
+                {/* Nav bar */}
+                <nav style={{
+                    position: 'sticky', top: 0, zIndex: 50,
+                    background: 'rgba(245,240,232,.8)', backdropFilter: 'blur(8px)',
+                    borderBottom: '1px solid #E8E2D8',
+                }}>
+                    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+                            <span style={{ fontFamily: "'Cairo', sans-serif", fontWeight: 800, fontSize: 22, color: '#1A1A18' }}>تيمات</span>
+                        </a>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <a href="/companies" style={{ fontSize: 14, fontWeight: 600, color: '#8A8A7A', textDecoration: 'none', fontFamily: "'Cairo', sans-serif" }}>للشركات</a>
+                            <a href="/employees" style={{ fontSize: 14, fontWeight: 600, color: '#8A8A7A', textDecoration: 'none', fontFamily: "'Cairo', sans-serif" }}>للموظفين</a>
+                            <a href="/clubs" style={{ fontSize: 14, fontWeight: 600, color: '#8A8A7A', textDecoration: 'none', fontFamily: "'Cairo', sans-serif" }}>للنوادي</a>
+                        </div>
                     </div>
+                </nav>
 
-                    {/* Card */}
-                    <div style={{ background: '#fff', borderRadius: 24, padding: '36px 32px', boxShadow: '0 24px 80px rgba(0,0,0,.4)' }}>
-                        <div style={{ fontSize: 16, fontWeight: 800, textAlign: 'center', marginBottom: 4 }}>إعادة تعيين كلمة المرور</div>
-                        <div style={{ fontSize: 12, color: '#7A8BA8', textAlign: 'center', marginBottom: 24 }}>
+                {/* Center content */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 64px)', padding: '40px 16px' }}>
+                    <div style={{
+                        background: '#fff',
+                        border: '1px solid #E8E2D8',
+                        borderRadius: 20,
+                        padding: '36px 32px',
+                        width: '100%',
+                        maxWidth: 460,
+                        boxShadow: '0 4px 24px rgba(26,26,24,.06)',
+                    }}>
+                        <div style={{ fontSize: 18, fontWeight: 800, textAlign: 'center', color: '#1A1A18', marginBottom: 4, fontFamily: "'Cairo', sans-serif" }}>إعادة تعيين كلمة المرور</div>
+                        <div style={{ fontSize: 13, color: '#8A8A7A', textAlign: 'center', marginBottom: 24 }}>
                             أدخل كلمة المرور الجديدة
                         </div>
 
                         {/* Errors */}
                         {(errors.email || errors.password) && (
-                            <div style={{ background: '#E0305018', border: '1px solid #E0305033', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#E03050', fontWeight: 600, marginBottom: 14 }}>
+                            <div style={{ background: '#c0392b10', border: '1px solid #c0392b30', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#c0392b', fontWeight: 600, marginBottom: 14 }}>
                                 {errors.email || errors.password}
                             </div>
                         )}
@@ -97,9 +114,9 @@ export default function ResetPassword({ guard, guardLabel, token, email }: Props
                         {/* Form */}
                         <form onSubmit={submit}>
                             <div style={{ marginBottom: 16 }}>
-                                <label style={{ display: 'block', fontSize: 12, color: '#4A5C78', fontWeight: 600, marginBottom: 6 }}>البريد الإلكتروني</label>
+                                <label style={labelStyle}>البريد الإلكتروني</label>
                                 <input
-                                    className="rp-inp"
+                                    style={inputStyle}
                                     type="email"
                                     autoComplete="email"
                                     value={data.email}
@@ -108,9 +125,9 @@ export default function ResetPassword({ guard, guardLabel, token, email }: Props
                             </div>
 
                             <div style={{ marginBottom: 16 }}>
-                                <label style={{ display: 'block', fontSize: 12, color: '#4A5C78', fontWeight: 600, marginBottom: 6 }}>كلمة المرور الجديدة</label>
+                                <label style={labelStyle}>كلمة المرور الجديدة</label>
                                 <input
-                                    className="rp-inp"
+                                    style={inputStyle}
                                     type="password"
                                     placeholder="••••••••"
                                     autoComplete="new-password"
@@ -121,9 +138,9 @@ export default function ResetPassword({ guard, guardLabel, token, email }: Props
                             </div>
 
                             <div style={{ marginBottom: 20 }}>
-                                <label style={{ display: 'block', fontSize: 12, color: '#4A5C78', fontWeight: 600, marginBottom: 6 }}>تأكيد كلمة المرور</label>
+                                <label style={labelStyle}>تأكيد كلمة المرور</label>
                                 <input
-                                    className="rp-inp"
+                                    style={inputStyle}
                                     type="password"
                                     placeholder="••••••••"
                                     autoComplete="new-password"
@@ -133,28 +150,26 @@ export default function ResetPassword({ guard, guardLabel, token, email }: Props
                             </div>
 
                             <button
-                                className="rp-submit"
                                 type="submit"
                                 disabled={processing}
-                                style={{
-                                    width: '100%', padding: 15, border: 'none', borderRadius: 14,
-                                    fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
-                                    marginBottom: 16, transition: 'transform .15s',
-                                    background: cfg.btnGradient, color: '#fff', boxShadow: cfg.btnShadow,
-                                    opacity: processing ? 0.7 : 1,
-                                }}
+                                style={{ ...btnStyle, opacity: processing ? 0.6 : 1, marginBottom: 16 }}
                             >
                                 {processing ? 'جارٍ التعيين...' : 'تعيين كلمة المرور'}
                             </button>
                         </form>
 
                         {/* Back to login */}
-                        <div style={{ textAlign: 'center', fontSize: 13, color: '#7A8BA8' }}>
-                            <a href={`/${guardPrefix(guard)}/login`} style={{ fontWeight: 700, textDecoration: 'none', color: cfg.linkColor }}>
+                        <div style={{ textAlign: 'center', fontSize: 13, color: '#8A8A7A' }}>
+                            <a href={`/${guardPrefix(guard)}/login`} style={{ fontWeight: 600, textDecoration: 'none', color: '#C4622D' }}>
                                 العودة لتسجيل الدخول
                             </a>
                         </div>
                     </div>
+                </div>
+
+                {/* Footer */}
+                <div style={{ textAlign: 'center', padding: '20px', fontSize: 12, color: '#8A8A7A', fontFamily: "'IBM Plex Mono', monospace" }}>
+                    &copy; 2026 تيمات. جميع الحقوق محفوظة.
                 </div>
             </div>
         </>

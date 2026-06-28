@@ -1,7 +1,4 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import type { FormEvent } from 'react';
 
 interface Props {
@@ -11,6 +8,40 @@ interface Props {
         company_name: string;
     };
 }
+
+const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px 14px',
+    border: '1px solid #E8E2D8',
+    borderRadius: 12,
+    fontSize: 14,
+    color: '#1A1A18',
+    background: '#F5F0E8',
+    outline: 'none',
+    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+};
+
+const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: 13,
+    color: '#8A8A7A',
+    fontWeight: 500,
+    marginBottom: 6,
+    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+};
+
+const btnStyle: React.CSSProperties = {
+    width: '100%',
+    padding: 14,
+    background: '#1A1A18',
+    color: '#C8F135',
+    border: 'none',
+    borderRadius: 12,
+    fontSize: 15,
+    fontWeight: 700,
+    fontFamily: "'Cairo', sans-serif",
+    cursor: 'pointer',
+};
 
 export default function AcceptInvitation({ invitation }: Props) {
     const { data, setData, post, processing, errors } = useForm({
@@ -28,74 +59,114 @@ export default function AcceptInvitation({ invitation }: Props) {
         <>
             <Head title="قبول الدعوة" />
 
-            <div className="flex min-h-svh flex-col items-center justify-center bg-background p-6" dir="rtl">
-                <div className="w-full max-w-sm space-y-8">
-                    <div className="text-center space-y-2">
-                        <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                            دعوة موظف
-                        </div>
-                        <h1 className="text-xl font-semibold">مرحباً بك!</h1>
-                        <p className="text-sm text-muted-foreground">
-                            تمت دعوتك للانضمام إلى <strong>{invitation.company_name}</strong>
-                        </p>
-                    </div>
-
-                    <div className="rounded-lg bg-muted/50 p-3 text-center text-sm">
-                        <span className="text-muted-foreground">البريد: </span>
-                        <span className="font-medium" dir="ltr">{invitation.email}</span>
-                    </div>
-
-                    <form onSubmit={submit} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">الاسم الكامل</Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                autoFocus
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                            />
-                            {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="password">كلمة المرور</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                dir="ltr"
-                                autoComplete="new-password"
-                                value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                            />
-                            {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="password_confirmation">تأكيد كلمة المرور</Label>
-                            <Input
-                                id="password_confirmation"
-                                type="password"
-                                dir="ltr"
-                                autoComplete="new-password"
-                                value={data.password_confirmation}
-                                onChange={(e) => setData('password_confirmation', e.target.value)}
-                            />
-                        </div>
-
-                        <Button type="submit" className="w-full" disabled={processing}>
-                            {processing ? 'جارٍ إنشاء الحساب...' : 'إنشاء الحساب والانضمام'}
-                        </Button>
-                    </form>
-
-                    <div className="space-y-2 border-t pt-4">
-                        <p className="text-xs text-muted-foreground text-center">بوابات أخرى</p>
-                        <div className="flex flex-wrap gap-2 justify-center">
-                            <Link href="/company/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">🏢 الشركات</Link>
-                            <Link href="/business/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">🏟️ المنشآت</Link>
-                            <Link href="/employee/login" className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors">👥 الموظفون</Link>
+            <div dir="rtl" style={{
+                minHeight: '100vh',
+                background: '#F5F0E8',
+                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+            }}>
+                {/* Nav bar */}
+                <nav style={{
+                    position: 'sticky', top: 0, zIndex: 50,
+                    background: 'rgba(245,240,232,.8)', backdropFilter: 'blur(8px)',
+                    borderBottom: '1px solid #E8E2D8',
+                }}>
+                    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+                            <span style={{ fontFamily: "'Cairo', sans-serif", fontWeight: 800, fontSize: 22, color: '#1A1A18' }}>تيمات</span>
+                        </a>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <a href="/companies" style={{ fontSize: 14, fontWeight: 600, color: '#8A8A7A', textDecoration: 'none', fontFamily: "'Cairo', sans-serif" }}>للشركات</a>
+                            <a href="/employees" style={{ fontSize: 14, fontWeight: 600, color: '#8A8A7A', textDecoration: 'none', fontFamily: "'Cairo', sans-serif" }}>للموظفين</a>
+                            <a href="/clubs" style={{ fontSize: 14, fontWeight: 600, color: '#8A8A7A', textDecoration: 'none', fontFamily: "'Cairo', sans-serif" }}>للنوادي</a>
                         </div>
                     </div>
+                </nav>
+
+                {/* Center content */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 64px)', padding: '40px 16px' }}>
+                    <div style={{
+                        background: '#fff',
+                        border: '1px solid #E8E2D8',
+                        borderRadius: 20,
+                        padding: '36px 32px',
+                        width: '100%',
+                        maxWidth: 460,
+                        boxShadow: '0 4px 24px rgba(26,26,24,.06)',
+                    }}>
+                        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                            <div style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 6,
+                                background: '#1A1A1808', border: '1px solid #C8F13540', padding: '6px 14px', borderRadius: 99,
+                                fontSize: 12, fontWeight: 700, color: '#1A1A18', marginBottom: 12,
+                            }}>
+                                دعوة موظف
+                            </div>
+                            <h1 style={{ fontSize: 20, fontWeight: 800, color: '#1A1A18', marginBottom: 4, fontFamily: "'Cairo', sans-serif" }}>مرحباً بك!</h1>
+                            <p style={{ fontSize: 13, color: '#8A8A7A' }}>
+                                تمت دعوتك للانضمام إلى <strong style={{ color: '#1A1A18' }}>{invitation.company_name}</strong>
+                            </p>
+                        </div>
+
+                        <div style={{ background: '#F5F0E8', borderRadius: 12, padding: 12, textAlign: 'center', fontSize: 13, marginBottom: 20, border: '1px solid #E8E2D8' }}>
+                            <span style={{ color: '#8A8A7A' }}>البريد: </span>
+                            <span style={{ fontWeight: 600, color: '#1A1A18' }} dir="ltr">{invitation.email}</span>
+                        </div>
+
+                        <form onSubmit={submit}>
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={labelStyle}>الاسم الكامل</label>
+                                <input
+                                    style={inputStyle}
+                                    type="text"
+                                    autoFocus
+                                    value={data.name}
+                                    onChange={(e) => setData('name', e.target.value)}
+                                />
+                                {errors.name && <p style={{ fontSize: 12, color: '#c0392b', marginTop: 4 }}>{errors.name}</p>}
+                            </div>
+
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={labelStyle}>كلمة المرور</label>
+                                <input
+                                    style={{ ...inputStyle, direction: 'ltr' }}
+                                    type="password"
+                                    autoComplete="new-password"
+                                    value={data.password}
+                                    onChange={(e) => setData('password', e.target.value)}
+                                />
+                                {errors.password && <p style={{ fontSize: 12, color: '#c0392b', marginTop: 4 }}>{errors.password}</p>}
+                            </div>
+
+                            <div style={{ marginBottom: 20 }}>
+                                <label style={labelStyle}>تأكيد كلمة المرور</label>
+                                <input
+                                    style={{ ...inputStyle, direction: 'ltr' }}
+                                    type="password"
+                                    autoComplete="new-password"
+                                    value={data.password_confirmation}
+                                    onChange={(e) => setData('password_confirmation', e.target.value)}
+                                />
+                            </div>
+
+                            <button type="submit" disabled={processing} style={{ ...btnStyle, opacity: processing ? 0.6 : 1 }}>
+                                {processing ? 'جارٍ إنشاء الحساب...' : 'إنشاء الحساب والانضمام'}
+                            </button>
+                        </form>
+
+                        <div style={{ borderTop: '1px solid #E8E2D8', paddingTop: 16, marginTop: 20, textAlign: 'center' }}>
+                            <p style={{ fontSize: 11, color: '#8A8A7A', marginBottom: 8 }}>بوابات أخرى</p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                                <Link href="/company/login" style={{ padding: '6px 12px', border: '1px solid #E8E2D8', borderRadius: 8, fontSize: 12, color: '#8A8A7A', textDecoration: 'none' }}>الشركات</Link>
+                                <Link href="/business/login" style={{ padding: '6px 12px', border: '1px solid #E8E2D8', borderRadius: 8, fontSize: 12, color: '#8A8A7A', textDecoration: 'none' }}>المنشآت</Link>
+                                <Link href="/employee/login" style={{ padding: '6px 12px', border: '1px solid #E8E2D8', borderRadius: 8, fontSize: 12, color: '#8A8A7A', textDecoration: 'none' }}>الموظفون</Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div style={{ textAlign: 'center', padding: '20px', fontSize: 12, color: '#8A8A7A', fontFamily: "'IBM Plex Mono', monospace" }}>
+                    &copy; 2026 تيمات. جميع الحقوق محفوظة.
                 </div>
             </div>
         </>
