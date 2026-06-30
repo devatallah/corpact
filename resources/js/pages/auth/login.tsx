@@ -62,35 +62,35 @@ function guardPrefix(guard: GuardName) {
 const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px 14px',
-    border: '1px solid #E8E2D8',
+    border: '1px solid rgba(10,10,10,0.1)',
     borderRadius: 12,
     fontSize: 14,
-    color: '#1A1A18',
-    background: '#F5F0E8',
+    color: '#0A0A0A',
+    background: '#F0EDE6',
     outline: 'none',
     direction: 'ltr',
-    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+    fontFamily: "'Almarai', sans-serif",
 };
 
 const labelStyle: React.CSSProperties = {
     display: 'block',
     fontSize: 13,
-    color: '#8A8A7A',
+    color: 'rgba(10,10,10,0.6)',
     fontWeight: 500,
     marginBottom: 6,
-    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+    fontFamily: "'Almarai', sans-serif",
 };
 
 const btnStyle: React.CSSProperties = {
     width: '100%',
     padding: 14,
-    background: '#1A1A18',
-    color: '#C8F135',
+    background: '#0A0A0A',
+    color: '#C8FF00',
     border: 'none',
     borderRadius: 12,
     fontSize: 15,
     fontWeight: 700,
-    fontFamily: "'Cairo', sans-serif",
+    fontFamily: "'Almarai', sans-serif",
     cursor: 'pointer',
 };
 
@@ -121,17 +121,17 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                 <Head title="تسجيل الدخول — المشرف" />
                 <div dir="rtl" style={{
                     minHeight: '100vh',
-                    background: '#F5F0E8',
+                    background: '#F0EDE6',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '32px 16px',
-                    fontFamily: "'Cairo', Tahoma, Arial, sans-serif",
+                    fontFamily: "'Almarai', Tahoma, Arial, sans-serif",
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
-                        <img src="/favicon.png" alt="تيمات" style={{ width: 40, height: 40, objectFit: 'contain' }} />
-                        <span style={{ fontSize: 28, fontWeight: 900, color: '#1A1A18' }}>تيمات</span>
+                        <svg width="40" height="40" viewBox="0 0 52 52"><rect width="52" height="52" rx="13" fill="#C8FF00"/><rect x="11" y="13" width="30" height="8" rx="2.5" fill="#0A0A0A"/><rect x="21" y="21" width="10" height="20" rx="2.5" fill="#0A0A0A"/></svg>
+                        <span style={{ fontSize: 28, fontWeight: 900, color: '#0A0A0A' }}>تيمات</span>
                     </div>
 
                     <div style={{
@@ -142,8 +142,8 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                         maxWidth: 420,
                         boxShadow: '0 4px 24px rgba(26,26,24,.06)',
                     }}>
-                        <div style={{ fontSize: 24, fontWeight: 800, textAlign: 'center', color: '#1A1A18', marginBottom: 6 }}>لوحة المشرف</div>
-                        <div style={{ fontSize: 14, color: '#8A8A7A', textAlign: 'center', marginBottom: 32 }}>أدخل بياناتك للدخول</div>
+                        <div style={{ fontSize: 24, fontWeight: 800, textAlign: 'center', color: '#0A0A0A', marginBottom: 6 }}>لوحة المشرف</div>
+                        <div style={{ fontSize: 14, color: 'rgba(10,10,10,0.6)', textAlign: 'center', marginBottom: 32 }}>أدخل بياناتك للدخول</div>
 
                         {status && (
                             <div style={{ background: 'rgba(200,241,53,.1)', border: '1px solid rgba(200,241,53,.3)', borderRadius: 14, padding: 12, fontSize: 13, color: '#5a7a10', fontWeight: 600, marginBottom: 20 }}>
@@ -158,40 +158,40 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
 
                         <form onSubmit={submit}>
                             <div style={{ marginBottom: 24 }}>
-                                <label style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#1A1A18', marginBottom: 8, textAlign: 'right' }}>البريد الإلكتروني</label>
+                                <label style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#0A0A0A', marginBottom: 8, textAlign: 'right' }}>البريد الإلكتروني</label>
                                 <input
                                     style={{
-                                        width: '100%', padding: '14px 16px', border: '2px solid #E8E2D8', borderRadius: 14,
-                                        fontSize: 15, color: '#1A1A18', background: '#fff', outline: 'none', direction: 'ltr' as const,
-                                        fontFamily: "'Cairo', Tahoma, Arial, sans-serif",
+                                        width: '100%', padding: '14px 16px', border: '2px solid rgba(10,10,10,0.1)', borderRadius: 14,
+                                        fontSize: 15, color: '#0A0A0A', background: '#fff', outline: 'none', direction: 'ltr' as const,
+                                        fontFamily: "'Almarai', Tahoma, Arial, sans-serif",
                                     }}
                                     type="email"
                                     autoFocus
                                     value={data.email}
                                     onChange={(e) => setData('email', e.target.value)}
-                                    onFocus={(e) => { e.target.style.borderColor = '#C8F135'; }}
-                                    onBlur={(e) => { e.target.style.borderColor = '#E8E2D8'; }}
+                                    onFocus={(e) => { e.target.style.borderColor = '#C8FF00'; }}
+                                    onBlur={(e) => { e.target.style.borderColor = 'rgba(10,10,10,0.1)'; }}
                                 />
                             </div>
                             <div style={{ marginBottom: 32 }}>
-                                <label style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#1A1A18', marginBottom: 8, textAlign: 'right' }}>كلمة المرور</label>
+                                <label style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#0A0A0A', marginBottom: 8, textAlign: 'right' }}>كلمة المرور</label>
                                 <input
                                     style={{
-                                        width: '100%', padding: '14px 16px', border: '2px solid #E8E2D8', borderRadius: 14,
-                                        fontSize: 15, color: '#1A1A18', background: '#fff', outline: 'none', direction: 'ltr' as const,
-                                        fontFamily: "'Cairo', Tahoma, Arial, sans-serif",
+                                        width: '100%', padding: '14px 16px', border: '2px solid rgba(10,10,10,0.1)', borderRadius: 14,
+                                        fontSize: 15, color: '#0A0A0A', background: '#fff', outline: 'none', direction: 'ltr' as const,
+                                        fontFamily: "'Almarai', Tahoma, Arial, sans-serif",
                                     }}
                                     type="password"
                                     value={data.password}
                                     onChange={(e) => setData('password', e.target.value)}
-                                    onFocus={(e) => { e.target.style.borderColor = '#C8F135'; }}
-                                    onBlur={(e) => { e.target.style.borderColor = '#E8E2D8'; }}
+                                    onFocus={(e) => { e.target.style.borderColor = '#C8FF00'; }}
+                                    onBlur={(e) => { e.target.style.borderColor = 'rgba(10,10,10,0.1)'; }}
                                 />
                             </div>
                             <button type="submit" disabled={processing} style={{
                                 width: '100%', padding: 16, border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 800,
-                                cursor: 'pointer', fontFamily: "'Cairo', Tahoma, Arial, sans-serif",
-                                background: '#C8F135', color: '#1A1A18', transition: 'opacity .15s',
+                                cursor: 'pointer', fontFamily: "'Almarai', Tahoma, Arial, sans-serif",
+                                background: '#C8FF00', color: '#0A0A0A', transition: 'opacity .15s',
                                 opacity: processing ? 0.6 : 1,
                             }}>
                                 {processing ? 'جارٍ الدخول...' : 'دخول — لوحة المشرف'}
@@ -213,23 +213,23 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
 
             <div dir="rtl" style={{
                 minHeight: '100vh',
-                background: '#F5F0E8',
-                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                background: '#F0EDE6',
+                fontFamily: "'Almarai', sans-serif",
             }}>
                 {/* Nav bar */}
                 <nav style={{
                     position: 'sticky', top: 0, zIndex: 50,
-                    background: 'rgba(245,240,232,.8)', backdropFilter: 'blur(8px)',
-                    borderBottom: '1px solid #E8E2D8',
+                    background: 'rgba(240,237,230,.8)', backdropFilter: 'blur(8px)',
+                    borderBottom: '1px solid rgba(10,10,10,0.1)',
                 }}>
                     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-                            <span style={{ fontFamily: "'Cairo', sans-serif", fontWeight: 800, fontSize: 22, color: '#1A1A18' }}>تيمات</span>
+                            <span style={{ fontFamily: "'Almarai', sans-serif", fontWeight: 800, fontSize: 22, color: '#0A0A0A' }}>تيمات</span>
                         </a>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                            <a href="/companies" style={{ fontSize: 14, fontWeight: 600, color: '#8A8A7A', textDecoration: 'none', fontFamily: "'Cairo', sans-serif" }}>للشركات</a>
-                            <a href="/employees" style={{ fontSize: 14, fontWeight: 600, color: '#8A8A7A', textDecoration: 'none', fontFamily: "'Cairo', sans-serif" }}>للموظفين</a>
-                            <a href="/clubs" style={{ fontSize: 14, fontWeight: 600, color: '#8A8A7A', textDecoration: 'none', fontFamily: "'Cairo', sans-serif" }}>للنوادي</a>
+                            <a href="/companies" style={{ fontSize: 14, fontWeight: 600, color: 'rgba(10,10,10,0.6)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>للشركات</a>
+                            <a href="/employees" style={{ fontSize: 14, fontWeight: 600, color: 'rgba(10,10,10,0.6)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>للموظفين</a>
+                            <a href="/clubs" style={{ fontSize: 14, fontWeight: 600, color: 'rgba(10,10,10,0.6)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>للنوادي</a>
                         </div>
                     </div>
                 </nav>
@@ -238,7 +238,7 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 64px)', padding: '40px 16px' }}>
                     <div style={{
                         background: '#fff',
-                        border: '1px solid #E8E2D8',
+                        border: '1px solid rgba(10,10,10,0.1)',
                         borderRadius: 20,
                         padding: '36px 32px',
                         width: '100%',
@@ -254,16 +254,16 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                                         key={t.key}
                                         href={t.href}
                                         style={{
-                                            background: active ? '#1A1A18' : 'transparent',
-                                            color: active ? '#C8F135' : '#8A8A7A',
-                                            border: active ? 'none' : '1px solid #E8E2D8',
+                                            background: active ? '#0A0A0A' : 'transparent',
+                                            color: active ? '#C8FF00' : 'rgba(10,10,10,0.6)',
+                                            border: active ? 'none' : '1px solid rgba(10,10,10,0.1)',
                                             borderRadius: 99,
                                             padding: '8px 20px',
                                             fontSize: 13,
                                             fontWeight: 600,
                                             textDecoration: 'none',
                                             textAlign: 'center',
-                                            fontFamily: "'Cairo', sans-serif",
+                                            fontFamily: "'Almarai', sans-serif",
                                             transition: 'all .15s',
                                         }}
                                     >
@@ -276,14 +276,14 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                         {/* Description hint */}
                         <div style={{
                             fontSize: 13,
-                            color: '#8A8A7A',
-                            background: '#F5F0E8',
+                            color: 'rgba(10,10,10,0.6)',
+                            background: '#F0EDE6',
                             borderRadius: 12,
                             padding: '10px 14px',
                             marginBottom: 18,
                             lineHeight: 1.6,
-                            border: '1px solid #E8E2D8',
-                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                            border: '1px solid rgba(10,10,10,0.1)',
+                            fontFamily: "'Almarai', sans-serif",
                         }}>
                             {cfg.description}
                         </div>
@@ -307,12 +307,12 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                         {/* Flash status */}
                         {displayStatus && (
                             <div style={{
-                                background: '#1A1A1808',
-                                border: '1px solid #C8F13540',
+                                background: 'rgba(10,10,10,0.03)',
+                                border: '1px solid rgba(200,255,0,0.25)',
                                 borderRadius: 12,
                                 padding: 12,
                                 fontSize: 13,
-                                color: '#1A1A18',
+                                color: '#0A0A0A',
                                 fontWeight: 600,
                                 marginBottom: 14,
                             }}>
@@ -323,22 +323,22 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                         {/* Demo credentials box */}
                         <div
                             style={{
-                                background: '#F5F0E8',
-                                border: '1px dashed #E8E2D8',
+                                background: '#F0EDE6',
+                                border: '1px dashed rgba(10,10,10,0.1)',
                                 borderRadius: 12,
                                 padding: '12px 14px',
                                 marginBottom: 18,
                                 fontSize: 12,
-                                color: '#8A8A7A',
+                                color: 'rgba(10,10,10,0.6)',
                                 lineHeight: 1.8,
                                 cursor: 'pointer',
                                 transition: 'border-color .15s',
-                                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                fontFamily: "'Almarai', sans-serif",
                             }}
                             onClick={() => fillDemo(demos[0].email, demos[0].password)}
                             title="اضغط لتعبئة البيانات التجريبية"
                         >
-                            <strong style={{ color: '#1A1A18' }}>بيانات تجريبية:</strong><br />
+                            <strong style={{ color: '#0A0A0A' }}>بيانات تجريبية:</strong><br />
                             البريد: اكتب أي إيميل<br />
                             كلمة المرور: 123456
                         </div>
@@ -385,13 +385,13 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
 
                         {/* Divider */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
-                            <div style={{ flex: 1, height: 1, background: '#E8E2D8' }} />
-                            <span style={{ fontSize: 11, color: '#8A8A7A' }}>أو</span>
-                            <div style={{ flex: 1, height: 1, background: '#E8E2D8' }} />
+                            <div style={{ flex: 1, height: 1, background: 'rgba(10,10,10,0.1)' }} />
+                            <span style={{ fontSize: 11, color: 'rgba(10,10,10,0.6)' }}>أو</span>
+                            <div style={{ flex: 1, height: 1, background: 'rgba(10,10,10,0.1)' }} />
                         </div>
 
                         {/* Register link */}
-                        <div style={{ textAlign: 'center', fontSize: 13, color: '#8A8A7A' }}>
+                        <div style={{ textAlign: 'center', fontSize: 13, color: 'rgba(10,10,10,0.6)' }}>
                             {cfg.registerHtml.question}{' '}
                             <a href={cfg.registerHtml.href} style={{ fontWeight: 600, textDecoration: 'none', color: '#C4622D' }}>{cfg.registerHtml.label}</a>
                         </div>
@@ -402,9 +402,9 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                                 href="/admin/login"
                                 style={{
                                     fontSize: 11,
-                                    color: '#8A8A7A',
+                                    color: 'rgba(10,10,10,0.6)',
                                     textDecoration: 'none',
-                                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                    fontFamily: "'Almarai', sans-serif",
                                 }}
                             >
                                 المشرف
@@ -414,7 +414,7 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                 </div>
 
                 {/* Footer */}
-                <div style={{ textAlign: 'center', padding: '20px', fontSize: 12, color: '#8A8A7A', fontFamily: "'IBM Plex Mono', monospace" }}>
+                <div style={{ textAlign: 'center', padding: '20px', fontSize: 12, color: 'rgba(10,10,10,0.6)', fontFamily: "'Inter', monospace" }}>
                     &copy; 2026 تيمات. جميع الحقوق محفوظة.
                 </div>
             </div>
