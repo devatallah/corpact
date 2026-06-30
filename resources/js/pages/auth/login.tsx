@@ -114,100 +114,89 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
         setData({ email, password, remember: false });
     }
 
-    /* ── Admin: simple login (kept with its own styling — NOT redesigned) ── */
+    /* ── Admin: cream/lime login matching mockup ── */
     if (guard === 'admin') {
-        const adminDemos = demoCredentials.admin;
         return (
             <>
                 <Head title="تسجيل الدخول — المشرف" />
                 <div dir="rtl" style={{
                     minHeight: '100vh',
-                    background: '#FAFAFA',
+                    background: '#F5F0E8',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '32px 16px',
-                    fontFamily: "'Readex Pro', Tahoma, Arial, sans-serif",
+                    fontFamily: "'Cairo', Tahoma, Arial, sans-serif",
                 }}>
-                    <div style={{ marginBottom: 32, textAlign: 'center' }}>
-                        <div style={{ fontSize: 28, fontWeight: 700, color: '#0A0A0A' }}>تيمات</div>
-                        <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>TEAMAT</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
+                        <img src="/favicon.png" alt="تيمات" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                        <span style={{ fontSize: 28, fontWeight: 900, color: '#1A1A18' }}>تيمات</span>
                     </div>
 
                     <div style={{
                         background: '#fff',
-                        border: '1px solid #EBEBEB',
-                        borderRadius: 16,
-                        padding: '32px 28px',
+                        borderRadius: 24,
+                        padding: '40px 32px',
                         width: '100%',
-                        maxWidth: 480,
+                        maxWidth: 420,
+                        boxShadow: '0 4px 24px rgba(26,26,24,.06)',
                     }}>
-                        <div style={{ fontSize: 18, fontWeight: 700, textAlign: 'center', color: '#0A0A0A', marginBottom: 4 }}>لوحة المشرف</div>
-                        <div style={{ fontSize: 13, color: '#999', textAlign: 'center', marginBottom: 24 }}>أدخل بياناتك للدخول</div>
+                        <div style={{ fontSize: 24, fontWeight: 800, textAlign: 'center', color: '#1A1A18', marginBottom: 6 }}>لوحة المشرف</div>
+                        <div style={{ fontSize: 14, color: '#8A8A7A', textAlign: 'center', marginBottom: 32 }}>أدخل بياناتك للدخول</div>
 
                         {status && (
-                            <div style={{ background: '#ECFDF3', borderRadius: 10, padding: 12, fontSize: 13, color: '#18A86B', fontWeight: 600, marginBottom: 14 }}>
+                            <div style={{ background: 'rgba(200,241,53,.1)', border: '1px solid rgba(200,241,53,.3)', borderRadius: 14, padding: 12, fontSize: 13, color: '#5a7a10', fontWeight: 600, marginBottom: 20 }}>
                                 {status}
+                            </div>
+                        )}
+                        {(errors.email || errors.password) && (
+                            <div style={{ background: 'rgba(192,57,43,.06)', border: '1px solid rgba(192,57,43,.2)', borderRadius: 14, padding: 12, fontSize: 13, color: '#c0392b', marginBottom: 20 }}>
+                                {errors.email || errors.password}
                             </div>
                         )}
 
                         <form onSubmit={submit}>
-                            <div style={{ marginBottom: 16 }}>
-                                <label style={{ display: 'block', fontSize: 13, color: '#666', fontWeight: 500, marginBottom: 6 }}>البريد الإلكتروني</label>
-                                <input style={{
-                                    width: '100%', padding: '12px 14px', border: '1px solid #EBEBEB', borderRadius: 10,
-                                    fontSize: 14, color: '#0A0A0A', background: '#fff', outline: 'none', direction: 'ltr' as const,
-                                    fontFamily: "'Readex Pro', Tahoma, Arial, sans-serif",
-                                }} type="email" autoFocus value={data.email} onChange={(e) => setData('email', e.target.value)} />
-                                {errors.email && <div style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>{errors.email}</div>}
-                            </div>
                             <div style={{ marginBottom: 24 }}>
-                                <label style={{ display: 'block', fontSize: 13, color: '#666', fontWeight: 500, marginBottom: 6 }}>كلمة المرور</label>
-                                <input style={{
-                                    width: '100%', padding: '12px 14px', border: '1px solid #EBEBEB', borderRadius: 10,
-                                    fontSize: 14, color: '#0A0A0A', background: '#fff', outline: 'none', direction: 'ltr' as const,
-                                    fontFamily: "'Readex Pro', Tahoma, Arial, sans-serif",
-                                }} type="password" value={data.password} onChange={(e) => setData('password', e.target.value)} />
-                                {errors.password && <div style={{ fontSize: 12, color: '#EF4444', marginTop: 4 }}>{errors.password}</div>}
+                                <label style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#1A1A18', marginBottom: 8, textAlign: 'right' }}>البريد الإلكتروني</label>
+                                <input
+                                    style={{
+                                        width: '100%', padding: '14px 16px', border: '2px solid #E8E2D8', borderRadius: 14,
+                                        fontSize: 15, color: '#1A1A18', background: '#fff', outline: 'none', direction: 'ltr' as const,
+                                        fontFamily: "'Cairo', Tahoma, Arial, sans-serif",
+                                    }}
+                                    type="email"
+                                    autoFocus
+                                    value={data.email}
+                                    onChange={(e) => setData('email', e.target.value)}
+                                    onFocus={(e) => { e.target.style.borderColor = '#C8F135'; }}
+                                    onBlur={(e) => { e.target.style.borderColor = '#E8E2D8'; }}
+                                />
+                            </div>
+                            <div style={{ marginBottom: 32 }}>
+                                <label style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#1A1A18', marginBottom: 8, textAlign: 'right' }}>كلمة المرور</label>
+                                <input
+                                    style={{
+                                        width: '100%', padding: '14px 16px', border: '2px solid #E8E2D8', borderRadius: 14,
+                                        fontSize: 15, color: '#1A1A18', background: '#fff', outline: 'none', direction: 'ltr' as const,
+                                        fontFamily: "'Cairo', Tahoma, Arial, sans-serif",
+                                    }}
+                                    type="password"
+                                    value={data.password}
+                                    onChange={(e) => setData('password', e.target.value)}
+                                    onFocus={(e) => { e.target.style.borderColor = '#C8F135'; }}
+                                    onBlur={(e) => { e.target.style.borderColor = '#E8E2D8'; }}
+                                />
                             </div>
                             <button type="submit" disabled={processing} style={{
-                                width: '100%', padding: 14, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600,
-                                cursor: 'pointer', fontFamily: "'Readex Pro', Tahoma, Arial, sans-serif",
-                                background: '#18A86B', color: '#fff', transition: 'background .15s',
+                                width: '100%', padding: 16, border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 800,
+                                cursor: 'pointer', fontFamily: "'Cairo', Tahoma, Arial, sans-serif",
+                                background: '#C8F135', color: '#1A1A18', transition: 'opacity .15s',
                                 opacity: processing ? 0.6 : 1,
                             }}>
                                 {processing ? 'جارٍ الدخول...' : 'دخول — لوحة المشرف'}
                             </button>
                         </form>
-
-                        {/* Demo credentials */}
-                        <div style={{ marginTop: 20, textAlign: 'center' }}>
-                            <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>حساب تجريبي</div>
-                            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-                                {adminDemos.map((d) => (
-                                    <button
-                                        key={d.email}
-                                        type="button"
-                                        onClick={() => fillDemo(d.email, d.password)}
-                                        style={{
-                                            padding: '6px 14px',
-                                            border: '1px solid #EBEBEB',
-                                            borderRadius: 8,
-                                            fontSize: 12,
-                                            color: '#0A0A0A',
-                                            background: '#FAFAFA',
-                                            cursor: 'pointer',
-                                            fontFamily: "'Readex Pro', Tahoma, Arial, sans-serif",
-                                            fontWeight: 600,
-                                            transition: 'border-color .15s',
-                                        }}
-                                    >
-                                        {d.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
                     </div>
                 </div>
             </>

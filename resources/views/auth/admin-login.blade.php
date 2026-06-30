@@ -4,123 +4,81 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>تيمات — دخول المشرف</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+body{font-family:'Cairo',Tahoma,Arial,sans-serif;background:#F5F0E8;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
 
-.login-container{width:100%;max-width:420px;}
+.logo-section{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+.logo-icon{width:40px;height:40px;object-fit:contain;}
+.logo-text{font-size:28px;font-weight:900;color:#1A1A18;}
 
-.logo-section{text-align:center;margin-bottom:36px;}
-.logo-ar{font-size:32px;font-weight:900;background:linear-gradient(90deg,#009E82,#D4820A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.logo-en{font-size:11px;color:rgba(255,255,255,.25);letter-spacing:3px;margin-top:4px;}
-.logo-tag{display:inline-block;font-size:10px;font-weight:700;color:#009E82;letter-spacing:2px;border:1px solid rgba(0,158,130,.3);border-radius:4px;padding:2px 8px;margin-top:8px;}
-.logo-desc{font-size:13px;color:#6B7A99;margin-top:12px;}
+.card{background:#fff;border-radius:24px;padding:40px 32px;width:100%;max-width:420px;box-shadow:0 4px 24px rgba(26,26,24,.06);}
+.card-title{font-size:24px;font-weight:800;color:#1A1A18;text-align:center;margin-bottom:6px;}
+.card-sub{font-size:14px;color:#8A8A7A;text-align:center;margin-bottom:32px;}
 
-.card{background:#161B27;border:1px solid #232A3E;border-radius:16px;padding:36px 32px;}
-.card-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:6px;}
-.card-sub{font-size:13px;color:#6B7A99;margin-bottom:28px;}
+.field{margin-bottom:24px;}
+.field label{display:block;font-size:14px;font-weight:700;color:#1A1A18;margin-bottom:8px;text-align:right;}
+.field input{width:100%;padding:14px 16px;background:#fff;border:2px solid #E8E2D8;border-radius:14px;color:#1A1A18;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;}
+.field input:focus{border-color:#C8F135;}
+.field input::placeholder{color:#C4C0B6;}
 
-.field{margin-bottom:20px;}
-.field label{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:8px;}
-.field input{width:100%;padding:12px 14px;background:#0F1117;border:1px solid #232A3E;border-radius:10px;color:#E8EAF0;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;}
-.field input:focus{border-color:#009E82;}
-.field input::placeholder{color:#3D4A60;}
-
-.field-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
-.remember{display:flex;align-items:center;gap:8px;cursor:pointer;}
-.remember input[type="checkbox"]{width:16px;height:16px;accent-color:#009E82;cursor:pointer;}
-.remember span{font-size:12px;color:rgba(255,255,255,.5);}
-
-.btn{width:100%;padding:13px;background:linear-gradient(135deg,#009E82,#00B894);border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .2s;}
+.btn{width:100%;padding:16px;background:#C8F135;border:none;border-radius:14px;color:#1A1A18;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;transition:opacity .2s;margin-top:8px;}
 .btn:hover{opacity:.9;}
 .btn:active{opacity:.8;}
 
-.error-box{background:rgba(224,48,80,.1);border:1px solid rgba(224,48,80,.25);border-radius:10px;padding:12px 16px;margin-bottom:20px;}
-.error-box p{font-size:12px;color:#E03050;margin:0;}
+.error-box{background:rgba(192,57,43,.06);border:1px solid rgba(192,57,43,.2);border-radius:14px;padding:12px 16px;margin-bottom:20px;}
+.error-box p{font-size:13px;color:#c0392b;margin:0;}
 
-.footer-text{text-align:center;margin-top:24px;font-size:12px;color:#3D4A60;}
-
-/* Demo credentials */
-.demo-section{margin-top:24px;padding-top:20px;border-top:1px solid #232A3E;}
-.demo-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;text-align:center;}
-.demo-grid{display:grid;grid-template-columns:1fr;gap:8px;}
-.demo-btn{padding:10px;background:#0F1117;border:1px solid #232A3E;border-radius:8px;cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
-.demo-btn:hover{border-color:#009E82;background:rgba(0,158,130,.05);}
-.demo-btn .demo-role{font-size:11px;font-weight:700;color:#009E82;margin-bottom:2px;}
-.demo-btn .demo-email{font-size:10px;color:#6B7A99;direction:ltr;}
+.status-box{background:rgba(200,241,53,.1);border:1px solid rgba(200,241,53,.3);border-radius:14px;padding:12px 16px;margin-bottom:20px;}
+.status-box p{font-size:13px;color:#5a7a10;margin:0;}
 </style>
 </head>
 <body>
 
-<div class="login-container">
-    <div class="logo-section">
-        <div class="logo-ar">تيمات</div>
-        <div class="logo-en">TEAMAT</div>
-        <div class="logo-tag">ADMIN</div>
-        <div class="logo-desc">لوحة إدارة النظام</div>
-    </div>
-
-    <div class="card">
-        <div class="card-title">تسجيل الدخول</div>
-        <div class="card-sub">أدخل بياناتك للوصول إلى لوحة التحكم</div>
-
-        @if (session('status'))
-            <div style="background:rgba(0,158,130,.1);border:1px solid rgba(0,158,130,.25);border-radius:10px;padding:12px 16px;margin-bottom:20px;">
-                <p style="font-size:12px;color:#009E82;margin:0;">{{ session('status') }}</p>
-            </div>
-        @endif
-        @if ($errors->any())
-            <div class="error-box">
-                @foreach ($errors->all() as $error)
-                    <p>{{ $error }}</p>
-                @endforeach
-            </div>
-        @endif
-
-        <form method="POST" action="{{ route('admin.login') }}">
-            @csrf
-
-            <div class="field">
-                <label for="email">البريد الإلكتروني</label>
-                <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="admin@teamat.com" required autofocus dir="ltr">
-            </div>
-
-            <div class="field">
-                <label for="password">كلمة المرور</label>
-                <input type="password" id="password" name="password" placeholder="••••••••" required dir="ltr">
-            </div>
-
-            <div class="field-row">
-                <label class="remember">
-                    <input type="checkbox" name="remember" {{ old('remember') ? 'checked' : '' }}>
-                    <span>تذكرني</span>
-                </label>
-                <a href="{{ route('admin.password.request') }}" style="font-size:12px;color:#009E82;text-decoration:none;">نسيت كلمة المرور؟</a>
-            </div>
-
-            <button type="submit" class="btn">دخول</button>
-        </form>
-
-        <div class="demo-section">
-            <div class="demo-title">حسابات تجريبية</div>
-            <div class="demo-grid">
-                <button type="button" class="demo-btn" onclick="fillDemo('admin@teamat.com')">
-                    <div class="demo-role">مدير النظام</div>
-                    <div class="demo-email">admin@teamat.com</div>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="footer-text">تيمات &copy; {{ date('Y') }}</div>
+<div class="logo-section">
+    <img src="/favicon.png" alt="تيمات" class="logo-icon">
+    <span class="logo-text">تيمات</span>
 </div>
 
-<script>
-function fillDemo(email) {
-    document.getElementById('email').value = email;
-    document.getElementById('password').value = 'password';
-}
-</script>
+<div class="card">
+    <div class="card-title">لوحة المشرف</div>
+    <div class="card-sub">أدخل بياناتك للدخول</div>
+
+    @if (session('status'))
+        <div class="status-box">
+            <p>{{ session('status') }}</p>
+        </div>
+    @endif
+    @if ($errors->any())
+        <div class="error-box">
+            @foreach ($errors->all() as $error)
+                <p>{{ $error }}</p>
+            @endforeach
+        </div>
+    @endif
+
+    <form method="POST" action="{{ route('admin.login') }}">
+        @csrf
+
+        <div class="field">
+            <label for="email">البريد الإلكتروني</label>
+            <input type="email" id="email" name="email" value="{{ old('email') }}" required autofocus dir="ltr">
+        </div>
+
+        <div class="field">
+            <label for="password">كلمة المرور</label>
+            <input type="password" id="password" name="password" required dir="ltr">
+        </div>
+
+        <button type="submit" class="btn">دخول — لوحة المشرف</button>
+    </form>
+</div>
 
 </body>
 </html>
