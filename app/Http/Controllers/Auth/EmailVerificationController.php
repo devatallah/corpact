@@ -31,7 +31,7 @@ class EmailVerificationController extends Controller
             'model' => Business::class,
             'guard' => 'business',
             'dashboard_route' => 'business.dash',
-            'label' => 'النادي',
+            'label' => 'مزود الخدمة',
         ],
         'company' => [
             'model' => Company::class,

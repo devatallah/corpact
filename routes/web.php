@@ -62,8 +62,8 @@ Route::get('/employees', function () {
     return view('landing.employees');
 });
 
-Route::get('/clubs', function () {
-    return view('landing.clubs');
+Route::get('/businesses', function () {
+    return view('landing.businesses');
 });
 
 /*

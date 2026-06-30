@@ -179,7 +179,7 @@ class CompanyEventService
             $remainingProposed = $event->alternatives()->where('status', 'proposed')->count();
 
             if ($remainingProposed === 0) {
-                $event->update(['status' => 'rejected', 'rejection_reason' => 'تم رفض الوقت البديل المقترح من النادي.']);
+                $event->update(['status' => 'rejected', 'rejection_reason' => 'تم رفض الوقت البديل المقترح من مزود الخدمة.']);
             }
 
             ActivityLogService::log(

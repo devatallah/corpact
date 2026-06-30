@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تيمات — إدارة الأندية</title>
+<title>تيمات — إدارة مزودي الخدمة</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -29,7 +29,7 @@
   <nav>
     <div class="ni" onclick="window.location='/admin/dash'"><span>📊</span><span class="nl">لوحة التحكم</span></div>
     <div class="ni" onclick="window.location='/admin/companies'"><span>🏢</span><span class="nl">الشركات</span></div>
-    <div class="ni on" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">الأندية</span>@if($stats['pending'] > 0)<span class="nb">{{ $stats['pending'] }}</span>@endif</div>
+    <div class="ni on" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">مزودو الخدمة</span>@if($stats['pending'] > 0)<span class="nb">{{ $stats['pending'] }}</span>@endif</div>
     <div class="ni" onclick="window.location='/admin/employees'"><span>👥</span><span class="nl">الموظفون</span></div>
     <div class="ni" onclick="window.location='/admin/events'"><span>📅</span><span class="nl">الفعاليات</span></div>
     <div class="ni" onclick="window.location='/admin/revenue'"><span>💰</span><span class="nl">الإيرادات</span></div>
@@ -44,8 +44,8 @@
 <div class="main">
 
 <div class="sc on" id="businesss">
-  <div class="page-title">إدارة الأندية</div>
-  <div class="page-sub">{{ $stats['active'] }} أندية مفعّلة · {{ $stats['pending'] }} طلبات معلقة</div>
+  <div class="page-title">إدارة مزودي الخدمة</div>
+  <div class="page-sub">{{ $stats['active'] }} مزودي خدمة مفعّلين · {{ $stats['pending'] }} طلبات معلقة</div>
   <div style="margin-bottom:16px;">
     <button class="fbtn on" onclick="filt(this,'all','.cl-row')">الكل</button>
     <button class="fbtn" onclick="filt(this,'معلق','.cl-row')">معلق</button>
@@ -54,7 +54,7 @@
   </div>
   <div class="card" style="padding:0;overflow:hidden;">
     <table>
-      <thead><tr><th>النادي</th><th>المدينة</th><th>الرياضات</th><th>الملاعب</th><th>مسؤول النادي</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <thead><tr><th>مزود الخدمة</th><th>المدينة</th><th>الرياضات</th><th>الملاعب</th><th>مسؤول مزود الخدمة</th><th>الحالة</th><th>إجراء</th></tr></thead>
       <tbody>
         @forelse($businesss as $business)
         <tr class="cl-row" data-s="@if($business->status === 'pending')معلق @elseif($business->status === 'active')نشط @elseif($business->status === 'rejected')مرفوض @else معلق @endif">
@@ -86,7 +86,7 @@
           </td>
         </tr>
         @empty
-        <tr><td colspan="7" style="text-align:center;color:#6B7A99;padding:20px;">لا توجد أندية</td></tr>
+        <tr><td colspan="7" style="text-align:center;color:#6B7A99;padding:20px;">لا يوجد مزودو خدمة</td></tr>
         @endforelse
       </tbody>
     </table>
@@ -126,7 +126,7 @@ function filt(btn,f,cls){
 var panelData={
   business:{
     @foreach($businesss as $cl)
-    '{{ $cl->name }}':{id:{{ $cl->id }},rows:[['اسم النادي','{{ $cl->name }}'],['المدينة','{{ $cl->city }}@if($cl->district) · {{ $cl->district }}@endif'],['الرياضات','{{ $cl->sports?->map(fn($s) => ($s->icon ?? "") . " " . $s->name)->implode(" · ") ?? "-" }}'],['عدد الملاعب','{{ $cl->venues_count ?? $cl->venues()->count() }}'],['ساعات العمل','{{ $cl->working_hours ?? "-" }}'],['البريد','{{ $cl->email ?? "-" }}'],['جوال التواصل','{{ $cl->contact_phone ?? "-" }}'],@if($cl->status === 'active')['تاريخ التفعيل','{{ $cl->approved_at?->format("j F Y") }}'],['الحالة','نشط ✅']@else['تاريخ الطلب','{{ $cl->created_at->diffForHumans() }}']@endif]},
+    '{{ $cl->name }}':{id:{{ $cl->id }},rows:[['اسم مزود الخدمة','{{ $cl->name }}'],['المدينة','{{ $cl->city }}@if($cl->district) · {{ $cl->district }}@endif'],['الرياضات','{{ $cl->sports?->map(fn($s) => ($s->icon ?? "") . " " . $s->name)->implode(" · ") ?? "-" }}'],['عدد الملاعب','{{ $cl->venues_count ?? $cl->venues()->count() }}'],['ساعات العمل','{{ $cl->working_hours ?? "-" }}'],['البريد','{{ $cl->email ?? "-" }}'],['جوال التواصل','{{ $cl->contact_phone ?? "-" }}'],@if($cl->status === 'active')['تاريخ التفعيل','{{ $cl->approved_at?->format("j F Y") }}'],['الحالة','نشط ✅']@else['تاريخ الطلب','{{ $cl->created_at->diffForHumans() }}']@endif]},
     @endforeach
   }
 };
@@ -137,7 +137,7 @@ function openPanel(type,name){
   var isPending=data.some(r=>r[0]==='تاريخ الطلب');
   currentPanelType=type; currentPanelName=name; currentPanelData=data; currentPanelId=entry.id; editMode=false;
 
-  document.getElementById('panelTitle').childNodes[0].textContent=(type==='company'?'شركة: ':'نادي: ')+name+' ';
+  document.getElementById('panelTitle').childNodes[0].textContent=(type==='company'?'شركة: ':'مزود خدمة:')+name+' ';
   renderPanelView(data, isPending);
   document.getElementById('overlay').classList.add('open');
 }

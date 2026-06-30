@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تيمات — إضافة نادي</title>
+<title>تيمات — إضافة مزود خدمة</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -20,7 +20,7 @@
   <nav>
     <div class="ni" onclick="window.location='/admin/dash'"><span>📊</span><span class="nl">لوحة التحكم</span></div>
     <div class="ni" onclick="window.location='/admin/companies'"><span>🏢</span><span class="nl">الشركات</span></div>
-    <div class="ni on" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">الأندية</span></div>
+    <div class="ni on" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">مزودو الخدمة</span></div>
     <div class="ni" onclick="window.location='/admin/employees'"><span>👥</span><span class="nl">الموظفون</span></div>
     <div class="ni" onclick="window.location='/admin/events'"><span>📅</span><span class="nl">الفعاليات</span></div>
     <div class="ni" onclick="window.location='/admin/revenue'"><span>💰</span><span class="nl">الإيرادات</span></div>
@@ -35,9 +35,9 @@
 <div class="main">
 <div class="sc on">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
-    <a href="{{ route('admin.businesss.index') }}" style="color:#6B7A99;text-decoration:none;font-size:14px;">← الأندية</a>
+    <a href="{{ route('admin.businesss.index') }}" style="color:#6B7A99;text-decoration:none;font-size:14px;">← مزودو الخدمة</a>
     <span style="color:#3D4A60;">/</span>
-    <span style="color:#fff;font-weight:700;">إضافة نادي</span>
+    <span style="color:#fff;font-weight:700;">إضافة مزود خدمة</span>
   </div>
 
   @if ($errors->any())
@@ -47,13 +47,13 @@
   @endif
 
   <div class="card" style="max-width:600px;">
-    <div style="font-size:18px;font-weight:700;margin-bottom:20px;">إضافة نادي جديد</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:20px;">إضافة مزود خدمة جديد</div>
     <form method="POST" action="{{ route('admin.businesss.store') }}">
       @csrf
 
       <div style="margin-bottom:16px;">
-        <label style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:6px;">اسم النادي *</label>
-        <input type="text" name="name" value="{{ old('name') }}" required style="width:100%;padding:10px 14px;background:#0F1117;border:1px solid #232A3E;border-radius:10px;color:#E8EAF0;font-size:14px;font-family:inherit;outline:none;" placeholder="مثال: نادي الرياض">
+        <label style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:6px;">اسم مزود الخدمة *</label>
+        <input type="text" name="name" value="{{ old('name') }}" required style="width:100%;padding:10px 14px;background:#0F1117;border:1px solid #232A3E;border-radius:10px;color:#E8EAF0;font-size:14px;font-family:inherit;outline:none;" placeholder="مثال: مزود خدمة الرياض">
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">

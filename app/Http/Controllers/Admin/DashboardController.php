@@ -75,7 +75,7 @@ class DashboardController extends Controller
                     ->map(fn (Business $c) => (object) [
                         'name' => $c->name,
                         'type' => 'business',
-                        'type_label' => 'نادي',
+                        'type_label' => 'مزود خدمة',
                         'status' => $c->status,
                         'created_at' => $c->created_at,
                     ])

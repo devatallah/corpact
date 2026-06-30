@@ -20,7 +20,7 @@ class BusinessAuthController extends Controller
 
     public function showLoginForm(): RedirectResponse
     {
-        return redirect('/clubs?login=1');
+        return redirect('/businesses?login=1');
     }
 
     /**
@@ -44,7 +44,7 @@ class BusinessAuthController extends Controller
         if ($user->status !== 'active') {
             Auth::guard('business')->logout();
             throw ValidationException::withMessages([
-                'email' => ['حساب النادي غير مفعّل.'],
+                'email' => ['حساب مزود الخدمة غير مفعّل.'],
             ]);
         }
 

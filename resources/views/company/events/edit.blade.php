@@ -76,7 +76,7 @@
         <label style="display:block;font-size:12px;font-weight:600;color:#4A5C78;margin-bottom:6px;">الحالة</label>
         <select name="status" style="width:100%;padding:10px 14px;background:#F0F2F8;border:1px solid #E2E8F4;border-radius:10px;font-size:14px;font-family:inherit;outline:none;">
           <option value="open" {{ old('status', $event->status) === 'open' ? 'selected' : '' }}>مفتوح</option>
-          <option value="waiting_business" {{ old('status', $event->status) === 'waiting_business' ? 'selected' : '' }}>بانتظار النادي</option>
+          <option value="waiting_business" {{ old('status', $event->status) === 'waiting_business' ? 'selected' : '' }}>بانتظار مزود الخدمة</option>
           <option value="confirmed" {{ old('status', $event->status) === 'confirmed' ? 'selected' : '' }}>مؤكد</option>
           <option value="completed" {{ old('status', $event->status) === 'completed' ? 'selected' : '' }}>مكتمل</option>
           <option value="cancelled" {{ old('status', $event->status) === 'cancelled' ? 'selected' : '' }}>ملغي</option>

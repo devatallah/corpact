@@ -23,9 +23,9 @@ class BusinessApprovedNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('تمت الموافقة على ناديك — تيمات')
+            ->subject('تمت الموافقة على منشأتك — تيمات')
             ->greeting("مرحبًا {$notifiable->name}!")
-            ->line('يسعدنا إبلاغك بأنه تمت الموافقة على طلب تسجيل ناديك في منصة تيمات.')
+            ->line('يسعدنا إبلاغك بأنه تمت الموافقة على طلب تسجيل منشأتك في منصة تيمات.')
             ->line('يرجى الضغط على الزر أدناه لتفعيل حسابك وتعيين كلمة المرور.')
             ->action('تفعيل الحساب', $this->activationUrl)
             ->line('صلاحية هذا الرابط 72 ساعة.')

@@ -40,7 +40,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
         <div class="logo-ar">تيمات</div>
         <div class="logo-en">TEAMAT</div>
         <div class="logo-tag">business</div>
-        <div class="logo-desc">بوابة الأندية</div>
+        <div class="logo-desc">بوابة مزودي الخدمة</div>
     </div>
 
     <div class="card">

@@ -122,7 +122,7 @@ class EventController extends Controller
     public function cancel(Request $request, Event $event): RedirectResponse
     {
         if (! in_array($event->status, ['open', 'waiting_business', 'alternative_proposed', 'confirmed'])) {
-            return back()->with('error', 'يمكن إلغاء الفعالية فقط إذا كانت مفتوحة أو بانتظار النادي أو بديل مقترح أو مؤكدة.');
+            return back()->with('error', 'يمكن إلغاء الفعالية فقط إذا كانت مفتوحة أو بانتظار مزود الخدمة أو بديل مقترح أو مؤكدة.');
         }
 
         // Apply refund via refund service (handles percentage calculation)

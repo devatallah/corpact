@@ -14,7 +14,7 @@
 <div class="sidebar-backdrop" id="sbBackdrop" onclick="closeMobile()"></div>
 <div class="sidebar" id="sb">
   <div class="logo"><div class="ar">تيمات</div><div class="en">business PORTAL</div></div>
-  <div class="co-info"><div class="lbl">النادي</div><div class="nm">{{ $business->name }}</div><div class="sb">{{ $business->district }}، {{ $business->city }}</div></div>
+  <div class="co-info"><div class="lbl">مزود الخدمة</div><div class="nm">{{ $business->name }}</div><div class="sb">{{ $business->district }}، {{ $business->city }}</div></div>
   <nav>
     <div class="ni" onclick="window.location='/business/dash'"><span>📊</span><span class="nl"> الرئيسية</span></div>
     <div class="ni on" onclick="window.location='/business/requests'"><span>📋</span><span class="nl"> طلبات الحجز</span>@if($pendingCount > 0)<span class="nl" id="pBadge" style="background:#C8410A;color:#fff;font-size:10px;padding:1px 7px;border-radius:20px;margin-right:auto;">{{ $pendingCount }}</span>@endif</div>

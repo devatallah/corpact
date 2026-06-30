@@ -49,11 +49,11 @@
     </div>
 
     <div id="step2" style="display:none;">
-      <div style="font-size:14px;font-weight:700;margin-bottom:12px;">النادي والموعد</div>
-      <div style="font-size:12px;color:#7A8BA8;margin-bottom:6px;">اختر النادي</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px;">مزود الخدمة والموعد</div>
+      <div style="font-size:12px;color:#7A8BA8;margin-bottom:6px;">اختر مزود الخدمة</div>
       <div style="position:relative;margin-bottom:16px;">
         <select id="businessSelect" onchange="onbusinessChange(this)" style="width:100%;padding:12px 14px;background:#fff;border:1px solid #E4E9F2;border-radius:12px;font-size:13px;appearance:none;cursor:pointer;outline:none;direction:rtl;font-family:inherit;">
-          <option value="">اختر النادي...</option>
+          <option value="">اختر مزود الخدمة...</option>
           @foreach($businesss as $business)
           @php
             $venuesData = $business->venues->map(function ($venue) {
@@ -80,7 +80,7 @@
       <div style="margin-bottom:16px;">
         <div style="font-size:12px;color:#7A8BA8;font-weight:600;margin-bottom:8px;">مدة الحجز</div>
         <div id="durationOptions" style="display:flex;flex-direction:column;gap:8px;">
-          <div style="padding:12px 14px;background:#fff;border:2px solid #E4E9F2;border-radius:12px;font-size:13px;color:#7A8BA8;text-align:center;">اختر النادي أولاً</div>
+          <div style="padding:12px 14px;background:#fff;border:2px solid #E4E9F2;border-radius:12px;font-size:13px;color:#7A8BA8;text-align:center;">اختر مزود الخدمة أولاً</div>
         </div>
       </div>
 
@@ -131,7 +131,7 @@
       <div style="font-size:14px;font-weight:700;margin-bottom:16px;">مراجعة الفعالية</div>
       <div class="card" style="border-color:#009E8233;margin-bottom:20px;">
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">المجتمع</span><span style="font-size:13px;font-weight:700;" id="rC">—</span></div>
-        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">النادي</span><span style="font-size:13px;font-weight:700;" id="rbusiness">—</span></div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">مزود الخدمة</span><span style="font-size:13px;font-weight:700;" id="rbusiness">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">التاريخ</span><span style="font-size:13px;font-weight:700;" id="rDate">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">مدة الحجز</span><span style="font-size:13px;font-weight:700;" id="rDurVal">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">عدد الملاعب</span><span style="font-size:13px;font-weight:700;" id="rvenues">—</span></div>
@@ -139,7 +139,7 @@
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #E4E9F2;"><span style="font-size:12px;color:#7A8BA8;">إجمالي الحجز</span><span style="font-size:13px;font-weight:700;" id="rPrice">—</span></div>
         <div style="display:flex;justify-content:space-between;padding:10px 0;"><span style="font-size:12px;color:#7A8BA8;">حصة كل لاعب</span><span style="font-size:15px;font-weight:900;color:#009E82;" id="rPerPlayer">—</span></div>
       </div>
-      <div style="background:#009E8218;border:1px solid #009E8233;border-radius:12px;padding:10px 14px;font-size:12px;color:#009E82;margin-bottom:20px;">📢 سيُرسل طلب الحجز للنادي بعد اكتمال عدد اللاعبين</div>
+      <div style="background:#009E8218;border:1px solid #009E8233;border-radius:12px;padding:10px 14px;font-size:12px;color:#009E82;margin-bottom:20px;">📢 سيُرسل طلب الحجز لمزود الخدمة بعد اكتمال عدد اللاعبين</div>
       <div style="display:flex;gap:10px;">
         <button type="button" onclick="gostep(2)" style="flex:1;padding:16px;background:#E4E9F2;color:#7A8BA8;border:none;border-radius:16px;font-size:14px;cursor:pointer;font-family:inherit;">رجوع</button>
         <button type="submit" style="flex:2;padding:16px;background:linear-gradient(135deg,#009E82,#00A888);color:#000;border:none;border-radius:16px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 8px 24px rgba(0,158,130,.3);">نشر الفعالية 🚀</button>

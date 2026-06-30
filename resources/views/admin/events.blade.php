@@ -29,7 +29,7 @@
   <nav>
     <div class="ni" onclick="window.location='/admin/dash'"><span>📊</span><span class="nl">لوحة التحكم</span></div>
     <div class="ni" onclick="window.location='/admin/companies'"><span>🏢</span><span class="nl">الشركات</span></div>
-    <div class="ni" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">الأندية</span></div>
+    <div class="ni" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">مزودو الخدمة</span></div>
     <div class="ni" onclick="window.location='/admin/employees'"><span>👥</span><span class="nl">الموظفون</span></div>
     <div class="ni on" onclick="window.location='/admin/events'"><span>📅</span><span class="nl">الفعاليات</span></div>
     <div class="ni" onclick="window.location='/admin/revenue'"><span>💰</span><span class="nl">الإيرادات</span></div>
@@ -54,7 +54,7 @@
   </div>
   <div class="card" style="padding:0;overflow:hidden;">
     <table>
-      <thead><tr><th>الفعالية</th><th>الشركة</th><th>النادي</th><th>التاريخ</th><th>اللاعبون</th><th>المبلغ</th><th>الحالة</th></tr></thead>
+      <thead><tr><th>الفعالية</th><th>الشركة</th><th>مزود الخدمة</th><th>التاريخ</th><th>اللاعبون</th><th>المبلغ</th><th>الحالة</th></tr></thead>
       <tbody>
         @forelse($events as $event)
         @php
@@ -70,7 +70,7 @@
           @if($event->status === 'open')
           <span class="badge b-review">🔍 مفتوحة</span>
           @elseif($event->status === 'waiting_business')
-          <span class="badge b-pending">انتظار النادي</span>
+          <span class="badge b-pending">انتظار مزود الخدمة</span>
           @elseif($event->status === 'confirmed')
           <span class="badge b-active">✅ مؤكدة</span>
           @elseif($event->status === 'full')

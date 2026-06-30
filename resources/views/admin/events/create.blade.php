@@ -20,7 +20,7 @@
   <nav>
     <div class="ni" onclick="window.location='/admin/dash'"><span>📊</span><span class="nl">لوحة التحكم</span></div>
     <div class="ni" onclick="window.location='/admin/companies'"><span>🏢</span><span class="nl">الشركات</span></div>
-    <div class="ni" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">الأندية</span></div>
+    <div class="ni" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">مزودو الخدمة</span></div>
     <div class="ni" onclick="window.location='/admin/employees'"><span>👥</span><span class="nl">الموظفون</span></div>
     <div class="ni on" onclick="window.location='/admin/events'"><span>📅</span><span class="nl">الفعاليات</span></div>
     <div class="ni" onclick="window.location='/admin/revenue'"><span>💰</span><span class="nl">الإيرادات</span></div>
@@ -58,7 +58,7 @@
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
         <div>
-          <label style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:6px;">معرّف النادي *</label>
+          <label style="display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:6px;">معرّف مزود الخدمة *</label>
           <input type="number" name="business_id" value="{{ old('business_id') }}" required min="1" style="width:100%;padding:10px 14px;background:#0F1117;border:1px solid #232A3E;border-radius:10px;color:#E8EAF0;font-size:14px;font-family:inherit;outline:none;">
         </div>
         <div>

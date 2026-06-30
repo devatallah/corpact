@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تيمات — دخول النادي</title>
+<title>تيمات — دخول مزود الخدمة</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -60,12 +60,12 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
         <div class="logo-ar">تيمات</div>
         <div class="logo-en">TEAMAT</div>
         <div class="logo-tag">business</div>
-        <div class="logo-desc">بوابة الأندية</div>
+        <div class="logo-desc">بوابة مزودي الخدمة</div>
     </div>
 
     <div class="card">
         <div class="card-title">تسجيل الدخول</div>
-        <div class="card-sub">أدخل بياناتك للوصول إلى لوحة النادي</div>
+        <div class="card-sub">أدخل بياناتك للوصول إلى لوحة مزود الخدمة</div>
 
         @if (session('status'))
             <div style="background:rgba(0,158,130,.1);border:1px solid rgba(0,158,130,.25);border-radius:10px;padding:12px 16px;margin-bottom:20px;">
@@ -112,11 +112,11 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
             <div class="demo-title">حسابات تجريبية</div>
             <div class="demo-grid">
                 <button type="button" class="demo-btn" onclick="fillDemo('business1@teamat.com')">
-                    <div class="demo-role">نادي 1</div>
+                    <div class="demo-role">مزود خدمة 1</div>
                     <div class="demo-email">business1@teamat.com</div>
                 </button>
                 <button type="button" class="demo-btn" onclick="fillDemo('business2@teamat.com')">
-                    <div class="demo-role">نادي 2</div>
+                    <div class="demo-role">مزود خدمة 2</div>
                     <div class="demo-email">business2@teamat.com</div>
                 </button>
             </div>

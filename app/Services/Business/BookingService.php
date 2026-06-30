@@ -93,7 +93,7 @@ class BookingService
                 $event->company_id,
                 $event,
                 'event_approved',
-                "تم قبول الفعالية #{$event->id} من النادي وخصم الميزانية",
+                "تم قبول الفعالية #{$event->id} من مزود الخدمة وخصم الميزانية",
             );
 
             // Notify company
@@ -102,7 +102,7 @@ class BookingService
                 'notifiable_id' => $event->company_id,
                 'type' => 'success',
                 'title' => 'تم قبول الحجز',
-                'body' => "النادي وافق على حجز الفعالية #{$event->id} — يجب إتمام الدفع خلال 30 دقيقة",
+                'body' => "مزود الخدمة وافق على حجز الفعالية #{$event->id} — يجب إتمام الدفع خلال 30 دقيقة",
                 'data' => ['event_id' => $event->id],
             ]);
 
@@ -114,7 +114,7 @@ class BookingService
                     'notifiable_id' => $member->id,
                     'type' => 'success',
                     'title' => 'تم تأكيد الفعالية',
-                    'body' => "تم تأكيد حجز فعالية {$event->community->name} من النادي",
+                    'body' => "تم تأكيد حجز فعالية {$event->community->name} من مزود الخدمة",
                     'data' => ['event_id' => $event->id],
                 ]);
             }
@@ -160,7 +160,7 @@ class BookingService
             $event->company_id,
             $event,
             'event_rejected',
-            "تم رفض الفعالية #{$event->id} من النادي",
+            "تم رفض الفعالية #{$event->id} من مزود الخدمة",
             ['reason' => $reason],
         );
 
@@ -170,7 +170,7 @@ class BookingService
             'notifiable_id' => $event->company_id,
             'type' => 'error',
             'title' => 'تم رفض الحجز',
-            'body' => "النادي رفض حجز الفعالية #{$event->id} — السبب: {$reason}",
+            'body' => "مزود الخدمة رفض حجز الفعالية #{$event->id} — السبب: {$reason}",
             'data' => ['event_id' => $event->id],
         ]);
 
@@ -182,7 +182,7 @@ class BookingService
                 'notifiable_id' => $member->id,
                 'type' => 'error',
                 'title' => 'تم رفض الفعالية',
-                'body' => "تم رفض فعالية {$event->community->name} من النادي",
+                'body' => "تم رفض فعالية {$event->community->name} من مزود الخدمة",
                 'data' => ['event_id' => $event->id],
             ]);
         }
@@ -236,8 +236,8 @@ class BookingService
                 'notifiable_type' => \App\Models\Company::class,
                 'notifiable_id' => $event->company_id,
                 'type' => 'warning',
-                'title' => 'وقت بديل مقترح من النادي',
-                'body' => "النادي اقترح وقت بديل للفعالية #{$event->id} — التاريخ: {$data['proposed_date']} الساعة: {$data['proposed_start_time']}",
+                'title' => 'وقت بديل مقترح من مزود الخدمة',
+                'body' => "مزود الخدمة اقترح وقت بديل للفعالية #{$event->id} — التاريخ: {$data['proposed_date']} الساعة: {$data['proposed_start_time']}",
                 'data' => ['event_id' => $event->id],
             ]);
 
@@ -247,8 +247,8 @@ class BookingService
                     'notifiable_type' => Employee::class,
                     'notifiable_id' => $event->created_by,
                     'type' => 'warning',
-                    'title' => 'وقت بديل مقترح من النادي',
-                    'body' => "النادي اقترح وقت بديل للفعالية — التاريخ: {$data['proposed_date']} الساعة: {$data['proposed_start_time']}",
+                    'title' => 'وقت بديل مقترح من مزود الخدمة',
+                    'body' => "مزود الخدمة اقترح وقت بديل للفعالية — التاريخ: {$data['proposed_date']} الساعة: {$data['proposed_start_time']}",
                     'data' => ['event_id' => $event->id],
                 ]);
             }
@@ -289,7 +289,7 @@ class BookingService
     private function ensureEventBelongsTobusiness(Business $business, Event $event): void
     {
         if ($event->business_id !== $business->id) {
-            throw new AuthorizationException('هذه الفعالية لا تتبع ناديك.');
+            throw new AuthorizationException('هذه الفعالية لا تتبع منشأتك.');
         }
     }
 }

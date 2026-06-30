@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تيمات — تسجيل نادي جديد</title>
+<title>تيمات — تسجيل مزود خدمة جديد</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -52,12 +52,12 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
         <div class="logo-ar">تيمات</div>
         <div class="logo-en">TEAMAT</div>
         <div class="logo-tag">business</div>
-        <div class="logo-desc">تسجيل نادي جديد</div>
+        <div class="logo-desc">تسجيل مزود خدمة جديد</div>
     </div>
 
     <div class="card">
-        <div class="card-title">إنشاء حساب نادي</div>
-        <div class="card-sub">أدخل بيانات ناديك للتسجيل في المنصة</div>
+        <div class="card-title">إنشاء حساب مزود خدمة</div>
+        <div class="card-sub">أدخل بيانات منشأتك للتسجيل في المنصة</div>
 
         @if ($errors->any())
             <div class="error-box">
@@ -71,8 +71,8 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
             @csrf
 
             <div class="field">
-                <label for="name">اسم النادي</label>
-                <input type="text" id="name" name="name" value="{{ old('name') }}" placeholder="اسم النادي" required autofocus>
+                <label for="name">اسم مزود الخدمة</label>
+                <input type="text" id="name" name="name" value="{{ old('name') }}" placeholder="اسم مزود الخدمة" required autofocus>
             </div>
 
             <div class="field">

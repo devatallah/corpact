@@ -35,7 +35,7 @@ const portalMeta: Record<string, {
 const tabs = [
     { key: 'employee' as const, label: 'موظف', href: '/employee/login', tag: 'موظف' },
     { key: 'company' as const, label: 'شركة', href: '/company/login', tag: 'شركة' },
-    { key: 'business' as const, label: 'منشأة', href: '/business/login', tag: 'نادي' },
+    { key: 'business' as const, label: 'منشأة', href: '/business/login', tag: 'مزود خدمة' },
 ];
 
 const demoCredentials: Record<GuardName, Array<{ label: string; email: string; password: string }>> = {
@@ -229,7 +229,7 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                             <a href="/companies" style={{ fontSize: 14, fontWeight: 600, color: 'rgba(10,10,10,0.6)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>للشركات</a>
                             <a href="/employees" style={{ fontSize: 14, fontWeight: 600, color: 'rgba(10,10,10,0.6)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>للموظفين</a>
-                            <a href="/clubs" style={{ fontSize: 14, fontWeight: 600, color: 'rgba(10,10,10,0.6)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>للنوادي</a>
+                            <a href="/businesses" style={{ fontSize: 14, fontWeight: 600, color: 'rgba(10,10,10,0.6)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>لمزودي الخدمة</a>
                         </div>
                     </div>
                 </nav>

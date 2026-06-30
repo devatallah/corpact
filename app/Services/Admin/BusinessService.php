@@ -41,7 +41,7 @@ class BusinessService
     public function approve(Business $business, ?float $commissionRate = null): Business
     {
         if ($business->status === 'active') {
-            throw new \LogicException('النادي مفعّل بالفعل.');
+            throw new \LogicException('مزود الخدمة مفعّل بالفعل.');
         }
 
         return DB::transaction(function () use ($business, $commissionRate) {
@@ -64,7 +64,7 @@ class BusinessService
                 null,
                 $business,
                 'business_approved',
-                "تمت الموافقة على نادي '{$business->name}'",
+                "تمت الموافقة على مزود خدمة '{$business->name}'",
             );
 
             $activationUrl = url("/business/activate/{$token}");
@@ -80,7 +80,7 @@ class BusinessService
     public function reject(Business $business): Business
     {
         if ($business->status === 'rejected') {
-            throw new \LogicException('النادي مرفوض بالفعل.');
+            throw new \LogicException('مزود الخدمة مرفوض بالفعل.');
         }
 
         $business->update(['status' => 'rejected']);
@@ -89,7 +89,7 @@ class BusinessService
             null,
             $business,
             'business_rejected',
-            "تم رفض نادي '{$business->name}'",
+            "تم رفض مزود خدمة '{$business->name}'",
         );
 
         return $business->fresh();

@@ -14,7 +14,7 @@
 <div class="sidebar-backdrop" id="sbBackdrop" onclick="closeMobile()"></div>
 <div class="sidebar" id="sb">
   <div class="logo"><div class="ar">تيمات</div><div class="en">business PORTAL</div></div>
-  <div class="co-info"><div class="lbl">النادي</div><div class="nm">{{ auth('business')->user()->name }}</div></div>
+  <div class="co-info"><div class="lbl">مزود الخدمة</div><div class="nm">{{ auth('business')->user()->name }}</div></div>
   <nav>
     <div class="ni" onclick="window.location='/business/dash'"><span>📊</span><span class="nl"> الرئيسية</span></div>
     <div class="ni" onclick="window.location='/business/requests'"><span>📋</span><span class="nl"> طلبات الحجز</span></div>

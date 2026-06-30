@@ -29,7 +29,7 @@
   <nav>
     <div class="ni" onclick="window.location='/admin/dash'"><span>📊</span><span class="nl">لوحة التحكم</span></div>
     <div class="ni on" onclick="window.location='/admin/companies'"><span>🏢</span><span class="nl">الشركات</span>@if($stats['pending'] + $stats['review'] > 0)<span class="nb">{{ $stats['pending'] + $stats['review'] }}</span>@endif</div>
-    <div class="ni" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">الأندية</span></div>
+    <div class="ni" onclick="window.location='/admin/businesss'"><span>🏟️</span><span class="nl">مزودو الخدمة</span></div>
     <div class="ni" onclick="window.location='/admin/employees'"><span>👥</span><span class="nl">الموظفون</span></div>
     <div class="ni" onclick="window.location='/admin/events'"><span>📅</span><span class="nl">الفعاليات</span></div>
     <div class="ni" onclick="window.location='/admin/revenue'"><span>💰</span><span class="nl">الإيرادات</span></div>
@@ -137,7 +137,7 @@ function openPanel(type,name){
   var isPending=data.some(r=>r[0]==='تاريخ الطلب');
   currentPanelType=type; currentPanelName=name; currentPanelData=data; currentPanelId=entry.id; editMode=false;
 
-  document.getElementById('panelTitle').childNodes[0].textContent=(type==='company'?'شركة: ':'نادي: ')+name+' ';
+  document.getElementById('panelTitle').childNodes[0].textContent=(type==='company'?'شركة: ':'مزود خدمة:')+name+' ';
   renderPanelView(data, isPending);
   document.getElementById('overlay').classList.add('open');
 }

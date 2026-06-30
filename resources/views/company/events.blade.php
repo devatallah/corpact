@@ -36,20 +36,20 @@
   <div style="margin-bottom:16px;">
     <a href="/company/events" class="fbtn {{ empty($filters['status']) ? 'on' : '' }}" style="text-decoration:none;">الكل</a>
     <a href="/company/events?status=open" class="fbtn {{ ($filters['status'] ?? '') === 'open' ? 'on' : '' }}" style="text-decoration:none;">مفتوحة</a>
-    <a href="/company/events?status=waiting_business" class="fbtn {{ ($filters['status'] ?? '') === 'waiting_business' ? 'on' : '' }}" style="text-decoration:none;">انتظار النادي</a>
+    <a href="/company/events?status=waiting_business" class="fbtn {{ ($filters['status'] ?? '') === 'waiting_business' ? 'on' : '' }}" style="text-decoration:none;">انتظار مزود الخدمة</a>
     <a href="/company/events?status=confirmed" class="fbtn {{ ($filters['status'] ?? '') === 'confirmed' ? 'on' : '' }}" style="text-decoration:none;">مؤكدة</a>
     <a href="/company/events?status=completed" class="fbtn {{ ($filters['status'] ?? '') === 'completed' ? 'on' : '' }}" style="text-decoration:none;">منتهية</a>
   </div>
   <div style="background:#fff;border:1px solid #E2E8F4;border-radius:16px;overflow:auto;">
     <table>
-      <thead><tr><th>المجتمع</th><th>النادي</th><th>التاريخ</th><th>اللاعبون</th><th>المنشئ</th><th>الحالة</th></tr></thead>
+      <thead><tr><th>المجتمع</th><th>مزود الخدمة</th><th>التاريخ</th><th>اللاعبون</th><th>المنشئ</th><th>الحالة</th></tr></thead>
       <tbody>
         @forelse($events as $event)
         @php
           $fillPercent = $event->capacity > 0 ? round(($event->participants_count / $event->capacity) * 100) : 0;
           $statusBadge = match($event->status) {
             'open' => ['background:#3B5BDB18;color:#3B5BDB;', 'مفتوحة'],
-            'waiting_business' => ['background:#D4820A18;color:#D4820A;', 'انتظار النادي'],
+            'waiting_business' => ['background:#D4820A18;color:#D4820A;', 'انتظار مزود الخدمة'],
             'confirmed' => ['background:#0CA67818;color:#0CA678;', 'مؤكدة'],
             'completed' => ['background:#7A8BA818;color:#7A8BA8;', 'منتهية'],
             'cancelled' => ['background:#E0305018;color:#E03050;', 'ملغية'],
