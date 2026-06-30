@@ -47,8 +47,8 @@ class UpdateBusinessRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.string' => 'اسم المنشأة يجب أن يكون نصاً.',
-            'name.max' => 'اسم المنشأة يجب ألا يتجاوز 255 حرف.',
+            'name.string' => 'اسم مزود الخدمة يجب أن يكون نصاً.',
+            'name.max' => 'اسم مزود الخدمة يجب ألا يتجاوز 255 حرف.',
             'city.string' => 'المدينة يجب أن تكون نصاً.',
             'city.max' => 'المدينة يجب ألا تتجاوز 255 حرف.',
             'district.string' => 'الحي يجب أن يكون نصاً.',
@@ -60,7 +60,7 @@ class UpdateBusinessRequest extends FormRequest
             'commission_rate.numeric' => 'نسبة العمولة يجب أن تكون رقماً.',
             'commission_rate.min' => 'نسبة العمولة يجب أن تكون 0 على الأقل.',
             'commission_rate.max' => 'نسبة العمولة يجب ألا تتجاوز 100.',
-            'status.in' => 'حالة المنشأة غير صالحة.',
+            'status.in' => 'حالة مزود الخدمة غير صالحة.',
             'category_ids.*.exists' => 'الفئة المحددة غير موجودة.',
         ];
     }

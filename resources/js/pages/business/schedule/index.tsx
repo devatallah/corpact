@@ -161,7 +161,7 @@ export default function businessSchedule({ schedule, date }: Props) {
             <div style={{ display: 'flex', gap: 14, marginBottom: 16, flexWrap: 'wrap' }}>
                 {[
                     { label: 'مفتوح', color: '#3B5BDB' },
-                    { label: 'بانتظار المنشأة', color: '#B8860A' },
+                    { label: 'بانتظار مزود الخدمة', color: '#B8860A' },
                     { label: 'مؤكد', color: '#1A7A4A' },
                     { label: 'مكتمل العدد', color: '#6B7A99' },
                     { label: 'بديل مقترح', color: '#C8410A' },

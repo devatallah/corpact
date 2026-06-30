@@ -113,7 +113,7 @@ export default function Register({ guard, guardLabel }: Props) {
 
                         <form onSubmit={submit}>
                             <div style={{ marginBottom: 16 }}>
-                                <label style={labelStyle}>{isBusiness ? 'اسم المنشأة' : 'اسم الشركة'}</label>
+                                <label style={labelStyle}>{isBusiness ? 'اسم مزود الخدمة' : 'اسم الشركة'}</label>
                                 <input style={inputStyle} type="text" value={data.name} onChange={(e) => setData('name', e.target.value)} />
                                 {errors.name && <p style={{ fontSize: 12, color: '#c0392b', marginTop: 4 }}>{errors.name}</p>}
                             </div>
@@ -207,7 +207,7 @@ export default function Register({ guard, guardLabel }: Props) {
                                     <Link href="/company/login" style={{ padding: '6px 12px', border: '1px solid #E8E2D8', borderRadius: 8, fontSize: 12, color: '#8A8A7A', textDecoration: 'none' }}>الشركات</Link>
                                 )}
                                 {guard !== 'business' && (
-                                    <Link href="/business/login" style={{ padding: '6px 12px', border: '1px solid #E8E2D8', borderRadius: 8, fontSize: 12, color: '#8A8A7A', textDecoration: 'none' }}>المنشآت</Link>
+                                    <Link href="/business/login" style={{ padding: '6px 12px', border: '1px solid #E8E2D8', borderRadius: 8, fontSize: 12, color: '#8A8A7A', textDecoration: 'none' }}>مزودو الخدمة</Link>
                                 )}
                                 <Link href="/employee/login" style={{ padding: '6px 12px', border: '1px solid #E8E2D8', borderRadius: 8, fontSize: 12, color: '#8A8A7A', textDecoration: 'none' }}>الموظفون</Link>
                             </div>

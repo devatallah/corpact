@@ -66,7 +66,7 @@ export default function Activatebusiness({ token, businessName, email, activated
 
     return (
         <>
-            <Head title="تفعيل حساب المنشأة — تيمات" />
+            <Head title="تفعيل حساب مزود الخدمة — تيمات" />
             <div dir="rtl" style={{
                 minHeight: '100vh',
                 background: '#F5F0E8',

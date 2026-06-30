@@ -1548,7 +1548,7 @@ export default function Welcome() {
         { q: 'كم من الوقت يستغرق إطلاق تيمات في شركتي؟', a: 'من توقيع العقد إلى المباراة الأولى لموظفيك، المتوسط هو 5 أيام عمل. شركات بحجم 250 موظف انطلقت في 48 ساعة. نوفر فريق Onboarding مخصص يتولّى استيراد قائمة الموظفين، تخصيص الهوية، وإعداد قواعد الدعم الميزانية.' },
         { q: 'هل بيانات موظفينا محفوظة داخل المملكة؟', a: 'نعم. جميع بيانات تيمات مستضافة في مراكز بيانات داخل المملكة (الرياض والدمام) بالتوافق مع نظام حماية البيانات الشخصية (PDPL) ومعايير SDAIA. للعملاء المؤسسيين نوفر خيار منطقة بيانات معزولة مع تقارير وصول تفصيلية.' },
         { q: 'كيف يعمل دعم الميزانية للموظفين؟', a: 'تحدّد قواعد الدعم بنفسك من لوحة HR — نسبة مئوية، مبلغ ثابت، أو حدود شهرية. يمكن أن تختلف القواعد حسب القسم أو المسمى الوظيفي. عند الحجز، يُخصم الدعم تلقائياً قبل أن يدفع الموظف نصيبه. كل ريال مصروف مرئي في التقارير لحظياً.' },
-        { q: 'ما هي المنشآت والرياضات المتاحة؟', a: 'أكثر من 240 ناديًا شريكًا في 20 مدينة، تغطّي البادل، التنس، كرة القدم، السلة، الكروسفت، السباحة، والركوب. الشبكة تتوسّع بشكل أسبوعي. يمكن لشركتك أيضاً ضمّ ناديها المفضّل إلى الشبكة عبر فريق الشراكات.' },
+        { q: 'ما هي مرافق مزودي الخدمة والرياضات المتاحة؟', a: 'أكثر من 240 ناديًا شريكًا في 20 مدينة، تغطّي البادل، التنس، كرة القدم، السلة، الكروسفت، السباحة، والركوب. الشبكة تتوسّع بشكل أسبوعي. يمكن لشركتك أيضاً ضمّ ناديها المفضّل إلى الشبكة عبر فريق الشراكات.' },
         { q: 'كيف يتم تنظيم البطولات بين الأقسام؟', a: 'من لوحة الشركة، تختار نوع البطولة (دوري، إقصائي، أو جولة واحدة)، تحدد الأقسام المشاركة، والنظام يولّد الجداول والمباريات تلقائياً. النتائج والترتيب يتحدثان مباشرة بعد كل مباراة، ويمكن للموظفين متابعة كل شيء من بوابتهم.' },
         { q: 'هل يمكن إلغاء الاشتراك في أي وقت؟', a: 'نعم، بدون عقود طويلة الأمد. الفوترة شهرية أو سنوية حسب اختيارك. تقدر تلغي بإشعار 30 يوم وتحصل على بياناتك كاملة. نعتقد أن أفضل علاقات الأعمال تُبنى على الاختيار، لا الالتزام.' },
     ];
@@ -1658,7 +1658,7 @@ export default function Welcome() {
                             </div>
                             <div className="hero-portal-label" style={{ bottom: '22%', right: '-5%' }}>
                                 <span className="hero-pl-dot" style={{ background: 'var(--rust)' }}></span>
-                                المنشأة
+                                مزود الخدمة
                             </div>
                             <div className="hero-portal-label" style={{ bottom: '10%', left: '-5%' }}>
                                 <span className="hero-pl-dot" style={{ background: '#6C8CFF' }}></span>
@@ -1785,7 +1785,7 @@ export default function Welcome() {
                         <JourneySlider total={6}>
                             {/* Step 1-6 employee journey - rendered as inner HTML via dangerouslySetInnerHTML for the massive phone mockups */}
                             <div className="journey-step" dangerouslySetInnerHTML={{ __html: `<div class="journey-content"><div class="journey-num"><span class="journey-num-n">01</span><span class="journey-num-l">/ DAY 1 · MORNING</span></div><h3 class="journey-h">دعوة شخصية تصل من شركتك.</h3><p class="journey-p">يُطلق فريق HR منصة تيمات للموظفين، فيستقبل كل موظف بريداً إلكترونياً يربط هويته بنطاق الشركة. لا أكواد، لا تسجيلات يدوية.</p><ul class="journey-feat"><li>تحقّق تلقائي من نطاق البريد المؤسسي</li><li>قابل للتخصيص بهوية الشركة</li><li>رابط آمن لمدة 7 أيام</li></ul></div><div class="journey-mock"><div class="journey-visual"><span class="journey-visual-num">01</span><span class="journey-visual-icon">✉️</span></div></div>` }} />
-                            <div className="journey-step alt" dangerouslySetInnerHTML={{ __html: `<div class="journey-content"><div class="journey-num"><span class="journey-num-n">02</span><span class="journey-num-l">/ DAY 1 · 30 SECONDS LATER</span></div><h3 class="journey-h">تسجيل في 30 ثانية، مع تحقّق فوري.</h3><p class="journey-p">الموظف ينقر الرابط، يدخل اسمه وكلمة المرور، ويبدأ. النظام يتحقق تلقائياً من بريد الشركة ويربطه بحساب المنشأة دون تدخل HR.</p><ul class="journey-feat"><li>تسجيل دخول بـ Apple أو Google متاح</li><li>التزام بـ PDPL ومتطلبات SDAIA</li><li>تكامل SSO للمؤسسات الكبرى</li></ul></div><div class="journey-mock"><div class="journey-visual"><span class="journey-visual-num">02</span><span class="journey-visual-icon">🔐</span></div></div>` }} />
+                            <div className="journey-step alt" dangerouslySetInnerHTML={{ __html: `<div class="journey-content"><div class="journey-num"><span class="journey-num-n">02</span><span class="journey-num-l">/ DAY 1 · 30 SECONDS LATER</span></div><h3 class="journey-h">تسجيل في 30 ثانية، مع تحقّق فوري.</h3><p class="journey-p">الموظف ينقر الرابط، يدخل اسمه وكلمة المرور، ويبدأ. النظام يتحقق تلقائياً من بريد الشركة ويربطه بحساب مزود الخدمة دون تدخل HR.</p><ul class="journey-feat"><li>تسجيل دخول بـ Apple أو Google متاح</li><li>التزام بـ PDPL ومتطلبات SDAIA</li><li>تكامل SSO للمؤسسات الكبرى</li></ul></div><div class="journey-mock"><div class="journey-visual"><span class="journey-visual-num">02</span><span class="journey-visual-icon">🔐</span></div></div>` }} />
                             <div className="journey-step" dangerouslySetInnerHTML={{ __html: `<div class="journey-content"><div class="journey-num"><span class="journey-num-n">03</span><span class="journey-num-l">/ DAY 1 · LUNCH BREAK</span></div><h3 class="journey-h">يكتشف زملاءه الذين يلعبون. للمرة الأولى.</h3><p class="journey-p">الواجهة الرئيسية تعرض الفعاليات النشطة، زملاء العمل الذين انضموا، والبطولات القادمة. يكتشف الموظف أن 47 من فريقه يلعبون بادل — معلومة لم يكن يعرفها.</p><ul class="journey-feat"><li>اكتشاف ذكي يقترح زملاء حسب القسم</li><li>بطولات داخلية ومباريات مفتوحة</li><li>إشعارات للأصدقاء عند الحجز</li></ul></div><div class="journey-mock"><div class="journey-visual"><span class="journey-visual-num">03</span><span class="journey-visual-icon">🧭</span></div></div>` }} />
                             <div className="journey-step alt" dangerouslySetInnerHTML={{ __html: `<div class="journey-content"><div class="journey-num"><span class="journey-num-n">04</span><span class="journey-num-l">/ DAY 1 · 4:18 PM</span></div><h3 class="journey-h">حجز ملعب، دعوة زملاء، تقسيم تلقائي للتكلفة.</h3><p class="journey-p">يختار الموظف الملعب، المدة، والوقت. يدعو 3 زملاء، فيحسب النظام التكلفة لكل لاعب بعد خصم دعم الشركة. لا ضغط، لا حسابات يدوية.</p><ul class="journey-feat"><li>أسعار مرنة حسب المدة (60 / 90 / 120 دقيقة)</li><li>خصم تلقائي للدعم المؤسسي</li><li>دعوة الزملاء عبر الاسم أو البريد</li></ul></div><div class="journey-mock"><div class="journey-visual"><span class="journey-visual-num">04</span><span class="journey-visual-icon">📅</span></div></div>` }} />
                             <div className="journey-step" dangerouslySetInnerHTML={{ __html: `<div class="journey-content"><div class="journey-num"><span class="journey-num-n">05</span><span class="journey-num-l">/ DAY 1 · 7:00 PM</span></div><h3 class="journey-h">يوم المباراة. كل شيء جاهز.</h3><p class="journey-p">قبل المباراة بـ 30 دقيقة، يصل تذكير. يفتح الموظف التطبيق فيجد العنوان، الزملاء المؤكَّدين، الخريطة، ورمز QR لتسجيل الوصول عند بوابة مزود الخدمة.</p><ul class="journey-feat"><li>تذكيرات ذكية قبل 24 ساعة و30 دقيقة</li><li>تسجيل وصول QR لمزودي الخدمة الشريكين</li><li>تنبيه عند تأخر أحد اللاعبين</li></ul></div><div class="journey-mock"><div class="journey-visual"><span class="journey-visual-num">05</span><span class="journey-visual-icon">🏟️</span></div></div>` }} />
@@ -1871,20 +1871,20 @@ export default function Welcome() {
                         <div className="wwh-card">
                             <div className="wwh-icon">💰</div>
                             <h3>تسويات شفافة</h3>
-                            <p>تسويات شهرية تلقائية للمنشآت. تقارير مفصّلة بكل حجز وعمولة ومبلغ صافي.</p>
-                            <span className="wwh-tag biz">المنشأة</span>
+                            <p>تسويات شهرية تلقائية لمزودي الخدمة. تقارير مفصّلة بكل حجز وعمولة ومبلغ صافي.</p>
+                            <span className="wwh-tag biz">مزود الخدمة</span>
                         </div>
                         <div className="wwh-card">
                             <div className="wwh-icon">🏟️</div>
                             <h3>إدارة المرافق</h3>
                             <p>أضف ملاعبك بأسعار مرنة لكل مدة. جدولة الحجوزات وقبول الطلبات تلقائياً.</p>
-                            <span className="wwh-tag biz">المنشأة</span>
+                            <span className="wwh-tag biz">مزود الخدمة</span>
                         </div>
                         <div className="wwh-card">
                             <div className="wwh-icon">🏷️</div>
                             <h3>خصومات مخصّصة</h3>
                             <p>أنشئ خصومات حسب الشركة أو المجتمع — بنسبة أو مبلغ ثابت، مع فترات زمنية محددة.</p>
-                            <span className="wwh-tag biz">المنشأة</span>
+                            <span className="wwh-tag biz">مزود الخدمة</span>
                         </div>
                         <div className="wwh-card">
                             <div className="wwh-icon">🔔</div>
@@ -1902,7 +1902,7 @@ export default function Welcome() {
                     <div className="section-head reveal">
                         <div className="eyebrow">الباقات والرسوم</div>
                         <h2 className="section-title">اشتراكات <span className="serif-en">transparent</span> بدون مفاجآت.</h2>
-                        <p className="section-sub">رسوم اشتراك شهرية واضحة للمنشآت والشركات. اختر الباقة المناسبة وابدأ اليوم.</p>
+                        <p className="section-sub">رسوم اشتراك شهرية واضحة لمزودي الخدمة والشركات. اختر الباقة المناسبة وابدأ اليوم.</p>
                     </div>
 
                     <div className="pricing-toggle-wrap reveal">
@@ -1917,7 +1917,7 @@ export default function Welcome() {
                         {/* Starter */}
                         <div className="pricing-card">
                             <h3 className="pricing-plan">أساسي</h3>
-                            <p className="pricing-desc">للمنشآت الرياضية الصغيرة التي تريد الانضمام لشبكة الشركات.</p>
+                            <p className="pricing-desc">لمزودي الخدمة الرياضية الصغار الذين يريدون الانضمام لشبكة الشركات.</p>
                             <div className="pricing-amount">
                                 <span className="pricing-amount-n">{billingAnnual ? '399' : '499'}</span>
                                 <span className="pricing-amount-c">ر.س</span>
@@ -1938,7 +1938,7 @@ export default function Welcome() {
                         <div className="pricing-card featured">
                             <span className="pricing-badge">الأكثر طلباً</span>
                             <h3 className="pricing-plan">احترافي</h3>
-                            <p className="pricing-desc">للشركات والمنشآت التي تريد تجربة متكاملة وأقصى استفادة.</p>
+                            <p className="pricing-desc">للشركات ومزودي الخدمة الذين يريدون تجربة متكاملة وأقصى استفادة.</p>
                             <div className="pricing-amount">
                                 <span className="pricing-amount-n">{billingAnnual ? '999' : '1,249'}</span>
                                 <span className="pricing-amount-c">ر.س</span>
@@ -1997,7 +1997,7 @@ export default function Welcome() {
                                     انضم لنا
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8L10 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                                 </Link>
-                                <Link href="/business/register" className="btn btn-ghost" style={{ background: 'var(--ink)', color: 'var(--cream)', borderColor: 'var(--ink)' }}>سجّل منشأتك</Link>
+                                <Link href="/business/register" className="btn btn-ghost" style={{ background: 'var(--ink)', color: 'var(--cream)', borderColor: 'var(--ink)' }}>سجّل كمزود خدمة</Link>
                             </div>
                         </div>
                     </div>

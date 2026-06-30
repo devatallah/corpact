@@ -50,7 +50,7 @@ class UpdateEventRequest extends FormRequest
     {
         return [
             'community_id.exists' => 'المجتمع المحدد غير موجود.',
-            'business_id.exists' => 'المنشأة المحددة غير موجودة.',
+            'business_id.exists' => 'مزود الخدمة المحددة غير موجودة.',
             'category_id.exists' => 'الفئة المحددة غير موجودة.',
             'venue_id.exists' => 'المرفق المحدد غير موجود.',
             'venue_pricing_id.exists' => 'تسعيرة المرفق المحددة غير موجودة.',

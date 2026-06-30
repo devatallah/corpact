@@ -289,7 +289,7 @@ class BookingService
     private function ensureEventBelongsTobusiness(Business $business, Event $event): void
     {
         if ($event->business_id !== $business->id) {
-            throw new AuthorizationException('هذه الفعالية لا تتبع منشأتك.');
+            throw new AuthorizationException('هذه الفعالية لا تتبع حسابك كمزود خدمة.');
         }
     }
 }

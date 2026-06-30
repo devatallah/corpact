@@ -18,14 +18,14 @@ export default function businesssCreate() {
 
     return (
         <AdminLayout>
-            <Head title="إضافة منشأة" />
+            <Head title="إضافة مزود خدمة" />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
                 <Link href="/admin/businesses" style={{ color: '#6B7A99', textDecoration: 'none', fontSize: '14px' }}>
-                    ← المنشآت
+                    ← مزودو الخدمة
                 </Link>
                 <span style={{ color: '#3D4A60' }}>/</span>
-                <span style={{ color: '#fff', fontWeight: 700 }}>إضافة منشأة</span>
+                <span style={{ color: '#fff', fontWeight: 700 }}>إضافة مزود خدمة</span>
             </div>
 
             {Object.keys(errors).length > 0 && (
@@ -37,16 +37,16 @@ export default function businesssCreate() {
             )}
 
             <div className="card" style={{ maxWidth: '600px' }}>
-                <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>إضافة منشأة جديد</div>
+                <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>إضافة مزود خدمة جديد</div>
                 <form onSubmit={submit}>
                     <div className="frow">
                         <div className="fg">
-                            <label>اسم المنشأة *</label>
+                            <label>اسم مزود الخدمة *</label>
                             <input
                                 type="text"
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
-                                placeholder="مثال: منشأة الرياض"
+                                placeholder="مثال: مزود خدمة الرياض"
                                 required
                             />
                         </div>

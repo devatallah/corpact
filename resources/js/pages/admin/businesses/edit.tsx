@@ -29,7 +29,7 @@ export default function businesssEdit({ business }: Props) {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
                 <Link href="/admin/businesses" style={{ color: '#6B7A99', textDecoration: 'none', fontSize: '14px' }}>
-                    ← المنشآت
+                    ← مزودو الخدمة
                 </Link>
                 <span style={{ color: '#3D4A60' }}>/</span>
                 <span style={{ color: '#fff', fontWeight: 700 }}>تعديل: {business.name}</span>
@@ -44,11 +44,11 @@ export default function businesssEdit({ business }: Props) {
             )}
 
             <div className="card" style={{ maxWidth: '600px' }}>
-                <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>تعديل بيانات المنشأة</div>
+                <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>تعديل بيانات مزود الخدمة</div>
                 <form onSubmit={submit}>
                     <div className="frow">
                         <div className="fg">
-                            <label>اسم المنشأة</label>
+                            <label>اسم مزود الخدمة</label>
                             <input
                                 type="text"
                                 value={data.name}
@@ -115,7 +115,7 @@ export default function businesssEdit({ business }: Props) {
                                 value={data.role}
                                 onChange={(e) => setData('role', e.target.value)}
                             >
-                                <option value="owner">مالك المنشأة</option>
+                                <option value="owner">مالك مزود الخدمة</option>
                                 <option value="accountant">محاسب</option>
                             </select>
                         </div>

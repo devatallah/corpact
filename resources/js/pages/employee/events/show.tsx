@@ -291,7 +291,7 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
             {/* Alternative proposed */}
             {event.status === 'alternative_proposed' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
                 <div className="card" style={{ borderColor: '#93C5FD', background: '#EFF6FF' }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#2563EB', marginBottom: 12 }}>وقت بديل مقترح من المنشأة</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#2563EB', marginBottom: 12 }}>وقت بديل مقترح من مزود الخدمة</div>
                     {event.alternatives.filter((a) => a.status === 'proposed').map((alt) => (
                         <div key={alt.id}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -389,7 +389,7 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                 )}
                 {!event.budget_deducted_at && payment.community_contribution > 0 && (
                     <div style={{ marginTop: 8, background: '#FEF3C7', borderRadius: 10, padding: '6px 10px', fontSize: 12, color: '#92400E', textAlign: 'center' }}>
-                        سيتم خصم مساهمة المجتمع بعد موافقة المنشأة
+                        سيتم خصم مساهمة المجتمع بعد موافقة مزود الخدمة
                     </div>
                 )}
             </div>
@@ -461,7 +461,7 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                 </button>
             ) : event.status === 'waiting_business' ? (
                 <div className="card" style={{ background: '#FFFBEB', borderColor: '#F59E0B44', textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#D97706' }}>بانتظار رد المنشأة</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#D97706' }}>بانتظار رد مزود الخدمة</div>
                 </div>
             ) : event.status === 'confirmed' ? (
                 <div>

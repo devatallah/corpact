@@ -54,7 +54,7 @@ class BusinessAuthController extends Controller
             if (! $parent || $parent->status !== 'active') {
                 Auth::guard('business')->logout();
                 throw ValidationException::withMessages([
-                    'email' => ['حساب المنشأة الرئيسي غير مفعّل.'],
+                    'email' => ['حساب مزود الخدمة الرئيسي غير مفعّل.'],
                 ]);
             }
         }

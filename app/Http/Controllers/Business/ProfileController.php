@@ -31,7 +31,7 @@ class ProfileController extends Controller
             'current_password' => ['required', 'string'],
             'password' => ['nullable', 'string', 'min:6', 'confirmed'],
         ], [
-            'name.required' => 'اسم المنشأة مطلوبة.',
+            'name.required' => 'اسم مزود الخدمة مطلوبة.',
             'current_password.required' => 'كلمة المرور الحالية مطلوبة.',
             'password.min' => 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.',
             'password.confirmed' => 'تأكيد كلمة المرور غير مطابق.',

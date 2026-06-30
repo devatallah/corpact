@@ -208,7 +208,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
 
     const reviewRows = [
         { label: 'المجتمع', value: selectedCommunity?.name ?? '-' },
-        { label: 'المنشأة', value: selectedBusiness?.name ?? '-' },
+        { label: 'مزود الخدمة', value: selectedBusiness?.name ?? '-' },
         { label: 'المرافق', value: selectedVenues.length > 0 ? selectedVenues.map((c) => c.name).join('، ') : '-' },
         { label: 'التاريخ', value: data.date || '-' },
         { label: 'مدة الحجز', value: selectedPricing ? `${selectedPricing.duration_minutes} دقيقة` : '-' },
@@ -292,17 +292,17 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                 {step === 2 && (
                     <div>
                         <div className="section-head" style={{ marginBottom: 16 }}>
-                            <div className="section-title">المنشأة والموعد</div>
+                            <div className="section-title">مزود الخدمة والموعد</div>
                         </div>
 
                         {/* Business select */}
                         <div style={{ marginBottom: 16 }}>
-                            <label style={{ fontSize: 13, color: '#666', marginBottom: 6, display: 'block' }}>اختر المنشأة</label>
+                            <label style={{ fontSize: 13, color: '#666', marginBottom: 6, display: 'block' }}>اختر مزود الخدمة</label>
                             <select
                                 value={data.business_id}
                                 onChange={(e) => handlebusinessChange(e.target.value)}
                             >
-                                <option value="">اختر المنشأة...</option>
+                                <option value="">اختر مزود الخدمة...</option>
                                 {filteredbusinesses.map((business) => (
                                     <option key={business.id} value={business.id}>{business.name}</option>
                                 ))}
@@ -417,7 +417,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                                     })
                                 ) : (
                                     <div className="card" style={{ textAlign: 'center', color: '#999', fontSize: 13, marginBottom: 0 }}>
-                                        {!selectedBusiness ? 'اختر المنشأة أولا' : selectedVenues.length === 0 ? 'اختر المرافق أولا' : !data.date || !data.time ? 'حدد التاريخ والوقت لعرض الأسعار المتاحة' : 'لا توجد أسعار متاحة لهذا الوقت'}
+                                        {!selectedBusiness ? 'اختر مزود الخدمة أولا' : selectedVenues.length === 0 ? 'اختر المرافق أولا' : !data.date || !data.time ? 'حدد التاريخ والوقت لعرض الأسعار المتاحة' : 'لا توجد أسعار متاحة لهذا الوقت'}
                                     </div>
                                 )}
                             </div>
@@ -615,7 +615,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                             {/* Discount deduction */}
                             {discountAmount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 }}>
-                                    <span style={{ fontSize: 13, color: '#D97706' }}>خصم المنشأة</span>
+                                    <span style={{ fontSize: 13, color: '#D97706' }}>خصم مزود الخدمة</span>
                                     <span style={{ fontSize: 13, fontWeight: 600, color: '#D97706' }}>-{discountAmount.toLocaleString()} ريال</span>
                                 </div>
                             )}
@@ -673,7 +673,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                             ))}
                             {discountAmount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #EBEBEB' }}>
-                                    <span style={{ fontSize: 13, color: '#D97706' }}>خصم المنشأة</span>
+                                    <span style={{ fontSize: 13, color: '#D97706' }}>خصم مزود الخدمة</span>
                                     <span style={{ fontSize: 13, fontWeight: 600, color: '#D97706' }}>-{discountAmount.toLocaleString()} ريال</span>
                                 </div>
                             )}
@@ -684,7 +684,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                         </div>
 
                         <div className="card" style={{ background: '#ECFDF3', borderColor: '#18A86B33', fontSize: 13, color: '#0E7C4A', marginBottom: 20 }}>
-                            سيُرسل طلب الحجز للمنشأة بعد اكتمال عدد اللاعبين
+                            سيُرسل طلب الحجز لمزود الخدمة بعد اكتمال عدد اللاعبين
                         </div>
 
                         {Object.keys(errors).length > 0 && (

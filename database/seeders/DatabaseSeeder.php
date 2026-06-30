@@ -162,9 +162,9 @@ class DatabaseSeeder extends Seeder
             'city'          => 'الخبر',
             'district'      => 'حي العقربية',
             'contact_name'  => 'عادل المحمد',
-            'contact_title' => 'مالك المنشأة',
+            'contact_title' => 'مالك مزود الخدمة',
             'venues_count'  => 3,
-            'notes'         => 'منشأة جديدة تحتوي على 3 ملاعب بادل حديثة',
+            'notes'         => 'مزود خدمة جديد يحتوي على 3 ملاعب بادل حديثة',
         ]);
         $biz4->categories()->attach([$padelCat->id]);
 
@@ -178,7 +178,7 @@ class DatabaseSeeder extends Seeder
             'contact_name'  => 'خالد الحسن',
             'contact_title' => 'المدير العام',
             'venues_count'  => 5,
-            'notes'         => 'منشأة كبيرة تضم ملاعب متعددة الرياضات',
+            'notes'         => 'مزود خدمة كبير يضم ملاعب متعددة الرياضات',
         ]);
 
         // ── Business 6: Approved but not activated (has activation token) ──
@@ -483,7 +483,7 @@ class DatabaseSeeder extends Seeder
         // ╚══════════════════════════════════════════════════════════╝
 
         // Admin
-        Notification::factory()->unread()->create(['notifiable_type' => User::class, 'notifiable_id' => $admin->id, 'type' => 'system', 'title' => 'طلب تسجيل منشأة جديدة', 'body' => 'مرافق الخبر الرياضية بانتظار الموافقة.']);
+        Notification::factory()->unread()->create(['notifiable_type' => User::class, 'notifiable_id' => $admin->id, 'type' => 'system', 'title' => 'طلب تسجيل مزود خدمة جديد', 'body' => 'مرافق الخبر الرياضية بانتظار الموافقة.']);
         Notification::factory()->unread()->create(['notifiable_type' => User::class, 'notifiable_id' => $admin->id, 'type' => 'system', 'title' => 'طلب تسجيل شركة', 'body' => 'شركة الأفق الجديد بانتظار الموافقة.']);
         Notification::factory()->read()->create(['notifiable_type' => User::class, 'notifiable_id' => $admin->id, 'type' => 'payment', 'title' => 'إيرادات جديدة', 'body' => 'تم تحصيل عمولة 224 ر.س من تسوية مرافق الرياض.']);
 
@@ -508,7 +508,7 @@ class DatabaseSeeder extends Seeder
         Notification::factory()->unread()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz1->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من مجموعة الابتكار — تدريب بادل.']);
         Notification::factory()->unread()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz1->id, 'type' => 'alternative_rejected', 'title' => 'رفض الوقت البديل', 'body' => 'رفضت مجموعة الابتكار وقتك البديل الأول لحدث بادل نهاية الأسبوع.']);
         Notification::factory()->unread()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz1->id, 'type' => 'payment', 'title' => 'تسوية مالية', 'body' => 'تم إصدار تسوية بمبلغ 2,016 ر.س.']);
-        Notification::factory()->read()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz1->id, 'type' => 'system', 'title' => 'مرحباً بك في تيمات', 'body' => 'تم تفعيل حساب منشأتك بنجاح.']);
+        Notification::factory()->read()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz1->id, 'type' => 'system', 'title' => 'مرحباً بك في تيمات', 'body' => 'تم تفعيل حسابك كمزود خدمة بنجاح.']);
 
         // Business 2
         Notification::factory()->unread()->create(['notifiable_type' => Business::class, 'notifiable_id' => $biz2->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من شركة التقنية المتقدمة — مباراة ودية.']);

@@ -43,7 +43,7 @@ class IndexEventRequest extends FormRequest
     {
         return [
             'company_id.exists' => 'الشركة المحددة غير موجودة.',
-            'business_id.exists' => 'المنشأة المحددة غير موجودة.',
+            'business_id.exists' => 'مزود الخدمة المحددة غير موجودة.',
             'category_id.exists' => 'الفئة المحددة غير موجودة.',
             'date_to.after_or_equal' => 'تاريخ النهاية يجب أن يكون بعد أو يساوي تاريخ البداية.',
             'per_page.min' => 'عدد العناصر في الصفحة يجب أن يكون 5 على الأقل.',

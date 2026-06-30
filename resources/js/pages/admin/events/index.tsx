@@ -40,7 +40,7 @@ export default function EventsIndex({ events, totalEvents, filters }: Props) {
                 <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث بالمنشأة أو الفئة..."
+                    placeholder="🔍 ابحث بمزود الخدمة أو الفئة..."
                     style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
                 />
                 <FilterTabs options={filterOptions} current={filters?.status ?? ''} />
@@ -52,7 +52,7 @@ export default function EventsIndex({ events, totalEvents, filters }: Props) {
                         <tr>
                             <th>الفعالية</th>
                             <th>الشركة</th>
-                            <th>المنشأة</th>
+                            <th>مزود الخدمة</th>
                             <th>التاريخ</th>
                             <th>اللاعبون</th>
                             <th>المبلغ</th>

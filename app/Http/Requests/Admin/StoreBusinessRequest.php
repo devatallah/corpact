@@ -43,8 +43,8 @@ class StoreBusinessRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'اسم المنشأة مطلوبة.',
-            'name.max' => 'اسم المنشأة يجب ألا يتجاوز 255 حرف.',
+            'name.required' => 'اسم مزود الخدمة مطلوبة.',
+            'name.max' => 'اسم مزود الخدمة يجب ألا يتجاوز 255 حرف.',
             'email.required' => 'البريد الإلكتروني مطلوب.',
             'email.email' => 'البريد الإلكتروني غير صالح.',
             'email.max' => 'البريد الإلكتروني يجب ألا يتجاوز 255 حرف.',

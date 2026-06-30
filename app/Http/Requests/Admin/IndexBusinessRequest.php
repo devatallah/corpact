@@ -37,7 +37,7 @@ class IndexBusinessRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'status.in' => 'حالة المنشأة غير صالحة.',
+            'status.in' => 'حالة مزود الخدمة غير صالحة.',
             'search.max' => 'نص البحث يجب ألا يتجاوز 255 حرفاً.',
             'per_page.min' => 'عدد العناصر في الصفحة يجب أن يكون 5 على الأقل.',
             'per_page.max' => 'عدد العناصر في الصفحة يجب ألا يتجاوز 100.',

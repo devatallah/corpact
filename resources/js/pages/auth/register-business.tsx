@@ -145,12 +145,12 @@ export default function Registerbusiness({ categories }: Props) {
                             <div style={{ fontSize: 60, marginBottom: 16 }}>🎯</div>
                             <div style={{ fontSize: 22, fontWeight: 800, color: '#1A1A18', marginBottom: 8, fontFamily: "'Cairo', sans-serif" }}>تم إرسال طلبك!</div>
                             <div style={{ fontSize: 14, color: '#8A8A7A', lineHeight: 1.6, marginBottom: 24 }}>
-                                استلمنا طلب انضمام <strong>{data.name || 'منشأتك'}</strong> وسيتواصل معك فريقنا على <strong>{data.email}</strong> خلال 48 ساعة.
+                                استلمنا طلب انضمام <strong>{data.name || 'تسجيلك كمزود خدمة'}</strong> وسيتواصل معك فريقنا على <strong>{data.email}</strong> خلال 48 ساعة.
                             </div>
                             <div style={{ background: '#F5F0E8', borderRadius: 12, padding: '16px 20px', textAlign: 'right', marginBottom: 24, border: '1px solid #E8E2D8' }}>
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10, fontSize: 13, color: '#8A8A7A' }}>
                                     <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#1A1A18', color: '#C8F135', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>1</div>
-                                    <span>يراجع فريق تيمات بيانات منشأتك</span>
+                                    <span>يراجع فريق تيمات بياناتك كمزود خدمة</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10, fontSize: 13, color: '#8A8A7A' }}>
                                     <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#1A1A18', color: '#C8F135', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>2</div>
@@ -178,7 +178,7 @@ export default function Registerbusiness({ categories }: Props) {
 
     return (
         <>
-            <Head title="تسجيل منشأة — تيمات" />
+            <Head title="تسجيل مزود خدمة — تيمات" />
 
             <div dir="rtl" style={{
                 minHeight: '100vh',
@@ -214,12 +214,12 @@ export default function Registerbusiness({ categories }: Props) {
                         maxWidth: 460,
                         boxShadow: '0 4px 24px rgba(26,26,24,.06)',
                     }}>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: '#1A1A18', marginBottom: 4, fontFamily: "'Cairo', sans-serif" }}>تسجيل منشأة جديدة</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: '#1A1A18', marginBottom: 4, fontFamily: "'Cairo', sans-serif" }}>تسجيل مزود خدمة جديد</div>
                         <div style={{ fontSize: 13, color: '#8A8A7A', marginBottom: 28, lineHeight: 1.5 }}>انضم لشبكة تيمات واستقبل حجوزات من شركات ومجتمعات الموظفين</div>
 
                         {/* Info box */}
                         <div style={{ background: '#1A1A1808', border: '1px solid #C8F13540', borderRadius: 12, padding: '14px 16px', marginBottom: 20, fontSize: 12, color: '#1A1A18', lineHeight: 1.7 }}>
-                            <strong style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>ماذا تستفيد كمنشأة؟</strong>
+                            <strong style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>ماذا تستفيد كمزود خدمة؟</strong>
                             تصلك حجوزات جماعية منظمة من شركات شريكة، مع تسويات مالية واضحة وسهلة الإدارة.
                         </div>
 
@@ -234,11 +234,11 @@ export default function Registerbusiness({ categories }: Props) {
 
                         <form onSubmit={submit}>
                             {/* Section: Business info */}
-                            <div style={sectionLabel}>بيانات المنشأة</div>
+                            <div style={sectionLabel}>بيانات مزود الخدمة</div>
 
                             <div style={{ marginBottom: 16 }}>
-                                <label style={labelStyle}>اسم المنشأة</label>
-                                <input style={inputStyle} type="text" placeholder="منشأة الفئة الحديثة" value={data.name} onChange={e => setData('name', e.target.value)} />
+                                <label style={labelStyle}>اسم مزود الخدمة</label>
+                                <input style={inputStyle} type="text" placeholder="مزود خدمة الفئة الحديثة" value={data.name} onChange={e => setData('name', e.target.value)} />
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
@@ -257,7 +257,7 @@ export default function Registerbusiness({ categories }: Props) {
 
                             {/* Category checkboxes */}
                             <div style={{ marginBottom: 16 }}>
-                                <label style={labelStyle}>الفئات المتاحة في المنشأة</label>
+                                <label style={labelStyle}>الفئات المتاحة لدى مزود الخدمة</label>
                                 {categories.map(cat => (
                                     <div key={cat.id} style={{ marginBottom: 10 }}>
                                         {cat.children && cat.children.length > 0 ? (
@@ -325,7 +325,7 @@ export default function Registerbusiness({ categories }: Props) {
                             </div>
 
                             {/* Section: Manager info */}
-                            <div style={sectionLabel}>بيانات مسؤول المنشأة</div>
+                            <div style={sectionLabel}>بيانات مسؤول مزود الخدمة</div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                                 <div>
@@ -334,7 +334,7 @@ export default function Registerbusiness({ categories }: Props) {
                                 </div>
                                 <div>
                                     <label style={labelStyle}>المسمى الوظيفي</label>
-                                    <input style={inputStyle} type="text" placeholder="مدير المنشأة" value={data.contact_title} onChange={e => setData('contact_title', e.target.value)} />
+                                    <input style={inputStyle} type="text" placeholder="مدير مزود الخدمة" value={data.contact_title} onChange={e => setData('contact_title', e.target.value)} />
                                 </div>
                             </div>
 

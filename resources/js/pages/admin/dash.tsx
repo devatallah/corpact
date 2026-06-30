@@ -77,7 +77,7 @@ export default function AdminDashboard({
                 />
                 <StatCard
                     emoji="🏟️"
-                    label="منشأة مفعّلة"
+                    label="مزود خدمة مفعّل"
                     value={businessStats.active}
                     change={`+${businessesThisMonth} هذا الشهر`}
                     color="#5B7EFF"
@@ -100,7 +100,7 @@ export default function AdminDashboard({
                     emoji="⏳"
                     label="طلبات تحتاج مراجعة"
                     value={pendingRequests}
-                    change={`${pendingCompanies} شركة · ${pendingBusinesses} منشأة`}
+                    change={`${pendingCompanies} شركة · ${pendingBusinesses} مزود خدمة`}
                     color="#C8A600"
                 />
             </div>

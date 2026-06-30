@@ -101,16 +101,16 @@ export default function businessesIndex({ businesses, stats, filters, categories
 
     return (
         <AdminLayout>
-            <Head title="إدارة المنشآت" />
+            <Head title="إدارة مزودي الخدمة" />
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <div className="page-title">إدارة المنشآت</div>
+                <div className="page-title">إدارة مزودي الخدمة</div>
                 <button onClick={() => setShowCreate(true)} className="act-btn btn-approve">
-                    إضافة منشأة
+                    إضافة مزود خدمة
                 </button>
             </div>
             <div className="page-sub">
-                {stats.active} منشآت مفعّلة · {stats.pending} طلبات معلقة
+                {stats.active} مزودي خدمة مفعّلين · {stats.pending} طلبات معلقة
             </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
@@ -127,13 +127,13 @@ export default function businessesIndex({ businesses, stats, filters, categories
                 <table className="portal-table">
                     <thead>
                         <tr>
-                            <th>المنشأة</th>
+                            <th>مزود الخدمة</th>
                             <th>المدينة</th>
                             <th>الفئات</th>
                             <th>المرافق</th>
                             <th>العمولة</th>
                             <th>الموظفون</th>
-                            <th>مسؤول المنشأة</th>
+                            <th>مسؤول مزود الخدمة</th>
                             <th>الحالة</th>
                             <th>إجراء</th>
                         </tr>
@@ -142,7 +142,7 @@ export default function businessesIndex({ businesses, stats, filters, categories
                         {businesses.data.length === 0 ? (
                             <tr>
                                 <td colSpan={8} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
-                                    لا توجد منشآت
+                                    لا يوجد مزودو خدمة
                                 </td>
                             </tr>
                         ) : (
@@ -226,7 +226,7 @@ export default function businessesIndex({ businesses, stats, filters, categories
                 <div className="detail-overlay open" onClick={() => { setShowCreate(false); setEditingItem(null); }}>
                     <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
                         <h3>
-                            {editingItem ? 'تعديل منشأة' : 'إضافة منشأة'}
+                            {editingItem ? 'تعديل مزود خدمة' : 'إضافة مزود خدمة'}
                             <button className="close-btn" onClick={() => { setShowCreate(false); setEditingItem(null); }}>×</button>
                         </h3>
 
@@ -241,12 +241,12 @@ export default function businessesIndex({ businesses, stats, filters, categories
                         <form onSubmit={handleSubmit}>
                             <div className="frow">
                                 <div className="fg">
-                                    <label>اسم المنشأة *</label>
+                                    <label>اسم مزود الخدمة *</label>
                                     <input
                                         type="text"
                                         value={form.data.name}
                                         onChange={(e) => form.setData('name', e.target.value)}
-                                        placeholder="مثال: منشأة الرياض"
+                                        placeholder="مثال: مزود خدمة الرياض"
                                         required
                                     />
                                 </div>
@@ -403,11 +403,11 @@ export default function businessesIndex({ businesses, stats, filters, categories
                 <div className="detail-overlay open" onClick={() => setApproveTarget(null)}>
                     <div className="detail-panel" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
                         <h3>
-                            الموافقة على المنشأة
+                            الموافقة على مزود الخدمة
                             <button className="close-btn" onClick={() => setApproveTarget(null)}>x</button>
                         </h3>
                         <div style={{ fontSize: 14, color: '#C8D0E0', marginBottom: 16 }}>
-                            سيتم تفعيل منشأة <strong style={{ color: '#fff' }}>{approveTarget.name}</strong> وإرسال رابط التفعيل.
+                            سيتم تفعيل مزود خدمة <strong style={{ color: '#fff' }}>{approveTarget.name}</strong> وإرسال رابط التفعيل.
                         </div>
                         <div className="fg" style={{ marginBottom: 20 }}>
                             <label>نسبة العمولة (%) *</label>
@@ -421,7 +421,7 @@ export default function businessesIndex({ businesses, stats, filters, categories
                                 required
                             />
                             <div style={{ fontSize: 11, color: '#6B7A99', marginTop: 4 }}>
-                                النسبة التي تخصمها المنصة من كل حجز لهذه المنشأة
+                                النسبة التي تخصمها المنصة من كل حجز لمزود الخدمة هذا
                             </div>
                         </div>
                         <div className="panel-actions">

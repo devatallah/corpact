@@ -57,7 +57,7 @@ body{font-family:Tahoma,Arial,sans-serif;background:#0F1117;color:#E8EAF0;min-he
 
     <div class="card">
         <div class="card-title">إنشاء حساب مزود خدمة</div>
-        <div class="card-sub">أدخل بيانات منشأتك للتسجيل في المنصة</div>
+        <div class="card-sub">أدخل بياناتك كمزود خدمة للتسجيل في المنصة</div>
 
         @if ($errors->any())
             <div class="error-box">

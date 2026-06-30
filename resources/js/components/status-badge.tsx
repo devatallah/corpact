@@ -5,7 +5,7 @@ const statusLabels: Record<string, string> = {
     rejected: 'مرفوض',
     review: 'مراجعة',
     open: 'مفتوح',
-    waiting_business: 'بانتظار المنشأة',
+    waiting_business: 'بانتظار مزود الخدمة',
     confirmed: 'مؤكد',
     completed: 'مكتمل',
     cancelled: 'ملغي',

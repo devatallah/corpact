@@ -27,15 +27,15 @@ const portalMeta: Record<string, {
     },
     business: {
         description: 'سجّل دخولك لإدارة طلبات الحجز والتقويم والتسويات',
-        buttonText: 'دخول — بوابة المنشأة',
-        registerHtml: { question: 'منشأة جديدة؟', label: 'سجّل منشأتك', href: '/business/register' },
+        buttonText: 'دخول — بوابة مزود الخدمة',
+        registerHtml: { question: 'مزود خدمة جديد؟', label: 'سجّل كمزود خدمة', href: '/business/register' },
     },
 };
 
 const tabs = [
     { key: 'employee' as const, label: 'موظف', href: '/employee/login', tag: 'موظف' },
     { key: 'company' as const, label: 'شركة', href: '/company/login', tag: 'شركة' },
-    { key: 'business' as const, label: 'منشأة', href: '/business/login', tag: 'مزود خدمة' },
+    { key: 'business' as const, label: 'مزود خدمة', href: '/business/login', tag: 'مزود خدمة' },
 ];
 
 const demoCredentials: Record<GuardName, Array<{ label: string; email: string; password: string }>> = {

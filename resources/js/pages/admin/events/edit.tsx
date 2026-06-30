@@ -107,7 +107,7 @@ export default function EventsEdit({ event }: Props) {
                                 onChange={(e) => setData('status', e.target.value)}
                             >
                                 <option value="open">مفتوح</option>
-                                <option value="waiting_business">بانتظار المنشأة</option>
+                                <option value="waiting_business">بانتظار مزود الخدمة</option>
                                 <option value="confirmed">مؤكد</option>
                                 <option value="completed">مكتمل</option>
                                 <option value="cancelled">ملغي</option>

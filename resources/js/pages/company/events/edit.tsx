@@ -85,7 +85,7 @@ export default function EventEdit({ event }: Props) {
                             <label>الحالة</label>
                             <select value={form.data.status} onChange={(e) => form.setData('status', e.target.value)}>
                                 <option value="open">مفتوح</option>
-                                <option value="waiting_business">بانتظار المنشأة</option>
+                                <option value="waiting_business">بانتظار مزود الخدمة</option>
                                 <option value="confirmed">مؤكد</option>
                                 <option value="completed">مكتمل</option>
                                 <option value="cancelled">ملغي</option>

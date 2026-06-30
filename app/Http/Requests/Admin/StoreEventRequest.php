@@ -69,7 +69,7 @@ class StoreEventRequest extends FormRequest
                 ->count();
 
             if ($validVenues !== $venuesCount) {
-                $validator->errors()->add('venue_ids', 'أحد المرافق المختارة لا ينتمي للمنشأة أو الفئة المحددة.');
+                $validator->errors()->add('venue_ids', 'أحد المرافق المختارة لا ينتمي لمزود الخدمة أو الفئة المحددة.');
                 return;
             }
 
@@ -98,8 +98,8 @@ class StoreEventRequest extends FormRequest
             'community_id.exists' => 'المجتمع المحدد غير موجود.',
             'company_id.required' => 'الشركة مطلوبة.',
             'company_id.exists' => 'الشركة المحددة غير موجودة.',
-            'business_id.required' => 'المنشأة مطلوبة.',
-            'business_id.exists' => 'المنشأة المحددة غير موجودة.',
+            'business_id.required' => 'مزود الخدمة مطلوبة.',
+            'business_id.exists' => 'مزود الخدمة المحددة غير موجودة.',
             'category_id.required' => 'الفئة مطلوبة.',
             'category_id.exists' => 'الفئة المحددة غير موجودة.',
             'venue_pricing_id.required' => 'تسعيرة المرفق مطلوبة.',

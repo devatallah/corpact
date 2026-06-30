@@ -138,7 +138,7 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                         <div style={labelStyle}>خصم من المحفظة</div>
                         <div style={{ ...valueStyle, color: '#009E82' }}>{Number(event.community_contribution).toLocaleString()} ريال</div>
                         {!event.budget_deducted_at && (
-                            <div style={{ fontSize: 10, color: '#B8860A', marginTop: 4 }}>بانتظار موافقة المنشأة</div>
+                            <div style={{ fontSize: 10, color: '#B8860A', marginTop: 4 }}>بانتظار موافقة مزود الخدمة</div>
                         )}
                     </div>
                 )}
@@ -339,7 +339,7 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
             {event.status === 'alternative_proposed' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
                 <div style={cardStyle}>
                     <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14, color: '#1A5FAB' }}>
-                        وقت بديل مقترح من المنشأة
+                        وقت بديل مقترح من مزود الخدمة
                     </div>
                     {event.alternatives.filter((a) => a.status === 'proposed').map((alt) => (
                         <div key={alt.id} style={{ background: '#1A5FAB08', border: '1px solid #1A5FAB22', borderRadius: 12, padding: 16, marginBottom: 10 }}>

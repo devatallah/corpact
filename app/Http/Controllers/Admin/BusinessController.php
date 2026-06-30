@@ -63,7 +63,7 @@ class BusinessController extends Controller
         $business->categories()->sync($categoryIds);
 
         return redirect()->route('admin.businesses.index')
-            ->with('success', 'تم إنشاء المنشأة بنجاح.');
+            ->with('success', 'تم إنشاء مزود الخدمة بنجاح.');
     }
 
     /**
@@ -96,7 +96,7 @@ class BusinessController extends Controller
             $business->categories()->sync($categoryIds);
         }
 
-        return back()->with('success', 'تم تحديث المنشأة بنجاح.');
+        return back()->with('success', 'تم تحديث مزود الخدمة بنجاح.');
     }
 
     /**
@@ -115,7 +115,7 @@ class BusinessController extends Controller
 
         $this->businessService->approve($business, (float) $validated['commission_rate']);
 
-        return back()->with('success', 'تمت الموافقة على المنشأة بنجاح.');
+        return back()->with('success', 'تمت الموافقة على مزود الخدمة بنجاح.');
     }
 
     /**
@@ -125,7 +125,7 @@ class BusinessController extends Controller
     {
         $this->businessService->reject($business);
 
-        return back()->with('success', 'تم رفض طلب المنشأة.');
+        return back()->with('success', 'تم رفض طلب مزود الخدمة.');
     }
 
     /**
@@ -152,6 +152,6 @@ class BusinessController extends Controller
         $business->delete();
 
         return redirect()->route('admin.businesses.index')
-            ->with('success', 'تم حذف المنشأة بنجاح.');
+            ->with('success', 'تم حذف مزود الخدمة بنجاح.');
     }
 }

@@ -12,7 +12,7 @@ import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 const STATUS_OPTIONS = [
     { label: 'الكل', value: '' },
     { label: 'مفتوحة', value: 'open' },
-    { label: 'انتظار المنشأة', value: 'waiting_business' },
+    { label: 'انتظار مزود الخدمة', value: 'waiting_business' },
     { label: 'مؤكدة', value: 'confirmed' },
     { label: 'وقت بديل', value: 'alternative_proposed' },
     { label: 'منتهية', value: 'completed' },
@@ -43,7 +43,7 @@ export default function EventsIndex({ events, filters, totalEvents, activeEvents
                 <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث بالمنشأة أو الفئة..."
+                    placeholder="🔍 ابحث بمزود الخدمة أو الفئة..."
                     style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
                 />
                 <FilterTabs
@@ -57,7 +57,7 @@ export default function EventsIndex({ events, filters, totalEvents, activeEvents
                     <thead>
                         <tr>
                             <th>المجتمع</th>
-                            <th>المنشأة</th>
+                            <th>مزود الخدمة</th>
                             <th>التاريخ</th>
                             <th>اللاعبون</th>
                             <th>المنشئ</th>
@@ -133,7 +133,7 @@ export default function EventsIndex({ events, filters, totalEvents, activeEvents
                                                     {proposedAlts.map((alt) => (
                                                         <div key={alt.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, background: '#fff', border: '1px solid #1A5FAB33', borderRadius: 12, padding: '12px 16px' }}>
                                                             <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                                                                <span style={{ fontSize: 12, fontWeight: 700, color: '#1A5FAB' }}>وقت بديل من المنشأة:</span>
+                                                                <span style={{ fontSize: 12, fontWeight: 700, color: '#1A5FAB' }}>وقت بديل من مزود الخدمة:</span>
                                                                 <span style={{ fontSize: 12 }}>📅 {fmtDate(alt.proposed_date)}</span>
                                                                 <span style={{ fontSize: 12 }}>🕐 {fmtTime(alt.proposed_start_time)} - {fmtTime(alt.proposed_end_time)}</span>
                                                                 {alt.proposed_venues_count && <span style={{ fontSize: 12 }}>🏟️ {alt.proposed_venues_count} مرفق</span>}

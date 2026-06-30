@@ -53,7 +53,7 @@ export default function businessProfile({ business }: Props) {
                 <form onSubmit={handleSubmit}>
                     <div className="frow">
                         <div className="fg">
-                            <label>اسم المنشأة *</label>
+                            <label>اسم مزود الخدمة *</label>
                             <input
                                 type="text"
                                 value={form.data.name}
