@@ -11,20 +11,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class CompanyAuthController extends Controller
 {
     public function __construct(private CompanyAuthService $authService) {}
 
-    public function showLoginForm(): Response
+    public function showLoginForm(): RedirectResponse
     {
-        return Inertia::render('auth/login', [
-            'guard' => 'company',
-            'guardLabel' => 'الشركة',
-            'portalTag' => 'COMPANY',
-            'canRegister' => true,
-        ]);
+        return redirect('/companies?login=1');
     }
 
     /**

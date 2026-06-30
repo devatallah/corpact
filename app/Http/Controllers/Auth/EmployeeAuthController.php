@@ -11,21 +11,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class EmployeeAuthController extends Controller
 {
     public function __construct(private EmployeeAuthService $authService) {}
 
-    public function showLoginForm(): Response
+    public function showLoginForm(): RedirectResponse
     {
-        return Inertia::render('auth/login', [
-            'guard' => 'employee',
-            'guardLabel' => 'الموظف',
-            'portalTag' => 'EMPLOYEE',
-            'canRegister' => true,
-            'registerUrl' => '/employee/register',
-        ]);
+        return redirect('/employees?login=1');
     }
 
     /**

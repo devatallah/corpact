@@ -12,20 +12,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class BusinessAuthController extends Controller
 {
     public function __construct(private BusinessAuthService $authService) {}
 
-    public function showLoginForm(): Response
+    public function showLoginForm(): RedirectResponse
     {
-        return Inertia::render('auth/login', [
-            'guard' => 'business',
-            'guardLabel' => 'النادي',
-            'portalTag' => 'business',
-            'canRegister' => true,
-        ]);
+        return redirect('/clubs?login=1');
     }
 
     /**
