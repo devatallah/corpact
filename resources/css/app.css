@@ -384,3 +384,8 @@ table.portal-table tr:last-child td{border-bottom:none;}
   .co-reg-card{padding:28px 20px;}
   .co-frow{grid-template-columns:1fr;}
 }
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

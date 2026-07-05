@@ -1,6 +1,7 @@
 import { createInertiaApp } from '@inertiajs/react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import Toast from '@/components/toast';
 import 'toastr/build/toastr.min.css';
 import toastr from 'toastr';
 toastr.options.positionClass = 'toast-top-left';
@@ -14,6 +15,7 @@ createInertiaApp({
     withApp(app) {
         return (
             <TooltipProvider delayDuration={0}>
+                <Toast />
                 {app}
                 <Toaster />
             </TooltipProvider>

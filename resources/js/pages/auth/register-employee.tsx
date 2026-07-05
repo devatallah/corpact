@@ -91,9 +91,21 @@ export default function RegisterEmployee() {
                             استخدم بريدك الإلكتروني الخاص بالشركة للتسجيل
                         </p>
 
-                        <div style={{ background: '#1A1A1808', border: '1px solid #C8F13540', borderRadius: 12, padding: '14px 16px', marginBottom: 20, fontSize: 12, color: '#1A1A18', lineHeight: 1.7 }}>
-                            <strong style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>يجب أن تكون شركتك مسجلة في المنصة</strong>
-                            سيتم التحقق من نطاق بريدك الإلكتروني (الجزء بعد @) ومطابقته مع الشركات المسجلة.
+                        <div style={{
+                            background: 'rgba(200,255,0,0.1)',
+                            border: '1px solid rgba(200,255,0,0.3)',
+                            borderRadius: 12,
+                            padding: '12px 16px',
+                            marginBottom: 20,
+                            fontSize: 13,
+                            color: '#0A0A0A',
+                            lineHeight: 1.7,
+                            fontFamily: "'Almarai', sans-serif",
+                        }}>
+                            <strong style={{ display: 'block', marginBottom: 4 }}>⚠️ شرط أساسي</strong>
+                            يجب أن تكون شركتك مسجّلة في تيمات أولاً. سيتم التحقق من نطاق بريدك الإلكتروني المؤسسي تلقائياً.
+                            <br />
+                            <span style={{ fontSize: 12, color: 'rgba(10,10,10,0.5)' }}>مثال: إذا كان بريدك employee@company.com، يجب أن تكون company.com مسجّلة.</span>
                         </div>
 
                         {Object.keys(errors).length > 0 && (
@@ -106,18 +118,6 @@ export default function RegisterEmployee() {
 
                         <form onSubmit={submit}>
                             <div style={{ marginBottom: 16 }}>
-                                <label style={labelStyle}>الاسم الكامل *</label>
-                                <input
-                                    style={inputStyle}
-                                    type="text"
-                                    value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
-                                    placeholder="أحمد محمد"
-                                    required
-                                />
-                            </div>
-
-                            <div style={{ marginBottom: 16 }}>
                                 <label style={labelStyle}>البريد الإلكتروني *</label>
                                 <input
                                     style={{ ...inputStyle, direction: 'ltr' }}
@@ -127,9 +127,21 @@ export default function RegisterEmployee() {
                                     placeholder="you@company.com"
                                     required
                                 />
-                                <div style={{ fontSize: 11, color: '#8A8A7A', marginTop: 5, lineHeight: 1.5 }}>
-                                    يجب أن يكون بريد الشركة (مثال: <strong style={{ color: '#C4622D' }}>ahmed@company.com</strong>)
+                                <div style={{ fontSize: 11, color: 'rgba(10,10,10,0.4)', marginTop: 4 }}>
+                                    سنتحقق تلقائياً من أن شركتك مسجّلة عبر نطاق بريدك الإلكتروني
                                 </div>
+                            </div>
+
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={labelStyle}>الاسم الكامل *</label>
+                                <input
+                                    style={inputStyle}
+                                    type="text"
+                                    value={data.name}
+                                    onChange={(e) => setData('name', e.target.value)}
+                                    placeholder="أحمد محمد"
+                                    required
+                                />
                             </div>
 
                             <div style={{ marginBottom: 16 }}>

@@ -1,0 +1,58 @@
+<?php
+
+return [
+    'accepted' => 'يجب قبول :attribute.',
+    'between' => [
+        'numeric' => 'يجب أن يكون :attribute بين :min و :max.',
+        'string' => 'يجب أن يكون :attribute بين :min و :max حرف.',
+    ],
+    'confirmed' => 'تأكيد :attribute غير متطابق.',
+    'email' => 'صيغة :attribute غير صحيحة.',
+    'exists' => ':attribute المحدد غير موجود.',
+    'in' => ':attribute المحدد غير صالح.',
+    'max' => [
+        'numeric' => 'يجب ألا يتجاوز :attribute :max.',
+        'string' => 'يجب ألا يتجاوز :attribute :max حرف.',
+    ],
+    'min' => [
+        'numeric' => 'يجب أن يكون :attribute على الأقل :min.',
+        'string' => 'يجب أن يكون :attribute على الأقل :min حرف.',
+    ],
+    'numeric' => 'يجب أن يكون :attribute رقماً.',
+    'required' => ':attribute مطلوب.',
+    'string' => 'يجب أن يكون :attribute نصاً.',
+    'unique' => ':attribute مسجّل مسبقاً.',
+    'url' => 'صيغة :attribute غير صحيحة.',
+    'integer' => 'يجب أن يكون :attribute عدداً صحيحاً.',
+    'array' => 'يجب أن يكون :attribute مصفوفة.',
+    'boolean' => 'يجب أن يكون :attribute صح أو خطأ.',
+    'image' => 'يجب أن يكون :attribute صورة.',
+    'size' => [
+        'string' => 'يجب أن يكون :attribute :size حرف.',
+    ],
+
+    'attributes' => [
+        'name' => 'الاسم',
+        'email' => 'البريد الإلكتروني',
+        'password' => 'كلمة المرور',
+        'password_confirmation' => 'تأكيد كلمة المرور',
+        'phone' => 'رقم الجوال',
+        'city' => 'المدينة',
+        'district' => 'الحي',
+        'sector' => 'القطاع',
+        'domain' => 'نطاق الشركة',
+        'employee_count_range' => 'عدد الموظفين',
+        'hr_name' => 'اسم مسؤول الموارد البشرية',
+        'hr_title' => 'المسمى الوظيفي',
+        'hr_phone' => 'رقم جوال المسؤول',
+        'notes' => 'ملاحظات',
+        'contact_name' => 'اسم المسؤول',
+        'contact_title' => 'المسمى الوظيفي',
+        'contact_phone' => 'رقم جوال المسؤول',
+        'categories' => 'الفئات',
+        'venues_count' => 'عدد المرافق',
+        'working_hours' => 'ساعات العمل',
+        'status' => 'الحالة',
+        'business_id' => 'مزود الخدمة',
+    ],
+];
