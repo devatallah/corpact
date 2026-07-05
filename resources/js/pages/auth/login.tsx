@@ -1,4 +1,5 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import type { GuardName } from '@/types/auth';
 import type { FormEvent } from 'react';
 
@@ -104,6 +105,8 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
         password: '',
         remember: false,
     });
+    const [showAdminPass, setShowAdminPass] = useState(false);
+    const [showPass, setShowPass] = useState(false);
 
     function submit(e: FormEvent) {
         e.preventDefault();
@@ -177,19 +180,33 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                             </div>
                             <div style={{ marginBottom: 32 }}>
                                 <label style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#0A0A0A', marginBottom: 8, textAlign: 'right' }}>كلمة المرور</label>
-                                <input
-                                    style={{
-                                        width: '100%', padding: '14px 16px', border: '2px solid rgba(10,10,10,0.1)', borderRadius: 14,
-                                        fontSize: 15, color: '#0A0A0A', background: '#fff', outline: 'none', direction: 'ltr' as const,
-                                        fontFamily: "'Almarai', Tahoma, Arial, sans-serif",
-                                    }}
-                                    type="password"
-                                    autoComplete="current-password"
-                                    value={data.password}
-                                    onChange={(e) => setData('password', e.target.value)}
-                                    onFocus={(e) => { e.target.style.borderColor = '#C8FF00'; }}
-                                    onBlur={(e) => { e.target.style.borderColor = 'rgba(10,10,10,0.1)'; }}
-                                />
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        style={{
+                                            width: '100%', padding: '14px 16px', border: '2px solid rgba(10,10,10,0.1)', borderRadius: 14,
+                                            fontSize: 15, color: '#0A0A0A', background: '#fff', outline: 'none', direction: 'ltr' as const,
+                                            fontFamily: "'Almarai', Tahoma, Arial, sans-serif",
+                                        }}
+                                        type={showAdminPass ? 'text' : 'password'}
+                                        autoComplete="current-password"
+                                        value={data.password}
+                                        onChange={(e) => setData('password', e.target.value)}
+                                        onFocus={(e) => { e.target.style.borderColor = '#C8FF00'; }}
+                                        onBlur={(e) => { e.target.style.borderColor = 'rgba(10,10,10,0.1)'; }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAdminPass(!showAdminPass)}
+                                        style={{
+                                            position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                                            background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 4,
+                                            lineHeight: 1,
+                                        }}
+                                        tabIndex={-1}
+                                    >
+                                        {showAdminPass ? '\u{1F648}' : '\u{1F441}'}
+                                    </button>
+                                </div>
                             </div>
                             <button type="submit" disabled={processing} style={{
                                 width: '100%', padding: 16, border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 800,
@@ -364,14 +381,28 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
 
                             <div style={{ marginBottom: 16 }}>
                                 <label style={labelStyle}>كلمة المرور</label>
-                                <input
-                                    style={inputStyle}
-                                    type="password"
-                                    placeholder="••••••••"
-                                    autoComplete="current-password"
-                                    value={data.password}
-                                    onChange={(e) => setData('password', e.target.value)}
-                                />
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        style={inputStyle}
+                                        type={showPass ? 'text' : 'password'}
+                                        placeholder="••••••••"
+                                        autoComplete="current-password"
+                                        value={data.password}
+                                        onChange={(e) => setData('password', e.target.value)}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPass(!showPass)}
+                                        style={{
+                                            position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                                            background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 4,
+                                            lineHeight: 1,
+                                        }}
+                                        tabIndex={-1}
+                                    >
+                                        {showPass ? '\u{1F648}' : '\u{1F441}'}
+                                    </button>
+                                </div>
                             </div>
 
                             <div style={{ textAlign: 'left', marginBottom: 20 }}>
