@@ -1,12 +1,7 @@
 import { createInertiaApp } from '@inertiajs/react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import Toast from '@/components/toast';
-import 'toastr/build/toastr.min.css';
-import toastr from 'toastr';
-toastr.options.positionClass = 'toast-top-left';
-toastr.options.closeButton = true;
-toastr.options.timeOut = 4000;
+// Toast notifications handled by existing Sonner/Toastr
 const appName = import.meta.env.VITE_APP_NAME || 'Teamat';
 
 createInertiaApp({
@@ -15,7 +10,6 @@ createInertiaApp({
     withApp(app) {
         return (
             <TooltipProvider delayDuration={0}>
-                <Toast />
                 {app}
                 <Toaster />
             </TooltipProvider>

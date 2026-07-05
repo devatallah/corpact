@@ -60,7 +60,6 @@ class CompanyAuthController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:companies,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'sector' => ['required', 'string', 'max:255'],
             'employee_count_range' => ['required', 'string', 'max:255'],
             'domain' => ['required', 'string', 'max:255', 'unique:companies,domain'],
@@ -69,22 +68,15 @@ class CompanyAuthController extends Controller
             'hr_title' => ['required', 'string', 'max:255'],
             'hr_phone' => ['required', 'string', 'max:20'],
             'notes' => ['nullable', 'string', 'max:1000'],
-        ], [
-            'password.required' => 'كلمة المرور مطلوبة.',
-            'password.min' => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
-            'password.confirmed' => 'تأكيد كلمة المرور غير متطابق.',
         ]);
 
-        $company = Company::create([
-            ...\Illuminate\Support\Arr::except($validated, ['password', 'password_confirmation']),
-            'password' => Hash::make($validated['password']),
-            'status' => 'active',
+        Company::create([
+            ...$validated,
+            'status' => 'pending',
         ]);
 
-        Auth::guard('company')->login($company);
-        $request->session()->regenerate();
-
-        return redirect()->route('company.dash');
+        return redirect()->route('company.register')
+            ->with('success', 'تم إرسال طلب التسجيل بنجاح.');
     }
 
     public function showActivateForm(string $token): Response|RedirectResponse
