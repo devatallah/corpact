@@ -1,5 +1,5 @@
 import { Head, useForm, Link } from '@inertiajs/react';
-import type { FormEvent } from 'react';
+import React, { type FormEvent } from 'react';
 
 const sectors = [
     'تقنية المعلومات', 'البنوك والخدمات المالية', 'الاتصالات', 'التعليم',
