@@ -53,6 +53,8 @@ use Illuminate\Support\Facades\Route;
 Route::view('/terms', 'legal.terms');
 Route::view('/privacy', 'legal.privacy');
 Route::view('/support', 'legal.support');
+Route::view('/pricing', 'pages.pricing');
+Route::view('/about', 'pages.about');
 
 Route::get('/', function () {
     return view('welcome');
