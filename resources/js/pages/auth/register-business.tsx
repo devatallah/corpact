@@ -145,20 +145,20 @@ export default function Registerbusiness({ categories }: Props) {
                             <div style={{ fontSize: 60, marginBottom: 16 }}>🎯</div>
                             <div style={{ fontSize: 22, fontWeight: 800, color: '#1A1A18', marginBottom: 8, fontFamily: "'Cairo', sans-serif" }}>تم إرسال طلبك!</div>
                             <div style={{ fontSize: 14, color: '#8A8A7A', lineHeight: 1.6, marginBottom: 24 }}>
-                                استلمنا طلب انضمام <strong>{data.name || 'تسجيلك كمزود خدمة'}</strong> وسيتواصل معك فريقنا على <strong>{data.email}</strong> خلال 48 ساعة.
+                                استلمنا طلب انضمام <strong>{data.name || 'تسجيلك كمزود خدمة'}</strong>. خطواتنا القادمة:
                             </div>
                             <div style={{ background: '#F5F0E8', borderRadius: 12, padding: '16px 20px', textAlign: 'right', marginBottom: 24, border: '1px solid #E8E2D8' }}>
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10, fontSize: 13, color: '#8A8A7A' }}>
                                     <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#1A1A18', color: '#C8F135', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>1</div>
-                                    <span>يراجع فريق تيمات بياناتك كمزود خدمة</span>
+                                    <span>مراجعة البيانات من فريق تيمات</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10, fontSize: 13, color: '#8A8A7A' }}>
                                     <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#1A1A18', color: '#C8F135', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>2</div>
-                                    <span>يتواصل معك لشرح آلية العمل</span>
+                                    <span>التواصل معك على <strong style={{ color: '#1A1A18' }}>{data.email}</strong> خلال ٤٨ ساعة</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: '#8A8A7A' }}>
                                     <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#1A1A18', color: '#C8F135', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>3</div>
-                                    <span>يُفعّل حسابك وتبدأ تستقبل الحجوزات</span>
+                                    <span>إرسال رابط تفعيل الحساب والبدء باستقبال الحجوزات</span>
                                 </div>
                             </div>
                             <a href="/business/login" style={{ display: 'block', textAlign: 'center', fontSize: 13, color: '#C4622D', fontWeight: 600, textDecoration: 'none' }}>العودة للصفحة الرئيسية</a>
@@ -178,7 +178,7 @@ export default function Registerbusiness({ categories }: Props) {
 
     return (
         <>
-            <Head title="تسجيل مزود خدمة — تيمات" />
+            <Head title="سجّل كمزود خدمة — تيمات" />
 
             <div dir="rtl" style={{
                 minHeight: '100vh',
@@ -320,7 +320,7 @@ export default function Registerbusiness({ categories }: Props) {
                                 </div>
                                 <div>
                                     <label style={labelStyle}>ساعات العمل <span style={{ color: '#c0392b' }}>*</span></label>
-                                    <input style={inputStyle} type="text" placeholder="6ص – 12م" value={data.working_hours} onChange={e => setData('working_hours', e.target.value)} />
+                                    <input style={inputStyle} type="text" placeholder="6ص – 12م" title="مثال: ٤ م - ١٢ ص — أوقات تشغيل المرفق" value={data.working_hours} onChange={e => setData('working_hours', e.target.value)} />
                                 </div>
                             </div>
 
@@ -370,6 +370,10 @@ export default function Registerbusiness({ categories }: Props) {
 
                             <div style={{ textAlign: 'center', fontSize: 13, color: '#8A8A7A' }}>
                                 لديك حساب؟ <a href="/business/login" style={{ color: '#C4622D', fontWeight: 600, textDecoration: 'none' }}>سجّل دخولك</a>
+                            </div>
+
+                            <div style={{ textAlign: 'center', marginTop: 16 }}>
+                                <a href="/" style={{ fontSize: 12, color: 'rgba(10,10,10,0.4)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>← العودة للرئيسية</a>
                             </div>
                         </form>
                     </div>

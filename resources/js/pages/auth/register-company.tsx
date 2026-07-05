@@ -170,7 +170,7 @@ export default function RegisterCompany() {
 
     return (
         <>
-            <Head title="تسجيل شركة — تيمات" />
+            <Head title="سجّل شركتك — تيمات" />
             <div dir="rtl" style={{
                 minHeight: '100vh',
                 background: '#F5F0E8',
@@ -251,7 +251,7 @@ export default function RegisterCompany() {
 
                             <div style={{ marginBottom: 16 }}>
                                 <label style={labelStyle}>نطاق الشركة *</label>
-                                <input style={{ ...inputStyle, direction: 'ltr' }} type="text" value={data.domain} onChange={e => setData('domain', e.target.value)} placeholder="company.com" required />
+                                <input style={{ ...inputStyle, direction: 'ltr' }} type="text" value={data.domain} onChange={e => setData('domain', e.target.value)} placeholder="company.com" title="مثال: company.com — النطاق الخاص ببريد شركتك الإلكتروني" required />
                                 <div style={{ fontSize: 11, color: '#8A8A7A', marginTop: 5, lineHeight: 1.5 }}>
                                     الجزء الذي يأتي بعد <strong style={{ color: '#C4622D' }}>@</strong> في إيميل موظفيك
                                 </div>
@@ -323,6 +323,10 @@ export default function RegisterCompany() {
                                     <Link href="/business/login" style={{ padding: '6px 12px', border: '1px solid #E8E2D8', borderRadius: 8, fontSize: 12, color: '#8A8A7A', textDecoration: 'none' }}>مزودو الخدمة</Link>
                                     <Link href="/employee/login" style={{ padding: '6px 12px', border: '1px solid #E8E2D8', borderRadius: 8, fontSize: 12, color: '#8A8A7A', textDecoration: 'none' }}>الموظفون</Link>
                                 </div>
+                            </div>
+
+                            <div style={{ textAlign: 'center', marginTop: 16 }}>
+                                <a href="/" style={{ fontSize: 12, color: 'rgba(10,10,10,0.4)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>← العودة للرئيسية</a>
                             </div>
                         </form>
                     </div>

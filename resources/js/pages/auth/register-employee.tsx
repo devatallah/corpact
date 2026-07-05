@@ -51,7 +51,7 @@ export default function RegisterEmployee() {
 
     return (
         <>
-            <Head title="تسجيل موظف — تيمات" />
+            <Head title="سجّل كموظف — تيمات" />
             <div dir="rtl" style={{
                 minHeight: '100vh',
                 background: '#F5F0E8',
@@ -133,7 +133,7 @@ export default function RegisterEmployee() {
                             </div>
 
                             <div style={{ marginBottom: 16 }}>
-                                <label style={labelStyle}>رقم الجوال</label>
+                                <label style={labelStyle}>رقم الجوال (اختياري)</label>
                                 <input
                                     style={{ ...inputStyle, direction: 'ltr' }}
                                     type="tel"
@@ -152,8 +152,14 @@ export default function RegisterEmployee() {
                                         value={data.password}
                                         onChange={(e) => setData('password', e.target.value)}
                                         placeholder="8 أحرف على الأقل"
+                                        minLength={8}
                                         required
                                     />
+                                    {data.password && (
+                                        <div style={{ marginTop: 6, fontSize: 11, color: data.password.length >= 8 ? '#15803D' : '#c0392b' }}>
+                                            {data.password.length < 8 ? `كلمة المرور قصيرة (${data.password.length}/8)` : 'كلمة المرور مقبولة ✓'}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>تأكيد كلمة المرور *</label>
@@ -166,6 +172,13 @@ export default function RegisterEmployee() {
                                         required
                                     />
                                 </div>
+                            </div>
+
+                            <div style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                <input type="checkbox" id="terms" required style={{ marginTop: 4, accentColor: '#C8FF00' }} />
+                                <label htmlFor="terms" style={{ fontSize: 12, color: 'rgba(10,10,10,0.6)', lineHeight: 1.6 }}>
+                                    أوافق على <a href="/terms" target="_blank" style={{ color: '#0A0A0A', fontWeight: 700, textDecoration: 'underline' }}>الشروط والأحكام</a> و<a href="/privacy" target="_blank" style={{ color: '#0A0A0A', fontWeight: 700, textDecoration: 'underline' }}>سياسة الخصوصية</a>
+                                </label>
                             </div>
 
                             <button
@@ -189,6 +202,10 @@ export default function RegisterEmployee() {
                                     <Link href="/company/login" style={{ padding: '6px 12px', border: '1px solid #E8E2D8', borderRadius: 8, fontSize: 12, color: '#8A8A7A', textDecoration: 'none' }}>الشركات</Link>
                                     <Link href="/business/login" style={{ padding: '6px 12px', border: '1px solid #E8E2D8', borderRadius: 8, fontSize: 12, color: '#8A8A7A', textDecoration: 'none' }}>مزودو الخدمة</Link>
                                 </div>
+                            </div>
+
+                            <div style={{ textAlign: 'center', marginTop: 16 }}>
+                                <a href="/" style={{ fontSize: 12, color: 'rgba(10,10,10,0.4)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>← العودة للرئيسية</a>
                             </div>
                         </form>
                     </div>

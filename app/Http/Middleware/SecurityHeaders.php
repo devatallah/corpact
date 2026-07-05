@@ -16,6 +16,12 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+        $response->headers->set('X-XSS-Protection', '0');
+
+        $response->headers->remove('X-Powered-By');
+
+        // TODO: Add Content-Security-Policy with nonces once tested with Inertia.js inline scripts.
 
         return $response;
     }
