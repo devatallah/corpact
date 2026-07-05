@@ -12,7 +12,8 @@ interface ToastMessage {
 let toastId = 0;
 
 export default function Toast() {
-    const { flash } = usePage().props as { flash: Record<string, string> };
+    const page = usePage();
+    const flash = (page?.props as Record<string, unknown>)?.flash as Record<string, string> | undefined;
     const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
     useEffect(() => {
