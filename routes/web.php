@@ -55,6 +55,7 @@ Route::view('/privacy', 'legal.privacy');
 Route::view('/support', 'legal.support');
 Route::view('/pricing', 'pages.pricing');
 Route::view('/about', 'pages.about');
+Route::view('/blog', 'pages.blog');
 
 Route::get('/', function () {
     return view('welcome');
