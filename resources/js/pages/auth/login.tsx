@@ -166,6 +166,8 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                                         fontFamily: "'Almarai', Tahoma, Arial, sans-serif",
                                     }}
                                     type="email"
+                                    autoComplete="email"
+                                    inputMode="email"
                                     autoFocus
                                     value={data.email}
                                     onChange={(e) => setData('email', e.target.value)}
@@ -182,6 +184,7 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                                         fontFamily: "'Almarai', Tahoma, Arial, sans-serif",
                                     }}
                                     type="password"
+                                    autoComplete="current-password"
                                     value={data.password}
                                     onChange={(e) => setData('password', e.target.value)}
                                     onFocus={(e) => { e.target.style.borderColor = '#C8FF00'; }}
@@ -352,6 +355,7 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                                     type="email"
                                     placeholder="example@company.com"
                                     autoComplete="email"
+                                    inputMode="email"
                                     autoFocus
                                     value={data.email}
                                     onChange={(e) => setData('email', e.target.value)}

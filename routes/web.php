@@ -50,6 +50,10 @@ use App\Http\Controllers\Company\ReportController as CompanyReportController;
 use App\Http\Controllers\Company\WalletController as CompanyWalletController;
 use Illuminate\Support\Facades\Route;
 
+Route::view('/terms', 'legal.terms');
+Route::view('/privacy', 'legal.privacy');
+Route::view('/support', 'legal.support');
+
 Route::get('/', function () {
     return view('welcome');
 });

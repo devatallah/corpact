@@ -229,7 +229,7 @@ export default function RegisterCompany() {
 
                             <div style={{ marginBottom: 16 }}>
                                 <label style={labelStyle}>اسم الشركة *</label>
-                                <input style={inputStyle} type="text" value={data.name} onChange={e => setData('name', e.target.value)} placeholder="شركة التقنية المتقدمة" required />
+                                <input style={inputStyle} type="text" value={data.name} onChange={e => setData('name', e.target.value)} placeholder="شركة التقنية المتقدمة" autoComplete="organization" required />
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
@@ -259,7 +259,7 @@ export default function RegisterCompany() {
 
                             <div style={{ marginBottom: 16 }}>
                                 <label style={labelStyle}>البريد الإلكتروني للموارد البشرية *</label>
-                                <input style={{ ...inputStyle, direction: 'ltr' }} type="email" value={data.email} onChange={e => setData('email', e.target.value)} placeholder="hr@company.com" required />
+                                <input style={{ ...inputStyle, direction: 'ltr' }} type="email" value={data.email} onChange={e => setData('email', e.target.value)} placeholder="hr@company.com" autoComplete="email" inputMode="email" required />
                             </div>
 
                             <div style={{ marginBottom: 16 }}>
@@ -276,7 +276,7 @@ export default function RegisterCompany() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                                 <div>
                                     <label style={labelStyle}>الاسم الكامل *</label>
-                                    <input style={inputStyle} type="text" value={data.hr_name} onChange={e => setData('hr_name', e.target.value)} placeholder="نورة السعيد" required />
+                                    <input style={inputStyle} type="text" value={data.hr_name} onChange={e => setData('hr_name', e.target.value)} placeholder="نورة السعيد" autoComplete="name" required />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>المسمى الوظيفي *</label>
@@ -286,13 +286,20 @@ export default function RegisterCompany() {
 
                             <div style={{ marginBottom: 16 }}>
                                 <label style={labelStyle}>رقم الجوال *</label>
-                                <input style={{ ...inputStyle, direction: 'ltr' }} type="tel" value={data.hr_phone} onChange={e => setData('hr_phone', e.target.value)} placeholder="05XXXXXXXX" required />
+                                <input style={{ ...inputStyle, direction: 'ltr' }} type="tel" value={data.hr_phone} onChange={e => setData('hr_phone', e.target.value)} placeholder="05XXXXXXXX" autoComplete="tel" inputMode="tel" required />
                             </div>
 
                             {/* Notes */}
                             <div style={{ marginBottom: 16 }}>
                                 <label style={labelStyle}>ملاحظات إضافية (اختياري)</label>
                                 <textarea style={textareaStyle} value={data.notes} onChange={e => setData('notes', e.target.value)} placeholder="أي تفاصيل إضافية تودّ مشاركتها..." />
+                            </div>
+
+                            <div style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                <input type="checkbox" id="terms" required style={{ marginTop: 4, accentColor: '#C8FF00' }} />
+                                <label htmlFor="terms" style={{ fontSize: 12, color: 'rgba(10,10,10,0.6)', lineHeight: 1.6 }}>
+                                    أوافق على <a href="/terms" target="_blank" style={{ color: '#0A0A0A', fontWeight: 700, textDecoration: 'underline' }}>الشروط والأحكام</a> و<a href="/privacy" target="_blank" style={{ color: '#0A0A0A', fontWeight: 700, textDecoration: 'underline' }}>سياسة الخصوصية</a>
+                                </label>
                             </div>
 
                             <button

@@ -237,27 +237,27 @@ export default function Registerbusiness({ categories }: Props) {
                             <div style={sectionLabel}>بيانات مزود الخدمة</div>
 
                             <div style={{ marginBottom: 16 }}>
-                                <label style={labelStyle}>اسم مزود الخدمة</label>
-                                <input style={inputStyle} type="text" placeholder="مزود خدمة الفئة الحديثة" value={data.name} onChange={e => setData('name', e.target.value)} />
+                                <label style={labelStyle}>اسم مزود الخدمة <span style={{ color: '#c0392b' }}>*</span></label>
+                                <input style={inputStyle} type="text" placeholder="مزود خدمة الفئة الحديثة" autoComplete="organization" value={data.name} onChange={e => setData('name', e.target.value)} />
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                                 <div>
-                                    <label style={labelStyle}>المدينة</label>
+                                    <label style={labelStyle}>المدينة <span style={{ color: '#c0392b' }}>*</span></label>
                                     <select style={selectStyle} value={data.city} onChange={e => setData('city', e.target.value)}>
                                         <option value="">اختر المدينة</option>
                                         {cities.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>الحي / المنطقة</label>
+                                    <label style={labelStyle}>الحي / المنطقة <span style={{ color: '#c0392b' }}>*</span></label>
                                     <input style={inputStyle} type="text" placeholder="حي النرجس" value={data.district} onChange={e => setData('district', e.target.value)} />
                                 </div>
                             </div>
 
                             {/* Category checkboxes */}
                             <div style={{ marginBottom: 16 }}>
-                                <label style={labelStyle}>الفئات المتاحة لدى مزود الخدمة</label>
+                                <label style={labelStyle}>الفئات المتاحة لدى مزود الخدمة <span style={{ color: '#c0392b' }}>*</span></label>
                                 {categories.map(cat => (
                                     <div key={cat.id} style={{ marginBottom: 10 }}>
                                         {cat.children && cat.children.length > 0 ? (
@@ -315,11 +315,11 @@ export default function Registerbusiness({ categories }: Props) {
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                                 <div>
-                                    <label style={labelStyle}>عدد المرافق الإجمالي</label>
+                                    <label style={labelStyle}>عدد المرافق الإجمالي <span style={{ color: '#c0392b' }}>*</span></label>
                                     <input style={{ ...inputStyle, direction: 'ltr' }} type="number" placeholder="4" min={1} value={data.venues_count} onChange={e => setData('venues_count', parseInt(e.target.value) || 1)} />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>ساعات العمل</label>
+                                    <label style={labelStyle}>ساعات العمل <span style={{ color: '#c0392b' }}>*</span></label>
                                     <input style={inputStyle} type="text" placeholder="6ص – 12م" value={data.working_hours} onChange={e => setData('working_hours', e.target.value)} />
                                 </div>
                             </div>
@@ -329,28 +329,35 @@ export default function Registerbusiness({ categories }: Props) {
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                                 <div>
-                                    <label style={labelStyle}>الاسم الكامل</label>
-                                    <input style={inputStyle} type="text" placeholder="محمد العتيبي" value={data.contact_name} onChange={e => setData('contact_name', e.target.value)} />
+                                    <label style={labelStyle}>الاسم الكامل <span style={{ color: '#c0392b' }}>*</span></label>
+                                    <input style={inputStyle} type="text" placeholder="محمد العتيبي" autoComplete="name" value={data.contact_name} onChange={e => setData('contact_name', e.target.value)} />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>المسمى الوظيفي</label>
+                                    <label style={labelStyle}>المسمى الوظيفي <span style={{ color: '#c0392b' }}>*</span></label>
                                     <input style={inputStyle} type="text" placeholder="مدير مزود الخدمة" value={data.contact_title} onChange={e => setData('contact_title', e.target.value)} />
                                 </div>
                             </div>
 
                             <div style={{ marginBottom: 16 }}>
-                                <label style={labelStyle}>البريد الإلكتروني</label>
-                                <input style={{ ...inputStyle, direction: 'ltr' }} type="email" placeholder="info@business.com" value={data.email} onChange={e => setData('email', e.target.value)} />
+                                <label style={labelStyle}>البريد الإلكتروني <span style={{ color: '#c0392b' }}>*</span></label>
+                                <input style={{ ...inputStyle, direction: 'ltr' }} type="email" placeholder="info@business.com" autoComplete="email" inputMode="email" value={data.email} onChange={e => setData('email', e.target.value)} />
                             </div>
 
                             <div style={{ marginBottom: 16 }}>
-                                <label style={labelStyle}>رقم الجوال</label>
-                                <input style={{ ...inputStyle, direction: 'ltr' }} type="tel" placeholder="05xxxxxxxx" value={data.contact_phone} onChange={e => setData('contact_phone', e.target.value)} />
+                                <label style={labelStyle}>رقم الجوال <span style={{ color: '#c0392b' }}>*</span></label>
+                                <input style={{ ...inputStyle, direction: 'ltr' }} type="tel" placeholder="05xxxxxxxx" autoComplete="tel" inputMode="tel" value={data.contact_phone} onChange={e => setData('contact_phone', e.target.value)} />
                             </div>
 
                             <div style={{ marginBottom: 16 }}>
                                 <label style={labelStyle}>ملاحظات إضافية (اختياري)</label>
                                 <textarea style={textareaStyle} placeholder="مثلاً: عندنا عروض خاصة للحجوزات الجماعية، أو تفاصيل أخرى..." value={data.notes} onChange={e => setData('notes', e.target.value)} />
+                            </div>
+
+                            <div style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                <input type="checkbox" id="terms" required style={{ marginTop: 4, accentColor: '#C8FF00' }} />
+                                <label htmlFor="terms" style={{ fontSize: 12, color: 'rgba(10,10,10,0.6)', lineHeight: 1.6 }}>
+                                    أوافق على <a href="/terms" target="_blank" style={{ color: '#0A0A0A', fontWeight: 700, textDecoration: 'underline' }}>الشروط والأحكام</a> و<a href="/privacy" target="_blank" style={{ color: '#0A0A0A', fontWeight: 700, textDecoration: 'underline' }}>سياسة الخصوصية</a>
+                                </label>
                             </div>
 
                             <button
