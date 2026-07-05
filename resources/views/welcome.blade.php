@@ -33,10 +33,10 @@
 .modal-overlay.active .modal-card{transform:translateY(0) scale(1);}
 </style>
   <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Organization","name":"تيمات","alternateName":"Teamat","url":"https://teamat.app","logo":"https://teamat.app/favicon-512.png","description":"منصة الرياضة المؤسسية الأولى في المملكة العربية السعودية. نربط الشركات بمزودي الخدمة الرياضية.","address":{"@type":"PostalAddress","addressCountry":"SA"},"sameAs":[]}
+{"@@context":"https://schema.org","@@type":"Organization","name":"تيمات","alternateName":"Teamat","url":"https://teamat.app","logo":"https://teamat.app/favicon-512.png","description":"منصة الرياضة المؤسسية الأولى في المملكة العربية السعودية. نربط الشركات بمزودي الخدمة الرياضية.","address":{"@@type":"PostalAddress","addressCountry":"SA"},"sameAs":[]}
 </script>
   <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebSite","name":"تيمات","url":"https://teamat.app","inLanguage":"ar","description":"منصة الرياضة المؤسسية الأولى في المملكة العربية السعودية"}
+{"@@context":"https://schema.org","@@type":"WebSite","name":"تيمات","url":"https://teamat.app","inLanguage":"ar","description":"منصة الرياضة المؤسسية الأولى في المملكة العربية السعودية"}
 </script>
 </head>
 <body>

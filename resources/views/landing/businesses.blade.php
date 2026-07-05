@@ -32,7 +32,7 @@
 .modal-overlay.active .modal-card{transform:translateY(0) scale(1);}
 </style>
   <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","name":"تيمات — لمزودي الخدمة","description":"وسع قاعدة عملائك بالشركات المؤسسية. حجوزات منتظمة، تسويات تلقائية.","url":"https://teamat.app/businesses","inLanguage":"ar","isPartOf":{"@type":"WebSite","name":"تيمات","url":"https://teamat.app"}}
+{"@@context":"https://schema.org","@@type":"WebPage","name":"تيمات — لمزودي الخدمة","description":"وسع قاعدة عملائك بالشركات المؤسسية. حجوزات منتظمة، تسويات تلقائية.","url":"https://teamat.app/businesses","inLanguage":"ar","isPartOf":{"@@type":"WebSite","name":"تيمات","url":"https://teamat.app"}}
 </script>
 </head>
 <body>

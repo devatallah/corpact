@@ -32,7 +32,7 @@
 .modal-overlay.active .modal-card{transform:translateY(0) scale(1);}
 </style>
   <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","name":"تيمات — للموظفين","description":"احجز ملعبك، ادع زملاءك، وشارك في بطولات شركتك.","url":"https://teamat.app/employees","inLanguage":"ar","isPartOf":{"@type":"WebSite","name":"تيمات","url":"https://teamat.app"}}
+{"@@context":"https://schema.org","@@type":"WebPage","name":"تيمات — للموظفين","description":"احجز ملعبك، ادع زملاءك، وشارك في بطولات شركتك.","url":"https://teamat.app/employees","inLanguage":"ar","isPartOf":{"@@type":"WebSite","name":"تيمات","url":"https://teamat.app"}}
 </script>
 </head>
 <body>
