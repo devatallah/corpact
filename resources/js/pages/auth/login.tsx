@@ -19,17 +19,17 @@ const portalMeta: Record<string, {
     employee: {
         description: 'سجّل دخولك ببريد شركتك للوصول إلى مجتمعاتك والفعاليات',
         buttonText: 'دخول — بوابة الموظف',
-        registerHtml: { question: 'ليس لديك حساب؟', label: 'سجّل كموظف', href: '/employee/register' },
+        registerHtml: { question: 'ليس لديك حساب؟', label: 'سجّل كموظف', href: '/employees#register' },
     },
     company: {
         description: 'سجّل دخولك لإدارة مجتمعات موظفيك وميزانية الدعم',
         buttonText: 'دخول — بوابة الشركة',
-        registerHtml: { question: 'شركة جديدة؟', label: 'سجّل شركتك', href: '/company/register' },
+        registerHtml: { question: 'شركة جديدة؟', label: 'سجّل شركتك', href: '/companies#register' },
     },
     business: {
         description: 'سجّل دخولك لإدارة طلبات الحجز والتقويم والتسويات',
         buttonText: 'دخول — بوابة مزود الخدمة',
-        registerHtml: { question: 'مزود خدمة جديد؟', label: 'سجّل كمزود خدمة', href: '/business/register' },
+        registerHtml: { question: 'مزود خدمة جديد؟', label: 'سجّل كمزود خدمة', href: '/businesses#register' },
     },
 };
 

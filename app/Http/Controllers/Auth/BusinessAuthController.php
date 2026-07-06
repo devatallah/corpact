@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Business;
-use App\Models\Category;
 use App\Services\Auth\BusinessAuthService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -64,13 +63,6 @@ class BusinessAuthController extends Controller
         return redirect()->route('business.dash');
     }
 
-    public function showRegisterForm(): Response
-    {
-        return Inertia::render('auth/register-business', [
-            'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
-        ]);
-    }
-
     public function register(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -98,7 +90,7 @@ class BusinessAuthController extends Controller
 
         $business->categories()->attach($categoryIds);
 
-        return redirect()->route('business.register')
+        return redirect('/businesses#register')
             ->with('success', 'تم إرسال طلب التسجيل بنجاح.');
     }
 

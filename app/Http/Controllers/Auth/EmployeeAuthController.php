@@ -59,11 +59,6 @@ class EmployeeAuthController extends Controller
         return redirect()->route('employee.home');
     }
 
-    public function showRegisterForm(): Response
-    {
-        return Inertia::render('auth/register-employee');
-    }
-
     public function register(Request $request): RedirectResponse
     {
         $data = $request->validate([

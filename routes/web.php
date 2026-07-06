@@ -70,7 +70,13 @@ Route::get('/employees', function () {
 });
 
 Route::get('/businesses', function () {
-    return view('landing.businesses');
+    return view('landing.businesses', [
+        'categories' => \App\Models\Category::whereNull('parent_id')
+            ->with('children:id,parent_id,name')
+            ->select('id', 'parent_id', 'name')
+            ->orderBy('name')
+            ->get(),
+    ]);
 });
 
 /*
@@ -123,7 +129,7 @@ Route::prefix('employee')->name('employee.')->group(function () {
     Route::middleware('guest:employee')->group(function () {
         Route::get('/login', [EmployeeAuthController::class, 'showLoginForm'])->name('login');
         Route::post('/login', [EmployeeAuthController::class, 'login'])->middleware('throttle:login');
-        Route::get('/register', [EmployeeAuthController::class, 'showRegisterForm'])->name('register');
+        Route::get('/register', fn () => redirect('/employees#register'));
         Route::post('/register', [EmployeeAuthController::class, 'register'])->middleware('throttle:login');
         Route::get('/forgot-password', fn () => app(PasswordResetController::class)->showForgotForm('employee'))->name('password.request');
         Route::post('/forgot-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->sendResetLink($r, 'employee'))->name('password.email')->middleware('throttle:password-reset');
@@ -155,7 +161,7 @@ Route::prefix('business')->name('business.')->group(function () {
     Route::middleware('guest:business')->group(function () {
         Route::get('/login', [BusinessAuthController::class, 'showLoginForm'])->name('login');
         Route::post('/login', [BusinessAuthController::class, 'login'])->middleware('throttle:login');
-        Route::get('/register', [BusinessAuthController::class, 'showRegisterForm'])->name('register');
+        Route::get('/register', fn () => redirect('/businesses#register'));
         Route::post('/register', [BusinessAuthController::class, 'register']);
         Route::get('/activate/{token}', [BusinessAuthController::class, 'showActivateForm'])->name('activate');
         Route::post('/activate/{token}', [BusinessAuthController::class, 'activate']);
@@ -187,7 +193,7 @@ Route::prefix('company')->name('company.')->group(function () {
     Route::middleware('guest:company')->group(function () {
         Route::get('/login', [CompanyAuthController::class, 'showLoginForm'])->name('login');
         Route::post('/login', [CompanyAuthController::class, 'login'])->middleware('throttle:login');
-        Route::get('/register', [CompanyAuthController::class, 'showRegisterForm'])->name('register');
+        Route::get('/register', fn () => redirect('/companies#register'));
         Route::post('/register', [CompanyAuthController::class, 'register']);
         Route::get('/activate/{token}', [CompanyAuthController::class, 'showActivateForm'])->name('activate');
         Route::post('/activate/{token}', [CompanyAuthController::class, 'activate']);

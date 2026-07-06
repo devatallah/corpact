@@ -50,11 +50,6 @@ class CompanyAuthController extends Controller
         return redirect()->route('company.dash');
     }
 
-    public function showRegisterForm(): Response
-    {
-        return Inertia::render('auth/register-company');
-    }
-
     public function register(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -75,7 +70,7 @@ class CompanyAuthController extends Controller
             'status' => 'pending',
         ]);
 
-        return redirect()->route('company.register')
+        return redirect('/companies#register')
             ->with('success', 'تم إرسال طلب التسجيل بنجاح.');
     }
 

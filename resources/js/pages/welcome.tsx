@@ -1931,7 +1931,7 @@ export default function Welcome() {
                                 <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>لوحة تحكم أساسية</li>
                                 <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>دعم عبر البريد الإلكتروني</li>
                             </ul>
-                            <Link href="/business/register" className="pricing-cta">ابدأ مجاناً لمدة 14 يوم</Link>
+                            <Link href="/businesses#register" className="pricing-cta">ابدأ مجاناً لمدة 14 يوم</Link>
                         </div>
 
                         {/* Pro — featured */}
@@ -1953,7 +1953,7 @@ export default function Welcome() {
                                 <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>عروض ترويجية ذكية</li>
                                 <li><span className="pf-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>دعم أولوية عبر الهاتف والواتساب</li>
                             </ul>
-                            <Link href="/business/register" className="pricing-cta">ابدأ تجربتك المجانية</Link>
+                            <Link href="/businesses#register" className="pricing-cta">ابدأ تجربتك المجانية</Link>
                         </div>
 
                         {/* Enterprise */}
@@ -1993,11 +1993,11 @@ export default function Welcome() {
                             <h2>اجعل شركتك تتحرك<br /><span className="serif-en">together</span>.</h2>
                             <p>عرض توضيحي مدته 30 دقيقة، مصمَّم لفرق الموارد البشرية. سنعرض لك كيف تنطلق شركتك خلال أسبوع — مع دراسة حالة لشركة بحجم مشابه.</p>
                             <div className="cta-actions">
-                                <Link href="/company/register" className="btn btn-lime">
+                                <Link href="/companies#register" className="btn btn-lime">
                                     انضم لنا
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8L10 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                                 </Link>
-                                <Link href="/business/register" className="btn btn-ghost" style={{ background: 'var(--ink)', color: 'var(--cream)', borderColor: 'var(--ink)' }}>سجّل كمزود خدمة</Link>
+                                <Link href="/businesses#register" className="btn btn-ghost" style={{ background: 'var(--ink)', color: 'var(--cream)', borderColor: 'var(--ink)' }}>سجّل كمزود خدمة</Link>
                             </div>
                         </div>
                     </div>
