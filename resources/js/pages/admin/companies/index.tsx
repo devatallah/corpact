@@ -34,8 +34,8 @@ export default function CompaniesIndex({ companies, stats, filters }: Props) {
         password: '',
         domain: '',
         sector: '',
-        hr_name: '',
-        hr_phone: '',
+        contact_name: '',
+        contact_phone: '',
         city: '',
         status: 'pending',
     });
@@ -48,8 +48,8 @@ export default function CompaniesIndex({ companies, stats, filters }: Props) {
                 password: '',
                 domain: editingItem.domain ?? '',
                 sector: editingItem.sector ?? '',
-                hr_name: editingItem.hr_name ?? '',
-                hr_phone: editingItem.hr_phone ?? '',
+                contact_name: editingItem.contact_name ?? '',
+                contact_phone: editingItem.contact_phone ?? '',
                 city: editingItem.city ?? '',
                 status: editingItem.status ?? 'pending',
             });
@@ -145,7 +145,7 @@ export default function CompaniesIndex({ companies, stats, filters }: Props) {
                                     <td style={{ color: '#C8D0E0' }}>{company.sector}</td>
                                     <td>{company.employee_count}</td>
                                     <td>
-                                        <div style={{ fontSize: '12px' }}>{company.hr_name ?? '-'}</div>
+                                        <div style={{ fontSize: '12px' }}>{company.contact_name ?? '-'}</div>
                                         <div style={{ fontSize: '10px', color: '#6B7A99' }}>{company.email ?? '-'}</div>
                                     </td>
                                     <td style={{ fontSize: '12px', color: '#6B7A99' }}>
@@ -299,8 +299,8 @@ export default function CompaniesIndex({ companies, stats, filters }: Props) {
                                     <label>المسؤول</label>
                                     <input
                                         type="text"
-                                        value={form.data.hr_name}
-                                        onChange={(e) => form.setData('hr_name', e.target.value)}
+                                        value={form.data.contact_name}
+                                        onChange={(e) => form.setData('contact_name', e.target.value)}
                                         placeholder="اسم مسؤول الموارد البشرية"
                                     />
                                 </div>
@@ -308,8 +308,8 @@ export default function CompaniesIndex({ companies, stats, filters }: Props) {
                                     <label>هاتف المسؤول</label>
                                     <input
                                         type="text"
-                                        value={form.data.hr_phone}
-                                        onChange={(e) => form.setData('hr_phone', e.target.value)}
+                                        value={form.data.contact_phone}
+                                        onChange={(e) => form.setData('contact_phone', e.target.value)}
                                         placeholder="05xxxxxxxx"
                                         dir="ltr"
                                     />

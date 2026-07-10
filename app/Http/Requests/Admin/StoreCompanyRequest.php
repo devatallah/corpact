@@ -28,8 +28,8 @@ class StoreCompanyRequest extends FormRequest
             'password' => ['required', 'string', 'min:6'],
             'domain' => ['required', 'string', 'max:255'],
             'sector' => ['required', 'string', 'max:255'],
-            'hr_name' => ['nullable', 'string', 'max:255'],
-            'hr_phone' => ['nullable', 'string', 'max:20'],
+            'contact_name' => ['nullable', 'string', 'max:255'],
+            'contact_phone' => ['nullable', 'string', 'max:20'],
             'city' => ['required', 'string', 'max:255'],
         ];
     }
@@ -54,8 +54,8 @@ class StoreCompanyRequest extends FormRequest
             'domain.max' => 'نطاق الشركة يجب ألا يتجاوز 255 حرف.',
             'sector.required' => 'قطاع الشركة مطلوب.',
             'sector.max' => 'قطاع الشركة يجب ألا يتجاوز 255 حرف.',
-            'hr_name.max' => 'اسم مسؤول الموارد البشرية يجب ألا يتجاوز 255 حرف.',
-            'hr_phone.max' => 'رقم جوال الموارد البشرية يجب ألا يتجاوز 20 حرف.',
+            'contact_name.max' => 'اسم مسؤول الموارد البشرية يجب ألا يتجاوز 255 حرف.',
+            'contact_phone.max' => 'رقم جوال الموارد البشرية يجب ألا يتجاوز 20 حرف.',
             'city.required' => 'المدينة مطلوبة.',
             'city.max' => 'المدينة يجب ألا تتجاوز 255 حرف.',
         ];

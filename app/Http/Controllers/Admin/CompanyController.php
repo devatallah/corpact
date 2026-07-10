@@ -60,7 +60,7 @@ class CompanyController extends Controller
         $this->companyService->approve($company);
 
         \App\Models\Employee::create([
-            'name' => $data['hr_name'] ?? $data['name'],
+            'name' => $data['contact_name'] ?? $data['name'],
             'email' => $data['email'],
             'password' => $rawPassword,
             'company_id' => $company->id,

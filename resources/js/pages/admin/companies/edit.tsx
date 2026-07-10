@@ -14,7 +14,7 @@ export default function CompaniesEdit({ company }: Props) {
         domain: company.domain ?? '',
         sector: company.sector ?? '',
         employee_count: String(company.employee_count ?? ''),
-        hr_name: company.hr_name ?? '',
+        contact_name: company.contact_name ?? '',
         city: company.city ?? '',
         status: company.status ?? 'pending',
     });
@@ -62,8 +62,8 @@ export default function CompaniesEdit({ company }: Props) {
                             <label>المسؤول</label>
                             <input
                                 type="text"
-                                value={data.hr_name}
-                                onChange={(e) => setData('hr_name', e.target.value)}
+                                value={data.contact_name}
+                                onChange={(e) => setData('contact_name', e.target.value)}
                                 placeholder="اسم مسؤول الموارد البشرية"
                             />
                         </div>

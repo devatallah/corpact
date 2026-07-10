@@ -9,8 +9,8 @@ export default function CompaniesCreate() {
         domain: '',
         sector: '',
         employee_count: '',
-        hr_name: '',
-        hr_phone: '',
+        contact_name: '',
+        contact_phone: '',
         city: '',
     });
 
@@ -119,8 +119,8 @@ export default function CompaniesCreate() {
                             <label>المسؤول</label>
                             <input
                                 type="text"
-                                value={data.hr_name}
-                                onChange={(e) => setData('hr_name', e.target.value)}
+                                value={data.contact_name}
+                                onChange={(e) => setData('contact_name', e.target.value)}
                                 placeholder="اسم مسؤول الموارد البشرية"
                             />
                         </div>
@@ -128,8 +128,8 @@ export default function CompaniesCreate() {
                             <label>هاتف المسؤول</label>
                             <input
                                 type="text"
-                                value={data.hr_phone}
-                                onChange={(e) => setData('hr_phone', e.target.value)}
+                                value={data.contact_phone}
+                                onChange={(e) => setData('contact_phone', e.target.value)}
                                 placeholder="05xxxxxxxx"
                                 dir="ltr"
                             />

@@ -59,9 +59,9 @@ class CompanyAuthController extends Controller
             'employee_count_range' => ['required', 'string', 'max:255'],
             'domain' => ['required', 'string', 'max:255', 'unique:companies,domain'],
             'city' => ['required', 'string', 'max:255'],
-            'hr_name' => ['required', 'string', 'max:255'],
-            'hr_title' => ['required', 'string', 'max:255'],
-            'hr_phone' => ['required', 'string', 'max:20'],
+            'contact_name' => ['required', 'string', 'max:255'],
+            'contact_title' => ['required', 'string', 'max:255'],
+            'contact_phone' => ['required', 'string', 'max:20'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 

@@ -7,16 +7,16 @@ interface Props {
         id: number;
         name: string;
         email: string;
-        hr_name: string | null;
-        hr_phone: string | null;
+        contact_name: string | null;
+        contact_phone: string | null;
     };
 }
 
 export default function CompanyProfile({ company }: Props) {
     const form = useForm({
         name: company.name ?? '',
-        hr_name: company.hr_name ?? '',
-        hr_phone: company.hr_phone ?? '',
+        contact_name: company.contact_name ?? '',
+        contact_phone: company.contact_phone ?? '',
         current_password: '',
         password: '',
         password_confirmation: '',
@@ -78,8 +78,8 @@ export default function CompanyProfile({ company }: Props) {
                             <label>اسم مسؤول HR</label>
                             <input
                                 type="text"
-                                value={form.data.hr_name}
-                                onChange={(e) => form.setData('hr_name', e.target.value)}
+                                value={form.data.contact_name}
+                                onChange={(e) => form.setData('contact_name', e.target.value)}
                                 placeholder="اسم المسؤول"
                             />
                         </div>
@@ -87,8 +87,8 @@ export default function CompanyProfile({ company }: Props) {
                             <label>رقم جوال HR</label>
                             <input
                                 type="text"
-                                value={form.data.hr_phone}
-                                onChange={(e) => form.setData('hr_phone', e.target.value)}
+                                value={form.data.contact_phone}
+                                onChange={(e) => form.setData('contact_phone', e.target.value)}
                                 placeholder="05xxxxxxxx"
                                 dir="ltr"
                             />

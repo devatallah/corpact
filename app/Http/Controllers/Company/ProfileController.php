@@ -24,8 +24,8 @@ class ProfileController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'hr_name' => ['nullable', 'string', 'max:255'],
-            'hr_phone' => ['nullable', 'string', 'max:20'],
+            'contact_name' => ['nullable', 'string', 'max:255'],
+            'contact_phone' => ['nullable', 'string', 'max:20'],
             'current_password' => ['required', 'string'],
             'password' => ['nullable', 'string', 'min:6', 'confirmed'],
         ], [

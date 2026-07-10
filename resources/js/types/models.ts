@@ -33,8 +33,8 @@ export interface Company {
     id: number;
     name: string;
     email: string;
-    hr_name: string;
-    hr_phone: string;
+    contact_name: string;
+    contact_phone: string;
     domain: string | null;
     sector: string;
     employee_count: number;

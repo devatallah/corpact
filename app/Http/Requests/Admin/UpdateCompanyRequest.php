@@ -29,8 +29,8 @@ class UpdateCompanyRequest extends FormRequest
             'domain' => ['sometimes', 'string', 'max:255'],
             'sector' => ['sometimes', 'string', 'max:255'],
             'employee_count' => ['sometimes', 'integer', 'min:1'],
-            'hr_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'hr_phone' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'contact_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contact_phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'city' => ['sometimes', 'string', 'max:255'],
             'status' => ['sometimes', 'string', 'in:pending,review,active,rejected'],
         ];
@@ -54,8 +54,8 @@ class UpdateCompanyRequest extends FormRequest
             'sector.max' => 'قطاع الشركة يجب ألا يتجاوز 255 حرف.',
             'employee_count.integer' => 'عدد الموظفين يجب أن يكون رقماً صحيحاً.',
             'employee_count.min' => 'عدد الموظفين يجب أن يكون 1 على الأقل.',
-            'hr_name.max' => 'اسم مسؤول الموارد البشرية يجب ألا يتجاوز 255 حرف.',
-            'hr_phone.max' => 'رقم جوال الموارد البشرية يجب ألا يتجاوز 20 حرف.',
+            'contact_name.max' => 'اسم مسؤول الموارد البشرية يجب ألا يتجاوز 255 حرف.',
+            'contact_phone.max' => 'رقم جوال الموارد البشرية يجب ألا يتجاوز 20 حرف.',
             'city.max' => 'المدينة يجب ألا تتجاوز 255 حرف.',
             'status.in' => 'حالة الشركة غير صالحة.',
         ];

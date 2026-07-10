@@ -146,7 +146,7 @@ function togSB(){
 var panelData={
   company:{
     @foreach(\App\Models\Company::whereIn('status', ['pending', 'review', 'active'])->get() as $c)
-    '{{ $c->name }}':[['اسم الشركة','{{ $c->name }}'],['القطاع','{{ $c->sector }}'],['عدد الموظفين','{{ $c->employee_count }}'],['الدومين','{{ $c->domain }}'],['المدينة','{{ $c->city }}'],['المسؤول','{{ $c->hr_name ?? "-" }}'],['البريد','{{ $c->email ?? "-" }}'],['الجوال','{{ $c->hr_phone ?? "-" }}'],@if($c->status === 'active')['تاريخ التفعيل','{{ $c->approved_at?->format("j F Y") }}'],['الحالة','نشط ✅']@else['تاريخ الطلب','{{ $c->created_at->diffForHumans() }}']@endif],
+    '{{ $c->name }}':[['اسم الشركة','{{ $c->name }}'],['القطاع','{{ $c->sector }}'],['عدد الموظفين','{{ $c->employee_count }}'],['الدومين','{{ $c->domain }}'],['المدينة','{{ $c->city }}'],['المسؤول','{{ $c->contact_name ?? "-" }}'],['البريد','{{ $c->email ?? "-" }}'],['الجوال','{{ $c->contact_phone ?? "-" }}'],@if($c->status === 'active')['تاريخ التفعيل','{{ $c->approved_at?->format("j F Y") }}'],['الحالة','نشط ✅']@else['تاريخ الطلب','{{ $c->created_at->diffForHumans() }}']@endif],
     @endforeach
   },
   business:{

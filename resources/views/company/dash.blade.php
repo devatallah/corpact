@@ -14,7 +14,7 @@
 <div class="sidebar-backdrop" id="sbBackdrop" onclick="closeMobile()"></div>
 <div class="sidebar" id="sb">
   <div class="logo"><div class="ar">تيمات</div><div class="en">COMPANY</div></div>
-  <div class="co-info"><div class="lbl">الشركة</div><div class="nm">{{ $company->name }}</div><div class="sb">الشركة · {{ auth('company')->user()->hr_name }}</div></div>
+  <div class="co-info"><div class="lbl">الشركة</div><div class="nm">{{ $company->name }}</div><div class="sb">الشركة · {{ auth('company')->user()->contact_name }}</div></div>
   <nav>
     <div class="ni on" onclick="window.location='/company/dash'"><span>📊</span><span class="nl">لوحة التحكم</span></div>
     <div class="ni" onclick="window.location='/company/communities'"><span>🏘️</span><span class="nl">المجتمعات</span></div>

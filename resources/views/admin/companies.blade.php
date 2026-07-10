@@ -60,7 +60,7 @@
         <tr class="co-row" data-s="@if(in_array($company->status, ['pending', 'review']))معلق @elseif($company->status === 'active')نشط @else مرفوض @endif">
           <td><div style="font-weight:700;color:#fff;">{{ $company->name }}</div><div style="font-size:10px;color:#6B7A99;">{{ $company->domain }}</div></td>
           <td style="color:#C8D0E0;">{{ $company->sector }}</td><td>{{ $company->employee_count }}</td>
-          <td><div style="font-size:12px;">{{ $company->hr_name ?? '-' }}</div><div style="font-size:10px;color:#6B7A99;">{{ $company->email ?? '-' }}</div></td>
+          <td><div style="font-size:12px;">{{ $company->contact_name ?? '-' }}</div><div style="font-size:10px;color:#6B7A99;">{{ $company->email ?? '-' }}</div></td>
           <td style="font-size:12px;color:#6B7A99;">@if($company->status === 'active'){{ $company->approved_at?->format('j F Y') }}@else{{ $company->created_at->diffForHumans() }}@endif</td>
           <td>
             @if($company->status === 'pending')
@@ -126,7 +126,7 @@ function filt(btn,f,cls){
 var panelData={
   company:{
     @foreach($companies as $c)
-    '{{ $c->name }}':{id:{{ $c->id }},rows:[['اسم الشركة','{{ $c->name }}'],['القطاع','{{ $c->sector }}'],['عدد الموظفين','{{ $c->employee_count }}'],['الدومين','{{ $c->domain }}'],['المدينة','{{ $c->city }}'],['المسؤول','{{ $c->hr_name ?? "-" }}'],['البريد','{{ $c->email ?? "-" }}'],['الجوال','{{ $c->hr_phone ?? "-" }}'],@if($c->status === 'active')['تاريخ التفعيل','{{ $c->approved_at?->format("j F Y") }}'],['الحالة','نشط ✅']@else['تاريخ الطلب','{{ $c->created_at->diffForHumans() }}']@endif]},
+    '{{ $c->name }}':{id:{{ $c->id }},rows:[['اسم الشركة','{{ $c->name }}'],['القطاع','{{ $c->sector }}'],['عدد الموظفين','{{ $c->employee_count }}'],['الدومين','{{ $c->domain }}'],['المدينة','{{ $c->city }}'],['المسؤول','{{ $c->contact_name ?? "-" }}'],['البريد','{{ $c->email ?? "-" }}'],['الجوال','{{ $c->contact_phone ?? "-" }}'],@if($c->status === 'active')['تاريخ التفعيل','{{ $c->approved_at?->format("j F Y") }}'],['الحالة','نشط ✅']@else['تاريخ الطلب','{{ $c->created_at->diffForHumans() }}']@endif]},
     @endforeach
   }
 };
