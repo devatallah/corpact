@@ -24,7 +24,7 @@ class StoreBusinessRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:businesss,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:businesses,email'],
             'password' => ['required', 'string', 'min:6'],
             'city' => ['required', 'string', 'max:255'],
             'district' => ['required', 'string', 'max:255'],

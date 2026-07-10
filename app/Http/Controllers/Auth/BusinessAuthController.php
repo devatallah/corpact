@@ -67,7 +67,7 @@ class BusinessAuthController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:businesss,email'],
+            'email' => ['required', 'email', 'unique:businesses,email'],
             'city' => ['required', 'string', 'max:255'],
             'district' => ['required', 'string', 'max:255'],
             'categories' => ['required', 'array', 'min:1'],

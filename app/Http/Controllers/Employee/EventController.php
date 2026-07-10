@@ -43,7 +43,7 @@ class EventController extends Controller
             ->withCount('members')
             ->get();
 
-        $businesss = Business::query()
+        $businesses = Business::query()
             ->with(['venues' => function ($q) {
                 $q->active();
             }])
@@ -66,7 +66,7 @@ class EventController extends Controller
 
         return Inertia::render('employee/events/create', [
             'communities' => $communities,
-            'businesses' => $businesss,
+            'businesses' => $businesses,
             'discounts' => $discounts,
         ]);
     }

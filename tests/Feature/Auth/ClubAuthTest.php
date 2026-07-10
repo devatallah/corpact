@@ -2,8 +2,8 @@
 
 use App\Models\business;
 
-test('business login page renders', function () {
-    $this->get(route('business.login'))->assertOk();
+test('business login page redirects to landing login modal', function () {
+    $this->get(route('business.login'))->assertRedirect('/businesses?login=1');
 });
 
 test('active business can login', function () {

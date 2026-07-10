@@ -2,8 +2,8 @@
 
 use App\Models\Company;
 
-test('company login page renders', function () {
-    $this->get(route('company.login'))->assertOk();
+test('company login page redirects to landing login modal', function () {
+    $this->get(route('company.login'))->assertRedirect('/companies?login=1');
 });
 
 test('active company can login', function () {

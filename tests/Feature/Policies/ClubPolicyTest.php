@@ -23,7 +23,7 @@ test('business can only view itself', function () {
         ->and($business->can('view', $otherbusiness))->toBeFalse();
 });
 
-test('only admin can create businesss', function () {
+test('only admin can create businesses', function () {
     $admin = User::factory()->create();
     $business = business::factory()->create();
 
@@ -39,7 +39,7 @@ test('business can update itself', function () {
         ->and($business->can('update', $otherbusiness))->toBeFalse();
 });
 
-test('only admin can delete businesss', function () {
+test('only admin can delete businesses', function () {
     $admin = User::factory()->create();
     $business = business::factory()->create();
 

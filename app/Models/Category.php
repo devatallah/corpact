@@ -34,7 +34,7 @@ class Category extends Model
     /**
      * @return BelongsToMany<Business, $this>
      */
-    public function businesss(): BelongsToMany
+    public function businesses(): BelongsToMany
     {
         return $this->belongsToMany(Business::class, 'business_category');
     }

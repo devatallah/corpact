@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 class BusinessService
 {
     /**
-     * List businesss with optional filters.
+     * List businesses with optional filters.
      *
      * @param  array{status?: string, search?: string, per_page?: int}  $filters
      */
@@ -96,7 +96,7 @@ class BusinessService
     }
 
     /**
-     * Get dashboard statistics for businesss grouped by status.
+     * Get dashboard statistics for businesses grouped by status.
      *
      * @return array{total: int, pending: int, active: int, rejected: int, suspended: int}
      */

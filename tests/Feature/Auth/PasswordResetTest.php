@@ -86,7 +86,7 @@ test('business can request password reset link', function () {
 test('business can reset password with valid token', function () {
     $business = business::factory()->create();
 
-    $token = Password::broker('businesss')->createToken($business);
+    $token = Password::broker('businesses')->createToken($business);
 
     $this->post(route('business.password.update'), [
         'token' => $token,

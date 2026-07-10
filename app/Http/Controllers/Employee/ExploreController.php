@@ -15,7 +15,7 @@ class ExploreController extends Controller
     ) {}
 
     /**
-     * List available communities and businesss to explore.
+     * List available communities and businesses to explore.
      */
     public function index(): Response
     {

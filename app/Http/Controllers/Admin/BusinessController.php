@@ -22,17 +22,17 @@ class BusinessController extends Controller
     ) {}
 
     /**
-     * List businesss with optional filters.
+     * List businesses with optional filters.
      */
     public function index(IndexBusinessRequest $request): Response
     {
         $filters = $request->validated();
 
-        $businesss = $this->businessService->list($filters);
+        $businesses = $this->businessService->list($filters);
         $stats = $this->businessService->dashboardStats();
 
         return Inertia::render('admin/businesses/index', [
-            'businesses' => $businesss,
+            'businesses' => $businesses,
             'stats' => $stats,
             'filters' => $filters,
             'categories' => \App\Models\Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),

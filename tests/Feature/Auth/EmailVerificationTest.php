@@ -41,7 +41,7 @@ test('admin can verify email with valid link', function () {
 
     $this->actingAs($user, 'admin')
         ->get($url)
-        ->assertRedirect(route('admin.dash'));
+        ->assertRedirect(route('admin.login', ['email' => $user->email]));
 
     expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
 });
@@ -79,7 +79,7 @@ test('employee can verify email with valid link', function () {
 
     $this->actingAs($employee, 'employee')
         ->get($url)
-        ->assertRedirect(route('employee.home'));
+        ->assertRedirect(route('employee.login', ['email' => $employee->email]));
 
     expect($employee->fresh()->hasVerifiedEmail())->toBeTrue();
 });
@@ -104,7 +104,7 @@ test('business can verify email with valid link', function () {
 
     $this->actingAs($business, 'business')
         ->get($url)
-        ->assertRedirect(route('business.dash'));
+        ->assertRedirect(route('business.login', ['email' => $business->email]));
 
     expect($business->fresh()->hasVerifiedEmail())->toBeTrue();
 });
@@ -129,7 +129,7 @@ test('company can verify email with valid link', function () {
 
     $this->actingAs($company, 'company')
         ->get($url)
-        ->assertRedirect(route('company.dash'));
+        ->assertRedirect(route('company.login', ['email' => $company->email]));
 
     expect($company->fresh()->hasVerifiedEmail())->toBeTrue();
 });

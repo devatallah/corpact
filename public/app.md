@@ -7,15 +7,15 @@
 
 ## 1. Executive Summary
 
-**Teamat** is a B2B2C SaaS platform that transforms corporate employee wellness by connecting companies with sports venues (businesss) and empowering employees to organize, participate in, and compete through sports activities — all managed through an intelligent, automated platform.
+**Teamat** is a B2B2C SaaS platform that transforms corporate employee wellness by connecting companies with sports venues (businesses) and empowering employees to organize, participate in, and compete through sports activities — all managed through an intelligent, automated platform.
 
 The platform serves **four stakeholder groups** through dedicated portals:
-- **Companies (HR)** — Manage employee wellness budgets, communities, and analytics
-- **Sports businesss** — Manage venues, pricing, bookings, and revenue
+- **Companies** — Manage employee wellness budgets, communities, and analytics
+- **Sports businesses** — Manage venues, pricing, bookings, and revenue
 - **Employees** — Discover, organize, and join sports activities
 - **Platform Admins** — Oversee the marketplace and revenue
 
-Teamat creates a **three-sided marketplace** where companies subsidize employee sports, businesss fill venue capacity, and employees get affordable, organized sports experiences — generating platform revenue through booking commissions.
+Teamat creates a **three-sided marketplace** where companies subsidize employee sports, businesses fill venue capacity, and employees get affordable, organized sports experiences — generating platform revenue through booking commissions.
 
 ---
 
@@ -24,8 +24,8 @@ Teamat creates a **three-sided marketplace** where companies subsidize employee 
 | Pain Point | Who Suffers |
 |---|---|
 | Employees lack organized, affordable sports opportunities through work | Employees |
-| HR departments have no tools to manage wellness budgets or measure ROI | Companies |
-| Sports venues have idle venue capacity during off-peak hours | businesss |
+| Companies have no tools to manage wellness budgets or measure ROI | Companies |
+| Sports venues have idle venue capacity during off-peak hours | businesses |
 | No platform connects corporate wellness budgets with sports venues | Market Gap |
 | Employee engagement & retention is a growing concern for enterprises | Companies |
 | Organizing group sports is manual, fragmented, and time-consuming | Everyone |
@@ -70,7 +70,7 @@ Teamat earns revenue through **commission on every booking**:
 
 ## 4. Platform Features — Detailed Breakdown
 
-### 4.1 Company Portal (HR Management)
+### 4.1 Company Portal
 
 #### Employee & Organization Management
 - **Employee onboarding** via email invitations with secure activation tokens
@@ -115,11 +115,11 @@ Teamat earns revenue through **commission on every booking**:
 
 ---
 
-### 4.2 business Portal (Sports Venue Management)
+### 4.2 Business Portal (Sports Venue Management)
 
-#### venue & Facility Management
-- **venue CRUD** — create, update, deactivate venues by sport type
-- **venue statuses** — Active, Closed, Maintenance
+#### Venue & Facility Management
+- **Venue CRUD** — create, update, deactivate venues by sport type
+- **Venue statuses** — Active, Closed, Maintenance
 - **Multi-sport support** — each venue is linked to a specific sport
 
 #### Dynamic Pricing Engine
@@ -239,12 +239,12 @@ Teamat earns revenue through **commission on every booking**:
 
 #### Marketplace Oversight
 - **Company management** — approve/reject registrations, reset passwords
-- **business management** — approve/reject registrations, manage status
+- **Business management** — approve/reject registrations, manage status
 - **Employee oversight** — view all employees across all companies
 - **Community monitoring** — view all communities across the platform
 
 #### Onboarding Workflow
-- Companies and businesss **self-register** → status set to **Pending**
+- Companies and businesses **self-register** → status set to **Pending**
 - Admin **reviews and approves** → generates secure activation token
 - Activation email sent → entity sets password and goes live
 - **Rejection flow** with status tracking
@@ -266,7 +266,7 @@ Teamat earns revenue through **commission on every booking**:
 - Full visibility into event details, participants, and financials
 
 #### Notification System
-- **Create and send notifications** to companies, businesss, or employees
+- **Create and send notifications** to companies, businesses, or employees
 - **System-wide announcement** capability
 
 ---
@@ -316,11 +316,11 @@ Teamat earns revenue through **commission on every booking**:
 - **Measurable wellness ROI** — track participation rates, budget utilization, and engagement trends
 - **Subsidize employee sports affordably** — wallet system with community-level budget control
 - **Build company culture** — inter-departmental leagues, community engagement, activity challenges
-- **Reduce HR overhead** — self-service employee onboarding, automated notifications, zero manual coordination
+- **Reduce administrative overhead** — self-service employee onboarding, automated notifications, zero manual coordination
 - **Retention & engagement** — gamification, streaks, and leaderboards keep employees motivated
 - **Data-driven decisions** — exportable reports for management and board presentations
 
-### For Sports businesss
+### For Sports businesses
 - **Fill idle capacity** — corporate bookings during off-peak hours
 - **Predictable B2B revenue** — recurring corporate clients vs individual walk-ins
 - **Flexible pricing control** — peak/off-peak, duration-based, day-specific pricing
@@ -338,7 +338,7 @@ Teamat earns revenue through **commission on every booking**:
 
 ### For the Platform (Teamat)
 - **Commission-based revenue** — earns on every confirmed booking
-- **Network effects** — more companies → more business demand → more businesss join → more companies attracted
+- **Network effects** — more companies → more business demand → more businesses join → more companies attracted
 - **Low marginal cost** — SaaS model scales without proportional cost increase
 - **Data moat** — deep engagement data creates switching costs
 - **Expansion potential** — new sports, new cities, new corporate wellness services
@@ -348,7 +348,7 @@ Teamat earns revenue through **commission on every booking**:
 ## 8. Competitive Advantages
 
 ### 1. Three-Sided Marketplace
-Unlike simple booking apps, Teamat connects **companies, businesss, and employees** in a value loop where each participant benefits from the others' presence.
+Unlike simple booking apps, Teamat connects **companies, businesses, and employees** in a value loop where each participant benefits from the others' presence.
 
 ### 2. Corporate Wellness Integration
 Not just a booking tool — Teamat is a **complete corporate wellness platform** with budgets, analytics, gamification, and community management built in.
@@ -360,7 +360,7 @@ The **automated cost calculation** (community subsidy → company wallet → per
 **Challenges, streaks, leaderboards, and leagues** drive sustained engagement beyond initial novelty — solving the wellness program drop-off problem.
 
 ### 5. Automation Layer
-**Weekly digests, nudges, auto-challenges, and quick match suggestions** keep the platform active with minimal manual effort from HR or community leaders.
+**Weekly digests, nudges, auto-challenges, and quick match suggestions** keep the platform active with minimal manual effort from company admins or community leaders.
 
 ### 6. Full Tournament System
 **Round-robin and knockout leagues** with standings, brackets, penalties, and match recording create a competitive ecosystem that keeps employees coming back.
@@ -384,18 +384,18 @@ The employee portal is designed as a **mobile app experience** with bottom navig
 ### Target Market: Saudi Arabia & GCC
 - **Saudi Vision 2030** prioritizes sports, wellness, and quality of life
 - **Corporate wellness** is a rapidly growing sector in the region
-- Growing number of **sports facilities** (padel, football, tennis businesss)
+- Growing number of **sports facilities** (padel, football, tennis businesses)
 - **Young, tech-savvy workforce** comfortable with mobile apps
 - **Large corporate sector** with employee engagement mandates
 
 ### Total Addressable Market
 - **Companies**: Thousands of medium-to-large enterprises in KSA
-- **Sports businesss**: Hundreds of venues across major cities
+- **Sports businesses**: Hundreds of venues across major cities
 - **Employees**: Millions of corporate workers seeking sports activities
 
 ### Growth Vectors
 1. **Geographic expansion** — city by city across KSA, then GCC
-2. **Sport expansion** — add new sports as businesss onboard
+2. **Sport expansion** — add new sports as businesses onboard
 3. **Feature expansion** — individual bookings, fitness tracking, corporate tournaments
 4. **Revenue expansion** — premium plans, sponsored challenges, venue advertising
 
@@ -415,7 +415,7 @@ The employee portal is designed as a **mobile app experience** with bottom navig
 - Community features (announcements, polls, member management)
 
 ### Test Data Scale
-- 4 sports, 6 businesss, 5 companies, 25 employees, 5 communities
+- 4 sports, 6 businesses, 5 companies, 25 employees, 5 communities
 - Active leagues, settlements, challenges, and financial transactions
 - Ready for demo and pilot deployment
 

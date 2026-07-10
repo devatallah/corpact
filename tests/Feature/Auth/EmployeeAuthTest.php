@@ -3,8 +3,8 @@
 use App\Models\Company;
 use App\Models\Employee;
 
-test('employee login page renders', function () {
-    $this->get(route('employee.login'))->assertOk();
+test('employee login page redirects to landing login modal', function () {
+    $this->get(route('employee.login'))->assertRedirect('/employees?login=1');
 });
 
 test('active employee can login', function () {
