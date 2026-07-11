@@ -9,7 +9,7 @@ interface Props {
     categories: Category[];
 }
 
-export default function venueCreate({ categories }: Props) {
+export default function VenueCreate({ categories }: Props) {
     const form = useForm({
         name: '',
         category_id: '',

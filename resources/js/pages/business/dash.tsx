@@ -18,7 +18,7 @@ interface Props {
     pendingEvents: Event[];
 }
 
-export default function businessDashboard({ business, stats, pendingEvents }: Props) {
+export default function BusinessDashboard({ business, stats, pendingEvents }: Props) {
     return (
         <BusinessLayout>
             <Head title="الرئيسية" />

@@ -25,7 +25,7 @@ const filterOptions = [
     { label: 'مرفوض', value: 'rejected' },
 ];
 
-export default function businessesIndex({ businesses, stats, filters, categories }: Props) {
+export default function BusinessesIndex({ businesses, stats, filters, categories }: Props) {
     const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { status: filters?.status });
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<Business | null>(null);

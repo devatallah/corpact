@@ -122,7 +122,7 @@ function PricingForm({ data, onChange, onSubmit, onCancel, processing, submitLab
 }
 
 /* ── Main Component ── */
-export default function venuesIndex({ business, venues, categories }: Props) {
+export default function VenuesIndex({ business, venues, categories }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<Venue | null>(null);
 

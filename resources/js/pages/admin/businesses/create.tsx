@@ -1,7 +1,7 @@
 import AdminLayout from '@/layouts/admin-layout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function businesssCreate() {
+export default function BusinessesCreate() {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         city: '',

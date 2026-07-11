@@ -6,7 +6,7 @@ interface Props {
     business: Business;
 }
 
-export default function businesssEdit({ business }: Props) {
+export default function BusinessesEdit({ business }: Props) {
     const { data, setData, put, processing, errors } = useForm({
         name: business.name ?? '',
         city: business.city ?? '',

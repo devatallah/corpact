@@ -92,7 +92,7 @@ const statusColors: Record<string, string> = {
     rejected: '#D32F2F',
 };
 
-export default function businessSchedule({ schedule, date }: Props) {
+export default function BusinessSchedule({ schedule, date }: Props) {
     const venues = schedule.venues ?? [];
     const days = schedule.days ?? [];
     const weekStart = schedule.week_start;
