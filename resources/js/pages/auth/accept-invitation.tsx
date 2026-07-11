@@ -1,5 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import PasswordInput from '@/components/password-input';
 
 interface Props {
     invitation: {
@@ -128,9 +129,8 @@ export default function AcceptInvitation({ invitation }: Props) {
 
                             <div style={{ marginBottom: 16 }}>
                                 <label style={labelStyle}>كلمة المرور</label>
-                                <input
+                                <PasswordInput
                                     style={{ ...inputStyle, direction: 'ltr' }}
-                                    type="password"
                                     autoComplete="new-password"
                                     value={data.password}
                                     onChange={(e) => setData('password', e.target.value)}
@@ -140,9 +140,8 @@ export default function AcceptInvitation({ invitation }: Props) {
 
                             <div style={{ marginBottom: 20 }}>
                                 <label style={labelStyle}>تأكيد كلمة المرور</label>
-                                <input
+                                <PasswordInput
                                     style={{ ...inputStyle, direction: 'ltr' }}
-                                    type="password"
                                     autoComplete="new-password"
                                     value={data.password_confirmation}
                                     onChange={(e) => setData('password_confirmation', e.target.value)}

@@ -1,14 +1,15 @@
-import AdminLayout from '@/layouts/admin-layout';
+import { Head, router, useForm } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
+import toastr from 'toastr';
+import ConfirmModal from '@/components/confirm-modal';
 import FilterTabs from '@/components/filter-tabs';
-import StatusBadge from '@/components/status-badge';
 import Pagination from '@/components/pagination';
+import PasswordInput from '@/components/password-input';
+import StatusBadge from '@/components/status-badge';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import AdminLayout from '@/layouts/admin-layout';
 import { fmtDate } from '@/lib/utils';
 import type { Company, PaginatedResult } from '@/types/models';
-import { Head, router, useForm } from '@inertiajs/react';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
-import ConfirmModal from '@/components/confirm-modal';
-import toastr from 'toastr';
-import { useState, useEffect } from 'react';
 
 interface Props {
     companies: PaginatedResult<Company>;
@@ -60,13 +61,18 @@ export default function CompaniesIndex({ companies, stats, filters }: Props) {
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
+
         if (editingItem) {
             form.put(`/admin/companies/${editingItem.id}`, {
-                onSuccess: () => { setEditingItem(null); toastr.success('تم تحديث الشركة بنجاح.'); },
+                onSuccess: () => {
+ setEditingItem(null); toastr.success('تم تحديث الشركة بنجاح.'); 
+},
             });
         } else {
             form.post('/admin/companies', {
-                onSuccess: () => { setShowCreate(false); form.reset(); toastr.success('تم إنشاء الشركة بنجاح.'); },
+                onSuccess: () => {
+ setShowCreate(false); form.reset(); toastr.success('تم إنشاء الشركة بنجاح.'); 
+},
             });
         }
     }
@@ -82,7 +88,10 @@ export default function CompaniesIndex({ companies, stats, filters }: Props) {
     const [resetTarget, setResetTarget] = useState<{ id: number; email: string } | null>(null);
 
     function confirmResetPassword() {
-        if (!resetTarget) return;
+        if (!resetTarget) {
+return;
+}
+
         const email = resetTarget.email;
         router.post(`/admin/companies/${resetTarget.id}/reset-password`, {}, {
             preserveScroll: true,
@@ -202,11 +211,15 @@ export default function CompaniesIndex({ companies, stats, filters }: Props) {
 
             {/* Create/Edit Modal */}
             {(showCreate || editingItem) && (
-                <div className="detail-overlay open" onClick={() => { setShowCreate(false); setEditingItem(null); }}>
+                <div className="detail-overlay open" onClick={() => {
+ setShowCreate(false); setEditingItem(null); 
+}}>
                     <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
                         <h3>
                             {editingItem ? 'تعديل شركة' : 'إضافة شركة'}
-                            <button className="close-btn" onClick={() => { setShowCreate(false); setEditingItem(null); }}>×</button>
+                            <button className="close-btn" onClick={() => {
+ setShowCreate(false); setEditingItem(null); 
+}}>×</button>
                         </h3>
 
                         {Object.keys(form.errors).length > 0 && (
@@ -257,8 +270,7 @@ export default function CompaniesIndex({ companies, stats, filters }: Props) {
                                 {!editingItem ? (
                                     <div className="fg">
                                         <label>كلمة المرور *</label>
-                                        <input
-                                            type="password"
+                                        <PasswordInput
                                             value={form.data.password}
                                             onChange={(e) => form.setData('password', e.target.value)}
                                             placeholder="••••••"
@@ -337,7 +349,9 @@ export default function CompaniesIndex({ companies, stats, filters }: Props) {
 
                             <div className="panel-actions">
                                 <button type="submit" className="pa-approve" disabled={form.processing}>حفظ</button>
-                                <button type="button" className="pa-reject" onClick={() => { setShowCreate(false); setEditingItem(null); }}>إلغاء</button>
+                                <button type="button" className="pa-reject" onClick={() => {
+ setShowCreate(false); setEditingItem(null); 
+}}>إلغاء</button>
                             </div>
                         </form>
                     </div>

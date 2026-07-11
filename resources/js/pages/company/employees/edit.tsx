@@ -1,8 +1,9 @@
-import CompanyLayout from '@/layouts/company-layout';
-import type { Department, Employee } from '@/types/models';
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import toastr from 'toastr';
+import PasswordInput from '@/components/password-input';
+import CompanyLayout from '@/layouts/company-layout';
+import type { Department, Employee } from '@/types/models';
 
 interface Props {
     employee: Employee;
@@ -74,8 +75,7 @@ export default function EmployeeEdit({ employee, departments }: Props) {
 
                     <div className="fg" style={{ marginBottom: 16 }}>
                         <label className="fl">كلمة المرور الجديدة</label>
-                        <input
-                            type="password"
+                        <PasswordInput
                             className="fi"
                             dir="ltr"
                             placeholder="اتركه فارغاً للإبقاء على الحالية"

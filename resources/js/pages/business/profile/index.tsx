@@ -1,6 +1,7 @@
-import BusinessLayout from '@/layouts/business-layout';
 import { Head, useForm } from '@inertiajs/react';
 import toastr from 'toastr';
+import PasswordInput from '@/components/password-input';
+import BusinessLayout from '@/layouts/business-layout';
 
 interface Props {
     business: {
@@ -12,7 +13,7 @@ interface Props {
     };
 }
 
-export default function businessProfile({ business }: Props) {
+export default function BusinessProfile({ business }: Props) {
     const form = useForm({
         name: business.name ?? '',
         contact_name: business.contact_name ?? '',
@@ -100,8 +101,7 @@ export default function businessProfile({ business }: Props) {
                         <div className="frow">
                             <div className="fg">
                                 <label>كلمة المرور الحالية *</label>
-                                <input
-                                    type="password"
+                                <PasswordInput
                                     value={form.data.current_password}
                                     onChange={(e) => form.setData('current_password', e.target.value)}
                                     placeholder="أدخل كلمة المرور الحالية"
@@ -114,8 +114,7 @@ export default function businessProfile({ business }: Props) {
                         <div className="frow">
                             <div className="fg">
                                 <label>كلمة المرور الجديدة</label>
-                                <input
-                                    type="password"
+                                <PasswordInput
                                     value={form.data.password}
                                     onChange={(e) => form.setData('password', e.target.value)}
                                     placeholder="اتركها فارغة للإبقاء"
@@ -125,8 +124,7 @@ export default function businessProfile({ business }: Props) {
                             </div>
                             <div className="fg">
                                 <label>تأكيد كلمة المرور</label>
-                                <input
-                                    type="password"
+                                <PasswordInput
                                     value={form.data.password_confirmation}
                                     onChange={(e) => form.setData('password_confirmation', e.target.value)}
                                     placeholder="أعد كتابة كلمة المرور"

@@ -1,12 +1,14 @@
-import CompanyLayout from '@/layouts/company-layout';
-import Pagination from '@/components/pagination';
-import StatusBadge from '@/components/status-badge';
-import CategoryIcon from '@/components/category-icon';
-import type { Department, Employee, PaginatedResult } from '@/types/models';
 import { Head, useForm } from '@inertiajs/react';
-import { useState, useEffect, type FormEvent } from 'react';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import { useState, useEffect  } from 'react';
+import type {FormEvent} from 'react';
 import toastr from 'toastr';
+import CategoryIcon from '@/components/category-icon';
+import Pagination from '@/components/pagination';
+import PasswordInput from '@/components/password-input';
+import StatusBadge from '@/components/status-badge';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import CompanyLayout from '@/layouts/company-layout';
+import type { Department, Employee, PaginatedResult } from '@/types/models';
 
 interface Props {
     employees: PaginatedResult<Employee>;
@@ -49,7 +51,11 @@ export default function EmployeesIndex({ employees, departments, filters, active
 
     function handleEdit(e: FormEvent) {
         e.preventDefault();
-        if (!editingItem) return;
+
+        if (!editingItem) {
+return;
+}
+
         editForm.put(`/company/employees/${editingItem.id}`, {
             onSuccess: () => {
                 setEditingItem(null);
@@ -218,8 +224,7 @@ export default function EmployeesIndex({ employees, departments, filters, active
                             <div className="frow">
                                 <div className="fg">
                                     <label>كلمة المرور الجديدة</label>
-                                    <input
-                                        type="password"
+                                    <PasswordInput
                                         dir="ltr"
                                         placeholder="اتركه فارغاً للإبقاء على الحالية"
                                         value={editForm.data.password}

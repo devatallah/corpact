@@ -1,13 +1,14 @@
-import AdminLayout from '@/layouts/admin-layout';
-import StatusBadge from '@/components/status-badge';
-import Pagination from '@/components/pagination';
-import { fmtDateTime } from '@/lib/utils';
-import type { PaginatedResult } from '@/types/models';
 import { Head, router, useForm } from '@inertiajs/react';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
-import ConfirmModal from '@/components/confirm-modal';
 import { useState, useEffect } from 'react';
 import toastr from 'toastr';
+import ConfirmModal from '@/components/confirm-modal';
+import Pagination from '@/components/pagination';
+import PasswordInput from '@/components/password-input';
+import StatusBadge from '@/components/status-badge';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import AdminLayout from '@/layouts/admin-layout';
+import { fmtDateTime } from '@/lib/utils';
+import type { PaginatedResult } from '@/types/models';
 
 interface Admin {
     id: number;
@@ -65,13 +66,18 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
+
         if (editingItem) {
             form.put(`/admin/admins/${editingItem.id}`, {
-                onSuccess: () => { setEditingItem(null); toastr.success('تم التحديث بنجاح.'); },
+                onSuccess: () => {
+ setEditingItem(null); toastr.success('تم التحديث بنجاح.'); 
+},
             });
         } else {
             form.post('/admin/admins', {
-                onSuccess: () => { setShowCreate(false); form.reset(); toastr.success('تم الإنشاء بنجاح.'); },
+                onSuccess: () => {
+ setShowCreate(false); form.reset(); toastr.success('تم الإنشاء بنجاح.'); 
+},
             });
         }
     }
@@ -80,14 +86,20 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
     const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
 
     function confirmResetPassword() {
-        if (!resetTarget) return;
+        if (!resetTarget) {
+return;
+}
+
         const email = resetTarget.email;
         router.post(`/admin/admins/${resetTarget.id}/reset-password`, {}, { preserveScroll: true, onSuccess: () => toastr.success(`تم إرسال رابط إعادة تعيين كلمة المرور إلى ${email}`) });
         setResetTarget(null);
     }
 
     function confirmDelete() {
-        if (!deleteTarget) return;
+        if (!deleteTarget) {
+return;
+}
+
         router.delete(`/admin/admins/${deleteTarget.id}`, { preserveScroll: true, onSuccess: () => toastr.success('تم حذف المشرف بنجاح.'), onError: () => toastr.error('لا يمكنك حذف حسابك الحالي.') });
         setDeleteTarget(null);
     }
@@ -192,11 +204,15 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
 
             {/* Create/Edit Modal */}
             {(showCreate || editingItem) && (
-                <div className="detail-overlay open" onClick={() => { setShowCreate(false); setEditingItem(null); }}>
+                <div className="detail-overlay open" onClick={() => {
+ setShowCreate(false); setEditingItem(null); 
+}}>
                     <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
                         <h3>
                             {editingItem ? 'تعديل مشرف' : 'إضافة مشرف'}
-                            <button className="close-btn" onClick={() => { setShowCreate(false); setEditingItem(null); }}>×</button>
+                            <button className="close-btn" onClick={() => {
+ setShowCreate(false); setEditingItem(null); 
+}}>×</button>
                         </h3>
 
                         {Object.keys(form.errors).length > 0 && (
@@ -235,8 +251,7 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
                             <div className="frow">
                                 <div className="fg">
                                     <label>{editingItem ? 'كلمة المرور (اتركها فارغة للإبقاء)' : 'كلمة المرور *'}</label>
-                                    <input
-                                        type="password"
+                                    <PasswordInput
                                         value={form.data.password}
                                         onChange={(e) => form.setData('password', e.target.value)}
                                         placeholder="••••••"
@@ -287,7 +302,9 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
 
                             <div className="panel-actions">
                                 <button type="submit" className="pa-approve" disabled={form.processing}>حفظ</button>
-                                <button type="button" className="pa-reject" onClick={() => { setShowCreate(false); setEditingItem(null); }}>إلغاء</button>
+                                <button type="button" className="pa-reject" onClick={() => {
+ setShowCreate(false); setEditingItem(null); 
+}}>إلغاء</button>
                             </div>
                         </form>
                     </div>

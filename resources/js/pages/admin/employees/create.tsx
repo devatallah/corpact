@@ -1,6 +1,7 @@
+import { Head, Link, useForm } from '@inertiajs/react';
+import PasswordInput from '@/components/password-input';
 import AdminLayout from '@/layouts/admin-layout';
 import type { Company } from '@/types/models';
-import { Head, Link, useForm } from '@inertiajs/react';
 
 interface Props {
     companies: Company[];
@@ -74,8 +75,7 @@ export default function EmployeesCreate({ companies }: Props) {
                     <div className="frow">
                         <div className="fg">
                             <label>كلمة المرور *</label>
-                            <input
-                                type="password"
+                            <PasswordInput
                                 value={data.password}
                                 onChange={(e) => setData('password', e.target.value)}
                                 placeholder="••••••"

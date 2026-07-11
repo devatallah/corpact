@@ -1,6 +1,7 @@
-import AdminLayout from '@/layouts/admin-layout';
 import { Head, useForm } from '@inertiajs/react';
 import toastr from 'toastr';
+import PasswordInput from '@/components/password-input';
+import AdminLayout from '@/layouts/admin-layout';
 
 interface Props {
     admin: {
@@ -91,8 +92,7 @@ export default function AdminProfile({ admin }: Props) {
                         <div className="frow">
                             <div className="fg">
                                 <label>كلمة المرور الحالية *</label>
-                                <input
-                                    type="password"
+                                <PasswordInput
                                     value={form.data.current_password}
                                     onChange={(e) => form.setData('current_password', e.target.value)}
                                     placeholder="أدخل كلمة المرور الحالية"
@@ -105,8 +105,7 @@ export default function AdminProfile({ admin }: Props) {
                         <div className="frow">
                             <div className="fg">
                                 <label>كلمة المرور الجديدة</label>
-                                <input
-                                    type="password"
+                                <PasswordInput
                                     value={form.data.password}
                                     onChange={(e) => form.setData('password', e.target.value)}
                                     placeholder="اتركها فارغة للإبقاء"
@@ -116,8 +115,7 @@ export default function AdminProfile({ admin }: Props) {
                             </div>
                             <div className="fg">
                                 <label>تأكيد كلمة المرور</label>
-                                <input
-                                    type="password"
+                                <PasswordInput
                                     value={form.data.password_confirmation}
                                     onChange={(e) => form.setData('password_confirmation', e.target.value)}
                                     placeholder="أعد كتابة كلمة المرور"

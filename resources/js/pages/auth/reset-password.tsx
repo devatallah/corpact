@@ -1,6 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
-import type { GuardName } from '@/types/auth';
 import type { FormEvent } from 'react';
+import PasswordInput from '@/components/password-input';
+import type { GuardName } from '@/types/auth';
 
 type Props = {
     guard: GuardName;
@@ -127,9 +128,8 @@ export default function ResetPassword({ guard, guardLabel, token, email }: Props
 
                             <div style={{ marginBottom: 16 }}>
                                 <label style={labelStyle}>كلمة المرور الجديدة</label>
-                                <input
+                                <PasswordInput
                                     style={inputStyle}
-                                    type="password"
                                     placeholder="••••••••"
                                     autoComplete="new-password"
                                     autoFocus
@@ -140,9 +140,8 @@ export default function ResetPassword({ guard, guardLabel, token, email }: Props
 
                             <div style={{ marginBottom: 20 }}>
                                 <label style={labelStyle}>تأكيد كلمة المرور</label>
-                                <input
+                                <PasswordInput
                                     style={inputStyle}
-                                    type="password"
                                     placeholder="••••••••"
                                     autoComplete="new-password"
                                     value={data.password_confirmation}

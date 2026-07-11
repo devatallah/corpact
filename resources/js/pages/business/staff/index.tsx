@@ -1,8 +1,9 @@
-import BusinessLayout from '@/layouts/business-layout';
-import type { Business } from '@/types/models';
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 import toastr from 'toastr';
+import PasswordInput from '@/components/password-input';
+import BusinessLayout from '@/layouts/business-layout';
+import type { Business } from '@/types/models';
 
 interface Role {
     value: string;
@@ -67,7 +68,11 @@ export default function StaffIndex({ business, staff, roles }: Props) {
 
     function handleUpdate(e: React.FormEvent) {
         e.preventDefault();
-        if (!editingId) return;
+
+        if (!editingId) {
+return;
+}
+
         editForm.put(`/business/staff/${editingId}`, {
             onSuccess: () => {
                 setEditingId(null);
@@ -77,7 +82,10 @@ export default function StaffIndex({ business, staff, roles }: Props) {
     }
 
     function handleDelete(id: number) {
-        if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) return;
+        if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) {
+return;
+}
+
         router.delete(`/business/staff/${id}`, {
             onSuccess: () => toastr.success('تم حذف الموظف.'),
         });
@@ -85,6 +93,7 @@ export default function StaffIndex({ business, staff, roles }: Props) {
 
     function roleLabelAr(role: string): string {
         const found = roles.find(r => r.value === role);
+
         return found?.label ?? role;
     }
 
@@ -95,7 +104,9 @@ export default function StaffIndex({ business, staff, roles }: Props) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h1 style={{ fontSize: 20, fontWeight: 900 }}>الموظفون</h1>
                 <button
-                    onClick={() => { setShowForm(!showForm); setEditingId(null); }}
+                    onClick={() => {
+ setShowForm(!showForm); setEditingId(null); 
+}}
                     style={{
                         background: '#1C1410', color: '#fff', border: 'none', borderRadius: 10,
                         padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
@@ -136,8 +147,7 @@ export default function StaffIndex({ business, staff, roles }: Props) {
                             </div>
                             <div>
                                 <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>كلمة المرور</label>
-                                <input
-                                    type="password"
+                                <PasswordInput
                                     value={createForm.data.password}
                                     onChange={e => createForm.setData('password', e.target.value)}
                                     style={inputStyle}
@@ -212,8 +222,7 @@ export default function StaffIndex({ business, staff, roles }: Props) {
                                         </div>
                                         <div>
                                             <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>كلمة المرور الجديدة (اختياري)</label>
-                                            <input
-                                                type="password"
+                                            <PasswordInput
                                                 value={editForm.data.password}
                                                 onChange={e => editForm.setData('password', e.target.value)}
                                                 style={inputStyle}

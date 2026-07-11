@@ -1,5 +1,7 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useState  } from 'react';
+import type {FormEvent} from 'react';
+import PasswordInput from '@/components/password-input';
 
 interface Props {
     token: string;
@@ -151,8 +153,7 @@ export default function Activatebusiness({ token, businessName, email, activated
 
                                     <div style={{ marginBottom: 14 }}>
                                         <label style={labelStyle}>كلمة المرور *</label>
-                                        <input
-                                            type="password"
+                                        <PasswordInput
                                             value={data.password}
                                             onChange={e => setData('password', e.target.value)}
                                             dir="ltr"
@@ -164,8 +165,7 @@ export default function Activatebusiness({ token, businessName, email, activated
 
                                     <div style={{ marginBottom: 16 }}>
                                         <label style={labelStyle}>تأكيد كلمة المرور *</label>
-                                        <input
-                                            type="password"
+                                        <PasswordInput
                                             value={data.password_confirmation}
                                             onChange={e => setData('password_confirmation', e.target.value)}
                                             dir="ltr"
