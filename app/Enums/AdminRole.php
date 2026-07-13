@@ -38,6 +38,7 @@ enum AdminRole: string
                 'manage_events',
                 'view_revenue',
                 'manage_notifications',
+                'manage_support',
                 'manage_settings',
             ],
             self::Admin => [
@@ -49,6 +50,7 @@ enum AdminRole: string
                 'manage_events',
                 'view_revenue',
                 'manage_notifications',
+                'manage_support',
             ],
             self::Accountant => [
                 'view_revenue',

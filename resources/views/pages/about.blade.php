@@ -9,16 +9,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ asset('landing/styles.css') }}">
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #F0EDE6; color: #0A0A0A; font-family: 'Almarai', sans-serif; line-height: 1.8; }
     .header { padding: 24px 0; border-bottom: 1px solid rgba(10,10,10,0.08); background: #F0EDE6; }
-    .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
-    .container-narrow { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+    .page-container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+    .page-container-narrow { max-width: 800px; margin: 0 auto; padding: 0 24px; }
     .logo-row { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #0A0A0A; }
     .logo-text { font-size: 20px; font-weight: 800; }
 
-    .hero { background: #0A0A0A; padding: 80px 0 60px; text-align: center; }
+    .hero { background: #0A0A0A; padding: 140px 0 60px; text-align: center; }
     .hero h1 { font-size: 40px; font-weight: 800; color: #fff; margin-bottom: 12px; }
     .hero .subtitle { font-size: 16px; color: rgba(255,255,255,0.6); max-width: 500px; margin: 0 auto; }
 
@@ -57,24 +57,17 @@
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="container-narrow">
-      <a href="/" class="logo-row">
-        <svg width="32" height="32" viewBox="0 0 52 52"><rect width="52" height="52" rx="13" fill="#C8FF00"/><rect x="11" y="13" width="30" height="8" rx="2.5" fill="#0A0A0A"/><rect x="21" y="21" width="10" height="20" rx="2.5" fill="#0A0A0A"/></svg>
-        <span class="logo-text">تيمات</span>
-      </a>
-    </div>
-  </div>
+  @include('partials.site-nav')
 
   <div class="hero">
-    <div class="container">
+    <div class="page-container">
       <h1>عن تيمات</h1>
       <p class="subtitle">منصة الرياضة المؤسسية الأولى في المملكة</p>
     </div>
   </div>
 
   <div class="section-cream">
-    <div class="container">
+    <div class="page-container">
       <h2 class="section-title">قصتنا</h2>
       <p class="section-text">بدأت تيمات من فكرة بسيطة: ماذا لو استطاعت كل شركة أن توفّر لموظفيها تجربة رياضية حقيقية دون عناء التنسيق اليدوي؟ من هنا، بنينا منصة تربط الشركات بأفضل المرافق الرياضية في المملكة — من ملاعب البادل والتنس إلى الأندية الرياضية المتكاملة. تيمات تُحوّل زملاء العمل إلى فريق رياضي حقيقي عبر تقنية تُسهّل الحجز، تُدير الميزانيات، وتبني مجتمعات رياضية نابضة بالحياة داخل كل شركة.</p>
 
@@ -92,7 +85,7 @@
   </div>
 
   <div class="section-dark">
-    <div class="container">
+    <div class="page-container">
       <h2 class="section-title section-title-light" style="text-align: center; display: block; border-bottom: none; margin-bottom: 40px;">أرقامنا</h2>
       <div class="stats-grid">
         <div class="stat-item">
@@ -116,7 +109,7 @@
   </div>
 
   <div class="cta-section">
-    <div class="container">
+    <div class="page-container">
       <h2>انضم إلى تيمات</h2>
       <p>ابدأ رحلتك مع منصة الرياضة المؤسسية الأولى في المملكة.</p>
       <div class="cta-buttons">
@@ -126,5 +119,6 @@
       </div>
     </div>
   </div>
+@include('partials.site-footer')
 </body>
 </html>

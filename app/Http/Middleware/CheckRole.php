@@ -23,7 +23,9 @@ class CheckRole
             abort(403, 'غير مصرح لك بالوصول.');
         }
 
-        if (! in_array($user->role, $roles, true)) {
+        $role = $user->role instanceof \BackedEnum ? $user->role->value : $user->role;
+
+        if (! in_array($role, $roles, true)) {
             abort(403, 'غير مصرح لك بالوصول.');
         }
 

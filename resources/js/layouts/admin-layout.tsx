@@ -13,6 +13,7 @@ const allNavItems: (NavItem & { permission?: string })[] = [
     { label: 'الفعاليات', href: '/admin/events', emoji: '📅', permission: 'manage_events' },
     { label: 'الإيرادات', href: '/admin/revenue', emoji: '💰', permission: 'view_revenue' },
     { label: 'الإشعارات', href: '/admin/notifs', emoji: '🔔', permission: 'manage_notifications' },
+    { label: 'رسائل الدعم', href: '/admin/support', emoji: '💬', permission: 'manage_support' },
     { label: 'المشرفون', href: '/admin/admins', emoji: '🛡️', permission: 'manage_admins' },
     { label: 'الملف الشخصي', href: '/admin/profile', emoji: '👤' },
 ];

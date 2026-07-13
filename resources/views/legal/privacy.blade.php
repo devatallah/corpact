@@ -9,11 +9,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ asset('landing/styles.css') }}">
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #F0EDE6; color: #0A0A0A; font-family: 'Almarai', sans-serif; line-height: 1.8; }
+    body { padding-top: 72px; background: #F0EDE6; color: #0A0A0A; font-family: 'Almarai', sans-serif; line-height: 1.8; }
     .header { padding: 24px 0; border-bottom: 1px solid rgba(10,10,10,0.08); }
-    .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+    .page-container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
     .logo-row { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #0A0A0A; }
     .logo-text { font-size: 20px; font-weight: 800; }
     .content { padding: 48px 0 80px; }
@@ -26,16 +26,9 @@
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="container">
-      <a href="/" class="logo-row">
-        <svg width="32" height="32" viewBox="0 0 52 52"><rect width="52" height="52" rx="13" fill="#C8FF00"/><rect x="11" y="13" width="30" height="8" rx="2.5" fill="#0A0A0A"/><rect x="21" y="21" width="10" height="20" rx="2.5" fill="#0A0A0A"/></svg>
-        <span class="logo-text">تيمات</span>
-      </a>
-    </div>
-  </div>
+  @include('partials.site-nav')
   <div class="content">
-    <div class="container">
+    <div class="page-container">
       <h1>سياسة الخصوصية</h1>
       <p class="subtitle">آخر تحديث: يوليو 2026</p>
 
@@ -72,5 +65,6 @@
       </a>
     </div>
   </div>
+@include('partials.site-footer')
 </body>
 </html>

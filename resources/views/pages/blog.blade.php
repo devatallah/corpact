@@ -26,7 +26,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('landing/styles.css') }}">
   <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Blog","name":"مدونة تيمات","description":"مقالات عن ثقافة العمل والرياضة المؤسسية","url":"https://teamat.app/blog","inLanguage":"ar","isPartOf":{"@type":"WebSite","name":"تيمات","url":"https://teamat.app"}}
+{"@@context":"https://schema.org","@type":"Blog","name":"مدونة تيمات","description":"مقالات عن ثقافة العمل والرياضة المؤسسية","url":"https://teamat.app/blog","inLanguage":"ar","isPartOf":{"@type":"WebSite","name":"تيمات","url":"https://teamat.app"}}
 </script>
 </head>
 <body style="margin:0;padding:0;background:#F0EDE6;font-family:'Almarai',sans-serif;">
@@ -35,26 +35,7 @@
 <a href="#main-content" style="position:absolute;top:-40px;left:0;background:#C8FF00;color:#0A0A0A;padding:8px 16px;z-index:1000;font-family:'Almarai',sans-serif;font-size:14px;font-weight:700;text-decoration:none;transition:top .2s;" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">تخطي إلى المحتوى</a>
 
 <!-- Nav -->
-<nav style="position:fixed;top:0;right:0;left:0;z-index:50;background:rgba(240,237,230,0.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
-  <div style="max-width:1200px;margin:0 auto;padding:0 24px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;height:64px;">
-      <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
-        <svg width="32" height="32" viewBox="0 0 52 52"><rect width="52" height="52" rx="13" fill="#C8FF00"/><rect x="11" y="13" width="30" height="8" rx="2.5" fill="#0A0A0A"/><rect x="21" y="21" width="10" height="20" rx="2.5" fill="#0A0A0A"/></svg>
-        <span style="font-weight:700;font-size:20px;color:#0A0A0A;font-family:'Almarai',sans-serif;">تيمات</span>
-      </a>
-      <div style="display:flex;align-items:center;gap:4px;">
-        <a href="/companies" style="padding:8px 16px;font-size:14px;font-weight:600;color:rgba(10,10,10,0.6);text-decoration:none;font-family:'Almarai',sans-serif;">للشركات</a>
-        <a href="/employees" style="padding:8px 16px;font-size:14px;font-weight:600;color:rgba(10,10,10,0.6);text-decoration:none;font-family:'Almarai',sans-serif;">للموظفين</a>
-        <a href="/businesses" style="padding:8px 16px;font-size:14px;font-weight:600;color:rgba(10,10,10,0.6);text-decoration:none;font-family:'Almarai',sans-serif;">لمزودي الخدمة</a>
-        <a href="/blog" style="padding:8px 16px;font-size:14px;font-weight:600;color:#0A0A0A;text-decoration:none;font-family:'Almarai',sans-serif;position:relative;">المدونة<span style="position:absolute;bottom:0;right:12px;left:12px;height:2px;border-radius:2px;background:#C8FF00;"></span></a>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <a href="/employee/login" style="font-size:14px;font-weight:600;color:rgba(10,10,10,0.6);text-decoration:none;font-family:'Almarai',sans-serif;">تسجيل دخول</a>
-        <a href="/company/register" style="display:inline-flex;align-items:center;gap:6px;background:#C8FF00;color:#0A0A0A;font-weight:700;font-size:14px;padding:8px 20px;border-radius:8px;text-decoration:none;font-family:'Almarai',sans-serif;">سجّل شركتك</a>
-      </div>
-    </div>
-  </div>
-</nav>
+@include('partials.site-nav')
 
 <!-- Main Content -->
 <main id="main-content" style="padding-top:100px;padding-bottom:60px;">
@@ -151,44 +132,7 @@
 </main>
 
 <!-- Footer -->
-<footer style="background:#0A0A0A;color:#F0EDE6;">
-  <div style="max-width:1200px;margin:0 auto;padding:64px 24px;">
-    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px;padding-bottom:48px;border-bottom:1px solid rgba(255,255,255,0.1);">
-      <div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <svg width="32" height="32" viewBox="0 0 52 52"><rect width="52" height="52" rx="13" fill="#C8FF00"/><rect x="11" y="13" width="30" height="8" rx="2.5" fill="#0A0A0A"/><rect x="21" y="21" width="10" height="20" rx="2.5" fill="#0A0A0A"/></svg>
-          <span style="font-weight:700;font-size:20px;font-family:'Almarai',sans-serif;">تيمات</span>
-        </div>
-        <p style="color:rgba(240,237,230,0.5);font-size:14px;line-height:1.7;max-width:320px;font-family:'Almarai',sans-serif;">منصّة الرياضة المؤسسية الأولى في المملكة. نُحوّل زملاء العمل إلى فريق عبر شبكة نوادي مصمَّمة للشركات.</p>
-      </div>
-      <div>
-        <h4 style="font-weight:700;font-size:14px;margin:0 0 16px 0;color:#F0EDE6;font-family:'Almarai',sans-serif;">البوابات</h4>
-        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">
-          <li><a href="/companies" style="font-size:14px;color:rgba(240,237,230,0.5);text-decoration:none;font-family:'Almarai',sans-serif;">للشركات</a></li>
-          <li><a href="/employees" style="font-size:14px;color:rgba(240,237,230,0.5);text-decoration:none;font-family:'Almarai',sans-serif;">للموظفين</a></li>
-          <li><a href="/businesses" style="font-size:14px;color:rgba(240,237,230,0.5);text-decoration:none;font-family:'Almarai',sans-serif;">لمزودي الخدمة</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4 style="font-weight:700;font-size:14px;margin:0 0 16px 0;color:#F0EDE6;font-family:'Almarai',sans-serif;">الدعم</h4>
-        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">
-          <li><a href="/support" style="font-size:14px;color:rgba(240,237,230,0.5);text-decoration:none;font-family:'Almarai',sans-serif;">خدمة العملاء</a></li>
-          <li><a href="/terms" style="font-size:14px;color:rgba(240,237,230,0.5);text-decoration:none;font-family:'Almarai',sans-serif;">الشروط والأحكام</a></li>
-          <li><a href="/privacy" style="font-size:14px;color:rgba(240,237,230,0.5);text-decoration:none;font-family:'Almarai',sans-serif;">سياسة الخصوصية</a></li>
-          <li><a href="/pricing" style="font-size:14px;color:rgba(240,237,230,0.5);text-decoration:none;font-family:'Almarai',sans-serif;">الأسعار</a></li>
-          <li><a href="/about" style="font-size:14px;color:rgba(240,237,230,0.5);text-decoration:none;font-family:'Almarai',sans-serif;">عن تيمات</a></li>
-          <li><a href="/blog" style="font-size:14px;color:rgba(240,237,230,0.5);text-decoration:none;font-family:'Almarai',sans-serif;">المدونة</a></li>
-        </ul>
-      </div>
-    </div>
-    <div style="padding-top:24px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(240,237,230,0.5);font-family:'Inter',monospace;">
-        <span style="font-weight:700;color:#C8FF00;">teamat·</span>
-        <span>&copy; 2026 تيمات. جميع الحقوق محفوظة.</span>
-      </div>
-    </div>
-  </div>
-</footer>
+@include('partials.site-footer')
 
 <!-- Responsive styles -->
 <style>
@@ -202,9 +146,6 @@
   }
   main > div > div:last-child form {
     flex-direction: column;
-  }
-  footer > div > div:first-child {
-    grid-template-columns: 1fr !important;
   }
 }
 </style>

@@ -53,7 +53,9 @@ use Illuminate\Support\Facades\Route;
 Route::view('/terms', 'legal.terms');
 Route::view('/privacy', 'legal.privacy');
 Route::view('/support', 'legal.support');
-Route::view('/pricing', 'pages.pricing');
+Route::post('/support', [App\Http\Controllers\SupportMessageController::class, 'store'])->middleware('throttle:5,1')->name('support.store');
+Route::redirect('/pricing', '/packages');
+Route::view('/packages', 'pages.packages');
 Route::view('/about', 'pages.about');
 Route::view('/blog', 'pages.blog');
 
@@ -247,6 +249,10 @@ Route::prefix('admin')
 
             Route::get('/notifs', [AdminNotificationController::class, 'index'])->name('notifs.index');
             Route::post('/notifs', [AdminNotificationController::class, 'store'])->name('notifs.store');
+
+            Route::get('/support', [App\Http\Controllers\Admin\SupportMessageController::class, 'index'])->name('support.index');
+            Route::patch('/support/{supportMessage}', [App\Http\Controllers\Admin\SupportMessageController::class, 'update'])->name('support.update');
+            Route::delete('/support/{supportMessage}', [App\Http\Controllers\Admin\SupportMessageController::class, 'destroy'])->name('support.destroy');
             Route::post('/notifs/{notification}/read', [AdminNotificationController::class, 'markAsRead'])->name('notifs.read');
             Route::delete('/notifs/{notification}', [AdminNotificationController::class, 'destroy'])->name('notifs.destroy');
         });
