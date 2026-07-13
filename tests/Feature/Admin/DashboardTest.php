@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\business;
+use App\Models\partner;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
@@ -25,10 +25,10 @@ test('employee cannot access admin dashboard', function () {
         ->assertRedirect();
 });
 
-test('business cannot access admin dashboard', function () {
-    $business = business::factory()->create();
+test('partner cannot access admin dashboard', function () {
+    $partner = partner::factory()->create();
 
-    $this->actingAs($business, 'business')
+    $this->actingAs($partner, 'partner')
         ->get(route('admin.dash'))
         ->assertRedirect();
 });

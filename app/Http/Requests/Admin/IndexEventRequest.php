@@ -26,7 +26,7 @@ class IndexEventRequest extends FormRequest
             'search' => ['sometimes', 'string', 'max:255'],
             'status' => ['sometimes', 'string'],
             'company_id' => ['sometimes', 'integer', 'exists:companies,id'],
-            'business_id' => ['sometimes', 'integer', 'exists:businesses,id'],
+            'partner_id' => ['sometimes', 'integer', 'exists:partners,id'],
             'category_id' => ['sometimes', 'integer', 'exists:categories,id'],
             'date_from' => ['sometimes', 'date'],
             'date_to' => ['sometimes', 'date', 'after_or_equal:date_from'],
@@ -43,7 +43,7 @@ class IndexEventRequest extends FormRequest
     {
         return [
             'company_id.exists' => 'الشركة المحددة غير موجودة.',
-            'business_id.exists' => 'مزود الخدمة المحددة غير موجودة.',
+            'partner_id.exists' => 'الشريك المحددة غير موجودة.',
             'category_id.exists' => 'الفئة المحددة غير موجودة.',
             'date_to.after_or_equal' => 'تاريخ النهاية يجب أن يكون بعد أو يساوي تاريخ البداية.',
             'per_page.min' => 'عدد العناصر في الصفحة يجب أن يكون 5 على الأقل.',

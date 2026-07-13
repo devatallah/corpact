@@ -26,17 +26,17 @@ const portalMeta: Record<string, {
         buttonText: 'دخول — بوابة الشركة',
         registerHtml: { question: 'شركة جديدة؟', label: 'سجّل شركتك', href: '/companies#register' },
     },
-    business: {
+    partner: {
         description: 'سجّل دخولك لإدارة طلبات الحجز والتقويم والتسويات',
-        buttonText: 'دخول — بوابة مزود الخدمة',
-        registerHtml: { question: 'مزود خدمة جديد؟', label: 'سجّل كمزود خدمة', href: '/businesses#register' },
+        buttonText: 'دخول — بوابة الشريك',
+        registerHtml: { question: 'شريك جديد؟', label: 'سجّل كشريك', href: '/partners#register' },
     },
 };
 
 const tabs = [
     { key: 'employee' as const, label: 'موظف', href: '/employee/login', tag: 'موظف' },
     { key: 'company' as const, label: 'شركة', href: '/company/login', tag: 'شركة' },
-    { key: 'business' as const, label: 'مزود خدمة', href: '/business/login', tag: 'مزود خدمة' },
+    { key: 'partner' as const, label: 'شريك', href: '/partner/login', tag: 'شريك' },
 ];
 
 const demoCredentials: Record<GuardName, Array<{ label: string; email: string; password: string }>> = {
@@ -45,7 +45,7 @@ const demoCredentials: Record<GuardName, Array<{ label: string; email: string; p
         { label: 'شركة التقنية', email: 'hr@advancedtech.sa', password: 'password' },
         { label: 'مجموعة الابتكار', email: 'hr@innovation.sa', password: 'password' },
     ],
-    business: [
+    partner: [
         { label: 'مرافق الرياض', email: 'biz1@teamat.com', password: 'password' },
         { label: 'مرافق جدة', email: 'biz2@teamat.com', password: 'password' },
     ],
@@ -214,7 +214,7 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
         );
     }
 
-    /* ── Employee / Company / Business login ── */
+    /* ── Employee / Company / Partner login ── */
     const cfg = portalMeta[guard];
     const demos = demoCredentials[guard];
 
@@ -240,7 +240,7 @@ export default function Login({ guard, guardLabel, portalTag, canRegister, statu
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                             <a href="/companies" style={{ fontSize: 14, fontWeight: 600, color: 'rgba(10,10,10,0.6)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>للشركات</a>
                             <a href="/employees" style={{ fontSize: 14, fontWeight: 600, color: 'rgba(10,10,10,0.6)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>للموظفين</a>
-                            <a href="/businesses" style={{ fontSize: 14, fontWeight: 600, color: 'rgba(10,10,10,0.6)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>لمزودي الخدمة</a>
+                            <a href="/partners" style={{ fontSize: 14, fontWeight: 600, color: 'rgba(10,10,10,0.6)', textDecoration: 'none', fontFamily: "'Almarai', sans-serif" }}>للشركاء</a>
                         </div>
                     </div>
                 </nav>

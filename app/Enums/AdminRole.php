@@ -31,7 +31,7 @@ enum AdminRole: string
             self::SuperAdmin => [
                 'manage_admins',
                 'manage_companies',
-                'manage_businesses',
+                'manage_partners',
                 'manage_employees',
                 'manage_communities',
                 'manage_categories',
@@ -43,7 +43,7 @@ enum AdminRole: string
             ],
             self::Admin => [
                 'manage_companies',
-                'manage_businesses',
+                'manage_partners',
                 'manage_employees',
                 'manage_communities',
                 'manage_categories',
@@ -55,7 +55,7 @@ enum AdminRole: string
             self::Accountant => [
                 'view_revenue',
                 'view_companies',
-                'view_businesses',
+                'view_partners',
                 'view_settlements',
             ],
         };

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Employee\StoreEventRequest;
-use App\Models\Business;
+use App\Models\Partner;
 use App\Models\VenuePricing;
 use App\Models\Discount;
 use App\Models\Event;
@@ -43,7 +43,7 @@ class EventController extends Controller
             ->withCount('members')
             ->get();
 
-        $businesses = Business::query()
+        $partners = Partner::query()
             ->with(['venues' => function ($q) {
                 $q->active();
             }])
@@ -66,7 +66,7 @@ class EventController extends Controller
 
         return Inertia::render('employee/events/create', [
             'communities' => $communities,
-            'businesses' => $businesses,
+            'partners' => $partners,
             'discounts' => $discounts,
         ]);
     }
@@ -203,7 +203,7 @@ class EventController extends Controller
                 // Lock the event row to prevent race conditions
                 $event = Event::lockForUpdate()->findOrFail($event->id);
 
-                if (! in_array($event->status, ['open', 'full', 'waiting_business', 'confirmed'])) {
+                if (! in_array($event->status, ['open', 'full', 'waiting_partner', 'confirmed'])) {
                     throw new \RuntimeException('لا يمكن الانضمام لهذه الفعالية في حالتها الحالية.');
                 }
 
@@ -233,13 +233,13 @@ class EventController extends Controller
                     $event->increment('participants_count');
                     $event->refresh();
 
-                    // Auto-transition to waiting_business when capacity is full
+                    // Auto-transition to waiting_partner when capacity is full
                     if ($event->participants_count >= $event->capacity) {
-                        $event->update(['status' => 'waiting_business']);
+                        $event->update(['status' => 'waiting_partner']);
 
                         Notification::create([
-                            'notifiable_type' => \App\Models\Business::class,
-                            'notifiable_id' => $event->business_id,
+                            'notifiable_type' => \App\Models\Partner::class,
+                            'notifiable_id' => $event->partner_id,
                             'type' => 'info',
                             'title' => 'طلب حجز جديد',
                             'body' => "طلب حجز جديد للفعالية #{$event->id} — {$event->venues_count} ملعب بتاريخ {$event->event_date->format('Y-m-d')}",
@@ -280,7 +280,7 @@ class EventController extends Controller
      */
     public function leave(Event $event): RedirectResponse
     {
-        if (! in_array($event->status, ['open', 'waiting_business'])) {
+        if (! in_array($event->status, ['open', 'waiting_partner'])) {
             return back()->with('error', 'لا يمكن مغادرة الفعالية في هذه الحالة.');
         }
 
@@ -295,13 +295,13 @@ class EventController extends Controller
             // Try to promote from waitlist
             $promoted = $this->promoteFromWaitlist($event);
 
-            // If no one was promoted and the event was waiting_business, revert to open
-            if (! $promoted && $event->status === 'waiting_business') {
+            // If no one was promoted and the event was waiting_partner, revert to open
+            if (! $promoted && $event->status === 'waiting_partner') {
                 $event->update(['status' => 'open']);
 
                 Notification::create([
-                    'notifiable_type' => \App\Models\Business::class,
-                    'notifiable_id' => $event->business_id,
+                    'notifiable_type' => \App\Models\Partner::class,
+                    'notifiable_id' => $event->partner_id,
                     'type' => 'warning',
                     'title' => 'تغيير في طلب الحجز',
                     'body' => "الفعالية #{$event->id} رجعت لحالة مفتوحة — أحد اللاعبين غادر",
@@ -386,7 +386,7 @@ class EventController extends Controller
             return back()->with('error', 'يمكن فقط لمنشئ الفعالية إزالة اللاعبين.');
         }
 
-        if (! in_array($event->status, ['open', 'waiting_business', 'alternative_proposed'])) {
+        if (! in_array($event->status, ['open', 'waiting_partner', 'alternative_proposed'])) {
             return back()->with('error', 'لا يمكن إزالة لاعب في هذه الحالة.');
         }
 
@@ -412,7 +412,7 @@ class EventController extends Controller
             // Try to promote from waitlist
             $promoted = $this->promoteFromWaitlist($event);
 
-            if (! $promoted && $event->status === 'waiting_business') {
+            if (! $promoted && $event->status === 'waiting_partner') {
                 $event->update(['status' => 'open']);
             }
         });

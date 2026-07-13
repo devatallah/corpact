@@ -53,6 +53,6 @@ return [
         'venues_count' => 'عدد المرافق',
         'working_hours' => 'ساعات العمل',
         'status' => 'الحالة',
-        'business_id' => 'مزود الخدمة',
+        'partner_id' => 'الشريك',
     ],
 ];

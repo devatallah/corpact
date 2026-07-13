@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Middleware\BusinessPermission;
+use App\Http\Middleware\PartnerPermission;
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeaders;
@@ -21,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'business.permission' => BusinessPermission::class,
+            'partner.permission' => PartnerPermission::class,
             'role' => CheckRole::class,
         ]);
 
@@ -30,7 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return match (true) {
                 str_starts_with($path, 'employee') => route('employee.login'),
-                str_starts_with($path, 'business') => route('business.login'),
+                str_starts_with($path, 'partner') => route('partner.login'),
                 str_starts_with($path, 'company') => route('company.login'),
                 default => route('admin.login'),
             };
@@ -41,7 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return match (true) {
                 str_starts_with($path, 'employee') => route('employee.home'),
-                str_starts_with($path, 'business') => route('business.dash'),
+                str_starts_with($path, 'partner') => route('partner.dash'),
                 str_starts_with($path, 'company') => route('company.dash'),
                 str_starts_with($path, 'admin') => route('admin.dash'),
                 default => '/',

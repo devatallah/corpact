@@ -6,7 +6,7 @@ import type { Auth } from '@/types/auth';
 const allNavItems: (NavItem & { permission?: string })[] = [
     { label: 'لوحة التحكم', href: '/admin/dash', emoji: '📊' },
     { label: 'الشركات', href: '/admin/companies', emoji: '🏢', permission: 'manage_companies' },
-    { label: 'الأعمال', href: '/admin/businesses', emoji: '🏟️', permission: 'manage_businesses' },
+    { label: 'الشركاء', href: '/admin/partners', emoji: '🏟️', permission: 'manage_partners' },
     { label: 'الموظفون', href: '/admin/employees', emoji: '👥', permission: 'manage_employees' },
     { label: 'المجتمعات', href: '/admin/communities', emoji: '👫', permission: 'manage_communities' },
     { label: 'الفئات', href: '/admin/categories', emoji: '⚽', permission: 'manage_categories' },

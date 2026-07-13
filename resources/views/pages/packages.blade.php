@@ -68,7 +68,7 @@
 
   <div class="hero">
     <div class="page-container">
-      <h1>باقات تيمات لمزودي الخدمة</h1>
+      <h1>باقات تيمات للشركاء</h1>
       <p class="subtitle">بدون رسوم شهرية — عمولة على الحجوزات الناجحة فقط. اختر الباقة المناسبة لحجم منشأتك.</p>
     </div>
   </div>
@@ -89,7 +89,7 @@
             <li>تسويات شهرية تلقائية</li>
             <li>دعم عبر البريد الإلكتروني</li>
           </ul>
-          <a href="/businesses#register" class="card-cta card-cta-outline">سجّل كمزود خدمة</a>
+          <a href="/partners#register" class="card-cta card-cta-outline">سجّل كشريك</a>
         </div>
 
         <div class="card featured">
@@ -105,7 +105,7 @@
             <li>تقارير أداء وإيرادات</li>
             <li>دعم ذو أولوية</li>
           </ul>
-          <a href="/businesses#register" class="card-cta card-cta-primary">سجّل كمزود خدمة</a>
+          <a href="/partners#register" class="card-cta card-cta-primary">سجّل كشريك</a>
         </div>
 
         <div class="card">
@@ -120,7 +120,7 @@
             <li>شروط عمولة تفضيلية</li>
             <li>مدير حساب مخصص</li>
           </ul>
-          <a href="/businesses#register" class="card-cta card-cta-outline">سجّل كمزود خدمة</a>
+          <a href="/partners#register" class="card-cta card-cta-outline">سجّل كشريك</a>
         </div>
 
       </div>
@@ -178,8 +178,8 @@
     <div class="page-container">
       <h2>غير متأكد من الباقة المناسبة؟</h2>
       <p>سجّل منشأتك وسيتواصل معك فريق الشراكات خلال 48 ساعة لاختيار الأنسب لك.</p>
-      <a href="/businesses#register">
-        سجّل كمزود خدمة
+      <a href="/partners#register">
+        سجّل كشريك
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transform:scaleX(-1)"><path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
       </a>
     </div>

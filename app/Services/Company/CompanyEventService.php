@@ -17,20 +17,20 @@ class CompanyEventService
     /**
      * List events for a company with optional filters.
      *
-     * @param  array{status?: string, community_id?: int, business_id?: int, date_from?: string, date_to?: string, per_page?: int}  $filters
+     * @param  array{status?: string, community_id?: int, partner_id?: int, date_from?: string, date_to?: string, per_page?: int}  $filters
      */
     public function listForCompany(Company $company, array $filters = []): LengthAwarePaginator
     {
         return Event::query()
-            ->with(['community', 'business', 'category', 'creator', 'alternatives', 'venuePricing', 'venues'])
+            ->with(['community', 'partner', 'category', 'creator', 'alternatives', 'venuePricing', 'venues'])
             ->whereHas('community', fn ($query) => $query->where('company_id', $company->id))
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->when(isset($filters['community_id']), fn ($query) => $query->where('community_id', $filters['community_id']))
-            ->when(isset($filters['business_id']), fn ($query) => $query->where('business_id', $filters['business_id']))
+            ->when(isset($filters['partner_id']), fn ($query) => $query->where('partner_id', $filters['partner_id']))
             ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('event_date', '>=', $filters['date_from']))
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('event_date', '<=', $filters['date_to']))
             ->when(isset($filters['search']), fn ($query) => $query->where(function ($q) use ($filters) {
-                $q->whereHas('business', fn ($c) => $c->where('name', 'like', "%{$filters['search']}%"))
+                $q->whereHas('partner', fn ($c) => $c->where('name', 'like', "%{$filters['search']}%"))
                   ->orWhereHas('category', fn ($s) => $s->where('name', 'like', "%{$filters['search']}%"));
             }))
             ->latest('event_date')
@@ -157,7 +157,7 @@ class CompanyEventService
                 'data' => ['event_id' => $event->id],
             ]);
 
-            return $event->fresh(['community', 'business', 'category', 'alternatives']);
+            return $event->fresh(['community', 'partner', 'category', 'alternatives']);
         });
     }
 
@@ -179,7 +179,7 @@ class CompanyEventService
             $remainingProposed = $event->alternatives()->where('status', 'proposed')->count();
 
             if ($remainingProposed === 0) {
-                $event->update(['status' => 'rejected', 'rejection_reason' => 'تم رفض الوقت البديل المقترح من مزود الخدمة.']);
+                $event->update(['status' => 'rejected', 'rejection_reason' => 'تم رفض الوقت البديل المقترح من الشريك.']);
             }
 
             ActivityLogService::log(
@@ -205,7 +205,7 @@ class CompanyEventService
                 }
             }
 
-            return $event->fresh(['community', 'business', 'category', 'alternatives']);
+            return $event->fresh(['community', 'partner', 'category', 'alternatives']);
         });
     }
 

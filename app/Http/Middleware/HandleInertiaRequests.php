@@ -23,15 +23,15 @@ class HandleInertiaRequests extends Middleware
         $roleLabel = null;
         $permissions = [];
 
-        if ($user && in_array($guard, ['admin', 'business'], true) && isset($user->role)) {
+        if ($user && in_array($guard, ['admin', 'partner'], true) && isset($user->role)) {
             $roleLabel = $user->role->label();
             $permissions = $user->role->permissions();
         }
 
-        // Business-specific permission sharing (for permission-gated nav)
-        $businessRole = null;
-        if ($guard === 'business' && $user) {
-            $businessRole = $user->role->value;
+        // Partner-specific permission sharing (for permission-gated nav)
+        $partnerRole = null;
+        if ($guard === 'partner' && $user) {
+            $partnerRole = $user->role->value;
         }
 
         return [
@@ -42,8 +42,8 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user,
                 'role_label' => $roleLabel,
                 'permissions' => $permissions,
-                'businessRole' => $businessRole,
-                'businessPermissions' => $permissions,
+                'partnerRole' => $partnerRole,
+                'partnerPermissions' => $permissions,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
@@ -62,7 +62,7 @@ class HandleInertiaRequests extends Middleware
 
     private function detectGuard(): ?string
     {
-        foreach (['admin', 'company', 'business', 'employee'] as $guard) {
+        foreach (['admin', 'company', 'partner', 'employee'] as $guard) {
             if (auth($guard)->check()) {
                 return $guard;
             }

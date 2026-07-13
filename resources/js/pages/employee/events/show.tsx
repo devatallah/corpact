@@ -2,7 +2,7 @@ import EmployeeLayout from '@/layouts/employee-layout';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { fmtDate, fmtTime } from '@/lib/utils';
-import type { Event, Employee, Community, Business, EventAlternative } from '@/types/models';
+import type { Event, Employee, Community, Partner, EventAlternative } from '@/types/models';
 import toastr from 'toastr';
 
 interface PaymentBreakdown {
@@ -35,7 +35,7 @@ interface RefundPreview {
 interface Props {
     event: Event & {
         community: Community;
-        business: Business;
+        partner: Partner;
         participants: (Employee & { pivot?: { status: string; position?: number } })[];
         waitlist_entries: (Employee & { pivot?: { status: string; position?: number } })[];
     };
@@ -111,8 +111,8 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
 
             {/* Header */}
             <div style={{ marginBottom: 28 }}>
-                <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.5px' }}>{event.business?.name}</h1>
-                <p style={{ fontSize: 14, color: '#666', marginTop: 4 }}>{event.business?.district}</p>
+                <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.5px' }}>{event.partner?.name}</h1>
+                <p style={{ fontSize: 14, color: '#666', marginTop: 4 }}>{event.partner?.district}</p>
             </div>
 
             {/* Recurrence badge */}
@@ -181,7 +181,7 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                             >
                                 {p.name?.charAt(0)}
                             </div>
-                            {isCreator && p.id !== event.created_by && ['open', 'waiting_business', 'alternative_proposed'].includes(event.status) && (
+                            {isCreator && p.id !== event.created_by && ['open', 'waiting_partner', 'alternative_proposed'].includes(event.status) && (
                                 <button
                                     onClick={() => setRemoveTarget({ id: p.id, name: p.name ?? '' })}
                                     title="إزالة"
@@ -291,7 +291,7 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
             {/* Alternative proposed */}
             {event.status === 'alternative_proposed' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
                 <div className="card" style={{ borderColor: '#93C5FD', background: '#EFF6FF' }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#2563EB', marginBottom: 12 }}>وقت بديل مقترح من مزود الخدمة</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#2563EB', marginBottom: 12 }}>وقت بديل مقترح من الشريك</div>
                     {event.alternatives.filter((a) => a.status === 'proposed').map((alt) => (
                         <div key={alt.id}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -389,7 +389,7 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                 )}
                 {!event.budget_deducted_at && payment.community_contribution > 0 && (
                     <div style={{ marginTop: 8, background: '#FEF3C7', borderRadius: 10, padding: '6px 10px', fontSize: 12, color: '#92400E', textAlign: 'center' }}>
-                        سيتم خصم مساهمة المجتمع بعد موافقة مزود الخدمة
+                        سيتم خصم مساهمة المجتمع بعد موافقة الشريك
                     </div>
                 )}
             </div>
@@ -433,7 +433,7 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                             ✓ أنت منضم في هذه الفعالية
                         </div>
                     </div>
-                    {!isCreator && (event.status === 'open' || event.status === 'waiting_business') && (
+                    {!isCreator && (event.status === 'open' || event.status === 'waiting_partner') && (
                         <button
                             onClick={handleLeave}
                             className="btn btn-outline btn-full"
@@ -459,9 +459,9 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                 >
                     انضم لقائمة الانتظار {waitlistCount > 0 ? `(${waitlistCount} منتظرين)` : ''}
                 </button>
-            ) : event.status === 'waiting_business' ? (
+            ) : event.status === 'waiting_partner' ? (
                 <div className="card" style={{ background: '#FFFBEB', borderColor: '#F59E0B44', textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#D97706' }}>بانتظار رد مزود الخدمة</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#D97706' }}>بانتظار رد الشريك</div>
                 </div>
             ) : event.status === 'confirmed' ? (
                 <div>

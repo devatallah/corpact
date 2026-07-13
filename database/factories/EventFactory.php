@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Business;
+use App\Models\Partner;
 use App\Models\Community;
 use App\Models\Company;
 use App\Models\VenuePricing;
@@ -30,7 +30,7 @@ class EventFactory extends Factory
         return [
             'community_id' => Community::factory(),
             'company_id' => Company::factory(),
-            'business_id' => Business::factory(),
+            'partner_id' => Partner::factory(),
             'venue_pricing_id' => VenuePricing::factory(),
             'category_id' => Category::factory(),
             'created_by' => Employee::factory(),
@@ -64,9 +64,9 @@ class EventFactory extends Factory
         ]);
     }
 
-    public function waitingbusiness(): static
+    public function waitingpartner(): static
     {
-        return $this->state(fn () => ['status' => 'waiting_business']);
+        return $this->state(fn () => ['status' => 'waiting_partner']);
     }
 
     public function confirmed(): static

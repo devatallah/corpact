@@ -32,7 +32,7 @@ class CommunityDetailService
     public function events(Community $community, array $filters = []): LengthAwarePaginator
     {
         return Event::query()
-            ->with(['business', 'category', 'creator'])
+            ->with(['partner', 'category', 'creator'])
             ->where('community_id', $community->id)
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->latest('event_date')

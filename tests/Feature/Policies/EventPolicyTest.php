@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\business;
+use App\Models\partner;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Event;
@@ -22,13 +22,13 @@ test('company can view own events', function () {
         ->and($company->can('view', $otherEvent))->toBeFalse();
 });
 
-test('business can view own events', function () {
-    $business = business::factory()->create();
-    $event = Event::factory()->create(['business_id' => $business->id]);
+test('partner can view own events', function () {
+    $partner = partner::factory()->create();
+    $event = Event::factory()->create(['partner_id' => $partner->id]);
     $otherEvent = Event::factory()->create();
 
-    expect($business->can('view', $event))->toBeTrue()
-        ->and($business->can('view', $otherEvent))->toBeFalse();
+    expect($partner->can('view', $event))->toBeTrue()
+        ->and($partner->can('view', $otherEvent))->toBeFalse();
 });
 
 test('employee can view events from same company', function () {
@@ -59,10 +59,10 @@ test('employee can create events', function () {
     expect($employee->can('create', Event::class))->toBeTrue();
 });
 
-test('business cannot create events', function () {
-    $business = business::factory()->create();
+test('partner cannot create events', function () {
+    $partner = partner::factory()->create();
 
-    expect($business->can('create', Event::class))->toBeFalse();
+    expect($partner->can('create', Event::class))->toBeFalse();
 });
 
 test('company can update own events', function () {
@@ -91,13 +91,13 @@ test('company can delete own events', function () {
         ->and($company->can('delete', $otherEvent))->toBeFalse();
 });
 
-test('business can approve own events', function () {
-    $business = business::factory()->create();
-    $event = Event::factory()->create(['business_id' => $business->id]);
+test('partner can approve own events', function () {
+    $partner = partner::factory()->create();
+    $event = Event::factory()->create(['partner_id' => $partner->id]);
     $otherEvent = Event::factory()->create();
 
-    expect($business->can('approve', $event))->toBeTrue()
-        ->and($business->can('approve', $otherEvent))->toBeFalse();
+    expect($partner->can('approve', $event))->toBeTrue()
+        ->and($partner->can('approve', $otherEvent))->toBeFalse();
 });
 
 test('company cannot approve events', function () {
@@ -108,12 +108,12 @@ test('company cannot approve events', function () {
 });
 
 test('reject delegates to approve', function () {
-    $business = business::factory()->create();
-    $event = Event::factory()->create(['business_id' => $business->id]);
+    $partner = partner::factory()->create();
+    $event = Event::factory()->create(['partner_id' => $partner->id]);
     $otherEvent = Event::factory()->create();
 
-    expect($business->can('reject', $event))->toBeTrue()
-        ->and($business->can('reject', $otherEvent))->toBeFalse();
+    expect($partner->can('reject', $event))->toBeTrue()
+        ->and($partner->can('reject', $otherEvent))->toBeFalse();
 });
 
 test('only admin can restore and force delete events', function () {

@@ -1,5 +1,5 @@
 export type AdminRole = 'super_admin' | 'admin' | 'accountant';
-export type BusinessRoleType = 'owner' | 'receptionist' | 'accountant';
+export type PartnerRoleType = 'owner' | 'receptionist' | 'accountant';
 
 export type AdminUser = {
     id: number;
@@ -25,7 +25,7 @@ export type CompanyUser = {
     updated_at: string;
 };
 
-export type businessUser = {
+export type partnerUser = {
     id: number;
     name: string;
     email: string;
@@ -33,7 +33,7 @@ export type businessUser = {
     district: string;
     contact_phone: string;
     rating: number;
-    role: BusinessRoleType;
+    role: PartnerRoleType;
     status: string;
     email_verified_at: string | null;
     created_at: string;
@@ -54,15 +54,15 @@ export type EmployeeUser = {
     updated_at: string;
 };
 
-export type AuthUser = AdminUser | CompanyUser | businessUser | EmployeeUser;
+export type AuthUser = AdminUser | CompanyUser | partnerUser | EmployeeUser;
 
-export type GuardName = 'admin' | 'company' | 'business' | 'employee';
+export type GuardName = 'admin' | 'company' | 'partner' | 'employee';
 
 export type Auth = {
     guard: GuardName | null;
     user: AuthUser | null;
     role_label: string | null;
     permissions: string[];
-    businessRole?: string | null;
-    businessPermissions?: string[];
+    partnerRole?: string | null;
+    partnerPermissions?: string[];
 };

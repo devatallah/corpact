@@ -1,38 +1,38 @@
 import EmployeeLayout from '@/layouts/employee-layout';
 import CategoryIcon from '@/components/category-icon';
 import { Head, Link } from '@inertiajs/react';
-import type { Business, Venue, Category } from '@/types/models';
+import type { Partner, Venue, Category } from '@/types/models';
 
 interface Props {
-    business: Business & { venues: Venue[]; categories: Category[] };
+    partner: Partner & { venues: Venue[]; categories: Category[] };
 }
 
-export default function ExploreShow({ business }: Props) {
+export default function ExploreShow({ partner }: Props) {
     return (
         <EmployeeLayout>
-            <Head title={business.name} />
+            <Head title={partner.name} />
 
             {/* Back link */}
             <div style={{ marginBottom: 8, paddingTop: 4 }}>
                 <Link href="/employee/explore" style={{ fontSize: 13, color: '#999', textDecoration: 'none' }}>← العودة للاستكشاف</Link>
             </div>
 
-            {/* Business name */}
+            {/* Partner name */}
             <div style={{ marginBottom: 28 }}>
-                <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.5px' }}>{business.name}</h1>
+                <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.5px' }}>{partner.name}</h1>
                 <p style={{ fontSize: 14, color: '#666', marginTop: 4 }}>
-                    {[business.district, business.city].filter(Boolean).join('، ')}
+                    {[partner.district, partner.city].filter(Boolean).join('، ')}
                 </p>
             </div>
 
             {/* Categories */}
-            {business.categories && business.categories.length > 0 && (
+            {partner.categories && partner.categories.length > 0 && (
                 <div className="section">
                     <div className="section-head">
                         <div className="section-title">الفئات</div>
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {business.categories.map((cat) => (
+                        {partner.categories.map((cat) => (
                             <span key={cat.id} className="badge b-confirmed" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 12px' }}>
                                 <CategoryIcon icon={cat.icon} size={16} /> {cat.name}
                             </span>
@@ -42,13 +42,13 @@ export default function ExploreShow({ business }: Props) {
             )}
 
             {/* Venues */}
-            {business.venues && business.venues.length > 0 ? (
+            {partner.venues && partner.venues.length > 0 ? (
                 <div className="section">
                     <div className="section-head">
-                        <div className="section-title">المرافق ({business.venues.length})</div>
+                        <div className="section-title">المرافق ({partner.venues.length})</div>
                     </div>
                     <div className="list-card">
-                        {business.venues.map((venue) => {
+                        {partner.venues.map((venue) => {
                             const badgeClass = venue.status === 'active' ? 'b-confirmed' : 'b-cancelled';
                             const badgeLabel = venue.status === 'active' ? 'نشط' : 'مغلق';
                             return (
@@ -71,11 +71,11 @@ export default function ExploreShow({ business }: Props) {
             )}
 
             {/* Contact info */}
-            {(business.contact_phone || business.email) && (
+            {(partner.contact_phone || partner.email) && (
                 <div className="card" style={{ background: '#FAFAFA' }}>
                     <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>معلومات التواصل</div>
-                    {business.email && <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }} dir="ltr">{business.email}</div>}
-                    {business.contact_phone && <div style={{ fontSize: 13, color: '#666' }} dir="ltr">{business.contact_phone}</div>}
+                    {partner.email && <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }} dir="ltr">{partner.email}</div>}
+                    {partner.contact_phone && <div style={{ fontSize: 13, color: '#666' }} dir="ltr">{partner.contact_phone}</div>}
                 </div>
             )}
         </EmployeeLayout>

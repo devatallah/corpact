@@ -41,7 +41,7 @@ class EventController extends Controller
 
         $totalEvents = $events->total();
         $activeEvents = Event::whereHas('community', fn ($q) => $q->where('company_id', $company->id))
-            ->whereIn('status', ['open', 'waiting_business', 'confirmed'])
+            ->whereIn('status', ['open', 'waiting_partner', 'confirmed'])
             ->count();
 
         return Inertia::render('company/events/index', [
@@ -62,7 +62,7 @@ class EventController extends Controller
         $company = auth('company')->user();
         $unreadNotifications = \App\Models\Notification::where('notifiable_type', \App\Models\Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
 
-        $event->load(['community', 'business', 'category', 'creator', 'participants', 'alternatives', 'parentEvent']);
+        $event->load(['community', 'partner', 'category', 'creator', 'participants', 'alternatives', 'parentEvent']);
 
         // Get all employees from the event's community
         $communityMembers = $event->community
@@ -121,8 +121,8 @@ class EventController extends Controller
      */
     public function cancel(Request $request, Event $event): RedirectResponse
     {
-        if (! in_array($event->status, ['open', 'waiting_business', 'alternative_proposed', 'confirmed'])) {
-            return back()->with('error', 'يمكن إلغاء الفعالية فقط إذا كانت مفتوحة أو بانتظار مزود الخدمة أو بديل مقترح أو مؤكدة.');
+        if (! in_array($event->status, ['open', 'waiting_partner', 'alternative_proposed', 'confirmed'])) {
+            return back()->with('error', 'يمكن إلغاء الفعالية فقط إذا كانت مفتوحة أو بانتظار الشريك أو بديل مقترح أو مؤكدة.');
         }
 
         // Apply refund via refund service (handles percentage calculation)
@@ -164,7 +164,7 @@ class EventController extends Controller
      */
     public function addMember(Request $request, Event $event): RedirectResponse
     {
-        if (! in_array($event->status, ['open', 'waiting_business', 'alternative_proposed'])) {
+        if (! in_array($event->status, ['open', 'waiting_partner', 'alternative_proposed'])) {
             return back()->with('error', 'لا يمكن تعديل المشاركين بعد تأكيد الفعالية.');
         }
 
@@ -192,13 +192,13 @@ class EventController extends Controller
         $event->increment('participants_count');
         $event->refresh();
 
-        // Auto-transition to waiting_business when capacity is full
+        // Auto-transition to waiting_partner when capacity is full
         if ($event->status === 'open' && $event->participants_count >= $event->capacity) {
-            $event->update(['status' => 'waiting_business']);
+            $event->update(['status' => 'waiting_partner']);
 
             \App\Models\Notification::create([
-                'notifiable_type' => \App\Models\Business::class,
-                'notifiable_id' => $event->business_id,
+                'notifiable_type' => \App\Models\Partner::class,
+                'notifiable_id' => $event->partner_id,
                 'type' => 'info',
                 'title' => 'طلب حجز جديد',
                 'body' => "طلب حجز جديد للفعالية #{$event->id} — {$event->venues_count} ملعب بتاريخ {$event->event_date->format('Y-m-d')}",
@@ -214,7 +214,7 @@ class EventController extends Controller
      */
     public function removeMember(Request $request, Event $event): RedirectResponse
     {
-        if (! in_array($event->status, ['open', 'waiting_business', 'alternative_proposed'])) {
+        if (! in_array($event->status, ['open', 'waiting_partner', 'alternative_proposed'])) {
             return back()->with('error', 'لا يمكن تعديل المشاركين بعد تأكيد الفعالية.');
         }
 
@@ -240,7 +240,7 @@ class EventController extends Controller
             // Try to promote from waitlist
             $promoted = $this->promoteFromWaitlist($event);
 
-            if (! $promoted && $event->status === 'waiting_business') {
+            if (! $promoted && $event->status === 'waiting_partner') {
                 $event->update(['status' => 'open']);
             }
         });

@@ -96,7 +96,7 @@ input:focus,select:focus,textarea:focus{border-color:#18A86B;}
 
 /* ─── Status badges ─── */
 .b-confirmed,.b-active{background:#ECFDF3;color:#18A86B;}
-.b-open,.b-pending,.b-waiting_business{background:#FEF3C7;color:#D97706;}
+.b-open,.b-pending,.b-waiting_partner{background:#FEF3C7;color:#D97706;}
 .b-completed{background:#F0F0F0;color:#666;}
 .b-cancelled,.b-rejected{background:#FEF2F2;color:#EF4444;}
 

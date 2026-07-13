@@ -2,14 +2,14 @@ import EmployeeLayout from '@/layouts/employee-layout';
 import CategoryIcon from '@/components/category-icon';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { fmtDate, fmtTime } from '@/lib/utils';
-import type { Employee, Community, Event, Business, Category, Company } from '@/types/models';
+import type { Employee, Community, Event, Partner, Category, Company } from '@/types/models';
 import { useState, useRef } from 'react';
 import toastr from 'toastr';
 
 const statusMap: Record<string, { label: string; color: string }> = {
     open: { label: 'مفتوح', color: '#18A86B' },
     confirmed: { label: 'مؤكد', color: '#2563EB' },
-    waiting_business: { label: 'معلق', color: '#D97706' },
+    waiting_partner: { label: 'معلق', color: '#D97706' },
     full: { label: 'مكتمل', color: '#8B5CF6' },
     completed: { label: 'منتهي', color: '#666' },
     cancelled: { label: 'ملغي', color: '#EF4444' },
@@ -34,7 +34,7 @@ interface Props {
     employee: Employee & { company: Company };
     stats: ProfileStats;
     activityStats: ActivityStats;
-    events: (Event & { business: Business; community: Community; category?: Category })[];
+    events: (Event & { partner: Partner; community: Community; category?: Category })[];
     communities: (Community & { category?: Category; members_count: number })[];
 }
 
@@ -245,7 +245,7 @@ export default function ProfileIndex({ employee, stats, activityStats, events, c
                                                 {statusInfo.label}
                                             </span>
                                             <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontSize: 15, fontWeight: 700 }}>{event.business?.name}</div>
+                                                <div style={{ fontSize: 15, fontWeight: 700 }}>{event.partner?.name}</div>
                                                 <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>{event.community?.name}</div>
                                             </div>
                                         </div>

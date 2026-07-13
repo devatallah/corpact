@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
-use App\Models\Business;
+use App\Models\Partner;
 use App\Services\Employee\ExploreService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,7 +15,7 @@ class ExploreController extends Controller
     ) {}
 
     /**
-     * List available communities and businesses to explore.
+     * List available communities and partners to explore.
      */
     public function index(): Response
     {
@@ -27,12 +27,12 @@ class ExploreController extends Controller
     }
 
     /**
-     * Show details for a specific business.
+     * Show details for a specific partner.
      */
-    public function show(Business $business): Response
+    public function show(Partner $partner): Response
     {
         return Inertia::render('employee/explore/show', [
-            'business' => $business->load(['venues', 'categories']),
+            'partner' => $partner->load(['venues', 'categories']),
         ]);
     }
 }

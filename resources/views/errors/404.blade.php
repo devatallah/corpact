@@ -35,7 +35,7 @@ p{font-size:15px;color:rgba(255,255,255,0.6);margin-bottom:32px;line-height:1.7;
 <div class="links">
 <a href="/companies">للشركات</a>
 <a href="/employees">للموظفين</a>
-<a href="/businesses">لمزودي الخدمة</a>
+<a href="/partners">للشركاء</a>
 </div>
 </div>
 </body>

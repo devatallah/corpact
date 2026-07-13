@@ -18,7 +18,7 @@ class EmployeeReportService
     {
         $query = DB::table('event_participants')
             ->join('events', 'events.id', '=', 'event_participants.event_id')
-            ->join('businesses', 'businesses.id', '=', 'events.business_id')
+            ->join('partners', 'partners.id', '=', 'events.partner_id')
             ->join('categories', 'categories.id', '=', 'events.category_id')
             ->where('event_participants.employee_id', $employee->id)
             ->where('event_participants.status', 'joined')
@@ -27,7 +27,7 @@ class EmployeeReportService
                 'categories.name as category_name',
                 'categories.name_en as category_name_en',
                 'categories.icon as category_icon',
-                'businesses.name as business_name',
+                'partners.name as partner_name',
                 'events.event_date',
                 'events.start_time',
                 'events.duration_minutes',
@@ -44,7 +44,7 @@ class EmployeeReportService
 
         return $rows->map(function ($row) {
             return [
-                'activity_name'      => $row->category_name . ' — ' . $row->business_name,
+                'activity_name'      => $row->category_name . ' — ' . $row->partner_name,
                 'event_date'         => $row->event_date,
                 'start_time'         => $row->start_time,
                 'duration_minutes'   => (int) $row->duration_minutes,
@@ -52,7 +52,7 @@ class EmployeeReportService
                 'company_subsidy'    => (float) $row->company_subsidy,
                 'category_icon'      => $row->category_icon,
                 'category_name'      => $row->category_name,
-                'business_name'      => $row->business_name,
+                'partner_name'      => $row->partner_name,
             ];
         })->toArray();
     }

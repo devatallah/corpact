@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Business;
+use App\Models\Partner;
 use App\Models\Event;
 use App\Models\PlatformRevenue;
 use App\Models\Settlement;
@@ -51,28 +51,28 @@ class CompleteEventsAndSettle extends Command
 
         $unsettledEvents = Event::where('status', 'completed')
             ->whereDoesntHave('platformRevenues')
-            ->whereNotNull('business_id')
-            ->with('business')
+            ->whereNotNull('partner_id')
+            ->with('partner')
             ->get();
 
-        // Group by business for settlement creation
-        $byBusiness = $unsettledEvents->groupBy('business_id');
+        // Group by partner for settlement creation
+        $byPartner = $unsettledEvents->groupBy('partner_id');
 
-        foreach ($byBusiness as $businessId => $bizEvents) {
-            $business = Business::find($businessId);
-            if (! $business) {
+        foreach ($byPartner as $partnerId => $bizEvents) {
+            $partner = Partner::find($partnerId);
+            if (! $partner) {
                 continue;
             }
 
-            $commissionRate = (float) ($business->commission_rate ?? 10) / 100;
+            $commissionRate = (float) ($partner->commission_rate ?? 10) / 100;
 
-            DB::transaction(function () use ($business, $bizEvents, $period, $commissionRate, &$settlementCount) {
+            DB::transaction(function () use ($partner, $bizEvents, $period, $commissionRate, &$settlementCount) {
                 $grossAmount = $bizEvents->sum('total_amount');
                 $commissionAmount = round($grossAmount * $commissionRate, 2);
                 $netAmount = $grossAmount - $commissionAmount;
 
                 $settlement = Settlement::create([
-                    'business_id' => $business->id,
+                    'partner_id' => $partner->id,
                     'company_id' => $bizEvents->first()->company_id,
                     'period' => $period,
                     'events_count' => $bizEvents->count(),
@@ -95,7 +95,7 @@ class CompleteEventsAndSettle extends Command
                     ]);
                 }
 
-                $business->increment('total_bookings', $bizEvents->count());
+                $partner->increment('total_bookings', $bizEvents->count());
 
                 $settlementCount++;
             });

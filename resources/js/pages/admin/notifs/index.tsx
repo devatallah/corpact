@@ -11,7 +11,7 @@ interface Props {
 
 const typeEmojiMap: Record<string, string> = {
     company_registration: '🏢',
-    business_registration: '🏟️',
+    partner_registration: '🏟️',
     event_created: '📅',
     settlement: '💰',
 };

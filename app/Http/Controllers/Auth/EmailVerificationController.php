@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Business;
+use App\Models\Partner;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
@@ -27,11 +27,11 @@ class EmailVerificationController extends Controller
             'dashboard_route' => 'employee.home',
             'label' => 'الموظف',
         ],
-        'business' => [
-            'model' => Business::class,
-            'guard' => 'business',
-            'dashboard_route' => 'business.dash',
-            'label' => 'مزود الخدمة',
+        'partner' => [
+            'model' => Partner::class,
+            'guard' => 'partner',
+            'dashboard_route' => 'partner.dash',
+            'label' => 'الشريك',
         ],
         'company' => [
             'model' => Company::class,
@@ -77,7 +77,7 @@ class EmailVerificationController extends Controller
 
         $loginRoute = match ($guard) {
             'employee' => 'employee.login',
-            'business' => 'business.login',
+            'partner' => 'partner.login',
             'company' => 'company.login',
             default => 'admin.login',
         };

@@ -44,7 +44,7 @@ class EventController extends Controller
      */
     public function show(Event $event): Response
     {
-        $event->load(['community', 'business', 'category', 'creator', 'participants', 'company', 'parentEvent']);
+        $event->load(['community', 'partner', 'category', 'creator', 'participants', 'company', 'parentEvent']);
 
         // Load series info for recurring events
         $seriesEvents = [];

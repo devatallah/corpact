@@ -27,7 +27,7 @@ class HomeService
         $communityIds = $employee->communities()->pluck('communities.id');
 
         return Event::query()
-            ->with(['community', 'business', 'category'])
+            ->with(['community', 'partner', 'category'])
             ->whereIn('community_id', $communityIds)
             ->whereIn('status', ['open', 'full', 'confirmed'])
             ->where('event_date', '>=', now())

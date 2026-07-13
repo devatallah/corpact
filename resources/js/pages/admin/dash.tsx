@@ -27,14 +27,14 @@ interface TopCompany extends Company {
 
 interface Props {
     companyStats: { active: number; pending: number; review: number };
-    businessStats: { active: number; pending: number };
+    partnerStats: { active: number; pending: number };
     totalEmployees: number;
     monthlyRevenue: number;
     pendingRequests: number;
     pendingCompanies: number;
-    pendingBusinesses: number;
+    pendingPartners: number;
     companiesThisMonth: number;
-    businessesThisMonth: number;
+    partnersThisMonth: number;
     employeesThisMonth: number;
     revenueGrowth: number;
     last6Months: MonthData[];
@@ -45,14 +45,14 @@ interface Props {
 
 export default function AdminDashboard({
     companyStats,
-    businessStats,
+    partnerStats,
     totalEmployees,
     monthlyRevenue,
     pendingRequests,
     pendingCompanies,
-    pendingBusinesses,
+    pendingPartners,
     companiesThisMonth,
-    businessesThisMonth,
+    partnersThisMonth,
     employeesThisMonth,
     revenueGrowth,
     last6Months,
@@ -77,9 +77,9 @@ export default function AdminDashboard({
                 />
                 <StatCard
                     emoji="🏟️"
-                    label="مزود خدمة مفعّل"
-                    value={businessStats.active}
-                    change={`+${businessesThisMonth} هذا الشهر`}
+                    label="شريك مفعّل"
+                    value={partnerStats.active}
+                    change={`+${partnersThisMonth} هذا الشهر`}
                     color="#5B7EFF"
                 />
                 <StatCard
@@ -100,7 +100,7 @@ export default function AdminDashboard({
                     emoji="⏳"
                     label="طلبات تحتاج مراجعة"
                     value={pendingRequests}
-                    change={`${pendingCompanies} شركة · ${pendingBusinesses} مزود خدمة`}
+                    change={`${pendingCompanies} شركة · ${pendingPartners} شريك`}
                     color="#C8A600"
                 />
             </div>
@@ -148,7 +148,7 @@ export default function AdminDashboard({
                         recentRequests.map((req) => (
                             <Link
                                 key={req.id}
-                                href={req.type === 'company' ? '/admin/companies' : '/admin/businesses'}
+                                href={req.type === 'company' ? '/admin/companies' : '/admin/partners'}
                                 style={{
                                     display: 'block',
                                     background: '#0F1117',

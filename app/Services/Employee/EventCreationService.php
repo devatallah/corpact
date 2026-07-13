@@ -90,7 +90,7 @@ class EventCreationService
      *
      * @param  array{
      *     community_id: int,
-     *     business_id: int,
+     *     partner_id: int,
      *     category_id: int,
      *     venue_pricing_id: int,
      *     date: string,
@@ -158,12 +158,12 @@ class EventCreationService
             }
 
             // Budget is NOT deducted at creation time.
-            // It will be deducted when the service provider (business) approves the booking.
+            // It will be deducted when the service provider (partner) approves the booking.
 
             $event = Event::create([
                 'community_id' => $data['community_id'],
                 'company_id' => $community->company_id,
-                'business_id' => $data['business_id'],
+                'partner_id' => $data['partner_id'],
                 'category_id' => $data['category_id'],
                 'venue_pricing_id' => $data['venue_pricing_id'],
                 'discount_id' => $costs['discount_id'],
@@ -248,7 +248,7 @@ class EventCreationService
                 ]);
             }
 
-            return $event->fresh(['community', 'business', 'category', 'creator', 'occurrences']);
+            return $event->fresh(['community', 'partner', 'category', 'creator', 'occurrences']);
         });
     }
 
@@ -264,7 +264,7 @@ class EventCreationService
                 'parent_event_id' => $parentEvent->id,
                 'community_id' => $parentEvent->community_id,
                 'company_id' => $parentEvent->company_id,
-                'business_id' => $parentEvent->business_id,
+                'partner_id' => $parentEvent->partner_id,
                 'category_id' => $parentEvent->category_id,
                 'venue_pricing_id' => $parentEvent->venue_pricing_id,
                 'discount_id' => null, // Discounts apply only to first occurrence

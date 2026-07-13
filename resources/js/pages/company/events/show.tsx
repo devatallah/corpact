@@ -2,7 +2,7 @@ import CompanyLayout from '@/layouts/company-layout';
 import StatusBadge from '@/components/status-badge';
 import CategoryIcon from '@/components/category-icon';
 import { fmtDate, fmtTime } from '@/lib/utils';
-import type { Event, Employee, Community, Business, Category, EventAlternative } from '@/types/models';
+import type { Event, Employee, Community, Partner, Category, EventAlternative } from '@/types/models';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import toastr from 'toastr';
@@ -27,7 +27,7 @@ interface RefundPreview {
 interface Props {
     event: Event & {
         community: Community;
-        business: Business;
+        partner: Partner;
         category: Category;
         creator: Employee;
         participants: (Employee & { pivot?: { status: string; joined_at: string } })[];
@@ -43,8 +43,8 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
     const [processing, setProcessing] = useState<number | null>(null);
     const [cancelProcessing, setCancelProcessing] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
-    const canCancel = ['open', 'waiting_business', 'alternative_proposed', 'confirmed'].includes(event.status);
-    const canManageMembers = ['open', 'waiting_business', 'alternative_proposed'].includes(event.status);
+    const canCancel = ['open', 'waiting_partner', 'alternative_proposed', 'confirmed'].includes(event.status);
+    const canManageMembers = ['open', 'waiting_partner', 'alternative_proposed'].includes(event.status);
 
     const joinedParticipants = event.participants?.filter(
         (p) => p.pivot?.status === 'joined',
@@ -93,7 +93,7 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                         <CategoryIcon icon={event.category?.icon} size={16} /> {event.community?.name}
                     </div>
                     <div style={{ fontSize: 13, color: '#7A8BA8' }}>
-                        {event.business?.name} — {fmtDate(event.event_date)} — {fmtTime(event.start_time)}
+                        {event.partner?.name} — {fmtDate(event.event_date)} — {fmtTime(event.start_time)}
                     </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -138,7 +138,7 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                         <div style={labelStyle}>خصم من المحفظة</div>
                         <div style={{ ...valueStyle, color: '#009E82' }}>{Number(event.community_contribution).toLocaleString()} ريال</div>
                         {!event.budget_deducted_at && (
-                            <div style={{ fontSize: 10, color: '#B8860A', marginTop: 4 }}>بانتظار موافقة مزود الخدمة</div>
+                            <div style={{ fontSize: 10, color: '#B8860A', marginTop: 4 }}>بانتظار موافقة الشريك</div>
                         )}
                     </div>
                 )}
@@ -339,7 +339,7 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
             {event.status === 'alternative_proposed' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
                 <div style={cardStyle}>
                     <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14, color: '#1A5FAB' }}>
-                        وقت بديل مقترح من مزود الخدمة
+                        وقت بديل مقترح من الشريك
                     </div>
                     {event.alternatives.filter((a) => a.status === 'proposed').map((alt) => (
                         <div key={alt.id} style={{ background: '#1A5FAB08', border: '1px solid #1A5FAB22', borderRadius: 12, padding: 16, marginBottom: 10 }}>

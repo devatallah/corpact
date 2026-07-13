@@ -1,7 +1,7 @@
 import EmployeeLayout from '@/layouts/employee-layout';
 import CategoryIcon from '@/components/category-icon';
 import { Head, useForm } from '@inertiajs/react';
-import type { Business, Community, Venue, VenuePricing, Discount, Category } from '@/types/models';
+import type { Partner, Community, Venue, VenuePricing, Discount, Category } from '@/types/models';
 import { useState, useMemo, useEffect } from 'react';
 import TimePicker from '@/components/time-picker';
 import toastr from 'toastr';
@@ -11,17 +11,17 @@ interface CommunityWithCategory extends Community {
     members_count: number;
 }
 
-interface businessWithvenues extends Business {
+interface partnerWithvenues extends Partner {
     venues: Venue[];
 }
 
 interface Props {
     communities: CommunityWithCategory[];
-    businesses: businessWithvenues[];
+    partners: partnerWithvenues[];
     discounts: Discount[];
 }
 
-export default function EventCreate({ communities, businesses, discounts }: Props) {
+export default function EventCreate({ communities, partners, discounts }: Props) {
     const searchParams = new URLSearchParams(window.location.search);
     const queryCommunityId = searchParams.get('community_id');
     const queryQuickMatchId = searchParams.get('quick_match_id');
@@ -33,7 +33,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
     const { data, setData, post, processing, errors } = useForm({
         community_id: initial?.id ?? '',
         category_id: initial?.category_id ?? '',
-        business_id: '' as string | number,
+        partner_id: '' as string | number,
         venue_ids: [] as number[],
         venue_pricing_id: '' as string | number,
         discount_id: null as number | null,
@@ -53,17 +53,17 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
     const selectedCommunity = communities.find((c) => c.id === Number(data.community_id));
     const categoryId = Number(data.category_id);
 
-    const filteredbusinesses = useMemo(() => {
-        if (!categoryId) return businesses;
-        return businesses.filter((business) => business.venues.some((venue) => venue.category_id === categoryId && venue.status === 'active'));
-    }, [businesses, categoryId]);
+    const filteredpartners = useMemo(() => {
+        if (!categoryId) return partners;
+        return partners.filter((partner) => partner.venues.some((venue) => venue.category_id === categoryId && venue.status === 'active'));
+    }, [partners, categoryId]);
 
-    const selectedBusiness = filteredbusinesses.find((c) => c.id === Number(data.business_id));
+    const selectedPartner = filteredpartners.find((c) => c.id === Number(data.partner_id));
 
     const availablevenues = useMemo(() => {
-        if (!selectedBusiness) return [];
-        return selectedBusiness.venues.filter((c) => c.category_id === categoryId && c.status === 'active');
-    }, [selectedBusiness, categoryId]);
+        if (!selectedPartner) return [];
+        return selectedPartner.venues.filter((c) => c.category_id === categoryId && c.status === 'active');
+    }, [selectedPartner, categoryId]);
 
     const selectedVenues = availablevenues.filter((c) => data.venue_ids.includes(c.id));
 
@@ -111,13 +111,13 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
 
     // Find all matching discounts for current selection
     const matchingDiscounts = useMemo(() => {
-        if (!selectedBusiness || !selectedCommunity) return [];
+        if (!selectedPartner || !selectedCommunity) return [];
 
         const communityId = Number(data.community_id);
-        const businessId = Number(data.business_id);
+        const partnerId = Number(data.partner_id);
 
         return discounts.filter((d) => {
-            if (d.business_id !== businessId || d.community_id !== communityId) return false;
+            if (d.partner_id !== partnerId || d.community_id !== communityId) return false;
             if (d.status !== 'active') return false;
 
             // For date_range, check if current date is within range
@@ -132,7 +132,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
 
             return true;
         });
-    }, [discounts, data.business_id, data.community_id, data.date, data.time, selectedBusiness, selectedCommunity]);
+    }, [discounts, data.partner_id, data.community_id, data.date, data.time, selectedPartner, selectedCommunity]);
 
     const selectedDiscount = matchingDiscounts.find((d) => d.id === data.discount_id) ?? null;
 
@@ -176,15 +176,15 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
             ...prev,
             community_id: community.id,
             category_id: community.category_id,
-            business_id: '',
+            partner_id: '',
             venue_ids: [],
             venue_pricing_id: '',
             discount_id: null,
         }));
     }
 
-    function handlebusinessChange(businessId: string) {
-        setData((prev) => ({ ...prev, business_id: businessId, venue_ids: [], venue_pricing_id: '', discount_id: null }));
+    function handlepartnerChange(partnerId: string) {
+        setData((prev) => ({ ...prev, partner_id: partnerId, venue_ids: [], venue_pricing_id: '', discount_id: null }));
     }
 
     function togglevenue(venueId: number) {
@@ -208,7 +208,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
 
     const reviewRows = [
         { label: 'المجتمع', value: selectedCommunity?.name ?? '-' },
-        { label: 'مزود الخدمة', value: selectedBusiness?.name ?? '-' },
+        { label: 'الشريك', value: selectedPartner?.name ?? '-' },
         { label: 'المرافق', value: selectedVenues.length > 0 ? selectedVenues.map((c) => c.name).join('، ') : '-' },
         { label: 'التاريخ', value: data.date || '-' },
         { label: 'مدة الحجز', value: selectedPricing ? `${selectedPricing.duration_minutes} دقيقة` : '-' },
@@ -288,29 +288,29 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                     </div>
                 )}
 
-                {/* === STEP 2: Business, Date, Duration, Players === */}
+                {/* === STEP 2: Partner, Date, Duration, Players === */}
                 {step === 2 && (
                     <div>
                         <div className="section-head" style={{ marginBottom: 16 }}>
-                            <div className="section-title">مزود الخدمة والموعد</div>
+                            <div className="section-title">الشريك والموعد</div>
                         </div>
 
-                        {/* Business select */}
+                        {/* Partner select */}
                         <div style={{ marginBottom: 16 }}>
-                            <label style={{ fontSize: 13, color: '#666', marginBottom: 6, display: 'block' }}>اختر مزود الخدمة</label>
+                            <label style={{ fontSize: 13, color: '#666', marginBottom: 6, display: 'block' }}>اختر الشريك</label>
                             <select
-                                value={data.business_id}
-                                onChange={(e) => handlebusinessChange(e.target.value)}
+                                value={data.partner_id}
+                                onChange={(e) => handlepartnerChange(e.target.value)}
                             >
-                                <option value="">اختر مزود الخدمة...</option>
-                                {filteredbusinesses.map((business) => (
-                                    <option key={business.id} value={business.id}>{business.name}</option>
+                                <option value="">اختر الشريك...</option>
+                                {filteredpartners.map((partner) => (
+                                    <option key={partner.id} value={partner.id}>{partner.name}</option>
                                 ))}
                             </select>
                         </div>
 
                         {/* Venue multi-select */}
-                        {selectedBusiness && availablevenues.length > 0 && (
+                        {selectedPartner && availablevenues.length > 0 && (
                             <div style={{ marginBottom: 16 }}>
                                 <label style={{ fontSize: 13, color: '#666', marginBottom: 6, display: 'block' }}>اختر المرافق ({data.venue_ids.length})</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -417,7 +417,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                                     })
                                 ) : (
                                     <div className="card" style={{ textAlign: 'center', color: '#999', fontSize: 13, marginBottom: 0 }}>
-                                        {!selectedBusiness ? 'اختر مزود الخدمة أولا' : selectedVenues.length === 0 ? 'اختر المرافق أولا' : !data.date || !data.time ? 'حدد التاريخ والوقت لعرض الأسعار المتاحة' : 'لا توجد أسعار متاحة لهذا الوقت'}
+                                        {!selectedPartner ? 'اختر الشريك أولا' : selectedVenues.length === 0 ? 'اختر المرافق أولا' : !data.date || !data.time ? 'حدد التاريخ والوقت لعرض الأسعار المتاحة' : 'لا توجد أسعار متاحة لهذا الوقت'}
                                     </div>
                                 )}
                             </div>
@@ -615,7 +615,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                             {/* Discount deduction */}
                             {discountAmount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 }}>
-                                    <span style={{ fontSize: 13, color: '#D97706' }}>خصم مزود الخدمة</span>
+                                    <span style={{ fontSize: 13, color: '#D97706' }}>خصم الشريك</span>
                                     <span style={{ fontSize: 13, fontWeight: 600, color: '#D97706' }}>-{discountAmount.toLocaleString()} ريال</span>
                                 </div>
                             )}
@@ -673,7 +673,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                             ))}
                             {discountAmount > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #EBEBEB' }}>
-                                    <span style={{ fontSize: 13, color: '#D97706' }}>خصم مزود الخدمة</span>
+                                    <span style={{ fontSize: 13, color: '#D97706' }}>خصم الشريك</span>
                                     <span style={{ fontSize: 13, fontWeight: 600, color: '#D97706' }}>-{discountAmount.toLocaleString()} ريال</span>
                                 </div>
                             )}
@@ -684,7 +684,7 @@ export default function EventCreate({ communities, businesses, discounts }: Prop
                         </div>
 
                         <div className="card" style={{ background: '#ECFDF3', borderColor: '#18A86B33', fontSize: 13, color: '#0E7C4A', marginBottom: 20 }}>
-                            سيُرسل طلب الحجز لمزود الخدمة بعد اكتمال عدد اللاعبين
+                            سيُرسل طلب الحجز لالشريك بعد اكتمال عدد اللاعبين
                         </div>
 
                         {Object.keys(errors).length > 0 && (

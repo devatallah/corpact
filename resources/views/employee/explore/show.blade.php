@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تيمات — {{ $business->name }}</title>
+<title>تيمات — {{ $partner->name }}</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -24,25 +24,25 @@
   </div>
 
   <div style="padding:12px 0 20px;">
-    <div style="font-size:22px;font-weight:800;">{{ $business->name }}</div>
-    <div style="font-size:13px;color:#7A8BA8;margin-top:4px;">{{ $business->district ?? '' }}{{ $business->district && $business->city ? '، ' : '' }}{{ $business->city ?? '' }}</div>
+    <div style="font-size:22px;font-weight:800;">{{ $partner->name }}</div>
+    <div style="font-size:13px;color:#7A8BA8;margin-top:4px;">{{ $partner->district ?? '' }}{{ $partner->district && $partner->city ? '، ' : '' }}{{ $partner->city ?? '' }}</div>
   </div>
 
-  @if($business->sports && $business->sports->count())
+  @if($partner->sports && $partner->sports->count())
   <div style="margin-bottom:20px;">
     <div style="font-size:13px;font-weight:700;margin-bottom:8px;">الرياضات</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;">
-      @foreach($business->sports as $sport)
+      @foreach($partner->sports as $sport)
       <span style="background:#009E8218;color:#009E82;font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;">{{ $sport->icon ?? '' }} {{ $sport->name }}</span>
       @endforeach
     </div>
   </div>
   @endif
 
-  @if($business->venues && $business->venues->count())
+  @if($partner->venues && $partner->venues->count())
   <div>
-    <div style="font-size:13px;font-weight:700;margin-bottom:10px;">الملاعب ({{ $business->venues->count() }})</div>
-    @foreach($business->venues as $venue)
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;">الملاعب ({{ $partner->venues->count() }})</div>
+    @foreach($partner->venues as $venue)
     <div class="card" style="margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
@@ -64,11 +64,11 @@
   <div style="text-align:center;padding:30px 20px;color:#7A8BA8;font-size:13px;">لا توجد ملاعب متاحة حالياً</div>
   @endif
 
-  @if($business->contact_phone || $business->email)
+  @if($partner->contact_phone || $partner->email)
   <div style="margin-top:20px;padding:16px;background:#F0F2F8;border-radius:12px;">
     <div style="font-size:13px;font-weight:700;margin-bottom:8px;">معلومات التواصل</div>
-    @if($business->email)<div style="font-size:12px;color:#4A5C78;margin-bottom:4px;" dir="ltr">{{ $business->email }}</div>@endif
-    @if($business->contact_phone)<div style="font-size:12px;color:#4A5C78;" dir="ltr">{{ $business->contact_phone }}</div>@endif
+    @if($partner->email)<div style="font-size:12px;color:#4A5C78;margin-bottom:4px;" dir="ltr">{{ $partner->email }}</div>@endif
+    @if($partner->contact_phone)<div style="font-size:12px;color:#4A5C78;" dir="ltr">{{ $partner->contact_phone }}</div>@endif
   </div>
   @endif
 </div>

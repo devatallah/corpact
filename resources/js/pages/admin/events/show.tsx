@@ -2,7 +2,7 @@ import AdminLayout from '@/layouts/admin-layout';
 import CategoryIcon from '@/components/category-icon';
 import StatusBadge from '@/components/status-badge';
 import { fmtDate, fmtTime } from '@/lib/utils';
-import type { Event, Employee, Community, Business, Category, Company } from '@/types/models';
+import type { Event, Employee, Community, Partner, Category, Company } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
 
 interface SeriesEvent {
@@ -17,7 +17,7 @@ interface SeriesEvent {
 interface Props {
     event: Event & {
         community: Community;
-        business: Business;
+        partner: Partner;
         category: Category;
         company: Company;
         creator: Employee;
@@ -55,7 +55,7 @@ export default function EventShow({ event, seriesEvents }: Props) {
                         <CategoryIcon icon={event.category?.icon} size={16} /> {event.community?.name}
                     </div>
                     <div style={{ fontSize: 13, color: '#6B7A99' }}>
-                        {event.company?.name} — {event.business?.name} — {fmtDate(event.event_date)} — {fmtTime(event.start_time)}
+                        {event.company?.name} — {event.partner?.name} — {fmtDate(event.event_date)} — {fmtTime(event.start_time)}
                     </div>
                 </div>
                 <StatusBadge status={event.status} />

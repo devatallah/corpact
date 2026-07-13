@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\business;
+use App\Models\partner;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
@@ -73,27 +73,27 @@ test('employee can reset password with valid token', function () {
     ])->assertRedirect(route('employee.login'));
 });
 
-test('business can request password reset link', function () {
+test('partner can request password reset link', function () {
     Notification::fake();
-    $business = business::factory()->create();
+    $partner = partner::factory()->create();
 
-    $this->post(route('business.password.email'), ['email' => $business->email])
+    $this->post(route('partner.password.email'), ['email' => $partner->email])
         ->assertSessionHas('status');
 
-    Notification::assertSentTo($business, ResetPasswordNotification::class);
+    Notification::assertSentTo($partner, ResetPasswordNotification::class);
 });
 
-test('business can reset password with valid token', function () {
-    $business = business::factory()->create();
+test('partner can reset password with valid token', function () {
+    $partner = partner::factory()->create();
 
-    $token = Password::broker('businesses')->createToken($business);
+    $token = Password::broker('partners')->createToken($partner);
 
-    $this->post(route('business.password.update'), [
+    $this->post(route('partner.password.update'), [
         'token' => $token,
-        'email' => $business->email,
+        'email' => $partner->email,
         'password' => 'new-password-123',
         'password_confirmation' => 'new-password-123',
-    ])->assertRedirect(route('business.login'));
+    ])->assertRedirect(route('partner.login'));
 });
 
 test('company can request password reset link', function () {

@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\business;
+use App\Models\partner;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
@@ -84,29 +84,29 @@ test('employee can verify email with valid link', function () {
     expect($employee->fresh()->hasVerifiedEmail())->toBeTrue();
 });
 
-test('business can see verification notice when unverified', function () {
-    $business = business::factory()->unverified()->create();
+test('partner can see verification notice when unverified', function () {
+    $partner = partner::factory()->unverified()->create();
 
-    $this->actingAs($business, 'business')
-        ->get(route('business.verification.notice'))
+    $this->actingAs($partner, 'partner')
+        ->get(route('partner.verification.notice'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->component('auth/verify-email')->has('guard'));
 });
 
-test('business can verify email with valid link', function () {
-    $business = business::factory()->unverified()->create();
+test('partner can verify email with valid link', function () {
+    $partner = partner::factory()->unverified()->create();
 
     $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-        'business.verification.verify',
+        'partner.verification.verify',
         now()->addMinutes(60),
-        ['id' => $business->id, 'hash' => sha1($business->email)]
+        ['id' => $partner->id, 'hash' => sha1($partner->email)]
     );
 
-    $this->actingAs($business, 'business')
+    $this->actingAs($partner, 'partner')
         ->get($url)
-        ->assertRedirect(route('business.login', ['email' => $business->email]));
+        ->assertRedirect(route('partner.login', ['email' => $partner->email]));
 
-    expect($business->fresh()->hasVerifiedEmail())->toBeTrue();
+    expect($partner->fresh()->hasVerifiedEmail())->toBeTrue();
 });
 
 test('company can see verification notice when unverified', function () {

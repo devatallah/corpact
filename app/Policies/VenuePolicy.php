@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Models\Business;
+use App\Models\Partner;
 use App\Models\Venue;
 use App\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -16,7 +16,7 @@ class VenuePolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => true,
+            $user instanceof Partner => true,
             default => false,
         };
     }
@@ -28,7 +28,7 @@ class VenuePolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => $user->resolvedBusinessId() === $venue->business_id,
+            $user instanceof Partner => $user->resolvedPartnerId() === $venue->partner_id,
             default => false,
         };
     }
@@ -40,7 +40,7 @@ class VenuePolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => true,
+            $user instanceof Partner => true,
             default => false,
         };
     }
@@ -52,7 +52,7 @@ class VenuePolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => $user->resolvedBusinessId() === $venue->business_id && $user->hasPermission('venues.update'),
+            $user instanceof Partner => $user->resolvedPartnerId() === $venue->partner_id && $user->hasPermission('venues.update'),
             default => false,
         };
     }
@@ -64,7 +64,7 @@ class VenuePolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => $user->resolvedBusinessId() === $venue->business_id && $user->hasPermission('venues.delete'),
+            $user instanceof Partner => $user->resolvedPartnerId() === $venue->partner_id && $user->hasPermission('venues.delete'),
             default => false,
         };
     }

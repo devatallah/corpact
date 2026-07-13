@@ -28,7 +28,7 @@ class StoreEventRequest extends FormRequest
         return [
             'community_id' => ['required', 'integer', 'exists:communities,id'],
             'company_id' => ['required', 'integer', 'exists:companies,id'],
-            'business_id' => ['required', 'integer', 'exists:businesses,id'],
+            'partner_id' => ['required', 'integer', 'exists:partners,id'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'venue_pricing_id' => ['required', 'integer', 'exists:venue_pricings,id'],
             'venue_ids' => ['required', 'array', 'min:1'],
@@ -61,26 +61,26 @@ class StoreEventRequest extends FormRequest
             $venueIds = $this->input('venue_ids', []);
             $venuesCount = count($venueIds);
 
-            // Validate selected venues belong to the business and sport
-            $validVenues = Venue::where('business_id', $this->input('business_id'))
+            // Validate selected venues belong to the partner and sport
+            $validVenues = Venue::where('partner_id', $this->input('partner_id'))
                 ->where('category_id', $this->input('category_id'))
                 ->active()
                 ->whereIn('id', $venueIds)
                 ->count();
 
             if ($validVenues !== $venuesCount) {
-                $validator->errors()->add('venue_ids', 'أحد المرافق المختارة لا ينتمي لمزود الخدمة أو الفئة المحددة.');
+                $validator->errors()->add('venue_ids', 'أحد المرافق المختارة لا ينتمي لالشريك أو الفئة المحددة.');
                 return;
             }
 
             $overlapping = Event::overlappingvenuesCount(
-                (int) $this->input('business_id'),
+                (int) $this->input('partner_id'),
                 $this->input('date'),
                 $this->input('time'),
                 $pricing->duration_minutes,
             );
 
-            $availableVenues = Venue::where('business_id', $this->input('business_id'))
+            $availableVenues = Venue::where('partner_id', $this->input('partner_id'))
                 ->where('category_id', $this->input('category_id'))
                 ->active()
                 ->count();
@@ -98,8 +98,8 @@ class StoreEventRequest extends FormRequest
             'community_id.exists' => 'المجتمع المحدد غير موجود.',
             'company_id.required' => 'الشركة مطلوبة.',
             'company_id.exists' => 'الشركة المحددة غير موجودة.',
-            'business_id.required' => 'مزود الخدمة مطلوبة.',
-            'business_id.exists' => 'مزود الخدمة المحددة غير موجودة.',
+            'partner_id.required' => 'الشريك مطلوبة.',
+            'partner_id.exists' => 'الشريك المحددة غير موجودة.',
             'category_id.required' => 'الفئة مطلوبة.',
             'category_id.exists' => 'الفئة المحددة غير موجودة.',
             'venue_pricing_id.required' => 'تسعيرة المرفق مطلوبة.',

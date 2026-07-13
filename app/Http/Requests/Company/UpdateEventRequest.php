@@ -24,7 +24,7 @@ class UpdateEventRequest extends FormRequest
     {
         return [
             'community_id' => ['sometimes', 'integer', 'exists:communities,id'],
-            'business_id' => ['sometimes', 'integer', 'exists:businesses,id'],
+            'partner_id' => ['sometimes', 'integer', 'exists:partners,id'],
             'category_id' => ['sometimes', 'integer', 'exists:categories,id'],
             'venue_ids' => ['sometimes', 'array', 'min:1'],
             'venue_ids.*' => ['integer', 'exists:venues,id'],
@@ -50,7 +50,7 @@ class UpdateEventRequest extends FormRequest
     {
         return [
             'community_id.exists' => 'المجتمع المحدد غير موجود.',
-            'business_id.exists' => 'مزود الخدمة المحددة غير موجودة.',
+            'partner_id.exists' => 'الشريك المحددة غير موجودة.',
             'category_id.exists' => 'الفئة المحددة غير موجودة.',
             'venue_id.exists' => 'المرفق المحدد غير موجود.',
             'venue_pricing_id.exists' => 'تسعيرة المرفق المحددة غير موجودة.',

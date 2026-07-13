@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Models\Business;
+use App\Models\Partner;
 use App\Models\Company;
 use App\Models\Settlement;
 use App\Models\User;
@@ -17,7 +17,7 @@ class SettlementPolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => true,
+            $user instanceof Partner => true,
             $user instanceof Company => true,
             default => false,
         };
@@ -30,7 +30,7 @@ class SettlementPolicy
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Business => $user->resolvedBusinessId() === $settlement->business_id,
+            $user instanceof Partner => $user->resolvedPartnerId() === $settlement->partner_id,
             $user instanceof Company => $user->id === $settlement->company_id,
             default => false,
         };

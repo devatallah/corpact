@@ -40,7 +40,7 @@ export default function EventsIndex({ events, totalEvents, filters }: Props) {
                 <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث بمزود الخدمة أو الفئة..."
+                    placeholder="🔍 ابحث بالشريك أو الفئة..."
                     style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
                 />
                 <FilterTabs options={filterOptions} current={filters?.status ?? ''} />
@@ -52,7 +52,7 @@ export default function EventsIndex({ events, totalEvents, filters }: Props) {
                         <tr>
                             <th>الفعالية</th>
                             <th>الشركة</th>
-                            <th>مزود الخدمة</th>
+                            <th>الشريك</th>
                             <th>التاريخ</th>
                             <th>اللاعبون</th>
                             <th>المبلغ</th>
@@ -78,7 +78,7 @@ export default function EventsIndex({ events, totalEvents, filters }: Props) {
                                     <td style={{ color: '#C8D0E0' }}>
                                         {event.company?.name ?? '-'}
                                     </td>
-                                    <td style={{ color: '#C8D0E0' }}>{event.business?.name ?? '-'}</td>
+                                    <td style={{ color: '#C8D0E0' }}>{event.partner?.name ?? '-'}</td>
                                     <td style={{ fontSize: '12px', color: '#6B7A99' }}>
                                         {fmtDate(event.event_date)} · {fmtTime(event.start_time)}
                                         {event.recurrence_type && event.recurrence_type !== 'none' && (

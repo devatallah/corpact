@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminController as AdminAdminController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
-use App\Http\Controllers\Admin\BusinessController as AdminBusinessController;
+use App\Http\Controllers\Admin\PartnerController as AdminPartnerController;
 use App\Http\Controllers\Admin\CommunityController as AdminCommunityController;
 use App\Http\Controllers\Admin\CompanyController as AdminCompanyController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -12,21 +12,21 @@ use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
 use App\Http\Controllers\Auth\AdminAuthController;
-use App\Http\Controllers\Auth\BusinessAuthController;
+use App\Http\Controllers\Auth\PartnerAuthController;
 use App\Http\Controllers\Auth\CompanyAuthController;
 use App\Http\Controllers\Auth\EmployeeAuthController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Auth\PasswordResetController;
-use App\Http\Controllers\Business\ProfileController as BusinessProfileController;
-use App\Http\Controllers\Business\BookingController as BusinessBookingController;
-use App\Http\Controllers\Business\StaffController as BusinessStaffController;
-use App\Http\Controllers\Business\VenueController as BusinessVenueController;
-use App\Http\Controllers\Business\DashboardController as BusinessDashboardController;
-use App\Http\Controllers\Business\DiscountController as BusinessDiscountController;
-use App\Http\Controllers\Business\ScheduleController as BusinessScheduleController;
-use App\Http\Controllers\Business\ReportController as BusinessReportController;
-use App\Http\Controllers\Business\SettlementController as BusinessSettlementController;
+use App\Http\Controllers\Partner\ProfileController as PartnerProfileController;
+use App\Http\Controllers\Partner\BookingController as PartnerBookingController;
+use App\Http\Controllers\Partner\StaffController as PartnerStaffController;
+use App\Http\Controllers\Partner\VenueController as PartnerVenueController;
+use App\Http\Controllers\Partner\DashboardController as PartnerDashboardController;
+use App\Http\Controllers\Partner\DiscountController as PartnerDiscountController;
+use App\Http\Controllers\Partner\ScheduleController as PartnerScheduleController;
+use App\Http\Controllers\Partner\ReportController as PartnerReportController;
+use App\Http\Controllers\Partner\SettlementController as PartnerSettlementController;
 use App\Http\Controllers\Company\LeagueController as CompanyLeagueController;
 use App\Http\Controllers\Employee\CommunityController as EmployeeCommunityController;
 use App\Http\Controllers\Employee\CommunityRequestController as EmployeeCommunityRequestController;
@@ -71,8 +71,14 @@ Route::get('/employees', function () {
     return view('landing.employees');
 });
 
-Route::get('/businesses', function () {
-    return view('landing.businesses', [
+// Legacy URLs from before the business -> partner rename
+Route::redirect('/businesses', '/partners');
+Route::redirect('/business/login', '/partner/login');
+Route::redirect('/business/register', '/partner/register');
+Route::redirect('/business', '/partner');
+
+Route::get('/partners', function () {
+    return view('landing.partners', [
         'categories' => \App\Models\Category::whereNull('parent_id')
             ->with('children:id,parent_id,name')
             ->select('id', 'parent_id', 'name')
@@ -151,33 +157,33 @@ Route::prefix('employee')->name('employee.')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| business Auth
+| partner Auth
 |--------------------------------------------------------------------------
 */
-Route::prefix('business')->name('business.')->group(function () {
+Route::prefix('partner')->name('partner.')->group(function () {
     Route::get('/', function () {
-        return auth('business')->check()
-            ? redirect()->route('business.dash')
-            : redirect()->route('business.login');
+        return auth('partner')->check()
+            ? redirect()->route('partner.dash')
+            : redirect()->route('partner.login');
     });
-    Route::middleware('guest:business')->group(function () {
-        Route::get('/login', [BusinessAuthController::class, 'showLoginForm'])->name('login');
-        Route::post('/login', [BusinessAuthController::class, 'login'])->middleware('throttle:login');
-        Route::get('/register', fn () => redirect('/businesses#register'));
-        Route::post('/register', [BusinessAuthController::class, 'register']);
-        Route::get('/activate/{token}', [BusinessAuthController::class, 'showActivateForm'])->name('activate');
-        Route::post('/activate/{token}', [BusinessAuthController::class, 'activate']);
-        Route::get('/forgot-password', fn () => app(PasswordResetController::class)->showForgotForm('business'))->name('password.request');
-        Route::post('/forgot-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->sendResetLink($r, 'business'))->name('password.email')->middleware('throttle:password-reset');
-        Route::get('/reset-password/{token}', fn (Illuminate\Http\Request $r, string $token) => app(PasswordResetController::class)->showResetForm($r, 'business', $token))->name('password.reset');
-        Route::post('/reset-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->reset($r, 'business'))->name('password.update');
+    Route::middleware('guest:partner')->group(function () {
+        Route::get('/login', [PartnerAuthController::class, 'showLoginForm'])->name('login');
+        Route::post('/login', [PartnerAuthController::class, 'login'])->middleware('throttle:login');
+        Route::get('/register', fn () => redirect('/partners#register'));
+        Route::post('/register', [PartnerAuthController::class, 'register']);
+        Route::get('/activate/{token}', [PartnerAuthController::class, 'showActivateForm'])->name('activate');
+        Route::post('/activate/{token}', [PartnerAuthController::class, 'activate']);
+        Route::get('/forgot-password', fn () => app(PasswordResetController::class)->showForgotForm('partner'))->name('password.request');
+        Route::post('/forgot-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->sendResetLink($r, 'partner'))->name('password.email')->middleware('throttle:password-reset');
+        Route::get('/reset-password/{token}', fn (Illuminate\Http\Request $r, string $token) => app(PasswordResetController::class)->showResetForm($r, 'partner', $token))->name('password.reset');
+        Route::post('/reset-password', fn (Illuminate\Http\Request $r) => app(PasswordResetController::class)->reset($r, 'partner'))->name('password.update');
     });
-    Route::post('/logout', [BusinessAuthController::class, 'logout'])->middleware('auth:business')->name('logout');
+    Route::post('/logout', [PartnerAuthController::class, 'logout'])->middleware('auth:partner')->name('logout');
 
-    Route::middleware('auth:business')->group(function () {
-        Route::get('/email/verify', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->notice($r, 'business'))->name('verification.notice');
-        Route::get('/email/verify/{id}/{hash}', fn (Illuminate\Http\Request $r, int $id, string $hash) => app(EmailVerificationController::class)->verify($r, 'business', $id, $hash))->middleware('signed')->name('verification.verify');
-        Route::post('/email/verification-notification', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->resend($r, 'business'))->middleware('throttle:6,1')->name('verification.send');
+    Route::middleware('auth:partner')->group(function () {
+        Route::get('/email/verify', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->notice($r, 'partner'))->name('verification.notice');
+        Route::get('/email/verify/{id}/{hash}', fn (Illuminate\Http\Request $r, int $id, string $hash) => app(EmailVerificationController::class)->verify($r, 'partner', $id, $hash))->middleware('signed')->name('verification.verify');
+        Route::post('/email/verification-notification', fn (Illuminate\Http\Request $r) => app(EmailVerificationController::class)->resend($r, 'partner'))->middleware('throttle:6,1')->name('verification.send');
     });
 });
 
@@ -231,10 +237,10 @@ Route::prefix('admin')
             Route::post('/companies/{company}/reject', [AdminCompanyController::class, 'reject'])->name('companies.reject');
             Route::post('/companies/{company}/reset-password', [AdminCompanyController::class, 'sendResetPassword'])->name('companies.reset-password');
 
-            Route::resource('businesses', AdminBusinessController::class)->except(['show']);
-            Route::post('/businesses/{business}/approve', [AdminBusinessController::class, 'approve'])->name('businesses.approve');
-            Route::post('/businesses/{business}/reject', [AdminBusinessController::class, 'reject'])->name('businesses.reject');
-            Route::post('/businesses/{business}/reset-password', [AdminBusinessController::class, 'sendResetPassword'])->name('businesses.reset-password');
+            Route::resource('partners', AdminPartnerController::class)->except(['show']);
+            Route::post('/partners/{partner}/approve', [AdminPartnerController::class, 'approve'])->name('partners.approve');
+            Route::post('/partners/{partner}/reject', [AdminPartnerController::class, 'reject'])->name('partners.reject');
+            Route::post('/partners/{partner}/reset-password', [AdminPartnerController::class, 'sendResetPassword'])->name('partners.reset-password');
 
             Route::resource('employees', AdminEmployeeController::class)->except(['show']);
             Route::post('/employees/{employee}/reset-password', [AdminEmployeeController::class, 'sendResetPassword'])->name('employees.reset-password');
@@ -275,59 +281,59 @@ Route::prefix('admin')
 
 /*
 |--------------------------------------------------------------------------
-| business Portal
+| partner Portal
 |--------------------------------------------------------------------------
 */
-Route::prefix('business')
-    ->name('business.')
-    ->middleware('auth:business')
+Route::prefix('partner')
+    ->name('partner.')
+    ->middleware('auth:partner')
     ->group(function () {
-        Route::get('/dash', [BusinessDashboardController::class, 'index'])->name('dash');
+        Route::get('/dash', [PartnerDashboardController::class, 'index'])->name('dash');
 
-        Route::get('/requests', [BusinessBookingController::class, 'index'])->name('bookings.index');
-        Route::post('/requests/{event}/approve', [BusinessBookingController::class, 'approve'])->middleware('business.permission:bookings.approve')->name('bookings.approve');
-        Route::post('/requests/{event}/reject', [BusinessBookingController::class, 'reject'])->middleware('business.permission:bookings.reject')->name('bookings.reject');
-        Route::post('/requests/{event}/propose-alternative', [BusinessBookingController::class, 'proposeAlternative'])->middleware('business.permission:bookings.propose-alternative')->name('bookings.propose-alternative');
+        Route::get('/requests', [PartnerBookingController::class, 'index'])->name('bookings.index');
+        Route::post('/requests/{event}/approve', [PartnerBookingController::class, 'approve'])->middleware('partner.permission:bookings.approve')->name('bookings.approve');
+        Route::post('/requests/{event}/reject', [PartnerBookingController::class, 'reject'])->middleware('partner.permission:bookings.reject')->name('bookings.reject');
+        Route::post('/requests/{event}/propose-alternative', [PartnerBookingController::class, 'proposeAlternative'])->middleware('partner.permission:bookings.propose-alternative')->name('bookings.propose-alternative');
 
-        Route::get('/schedule', [BusinessScheduleController::class, 'index'])->name('schedule.index');
-        Route::middleware('business.permission:schedule.manage')->group(function () {
-            Route::post('/schedule', [BusinessScheduleController::class, 'store'])->name('schedule.store');
-            Route::put('/schedule/{slot}', [BusinessScheduleController::class, 'update'])->name('schedule.update');
-            Route::delete('/schedule/{slot}', [BusinessScheduleController::class, 'destroy'])->name('schedule.destroy');
+        Route::get('/schedule', [PartnerScheduleController::class, 'index'])->name('schedule.index');
+        Route::middleware('partner.permission:schedule.manage')->group(function () {
+            Route::post('/schedule', [PartnerScheduleController::class, 'store'])->name('schedule.store');
+            Route::put('/schedule/{slot}', [PartnerScheduleController::class, 'update'])->name('schedule.update');
+            Route::delete('/schedule/{slot}', [PartnerScheduleController::class, 'destroy'])->name('schedule.destroy');
         });
 
-        Route::middleware('business.permission:venues.view')->group(function () {
-            Route::resource('venues', BusinessVenueController::class)->except(['show']);
-            Route::post('/venues/{venue}/pricings', [BusinessVenueController::class, 'storePricing'])->name('venues.pricings.store');
-            Route::put('/venues/{venue}/pricings/{pricing}', [BusinessVenueController::class, 'updatePricing'])->name('venues.pricings.update');
-            Route::post('/venues/{venue}/pricings/{pricing}/toggle', [BusinessVenueController::class, 'togglePricing'])->name('venues.pricings.toggle');
-            Route::delete('/venues/{venue}/pricings/{pricing}', [BusinessVenueController::class, 'destroyPricing'])->name('venues.pricings.destroy');
+        Route::middleware('partner.permission:venues.view')->group(function () {
+            Route::resource('venues', PartnerVenueController::class)->except(['show']);
+            Route::post('/venues/{venue}/pricings', [PartnerVenueController::class, 'storePricing'])->name('venues.pricings.store');
+            Route::put('/venues/{venue}/pricings/{pricing}', [PartnerVenueController::class, 'updatePricing'])->name('venues.pricings.update');
+            Route::post('/venues/{venue}/pricings/{pricing}/toggle', [PartnerVenueController::class, 'togglePricing'])->name('venues.pricings.toggle');
+            Route::delete('/venues/{venue}/pricings/{pricing}', [PartnerVenueController::class, 'destroyPricing'])->name('venues.pricings.destroy');
         });
 
-        Route::middleware('business.permission:discounts.view')->group(function () {
-            Route::get('/discounts', [BusinessDiscountController::class, 'index'])->name('discounts.index');
-            Route::get('/discounts/communities/{company}', [BusinessDiscountController::class, 'communities'])->name('discounts.communities');
-            Route::post('/discounts', [BusinessDiscountController::class, 'store'])->name('discounts.store');
-            Route::put('/discounts/{discount}', [BusinessDiscountController::class, 'update'])->name('discounts.update');
-            Route::delete('/discounts/{discount}', [BusinessDiscountController::class, 'destroy'])->name('discounts.destroy');
+        Route::middleware('partner.permission:discounts.view')->group(function () {
+            Route::get('/discounts', [PartnerDiscountController::class, 'index'])->name('discounts.index');
+            Route::get('/discounts/communities/{company}', [PartnerDiscountController::class, 'communities'])->name('discounts.communities');
+            Route::post('/discounts', [PartnerDiscountController::class, 'store'])->name('discounts.store');
+            Route::put('/discounts/{discount}', [PartnerDiscountController::class, 'update'])->name('discounts.update');
+            Route::delete('/discounts/{discount}', [PartnerDiscountController::class, 'destroy'])->name('discounts.destroy');
         });
 
         // Settlements — accessible by both owner and accountant
-        Route::middleware('business.permission:settlements.view')->group(function () {
-            Route::get('/settlements', [BusinessSettlementController::class, 'index'])->name('settlements.index');
-            Route::get('/settlements/{settlement}', [BusinessSettlementController::class, 'show'])->name('settlements.show');
+        Route::middleware('partner.permission:settlements.view')->group(function () {
+            Route::get('/settlements', [PartnerSettlementController::class, 'index'])->name('settlements.index');
+            Route::get('/settlements/{settlement}', [PartnerSettlementController::class, 'show'])->name('settlements.show');
         });
 
-        Route::get('/reports', [BusinessReportController::class, 'index'])->middleware('business.permission:reports.view')->name('reports.index');
+        Route::get('/reports', [PartnerReportController::class, 'index'])->middleware('partner.permission:reports.view')->name('reports.index');
 
-        Route::get('/profile', [BusinessProfileController::class, 'index'])->name('profile.index');
-        Route::put('/profile', [BusinessProfileController::class, 'update'])->middleware('business.permission:profile.update')->name('profile.update');
+        Route::get('/profile', [PartnerProfileController::class, 'index'])->name('profile.index');
+        Route::put('/profile', [PartnerProfileController::class, 'update'])->middleware('partner.permission:profile.update')->name('profile.update');
 
-        Route::middleware('business.permission:staff.view')->group(function () {
-            Route::get('/staff', [BusinessStaffController::class, 'index'])->name('staff.index');
-            Route::post('/staff', [BusinessStaffController::class, 'store'])->middleware('business.permission:staff.create')->name('staff.store');
-            Route::put('/staff/{staff}', [BusinessStaffController::class, 'update'])->middleware('business.permission:staff.update')->name('staff.update');
-            Route::delete('/staff/{staff}', [BusinessStaffController::class, 'destroy'])->middleware('business.permission:staff.delete')->name('staff.destroy');
+        Route::middleware('partner.permission:staff.view')->group(function () {
+            Route::get('/staff', [PartnerStaffController::class, 'index'])->name('staff.index');
+            Route::post('/staff', [PartnerStaffController::class, 'store'])->middleware('partner.permission:staff.create')->name('staff.store');
+            Route::put('/staff/{staff}', [PartnerStaffController::class, 'update'])->middleware('partner.permission:staff.update')->name('staff.update');
+            Route::delete('/staff/{staff}', [PartnerStaffController::class, 'destroy'])->middleware('partner.permission:staff.delete')->name('staff.destroy');
         });
     });
 
@@ -391,7 +397,7 @@ Route::prefix('employee')
         Route::get('/home', [EmployeeHomeController::class, 'index'])->name('home');
 
         Route::get('/explore', [EmployeeExploreController::class, 'index'])->name('explore.index');
-        Route::get('/explore/{business}', [EmployeeExploreController::class, 'show'])->name('explore.show');
+        Route::get('/explore/{partner}', [EmployeeExploreController::class, 'show'])->name('explore.show');
 
         Route::get('/create', [EmployeeEventController::class, 'create'])->name('events.create');
         Route::post('/create/pricings', [EmployeeEventController::class, 'pricings'])->name('events.pricings');

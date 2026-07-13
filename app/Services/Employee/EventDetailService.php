@@ -15,7 +15,7 @@ class EventDetailService
     {
         $event->load([
             'community.company',
-            'business',
+            'partner',
             'category',
             'creator',
             'participants',

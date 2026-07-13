@@ -51,7 +51,7 @@ export default function EventEdit({ event }: Props) {
             <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 32, maxWidth: 600 }}>
                 <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>تعديل الفعالية</div>
                 <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 20 }}>
-                    {event.community?.name ?? '-'} — {event.business?.name ?? '-'} — {event.category?.name ?? '-'}
+                    {event.community?.name ?? '-'} — {event.partner?.name ?? '-'} — {event.category?.name ?? '-'}
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="frow">
@@ -85,7 +85,7 @@ export default function EventEdit({ event }: Props) {
                             <label>الحالة</label>
                             <select value={form.data.status} onChange={(e) => form.setData('status', e.target.value)}>
                                 <option value="open">مفتوح</option>
-                                <option value="waiting_business">بانتظار مزود الخدمة</option>
+                                <option value="waiting_partner">بانتظار الشريك</option>
                                 <option value="confirmed">مؤكد</option>
                                 <option value="completed">مكتمل</option>
                                 <option value="cancelled">ملغي</option>

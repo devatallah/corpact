@@ -49,7 +49,7 @@ export default function EventsEdit({ event }: Props) {
             <div className="card" style={{ maxWidth: '600px' }}>
                 <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '6px' }}>تعديل الفعالية</div>
                 <div style={{ fontSize: '13px', color: '#6B7A99', marginBottom: '20px' }}>
-                    {event.community?.name ?? '-'} — {event.business?.name ?? '-'} — {event.category?.name ?? '-'}
+                    {event.community?.name ?? '-'} — {event.partner?.name ?? '-'} — {event.category?.name ?? '-'}
                 </div>
                 <form onSubmit={submit}>
                     <div className="frow">
@@ -107,7 +107,7 @@ export default function EventsEdit({ event }: Props) {
                                 onChange={(e) => setData('status', e.target.value)}
                             >
                                 <option value="open">مفتوح</option>
-                                <option value="waiting_business">بانتظار مزود الخدمة</option>
+                                <option value="waiting_partner">بانتظار الشريك</option>
                                 <option value="confirmed">مؤكد</option>
                                 <option value="completed">مكتمل</option>
                                 <option value="cancelled">ملغي</option>

@@ -11,7 +11,7 @@ interface ActivityLogItem {
     company_subsidy: number;
     category_name: string;
     category_icon: string | null;
-    business_name: string;
+    partner_name: string;
 }
 
 interface MyStatsData {
@@ -293,9 +293,9 @@ export default function EmployeeReports({
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>
                                             {item.category_name}
-                                            {item.business_name && (
+                                            {item.partner_name && (
                                                 <span style={{ fontWeight: 400, color: '#999' }}>
-                                                    {' — '}{item.business_name}
+                                                    {' — '}{item.partner_name}
                                                 </span>
                                             )}
                                         </div>

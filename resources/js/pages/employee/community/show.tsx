@@ -3,7 +3,7 @@ import CategoryIcon from '@/components/category-icon';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { fmtDate, fmtTime, fmtDateTime } from '@/lib/utils';
 import StatusBadge from '@/components/status-badge';
-import type { Community, Employee, Event, CommunityAnnouncement, CommunityPoll, PollOption, Business, Category, League } from '@/types/models';
+import type { Community, Employee, Event, CommunityAnnouncement, CommunityPoll, PollOption, Partner, Category, League } from '@/types/models';
 import { useState } from 'react';
 import toastr from 'toastr';
 
@@ -13,7 +13,7 @@ interface Props {
         member_count: number;
         events_count?: number;
     };
-    events: (Event & { business: Business; category?: Category })[];
+    events: (Event & { partner: Partner; category?: Category })[];
     announcements: (CommunityAnnouncement & { employee: Employee })[];
     members: (Employee & { pivot?: { role: string } })[];
     leagues: League[];
@@ -200,7 +200,7 @@ export default function CommunityShow({ community, events, announcements, member
                                     className="card"
                                     style={{ textDecoration: 'none', color: 'inherit', borderRight: `3px solid ${color}` }}
                                 >
-                                    <div style={{ fontSize: 14, fontWeight: 600 }}>{event.business?.name}</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600 }}>{event.partner?.name}</div>
                                     <div style={{ fontSize: 13, color: '#999', margin: '4px 0 10px' }}>
                                         {fmtDate(event.event_date)} · {fmtTime(event.start_time)}
                                     </div>

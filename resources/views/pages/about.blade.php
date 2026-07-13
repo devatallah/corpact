@@ -90,7 +90,7 @@
       <div class="stats-grid">
         <div class="stat-item">
           <div class="stat-number">+240</div>
-          <div class="stat-label">مزود خدمة</div>
+          <div class="stat-label">شريك</div>
         </div>
         <div class="stat-item">
           <div class="stat-number">20</div>
@@ -114,7 +114,7 @@
       <p>ابدأ رحلتك مع منصة الرياضة المؤسسية الأولى في المملكة.</p>
       <div class="cta-buttons">
         <a href="/company/register" class="cta-btn-dark">سجّل شركتك</a>
-        <a href="/business/register" class="cta-btn-outline">سجّل كمزود خدمة</a>
+        <a href="/partner/register" class="cta-btn-outline">سجّل كشريك</a>
         <a href="/employees?login=1" class="cta-btn-outline">دخول الموظفين</a>
       </div>
     </div>

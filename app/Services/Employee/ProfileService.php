@@ -57,7 +57,7 @@ class ProfileService
     public function myEvents(Employee $employee, array $filters = []): Collection
     {
         return $employee->events()
-            ->with(['community', 'business', 'category'])
+            ->with(['community', 'partner', 'category'])
             ->wherePivot('status', 'joined')
             ->when(isset($filters['status']), fn ($query) => $query->where('events.status', $filters['status']))
             ->latest('events.event_date')

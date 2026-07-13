@@ -11,10 +11,10 @@ See `Teamat_Funder_Document.md` for the full product overview.
 ## Stack
 
 - **Backend:** Laravel 13 (PHP 8.3), Fortify (2FA), multi-guard auth
-  (`company`, `business`, `employee`, `admin`)
+  (`company`, `partner`, `employee`, `admin`)
 - **Frontend:** Inertia + React 19, TypeScript, Tailwind CSS 4, Vite 8
 - **Landing pages:** server-rendered Blade (Arabic, RTL) at `/`, `/companies`,
-  `/employees`, `/businesses`
+  `/employees`, `/partners`
 - **Database:** SQLite for local development, MySQL in production
 - **Queues:** database driver (a running worker is required — emails,
   notifications, and invitations are queued)
@@ -45,7 +45,7 @@ composer run ci:check  # eslint, prettier, tsc, then the test suite
 | Portal | URL prefix | Users |
 |---|---|---|
 | Company | `/company` | Companies managing budgets, communities, employees |
-| Service provider | `/business` | Venues managing bookings, pricing, settlements |
+| Service provider | `/partner` | Venues managing bookings, pricing, settlements |
 | Employee | `/employee` | Employees joining communities and events |
 | Admin | `/admin` | Platform operators |
 

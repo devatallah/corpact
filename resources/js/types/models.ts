@@ -54,7 +54,7 @@ export interface Company {
     total_spend?: number;
 }
 
-export interface Business {
+export interface Partner {
     id: number;
     name: string;
     email: string;
@@ -77,8 +77,8 @@ export interface Business {
     categories?: Category[];
     venues?: Venue[];
     venues_count?: number;
-    parent?: Business;
-    staff?: Business[];
+    parent?: Partner;
+    staff?: Partner[];
 }
 
 export interface Employee {
@@ -129,7 +129,7 @@ export interface Community {
 
 export interface Venue {
     id: number;
-    business_id: number;
+    partner_id: number;
     category_id: number;
     name: string;
     status: string;
@@ -137,7 +137,7 @@ export interface Venue {
     updated_at: string;
     // Relationships
     category?: Category;
-    business?: Business;
+    partner?: Partner;
     pricings?: VenuePricing[];
 }
 
@@ -156,7 +156,7 @@ export interface VenuePricing {
 
 export interface Discount {
     id: number;
-    business_id: number;
+    partner_id: number;
     company_id: number;
     community_id: number;
     name: string | null;
@@ -172,7 +172,7 @@ export interface Discount {
     updated_at: string;
     used_count?: number;
     // Relationships
-    business?: Business;
+    partner?: Partner;
     company?: Company;
     community?: Community;
 }
@@ -181,7 +181,7 @@ export interface Event {
     id: number;
     community_id: number;
     company_id: number;
-    business_id: number;
+    partner_id: number;
     venue_pricing_id: number | null;
     discount_id: number | null;
     discount_amount: number | null;
@@ -215,7 +215,7 @@ export interface Event {
     // Relationships
     community?: Community;
     company?: Company;
-    business?: Business;
+    partner?: Partner;
     venuePricing?: VenuePricing;
     discount?: Discount;
     venues?: Venue[];
@@ -242,7 +242,7 @@ export interface EventAlternative {
 
 export interface Settlement {
     id: number;
-    business_id: number;
+    partner_id: number;
     company_id: number;
     period: string;
     events_count: number;
@@ -254,7 +254,7 @@ export interface Settlement {
     created_at: string;
     updated_at: string;
     // Relationships
-    business?: Business;
+    partner?: Partner;
     company?: Company;
 }
 

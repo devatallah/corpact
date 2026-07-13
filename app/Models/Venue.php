@@ -10,17 +10,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['business_id', 'category_id', 'name', 'status'])]
+#[Fillable(['partner_id', 'category_id', 'name', 'status'])]
 class Venue extends Model
 {
     use HasFactory;
 
     /**
-     * @return BelongsTo<Business, $this>
+     * @return BelongsTo<Partner, $this>
      */
-    public function business(): BelongsTo
+    public function partner(): BelongsTo
     {
-        return $this->belongsTo(Business::class);
+        return $this->belongsTo(Partner::class);
     }
 
     /**

@@ -53,7 +53,7 @@ interface Props {
     communities: (Community & { members_count: number; category?: { icon: string; name: string } })[];
     events: (Event & {
         community: Community & { category?: { icon: string } };
-        business: { name: string; district: string };
+        partner: { name: string; district: string };
         category?: { icon: string };
     })[];
     joinedEventIds: number[];
@@ -80,7 +80,7 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
     const statusMap: Record<string, { label: string; cls: string }> = {
         open: { label: 'مفتوح', cls: 'b-open' },
         confirmed: { label: 'مؤكد', cls: 'b-confirmed' },
-        waiting_business: { label: 'معلق', cls: 'b-pending' },
+        waiting_partner: { label: 'معلق', cls: 'b-pending' },
         full: { label: 'مكتمل', cls: 'b-completed' },
         completed: { label: 'منتهي', cls: 'b-completed' },
         cancelled: { label: 'ملغي', cls: 'b-cancelled' },
@@ -476,7 +476,7 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                                     {/* Name + Meta */}
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {event.business?.name}
+                                            {event.partner?.name}
                                         </div>
                                         <div style={{ fontSize: 12, color: '#999', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                                             <span>{formatArabicDate(event.event_date)}</span>

@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'community_id',
     'company_id',
-    'business_id',
+    'partner_id',
     'venue_pricing_id',
     'discount_id',
     'discount_amount',
@@ -125,11 +125,11 @@ class Event extends Model
     }
 
     /**
-     * @return BelongsTo<Business, $this>
+     * @return BelongsTo<Partner, $this>
      */
-    public function business(): BelongsTo
+    public function partner(): BelongsTo
     {
-        return $this->belongsTo(Business::class);
+        return $this->belongsTo(Partner::class);
     }
 
     /**
@@ -235,7 +235,7 @@ class Event extends Model
      */
     public function scopePending($query)
     {
-        return $query->whereIn('status', ['open', 'waiting_business']);
+        return $query->whereIn('status', ['open', 'waiting_partner']);
     }
 
     /**
@@ -248,14 +248,14 @@ class Event extends Model
     }
 
     /**
-     * Get the total venues booked by overlapping events at a given business/date/time.
+     * Get the total venues booked by overlapping events at a given partner/date/time.
      */
-    public static function overlappingvenuesCount(int $businessId, string $date, string $startTime, int $durationMinutes, ?int $excludeEventId = null): int
+    public static function overlappingvenuesCount(int $partnerId, string $date, string $startTime, int $durationMinutes, ?int $excludeEventId = null): int
     {
         $newStart = Carbon::parse($startTime);
         $newEnd = $newStart->copy()->addMinutes($durationMinutes);
 
-        return (int) static::where('business_id', $businessId)
+        return (int) static::where('partner_id', $partnerId)
             ->where('event_date', $date)
             ->where('status', 'confirmed')
             ->where('event_date', '>=', now()->toDateString())
