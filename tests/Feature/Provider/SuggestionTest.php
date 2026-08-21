@@ -179,7 +179,13 @@ test('creating an event with a non-top provider requires a logged override reaso
     // بسبب موثَّق → يُنشأ ويُسجَّل التجاوز مع لقطة الاقتراحات
     $this->actingAs($employee, 'employee')
         ->post(route('employee.events.store'), $payload + ['override_reason' => 'المفضل لدى الفريق لقربه من المكتب'])
-        ->assertSessionHasNoErrors();
+        ->assertSessionHasNoErrors()
+        // A 500 here still leaves the selection log written, so the assertions
+        // below pass while the employee sees an error page — assert the response.
+        ->assertRedirect();
+
+    // H §19 catalogue: overriding the suggestion must land in the audit log with its reason.
+    expect(\App\Models\AuditLog::where('action', \App\Support\Audit\AuditAction::PROVIDER_SUGGESTION_OVERRIDDEN)->count())->toBe(1);
 
     $log = ProviderSelectionLog::firstOrFail();
     expect($log->was_override)->toBeTrue()
