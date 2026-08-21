@@ -67,8 +67,11 @@ class IdentityBackfillService
 
     private function backfillCompanies(): void
     {
+        // Console-only migration of rows that predate the identity model —
+        // the contact details are already-stored tenant data, not request
+        // input, so the phone may bind the account-manager identity.
         Company::query()->orderBy('id')->each(function (Company $company): void {
-            $this->resolver->linkCompanyAccountManager($company);
+            $this->resolver->linkCompanyAccountManager($company, bindPhone: true);
         });
     }
 
@@ -83,7 +86,7 @@ class IdentityBackfillService
     {
         // Owners first so staff phone collisions resolve toward owners.
         Partner::query()->orderByRaw('parent_id is not null')->orderBy('id')->each(function (Partner $partner): void {
-            $this->resolver->linkPartner($partner);
+            $this->resolver->linkPartner($partner, bindPhone: true);
         });
     }
 }

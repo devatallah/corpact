@@ -11,6 +11,7 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\StoredFile;
 use App\Services\Admin\CompanyService;
+use App\Services\Identity\IdentityResolver;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -63,6 +64,11 @@ class CompanyController extends Controller
 
         $company = Company::create($data);
         $this->companyService->approve($company);
+
+        // Same vouched-for binding as update(): the observer that created the
+        // account-manager identity may not write the login phone, because it
+        // also runs for the public company registration.
+        app(IdentityResolver::class)->linkCompanyAccountManager($company, bindPhone: true);
 
         Employee::create([
             'name' => $data['contact_name'] ?? $data['name'],
@@ -129,6 +135,15 @@ class CompanyController extends Controller
         }
 
         $company->update($data);
+
+        // `contact_phone` is optional at creation (StoreCompanyRequest), so an
+        // account manager can exist without a login credential. A platform
+        // admin filling the number in later is the vouched-for binding path —
+        // identity resolution itself never writes the credential (see
+        // IdentityResolver::bindPhone).
+        if ($company->wasChanged('contact_phone')) {
+            app(IdentityResolver::class)->linkCompanyAccountManager($company, bindPhone: true);
+        }
 
         return back()->with('success', 'تم تحديث الشركة بنجاح.');
     }

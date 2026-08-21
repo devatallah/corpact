@@ -55,7 +55,8 @@ use Illuminate\Support\Facades\URL;
 // رقم مؤشر الموثوقية لا يُعرض للمزوّد في الإصدار الأول (H §11) — مخفي من
 // السيريالايز الافتراضي (auth المشترك يمرّر النموذج كاملاً)؛ لوحات الأدمن
 // تكشفه صراحة بـ makeVisible.
-#[Hidden(['password', 'remember_token', 'reliability_score', 'reliability_samples'])]
+// `activation_token` مفتاح تفعيل الحساب — يُخفى للسبب نفسه في Company.php.
+#[Hidden(['password', 'remember_token', 'reliability_score', 'reliability_samples', 'activation_token'])]
 class Partner extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;

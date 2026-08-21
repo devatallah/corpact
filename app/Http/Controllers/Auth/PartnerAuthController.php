@@ -49,7 +49,13 @@ class PartnerAuthController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:partners,email'],
+            // Anyone may POST here. `unique:partners,email` alone left the
+            // global `users` table open: an email that already belongs to an
+            // identity (a company's account manager, an employee) would
+            // resolve onto THAT identity in IdentityResolver — a cross-portal
+            // gap. The registration must be for a person the platform has
+            // never seen, on every table that owns an identity.
+            'email' => ['required', 'email', 'unique:partners,email', 'unique:users,email', 'unique:companies,email'],
             'city' => ['required', 'string', 'max:255'],
             'district' => ['required', 'string', 'max:255'],
             'categories' => ['required', 'array', 'min:1'],

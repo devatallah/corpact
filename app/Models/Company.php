@@ -48,7 +48,10 @@ use Illuminate\Support\Facades\URL;
     'requester_email',
     'requester_phone',
 ])]
-#[Hidden(['password', 'remember_token'])]
+// `activation_token` هو مفتاح تفعيل الحساب — من قرأه فعّل الشركة باسمها.
+// إخفاؤه دفاع في العمق: لا يُسلسَل مع الصف مهما شُحن النموذج لواجهة (الاستعلام
+// بالعمود في مسار التفعيل لا يتأثر بـ `$hidden`).
+#[Hidden(['password', 'remember_token', 'activation_token'])]
 class Company extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;

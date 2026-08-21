@@ -9,6 +9,7 @@ use App\Models\NotificationLog;
 use App\Models\NotificationTemplate;
 use App\Services\Messaging\MessageDispatcher;
 use App\Support\Identity\PhoneNumber;
+use App\Support\Messaging\SecretLink;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
@@ -181,13 +182,15 @@ class NotificationDispatcher
         /** @var array<string, mixed> $data */
         $data = $options['data'] ?? [];
 
+        // الإشعار نفسه يقرأه **صاحبه وحده**، فيحمل الرابط الحقيقي؛ سطر السجل
+        // أدناه يقرأه الدعم فيبقى بالإشارة (SecretLink).
         $notification = Notification::query()->create([
             'notifiable_type' => $recipient->getMorphClass(),
             'notifiable_id' => $recipient->getKey(),
             'type' => $template?->in_app_type ?? 'info',
             'template_key' => $rendered->key,
-            'title' => $rendered->title,
-            'body' => $rendered->body,
+            'title' => SecretLink::hydrate($rendered->title),
+            'body' => SecretLink::hydrate($rendered->body),
             'data' => $data,
         ]);
 
@@ -295,8 +298,8 @@ class NotificationDispatcher
         }
 
         try {
-            Mail::raw($rendered->body, function ($message) use ($email, $rendered) {
-                $message->to($email)->subject($rendered->title);
+            Mail::raw(SecretLink::hydrate($rendered->body), function ($message) use ($email, $rendered) {
+                $message->to($email)->subject(SecretLink::hydrate($rendered->title));
             });
 
             $log->markDelivered();

@@ -7,10 +7,25 @@ use App\Models\Employee;
 use App\Models\Invitation;
 use App\Models\User;
 use App\Services\Company\InvitationService;
+use Illuminate\Testing\TestResponse;
 
 // H §5 — دعوة برابط تفعيل صالح 7 أيام قابل لإعادة الإرسال؛ الرابط المنتهي
 // يُعاد إرساله فقط ولا يُنشأ حساب جديد؛ الجوال المسجل في شركة أخرى يُربط
 // بنفس الحساب العالمي كعضوية جديدة.
+
+/**
+ * الرابط يسمّي الدعوة ولا يوثّق حاملها: القبول يمرّ برمز تحقق على رقم الدعوة
+ * (H §4) قبل أن يُنشأ حساب أو تُفتح جلسة. المساعد يمشي الخطوتين معاً.
+ */
+function acceptInvitation(Invitation $invitation, array $details = []): TestResponse
+{
+    $otp = fakeOtp();
+
+    test()->post(route('invitation.accept', $invitation->token), $details)
+        ->assertRedirect(route('invitation.show', $invitation->token));
+
+    return test()->post(route('invitation.verify', $invitation->token), ['code' => $otp->lastCode()]);
+}
 
 test('an invitation carries a 7-day expiry and is delivered over the message channel', function () {
     $messages = fakeMessages();
@@ -105,9 +120,8 @@ test('accepting an import invitation creates the employee with department, emplo
         'expires_at' => now()->addDays(7),
     ]);
 
-    $this->post(route('invitation.accept', $invitation->token), [
-        'name' => 'أحمد السالم',
-    ])->assertRedirect(route('employee.home'));
+    acceptInvitation($invitation, ['name' => 'أحمد السالم'])
+        ->assertRedirect(route('employee.home'));
 
     $employee = Employee::withoutGlobalScopes()->where('email', 'joiner@corp.example')->first();
 
@@ -147,9 +161,8 @@ test('a phone already registered under another company joins the SAME global acc
         'expires_at' => now()->addDays(7),
     ]);
 
-    $this->post(route('invitation.accept', $invitation->token), [
-        'name' => 'نفس الشخص',
-    ])->assertRedirect(route('employee.home'));
+    acceptInvitation($invitation, ['name' => 'نفس الشخص'])
+        ->assertRedirect(route('employee.home'));
 
     // No duplicate global account.
     expect(User::count())->toBe($usersBefore);
@@ -171,7 +184,7 @@ test('a used invitation link cannot create a second account', function () {
         'expires_at' => now()->addDays(7),
     ]);
 
-    $this->post(route('invitation.accept', $invitation->token), ['name' => 'الأول'])
+    acceptInvitation($invitation, ['name' => 'الأول'])
         ->assertRedirect(route('employee.home'));
 
     $this->post(route('invitation.accept', $invitation->token), ['name' => 'محتال'])

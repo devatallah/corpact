@@ -52,7 +52,11 @@ class EmployeeAuthController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:255', 'unique:employees,email'],
+            // `unique:users,email` closes the same cross-portal gap the two
+            // other public register() methods had: this endpoint is public,
+            // takes a caller-chosen phone, and its email would otherwise
+            // resolve onto an existing global identity.
+            'email' => ['required', 'email', 'max:255', 'unique:employees,email', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone' => ['required', 'string', 'max:20'],
         ], [

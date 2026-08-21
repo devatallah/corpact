@@ -22,6 +22,13 @@ class IdentityResolver
     /**
      * Find or create the global user for a person. Phone (normalized) is the
      * primary dedup key; email is the fallback.
+     *
+     * **Resolution never writes `users.phone`.** That column is the login
+     * credential (`OtpLoginService::userForPhone`), and the fallback above
+     * reaches an existing identity from an *email* alone — so back-filling
+     * the phone here would let any caller that can name an email move the
+     * login credential of that identity onto a number it chose. Binding is a
+     * separate, explicitly-vouched step: `bindPhone()`.
      */
     public function userFor(string $name, ?string $email, ?string $phone): User
     {
@@ -46,10 +53,40 @@ class IdentityResolver
             ]);
         }
 
-        // Fill identity blanks without overwriting established values.
-        if ($user->phone === null && $normalizedPhone !== null) {
-            $user->forceFill(['phone' => $normalizedPhone])->save();
+        return $user;
+    }
+
+    /**
+     * Give an identity that has no login phone one.
+     *
+     * The phone **is** the credential on every OTP portal, so this is only
+     * called where the number is vouched for: a staff-initiated write inside
+     * an authenticated panel (admin company/employee edit), the legacy
+     * backfill command, or an acceptance whose phone was proven by OTP.
+     * Never from anonymous request input.
+     *
+     * Two invariants: an established number is never overwritten, and a
+     * number already owned by another identity is never moved — the other
+     * person's sessions would follow it.
+     */
+    public function bindPhone(User $user, ?string $phone): User
+    {
+        $normalized = PhoneNumber::normalize($phone);
+
+        if ($normalized === null || $user->phone !== null) {
+            return $user;
         }
+
+        $takenByAnother = User::query()
+            ->where('phone', $normalized)
+            ->whereKeyNot($user->getKey())
+            ->exists();
+
+        if ($takenByAnother) {
+            return $user;
+        }
+
+        $user->forceFill(['phone' => $normalized])->save();
 
         return $user;
     }
@@ -63,6 +100,15 @@ class IdentityResolver
         $user = $employee->user_id
             ? User::query()->findOrFail($employee->user_id)
             : $this->userFor($employee->name, $employee->email, $employee->phone);
+
+        // The employee row is only ever written by an authenticated panel
+        // (company staff / platform admin), by the OTP-verified invitation
+        // acceptance, or by self-registration onto a company domain — all
+        // vouched paths — so a phone landing here may bind the identity that
+        // was provisioned without one. This is what keeps an admin-created,
+        // phone-less account manager reachable once someone fills the number
+        // in, now that resolution no longer writes the credential itself.
+        $this->bindPhone($user, $employee->phone);
 
         if ($employee->user_id !== $user->id) {
             $employee->forceFill(['user_id' => $user->id])->saveQuietly();
@@ -99,8 +145,12 @@ class IdentityResolver
     /**
      * Ensure a partner (owner or staff) account is linked to a global user
      * holding the provider role on the provider scope.
+     *
+     * `$bindPhone` is opt-in because this runs from the PUBLIC provider
+     * registration (`POST /partner/register`) too: only a caller that can
+     * vouch for the number (admin panel, backfill command) may set it.
      */
-    public function linkPartner(Partner $partner): User
+    public function linkPartner(Partner $partner, bool $bindPhone = false): User
     {
         $user = $partner->user_id
             ? User::query()->findOrFail($partner->user_id)
@@ -109,6 +159,10 @@ class IdentityResolver
                 $partner->email,
                 $partner->contact_phone,
             );
+
+        if ($bindPhone) {
+            $this->bindPhone($user, $partner->contact_phone);
+        }
 
         if ($partner->user_id !== $user->id) {
             $partner->forceFill(['user_id' => $user->id])->saveQuietly();
@@ -122,8 +176,12 @@ class IdentityResolver
     /**
      * Ensure the company's account manager exists as a global user with the
      * account_manager role on the company scope.
+     *
+     * `$bindPhone` is opt-in for the same reason as `linkPartner()`: the
+     * PUBLIC company registration (`POST /company/register`) reaches this
+     * method with caller-supplied contact details.
      */
-    public function linkCompanyAccountManager(Company $company): ?User
+    public function linkCompanyAccountManager(Company $company, bool $bindPhone = false): ?User
     {
         if (! $company->email) {
             return null;
@@ -134,6 +192,10 @@ class IdentityResolver
             $company->email,
             $company->contact_phone,
         );
+
+        if ($bindPhone) {
+            $this->bindPhone($user, $company->contact_phone);
+        }
 
         $user->assignRole(Role::AccountManager, RoleAssignment::SCOPE_COMPANY, $company->id);
 

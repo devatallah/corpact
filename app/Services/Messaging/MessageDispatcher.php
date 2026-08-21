@@ -10,6 +10,7 @@ use App\Models\NotificationTemplate;
 use App\Services\Messaging\Channels\OutboundChannel;
 use App\Services\Notifications\CriticalAlertService;
 use App\Support\Identity\PhoneNumber;
+use App\Support\Messaging\SecretLink;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\App;
@@ -213,12 +214,16 @@ class MessageDispatcher
             ? null
             : NotificationTemplate::query()->where('key', $log->template_key)->first();
 
+        // الروابط الحاملة لاعتماد تُخزَّن إشارةً لا نصاً (SecretLink)، وتُرطَّب
+        // هنا فقط — **لحظة التسليم**. هذه النقطة تخدم المحاولة الأولى وإعادة
+        // المحاولة والتصعيد واتساب ← SMS معاً، لأن `clone()` ينسخ النص المرسوم
+        // كما هو فيبقى كاملاً وقابلاً للترطيب في كل سطر.
         return new OutboundMessage(
             phone: (string) $log->recipient_phone,
-            body: (string) $log->rendered_body,
+            body: SecretLink::hydrate($log->rendered_body),
             purpose: (string) ($log->purpose ?? $log->template_key ?? 'notification'),
             templateName: $template?->whatsapp_template_name,
-            variables: $this->positionalVariables($template, (array) $log->variables),
+            variables: $this->positionalVariables($template, SecretLink::hydrateVariables((array) $log->variables)),
             language: (string) $log->locale,
         );
     }

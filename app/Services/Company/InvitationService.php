@@ -10,6 +10,7 @@ use App\Models\NotificationLog;
 use App\Services\Messaging\Channels\MessageChannel;
 use App\Services\Notifications\TemplateRenderer;
 use App\Support\Identity\PhoneNumber;
+use App\Support\Messaging\SecretLink;
 use App\Support\Notify;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -86,10 +87,13 @@ class InvitationService
     {
         $companyName = $invitation->company()->withoutGlobalScopes()->value('name');
 
+        // الرابط **إشارة** لا نصاً: `notification_logs` يقرأه وكيل الدعم، ورمز
+        // الدعوة وحده يفتح مسار إنشاء الحساب. الرابط الحقيقي يُركَّب لحظة
+        // التسليم فقط (SecretLink) — نفس مبدأ «الرمز لا يُخزَّن» في OtpService.
         $variables = [
             'company' => $companyName,
             'days' => Invitation::VALIDITY_DAYS,
-            'url' => route('invitation.show', $invitation->token),
+            'url' => SecretLink::ref(SecretLink::INVITATION, $invitation->id),
         ];
 
         // A14 — النص من قالب `invite.employee` وسلسلة القنوات تتكفل بواتساب ثم
@@ -120,7 +124,10 @@ class InvitationService
             ]);
 
             try {
-                Mail::raw($rendered->body, fn ($message) => $message->to($invitation->email)->subject($rendered->title));
+                Mail::raw(
+                    SecretLink::hydrate($rendered->body),
+                    fn ($message) => $message->to($invitation->email)->subject(SecretLink::hydrate($rendered->title)),
+                );
                 $log->markDelivered();
             } catch (\Throwable $e) {
                 $log->markFailed($e->getMessage(), 'mail_failed');

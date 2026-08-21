@@ -9,8 +9,10 @@ use App\Models\Partner;
 use App\Models\SettlementItem;
 use App\Services\Admin\CompanyService;
 use App\Services\Admin\PartnerService;
+use App\Services\Authorization\AuthorizationService;
 use App\Services\Competition\GhostEventMetricService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,6 +22,7 @@ class DashboardController extends Controller
         private CompanyService $companyService,
         private PartnerService $partnerService,
         private GhostEventMetricService $ghostEvents,
+        private AuthorizationService $authorization,
     ) {}
 
     /**
@@ -27,6 +30,14 @@ class DashboardController extends Controller
      */
     public function index(): Response
     {
+        // H §4 — الصلاحية لا الدور: اللوحة نفسها ليست خلف `permission:` لأن
+        // كل موظفي المنصة (ومنهم وكيل الدعم) يُحوَّلون إليها بعد الدخول، فلا
+        // يجوز أن تردّهم 403 على أول شاشة. لذا **الأرقام** هي المحروسة: من لا
+        // يملك `revenue.view` لا تُرسل له خصائص الإيراد أصلاً — لا تُخفى في
+        // الواجهة (نفس بوابة /admin/revenue في routes/web.php).
+        $user = Auth::guard('admin')->user();
+        $canViewRevenue = $user !== null && $this->authorization->can($user, 'revenue.view');
+
         $companyStats = $this->companyService->dashboardStats();
         $partnerStats = $this->partnerService->dashboardStats();
 
@@ -38,14 +49,6 @@ class DashboardController extends Controller
         $employeesThisMonth = Employee::where('created_at', '>=', $startOfMonth)->count();
 
         $totalEmployees = Employee::count();
-
-        // A11: الإيراد = العمولة على الفعاليات المكتملة (بنود التسوية بالهللة).
-        $monthlyRevenue = $this->commissionForMonth($now);
-        $lastMonthRevenue = $this->commissionForMonth($now->copy()->subMonth());
-
-        $revenueGrowth = $lastMonthRevenue > 0
-            ? round((($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100)
-            : 0;
 
         $pendingCompanies = Company::whereIn('status', ['pending', 'review'])->count();
         $pendingPartners = Partner::whereIn('status', ['pending'])->count();
@@ -82,11 +85,41 @@ class DashboardController extends Controller
             ->take(5)
             ->values();
 
+        // اللوحة تعرض الاسم والعدّادين فقط — الإسقاط صريح كي لا تُشحن شروط
+        // العقد ولا الرقم الضريبي/السجل التجاري ولا بيانات التواصل ولا
+        // `activation_token` مع صف الشركة **لأي دور كان** (H §4/§19).
         $topCompanies = Company::active()
+            ->select(['id', 'name'])
             ->withCount(['employees', 'events'])
             ->orderByDesc('employee_count')
             ->limit(5)
             ->get();
+
+        $props = [
+            'companyStats' => $companyStats,
+            'partnerStats' => $partnerStats,
+            'totalEmployees' => $totalEmployees,
+            'companiesThisMonth' => $companiesThisMonth,
+            'partnersThisMonth' => $partnersThisMonth,
+            'employeesThisMonth' => $employeesThisMonth,
+            'pendingRequests' => $pendingRequests,
+            'pendingCompanies' => $pendingCompanies,
+            'pendingPartners' => $pendingPartners,
+            'recentRequests' => $recentRequests,
+            'topCompanies' => $topCompanies,
+            'canViewRevenue' => $canViewRevenue,
+            // A12 — H §13: «يجب مراقبة معدل التعديلات بعد الاكتمال كمؤشر
+            // إنذار مبكر» للفعالية الشبح. A13 يبني التقرير الكامل فوقه.
+            'ghostEventWatch' => $this->ghostEvents->stats(),
+        ];
+
+        if (! $canViewRevenue) {
+            return Inertia::render('admin/dash', $props);
+        }
+
+        // A11: الإيراد = العمولة على الفعاليات المكتملة (بنود التسوية بالهللة).
+        $monthlyRevenue = $this->commissionForMonth($now);
+        $lastMonthRevenue = $this->commissionForMonth($now->copy()->subMonth());
 
         $last6Months = collect();
         for ($i = 5; $i >= 0; $i--) {
@@ -97,27 +130,14 @@ class DashboardController extends Controller
             ]);
         }
 
-        $maxRevenue = $last6Months->max('total') ?: 1;
-
         return Inertia::render('admin/dash', [
-            'companyStats' => $companyStats,
-            'partnerStats' => $partnerStats,
-            'totalEmployees' => $totalEmployees,
-            'companiesThisMonth' => $companiesThisMonth,
-            'partnersThisMonth' => $partnersThisMonth,
-            'employeesThisMonth' => $employeesThisMonth,
+            ...$props,
             'monthlyRevenue' => $monthlyRevenue,
-            'revenueGrowth' => $revenueGrowth,
-            'pendingRequests' => $pendingRequests,
-            'pendingCompanies' => $pendingCompanies,
-            'pendingPartners' => $pendingPartners,
-            'recentRequests' => $recentRequests,
-            'topCompanies' => $topCompanies,
+            'revenueGrowth' => $lastMonthRevenue > 0
+                ? round((($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100)
+                : 0,
             'last6Months' => $last6Months,
-            'maxRevenue' => $maxRevenue,
-            // A12 — H §13: «يجب مراقبة معدل التعديلات بعد الاكتمال كمؤشر
-            // إنذار مبكر» للفعالية الشبح. A13 يبني التقرير الكامل فوقه.
-            'ghostEventWatch' => $this->ghostEvents->stats(),
+            'maxRevenue' => $last6Months->max('total') ?: 1,
         ]);
     }
 

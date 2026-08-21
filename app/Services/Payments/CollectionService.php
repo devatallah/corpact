@@ -16,6 +16,7 @@ use App\Services\Events\ParticipationService;
 use App\Services\Messaging\Channels\MessageChannel;
 use App\Services\Payments\Gateway\PaymentGatewayManager;
 use App\Services\Wallet\LedgerService;
+use App\Support\Messaging\SecretLink;
 use App\Support\Money;
 use App\Support\Notify;
 use Carbon\Carbon;
@@ -198,7 +199,9 @@ class CollectionService
                 'community' => $event?->community?->name,
                 'amount' => $amount,
                 'deadline' => $deadline,
-                'url' => $url,
+                // إشارة لا رابطاً موقّعاً: الرابط يُعاد توقيعه لحظة التسليم
+                // (SecretLink) فلا يستقر في `notification_logs`.
+                'url' => SecretLink::ref(SecretLink::PAYMENT_INTENT, $intent->id),
             ],
             [
                 'purpose' => 'payment_demand',

@@ -40,6 +40,15 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 class NotificationLog extends Model
 {
     /**
+     * خط دفاع ثانٍ خلف إسقاط `NotificationLogController`: النص المرسوم
+     * ومتحوّلاته لا يخرجان في أي تسلسل تلقائي للنموذج. من يحتاجهما يقرأ
+     * الخاصية صراحةً (سلسلة التسليم تفعل) بعد أن يقرر أنه مخوَّل.
+     *
+     * @var list<string>
+     */
+    protected $hidden = ['variables', 'rendered_body'];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

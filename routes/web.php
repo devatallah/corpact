@@ -147,8 +147,12 @@ Route::get('/partners', function () {
 | Invitation Acceptance (public, no auth required)
 |--------------------------------------------------------------------------
 */
+// The link names the invitation; it does not authenticate the holder. The
+// acceptor proves control of the phone by OTP before an account or a session
+// exists (see InvitationController), so both POSTs sit behind the OTP limiter.
 Route::get('/invite/{token}', [InvitationController::class, 'show'])->name('invitation.show');
-Route::post('/invite/{token}', [InvitationController::class, 'accept'])->name('invitation.accept');
+Route::post('/invite/{token}', [InvitationController::class, 'accept'])->middleware('throttle:otp')->name('invitation.accept');
+Route::post('/invite/{token}/verify', [InvitationController::class, 'verify'])->middleware('throttle:otp')->name('invitation.verify');
 
 /*
 |--------------------------------------------------------------------------
@@ -232,7 +236,9 @@ Route::prefix('partner')->name('partner.')->group(function () {
         Route::post('/otp/verify', [PartnerAuthController::class, 'verifyOtp'])->middleware('throttle:otp')->name('otp.verify');
         Route::post('/login/context', [PartnerAuthController::class, 'chooseContext'])->name('login.context');
         Route::get('/register', fn () => redirect('/partners#register'));
-        Route::post('/register', [PartnerAuthController::class, 'register']);
+        // Throttled: the `unique:…,email` rules make this endpoint an account
+        // enumeration oracle, so it may not be replayed at machine speed.
+        Route::post('/register', [PartnerAuthController::class, 'register'])->middleware('throttle:login');
         Route::get('/activate/{token}', [PartnerAuthController::class, 'showActivateForm'])->name('activate');
         Route::post('/activate/{token}', [PartnerAuthController::class, 'activate']);
     });
@@ -263,7 +269,8 @@ Route::prefix('company')->name('company.')->group(function () {
         Route::post('/otp/verify', [CompanyAuthController::class, 'verifyOtp'])->middleware('throttle:otp')->name('otp.verify');
         Route::post('/login/context', [CompanyAuthController::class, 'chooseContext'])->name('login.context');
         Route::get('/register', fn () => redirect('/companies#register'));
-        Route::post('/register', [CompanyAuthController::class, 'register']);
+        // Throttled for the same reason as the provider registration above.
+        Route::post('/register', [CompanyAuthController::class, 'register'])->middleware('throttle:login');
         Route::get('/activate/{token}', [CompanyAuthController::class, 'showActivateForm'])->name('activate');
         Route::post('/activate/{token}', [CompanyAuthController::class, 'activate']);
     });

@@ -10,6 +10,10 @@ interface Props {
         phone_locked?: boolean;
         company_name: string;
     };
+    /** Server-driven: 'otp' once a code has been sent to the invited number. */
+    step?: 'details' | 'otp';
+    pendingPhone?: string | null;
+    status?: string | null;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -46,15 +50,22 @@ const btnStyle: React.CSSProperties = {
     cursor: 'pointer',
 };
 
-export default function AcceptInvitation({ invitation }: Props) {
+export default function AcceptInvitation({ invitation, step = 'details', pendingPhone, status }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         name: invitation.name ?? '',
         phone: invitation.phone ?? '',
     });
 
+    const otpForm = useForm({ code: '' });
+
     function submit(e: FormEvent) {
         e.preventDefault();
         post(`/invite/${invitation.token}`);
+    }
+
+    function submitCode(e: FormEvent) {
+        e.preventDefault();
+        otpForm.post(`/invite/${invitation.token}/verify`);
     }
 
     return (
@@ -115,6 +126,49 @@ export default function AcceptInvitation({ invitation }: Props) {
                             <span style={{ fontWeight: 600, color: '#1A1A18' }} dir="ltr">{invitation.email}</span>
                         </div>
 
+                        {status === 'otp-sent' && (
+                            <div style={{ background: '#C8F13520', border: '1px solid #C8F13560', borderRadius: 12, padding: 12, textAlign: 'center', fontSize: 12, color: '#1A1A18', marginBottom: 16 }}>
+                                أرسلنا رمز تحقق إلى <span dir="ltr">{pendingPhone}</span>
+                            </div>
+                        )}
+
+                        {step === 'otp' ? (
+                            <form onSubmit={submitCode}>
+                                <div style={{ marginBottom: 20 }}>
+                                    <label style={labelStyle}>رمز التحقق</label>
+                                    <input
+                                        style={{ ...inputStyle, direction: 'ltr', textAlign: 'center', letterSpacing: 6, fontSize: 18 }}
+                                        type="text"
+                                        inputMode="numeric"
+                                        autoComplete="one-time-code"
+                                        autoFocus
+                                        maxLength={6}
+                                        placeholder="------"
+                                        value={otpForm.data.code}
+                                        onChange={(e) => otpForm.setData('code', e.target.value)}
+                                    />
+                                    {otpForm.errors.code && <p style={{ fontSize: 12, color: '#c0392b', marginTop: 4 }}>{otpForm.errors.code}</p>}
+                                    {/* حدود الطلب والقفل تعود على المفتاح `phone` من خدمة الرمز. */}
+                                    {errors.phone && <p style={{ fontSize: 12, color: '#c0392b', marginTop: 4 }}>{errors.phone}</p>}
+                                    <p style={{ fontSize: 11, color: '#8A8A7A', marginTop: 6 }}>
+                                        الرمز يثبت أن الرقم رقمك — لا يُنشأ الحساب ولا تُفتح الجلسة قبل التحقق.
+                                    </p>
+                                </div>
+
+                                <button type="submit" disabled={otpForm.processing} style={{ ...btnStyle, opacity: otpForm.processing ? 0.6 : 1 }}>
+                                    {otpForm.processing ? 'جارٍ التحقق...' : 'تأكيد وإنشاء الحساب'}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => post(`/invite/${invitation.token}`)}
+                                    disabled={processing}
+                                    style={{ width: '100%', marginTop: 10, padding: 10, background: 'transparent', border: 'none', color: '#8A8A7A', fontSize: 12, cursor: 'pointer', fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+                                >
+                                    إعادة إرسال الرمز
+                                </button>
+                            </form>
+                        ) : (
                         <form onSubmit={submit}>
                             <div style={{ marginBottom: 16 }}>
                                 <label style={labelStyle}>الاسم الكامل</label>
@@ -149,9 +203,10 @@ export default function AcceptInvitation({ invitation }: Props) {
                             </div>
 
                             <button type="submit" disabled={processing} style={{ ...btnStyle, opacity: processing ? 0.6 : 1 }}>
-                                {processing ? 'جارٍ إنشاء الحساب...' : 'إنشاء الحساب والانضمام'}
+                                {processing ? 'جارٍ الإرسال...' : 'إرسال رمز التحقق'}
                             </button>
                         </form>
+                        )}
 
                         <div style={{ borderTop: '1px solid #E8E2D8', paddingTop: 16, marginTop: 20, textAlign: 'center' }}>
                             <p style={{ fontSize: 11, color: '#8A8A7A', marginBottom: 8 }}>بوابات أخرى</p>

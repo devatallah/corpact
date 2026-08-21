@@ -69,7 +69,10 @@ class CompanyAuthController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:companies,email'],
+            // See PartnerAuthController::register — `unique:companies,email`
+            // alone left the global `users` table open to a cross-portal
+            // takeover of an existing identity.
+            'email' => ['required', 'email', 'unique:companies,email', 'unique:users,email', 'unique:partners,email'],
             'sector' => ['required', 'string', 'max:255'],
             'employee_count_range' => ['required', 'string', 'max:255'],
             'domain' => ['required', 'string', 'max:255', 'unique:companies,domain'],

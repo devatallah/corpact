@@ -521,13 +521,25 @@ class ParticipationService
 
     /**
      * participants_count = المقاعد المحجوزة، و is_full عَلَم مشتق (H §9 قاعدة 3).
+     *
+     * **العدد يُثبَّت عند إغلاق التسجيل ولا يهبط بعده أبداً** (H §12.3 بند 2):
+     * `app:close-registration` يجمّده أساساً للفوترة، و`CollectionService::evaluate`
+     * يقرؤه على أنه المرجع الذي يُقاس عليه عجز التحصيل. إخلاء مقعد غير الدافع
+     * (`expireIntent`) لا يمس العدّادات عمداً، فلو خفضتها ترقية بديل بعد الإغلاق
+     * (promote) أو إزالة/إسقاط مشاركة لانطبق العجز على نفسه واختفى: تتأكد فعالية
+     * محصَّلة ناقصاً بلا `coverShortfallFromWallet` وتُدفع للمزوّد كاملة من جيب
+     * المنصة. لذا الكتابة على `participants_count` محصورة بحالات ما قبل الإغلاق.
+     * `is_full` عَلَم مشتق من الواقع في كل الحالات فيبقى خارج الحارس.
      */
     private function syncCounters(Event $locked, int $reserved): void
     {
-        $locked->forceFill([
-            'participants_count' => $reserved,
-            'is_full' => $reserved >= (int) $locked->capacity,
-        ])->save();
+        $attributes = ['is_full' => $reserved >= (int) $locked->capacity];
+
+        if (in_array((string) $locked->status, EventStatus::joinableValues(), true)) {
+            $attributes['participants_count'] = $reserved;
+        }
+
+        $locked->forceFill($attributes)->save();
     }
 
     private function compactPositions(Event $event, int $removedPosition): void

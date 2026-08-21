@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdatePartnerRequest;
 use App\Models\Category;
 use App\Models\Partner;
 use App\Services\Admin\PartnerService;
+use App\Services\Identity\IdentityResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -64,6 +65,11 @@ class PartnerController extends Controller
         $partner = Partner::create($data);
         $partner->categories()->sync($categoryIds);
 
+        // Admin provisioning is a vouched-for source for the login phone;
+        // the observer that links the identity is not (it also runs for the
+        // public provider registration) — see IdentityResolver::bindPhone.
+        app(IdentityResolver::class)->linkPartner($partner->fresh(), bindPhone: true);
+
         return redirect()->route('admin.partners.index')
             ->with('success', 'تم إنشاء الشريك بنجاح.');
     }
@@ -93,6 +99,10 @@ class PartnerController extends Controller
         unset($data['category_ids']);
 
         $partner->update($data);
+
+        if ($partner->wasChanged('contact_phone')) {
+            app(IdentityResolver::class)->linkPartner($partner, bindPhone: true);
+        }
 
         if ($categoryIds !== null) {
             $partner->categories()->sync($categoryIds);

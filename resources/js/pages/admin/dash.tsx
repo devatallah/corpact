@@ -2,7 +2,6 @@ import AdminLayout from '@/layouts/admin-layout';
 import StatCard from '@/components/stat-card';
 import StatusBadge from '@/components/status-badge';
 import { fmtDateTime } from '@/lib/utils';
-import type { Company } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
 
 interface RecentRequest {
@@ -19,7 +18,13 @@ interface MonthData {
     total: number;
 }
 
-interface TopCompany extends Company {
+/**
+ * الشركة هنا إسقاط صريح من الخادم (id + الاسم + العدّادان) لا نموذج كامل —
+ * شروط العقد والرقم الضريبي وبيانات التواصل لا تصل هذه الشاشة أصلاً.
+ */
+interface TopCompany {
+    id: number;
+    name: string;
     employees_count: number;
     events_count: number;
 }
@@ -28,16 +33,21 @@ interface Props {
     companyStats: { active: number; pending: number; review: number };
     partnerStats: { active: number; pending: number };
     totalEmployees: number;
-    monthlyRevenue: number;
     pendingRequests: number;
     pendingCompanies: number;
     pendingPartners: number;
     companiesThisMonth: number;
     partnersThisMonth: number;
     employeesThisMonth: number;
-    revenueGrowth: number;
-    last6Months: MonthData[];
-    maxRevenue: number;
+    /**
+     * H §4: أرقام الإيراد تصل فقط لمن يملك `revenue.view` — الخادم يحذف
+     * الخصائص الأربع التالية لغيره، فالشاشة تُبنى بدونها لا تخفيها بـ CSS.
+     */
+    canViewRevenue: boolean;
+    monthlyRevenue?: number;
+    revenueGrowth?: number;
+    last6Months?: MonthData[];
+    maxRevenue?: number;
     recentRequests: RecentRequest[];
     topCompanies: TopCompany[];
     /**
@@ -64,6 +74,7 @@ export default function AdminDashboard({
     companyStats,
     partnerStats,
     totalEmployees,
+    canViewRevenue,
     monthlyRevenue,
     pendingRequests,
     pendingCompanies,
@@ -78,6 +89,9 @@ export default function AdminDashboard({
     topCompanies,
     ghostEventWatch,
 }: Props) {
+    // الرسم يُبنى فقط حين وصلت أرقامه فعلاً؛ غيابها ليس صفراً بل «لا صلاحية».
+    const showRevenue = canViewRevenue && last6Months !== undefined && monthlyRevenue !== undefined;
+
     return (
         <AdminLayout>
             <Head title="لوحة التحكم" />
@@ -107,13 +121,15 @@ export default function AdminDashboard({
                     change={`+${employeesThisMonth} هذا الشهر`}
                     color="#D4820A"
                 />
-                <StatCard
-                    emoji="💰"
-                    label="إيرادات الشهر (ريال)"
-                    value={monthlyRevenue.toLocaleString()}
-                    change={`${revenueGrowth >= 0 ? '+' : ''}${revenueGrowth}% عن الشهر السابق`}
-                    color="#E03050"
-                />
+                {showRevenue && (
+                    <StatCard
+                        emoji="💰"
+                        label="إيرادات الشهر (ريال)"
+                        value={monthlyRevenue.toLocaleString()}
+                        change={`${(revenueGrowth ?? 0) >= 0 ? '+' : ''}${revenueGrowth ?? 0}% عن الشهر السابق`}
+                        color="#E03050"
+                    />
+                )}
                 <StatCard
                     emoji="⏳"
                     label="طلبات تحتاج مراجعة"
@@ -156,38 +172,47 @@ export default function AdminDashboard({
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                <div className="card">
-                    <div className="card-title">إيرادات آخر 6 أشهر (ريال)</div>
-                    <div className="rev-bar-wrap">
-                        {last6Months.map((m, i) => {
-                            const height = maxRevenue > 0
-                                ? Math.round((m.total / maxRevenue) * 100)
-                                : 0;
-                            const isLast = i === last6Months.length - 1;
-                            const isSecondLast = i === last6Months.length - 2;
-                            return (
-                                <div
-                                    key={i}
-                                    className="rev-bar"
-                                    style={{
-                                        height: `${height}%`,
-                                        ...(isLast
-                                            ? { background: 'linear-gradient(180deg, #E03050, #B8001A)' }
-                                            : isSecondLast
-                                                ? { background: 'linear-gradient(180deg, #D4820A, #A05800)' }
-                                                : {}),
-                                    }}
-                                />
-                            );
-                        })}
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: showRevenue ? '1.6fr 1fr' : '1fr',
+                    gap: '16px',
+                    marginBottom: '16px',
+                }}
+            >
+                {showRevenue && (
+                    <div className="card">
+                        <div className="card-title">إيرادات آخر 6 أشهر (ريال)</div>
+                        <div className="rev-bar-wrap">
+                            {last6Months.map((m, i) => {
+                                const height = (maxRevenue ?? 0) > 0
+                                    ? Math.round((m.total / (maxRevenue as number)) * 100)
+                                    : 0;
+                                const isLast = i === last6Months.length - 1;
+                                const isSecondLast = i === last6Months.length - 2;
+                                return (
+                                    <div
+                                        key={i}
+                                        className="rev-bar"
+                                        style={{
+                                            height: `${height}%`,
+                                            ...(isLast
+                                                ? { background: 'linear-gradient(180deg, #E03050, #B8001A)' }
+                                                : isSecondLast
+                                                    ? { background: 'linear-gradient(180deg, #D4820A, #A05800)' }
+                                                    : {}),
+                                        }}
+                                    />
+                                );
+                            })}
+                        </div>
+                        <div className="rev-label">
+                            {last6Months.map((m, i) => (
+                                <span key={i}>{m.month}</span>
+                            ))}
+                        </div>
                     </div>
-                    <div className="rev-label">
-                        {last6Months.map((m, i) => (
-                            <span key={i}>{m.month}</span>
-                        ))}
-                    </div>
-                </div>
+                )}
 
                 <div className="card">
                     <div className="card-title">آخر الطلبات</div>
