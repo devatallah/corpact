@@ -22,6 +22,8 @@ class ReportController extends Controller
             'employee' => $employee,
             'activityLog' => $this->reportService->activityLog($employee, $filter),
             'myStats' => $this->reportService->myStats($employee),
+            // A13 — H §18: «بطاقة إنجازي هذا الشهر» بدلالة الحضور المحسوم.
+            'achievements' => $this->reportService->achievements($employee),
             'budget' => $this->reportService->budget($employee),
             'categories' => $this->reportService->availableCategories($employee),
             'currentFilter' => $filter,

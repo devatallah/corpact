@@ -36,7 +36,7 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
     const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
     const [selectedLeaderName, setSelectedLeaderName] = useState('');
     const leaderRef = useRef<HTMLDivElement>(null);
-    const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const searchLeader = useCallback((q: string) => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -70,7 +70,7 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
                 description: editingItem.description ?? '',
                 category_id: editingItem.category_id ? String(editingItem.category_id) : '',
                 parent_category_id: catParentId,
-                leader_id: editingItem.leader_id ? String(editingItem.leader_id) : '',
+                leader_id: editingItem.leader?.id ? String(editingItem.leader.id) : '',
             });
             setSelectedLeaderName(editingItem.leader?.name ?? '');
             setLeaderQuery(editingItem.leader?.name ?? '');
@@ -146,6 +146,13 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: 20, fontWeight: 800 }}>{community.name}</div>
                                         </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); window.location.href = `/company/communities/${community.id}/templates`; }}
+                                            title="قوالب التكرار — محرك التشغيل التلقائي"
+                                            style={{ background: '#EFF6FF', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#1A5FAB', cursor: 'pointer', fontFamily: 'inherit' }}
+                                        >
+                                            🔄 القوالب
+                                        </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEditingItem(community); setShowCreate(false); }}
                                             style={{ background: '#F1F5F9', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#64748B', cursor: 'pointer', fontFamily: 'inherit' }}

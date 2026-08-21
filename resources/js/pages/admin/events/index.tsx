@@ -31,6 +31,9 @@ export default function EventsIndex({ events, totalEvents, filters }: Props) {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <div className="page-title">الفعاليات</div>
+                <Link href="/admin/blackouts" className="act-btn" style={{ fontSize: 12, padding: '7px 14px', borderRadius: 8, textDecoration: 'none' }}>
+                    أيام الحظر (الإجازات ورمضان)
+                </Link>
             </div>
             <div className="page-sub">
                 {totalEvents.toLocaleString()} فعالية على المنصة
@@ -81,9 +84,9 @@ export default function EventsIndex({ events, totalEvents, filters }: Props) {
                                     <td style={{ color: '#C8D0E0' }}>{event.partner?.name ?? '-'}</td>
                                     <td style={{ fontSize: '12px', color: '#6B7A99' }}>
                                         {fmtDate(event.event_date)} · {fmtTime(event.start_time)}
-                                        {event.recurrence_type && event.recurrence_type !== 'none' && (
-                                            <span style={{ marginRight: 6, fontSize: 10, background: '#1A5FAB30', color: '#8AB4F8', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
-                                                {event.recurrence_type === 'daily' ? 'يومي' : event.recurrence_type === 'weekly' ? 'أسبوعي' : 'شهري'}
+                                        {event.template_id && (
+                                            <span style={{ marginRight: 6, fontSize: 10, background: '#1A5FAB30', color: '#8AB4F8', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }} title="مولّدة من قالب تكرار">
+                                                قالب
                                             </span>
                                         )}
                                         {event.parent_event_id && (

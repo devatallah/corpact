@@ -4,88 +4,48 @@ namespace App\Services\Employee;
 
 use App\Models\Community;
 use App\Models\Employee;
+use App\Services\Community\MembershipService;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class ExploreService
 {
+    public function __construct(private MembershipService $membership) {}
+
     /**
      * List available communities that the employee can join within their company.
      */
     public function availableCommunities(Employee $employee): Collection
     {
-        return Community::query()
-            ->with(['category', 'leader'])
+        $communities = Community::query()
+            ->with(['category'])
             ->where('company_id', $employee->company_id)
             ->withCount('members')
             ->orderBy('name')
-            ->get()
-            ->map(function (Community $community) use ($employee) {
-                $community->setAttribute(
-                    'is_member',
-                    $community->members()->where('employee_id', $employee->id)->exists()
-                );
+            ->get();
 
-                return $community;
-            });
+        Community::attachPrimaryLeaders($communities);
+
+        $memberCommunityIds = $employee->communities()->pluck('communities.id')->all();
+
+        return $communities->each(function (Community $community) use ($memberCommunityIds) {
+            $community->setAttribute('is_member', in_array($community->id, $memberCommunityIds, true));
+        });
     }
 
     /**
-     * Join a community.
+     * Join (or rejoin) a community — membership states, never row churn.
      */
     public function joinCommunity(Employee $employee, Community $community): void
     {
-        if ($community->company_id !== $employee->company_id) {
-            throw ValidationException::withMessages([
-                'community' => ['You can only join communities within your company.'],
-            ]);
-        }
-
-        $alreadyMember = $community->members()
-            ->where('employee_id', $employee->id)
-            ->exists();
-
-        if ($alreadyMember) {
-            throw ValidationException::withMessages([
-                'community' => ['You are already a member of this community.'],
-            ]);
-        }
-
-        DB::transaction(function () use ($community, $employee) {
-            $community->members()->attach($employee->id, [
-                'role' => 'member',
-                'joined_at' => now(),
-            ]);
-
-            $community->increment('member_count');
-        });
+        $this->membership->join($employee, $community);
     }
 
     /**
-     * Leave a community.
+     * Leave a community — the membership row flips to `left`, it is never
+     * deleted (H §6).
      */
     public function leaveCommunity(Employee $employee, Community $community): void
     {
-        if ($community->leader_id === $employee->id) {
-            throw ValidationException::withMessages([
-                'community' => ['Community leaders cannot leave. Transfer leadership first.'],
-            ]);
-        }
-
-        $isMember = $community->members()
-            ->where('employee_id', $employee->id)
-            ->exists();
-
-        if (! $isMember) {
-            throw ValidationException::withMessages([
-                'community' => ['You are not a member of this community.'],
-            ]);
-        }
-
-        DB::transaction(function () use ($community, $employee) {
-            $community->members()->detach($employee->id);
-            $community->decrement('member_count');
-        });
+        $this->membership->leave($employee, $community);
     }
 }

@@ -21,9 +21,8 @@ interface Admin {
 }
 
 const roleLabels: Record<string, string> = {
-    super_admin: 'مدير عام',
-    admin: 'مشرف',
-    accountant: 'محاسب',
+    platform_admin: 'أدمن تيمات',
+    finance_admin: 'الأدمن المالي',
 };
 
 interface Props {
@@ -45,7 +44,7 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
         email: '',
         password: '',
         phone: '',
-        role: 'admin',
+        role: 'platform_admin',
         status: 'active',
     });
 
@@ -56,7 +55,7 @@ export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
                 email: editingItem.email ?? '',
                 password: '',
                 phone: editingItem.phone ?? '',
-                role: editingItem.role ?? 'admin',
+                role: editingItem.role ?? 'platform_admin',
                 status: editingItem.status ?? 'active',
             });
         } else {
@@ -159,8 +158,8 @@ return;
                                             borderRadius: '6px',
                                             fontSize: '11px',
                                             fontWeight: 600,
-                                            background: admin.role === 'super_admin' ? 'rgba(224,48,80,.15)' : admin.role === 'accountant' ? 'rgba(91,126,255,.15)' : 'rgba(0,158,130,.15)',
-                                            color: admin.role === 'super_admin' ? '#E03050' : admin.role === 'accountant' ? '#5B7EFF' : '#009E82',
+                                            background: admin.role === 'platform_admin' ? 'rgba(224,48,80,.15)' : admin.role === 'finance_admin' ? 'rgba(91,126,255,.15)' : 'rgba(0,158,130,.15)',
+                                            color: admin.role === 'platform_admin' ? '#E03050' : admin.role === 'finance_admin' ? '#5B7EFF' : '#009E82',
                                         }}>
                                             {roleLabels[admin.role] ?? admin.role}
                                         </span>
@@ -279,9 +278,8 @@ return;
                                         value={form.data.role}
                                         onChange={(e) => form.setData('role', e.target.value)}
                                     >
-                                        <option value="super_admin">مدير عام</option>
-                                        <option value="admin">مشرف</option>
-                                        <option value="accountant">محاسب</option>
+                                        <option value="platform_admin">أدمن تيمات</option>
+                                        <option value="finance_admin">الأدمن المالي</option>
                                     </select>
                                 </div>
                                 {editingItem ? (

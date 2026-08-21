@@ -2,65 +2,47 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Controllers\Auth\Concerns\HandlesOtpLogin;
 use App\Http\Controllers\Controller;
 use App\Models\Partner;
-use App\Services\Auth\PartnerAuthService;
+use App\Services\Auth\OtpLoginService;
+use App\Services\Auth\PortalLoginService;
+use App\Services\Identity\IdentityResolver;
+use App\Services\Otp\OtpService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PartnerAuthController extends Controller
 {
-    public function __construct(private PartnerAuthService $authService) {}
+    use HandlesOtpLogin;
 
-    public function showLoginForm(): RedirectResponse
+    public function __construct(
+        protected OtpService $otpService,
+        protected OtpLoginService $otpLogin,
+        protected PortalLoginService $portalLogin,
+    ) {}
+
+    protected function guardName(): string
     {
-        return redirect('/partners?login=1');
+        return 'partner';
     }
 
-    /**
-     * @throws ValidationException
-     */
-    public function login(Request $request): RedirectResponse
+    protected function guardLabel(): string
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
+        return 'مزوّد الخدمة';
+    }
 
-        if (! Auth::guard('partner')->attempt($credentials, $request->boolean('remember'))) {
-            throw ValidationException::withMessages([
-                'email' => ['البريد الإلكتروني أو كلمة المرور غير صحيحة.'],
-            ]);
-        }
+    protected function portalTag(): string
+    {
+        return 'PARTNER';
+    }
 
-        $user = Auth::guard('partner')->user();
-
-        if ($user->status !== 'active') {
-            Auth::guard('partner')->logout();
-            throw ValidationException::withMessages([
-                'email' => ['حساب الشريك غير مفعّل.'],
-            ]);
-        }
-
-        // For staff accounts, also check that the parent partner is active
-        if ($user->parent_id) {
-            $parent = $user->parent;
-            if (! $parent || $parent->status !== 'active') {
-                Auth::guard('partner')->logout();
-                throw ValidationException::withMessages([
-                    'email' => ['حساب الشريك الرئيسي غير مفعّل.'],
-                ]);
-            }
-        }
-
-        $request->session()->regenerate();
-
-        return redirect()->route('partner.dash');
+    protected function homeRoute(): string
+    {
+        return 'partner.dash';
     }
 
     public function register(Request $request): RedirectResponse
@@ -135,8 +117,10 @@ class PartnerAuthController extends Controller
             'email_verified_at' => now(),
         ]);
 
-        Auth::guard('partner')->login($partner);
-        $request->session()->regenerate();
+        // Ensure the provider identity exists, then open a stamped portal
+        // session (14-day lifetime, epoch-bound).
+        $user = app(IdentityResolver::class)->linkPartner($partner);
+        $this->portalLogin->login($request, 'partner', $partner, $user);
 
         return Inertia::render('auth/activate-partner', [
             'token' => '',
@@ -148,7 +132,7 @@ class PartnerAuthController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
-        $this->authService->logout($request);
+        $this->portalLogin->logout($request, 'partner');
 
         return redirect()->route('partner.login');
     }

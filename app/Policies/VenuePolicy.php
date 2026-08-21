@@ -3,8 +3,8 @@
 namespace App\Policies;
 
 use App\Models\Partner;
-use App\Models\Venue;
 use App\Models\User;
+use App\Models\Venue;
 use Illuminate\Contracts\Auth\Authenticatable;
 
 class VenuePolicy

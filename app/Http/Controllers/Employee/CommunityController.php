@@ -2,10 +2,18 @@
 
 namespace App\Http\Controllers\Employee;
 
+use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Employee\PostAnnouncementRequest;
 use App\Models\Community;
+use App\Models\CommunityAnnouncement;
 use App\Models\CommunityPoll;
+use App\Models\Employee;
+use App\Services\Authorization\AuthorizationService;
+use App\Services\Community\AnnouncementService;
+use App\Services\Community\CommunityActor;
+use App\Services\Community\LeadershipService;
+use App\Services\Community\MembershipService;
 use App\Services\Employee\CommunityDetailService;
 use App\Services\Employee\ExploreService;
 use Illuminate\Http\RedirectResponse;
@@ -18,6 +26,10 @@ class CommunityController extends Controller
     public function __construct(
         private CommunityDetailService $communityDetailService,
         private ExploreService $exploreService,
+        private AnnouncementService $announcementService,
+        private MembershipService $membershipService,
+        private LeadershipService $leadershipService,
+        private AuthorizationService $authorization,
     ) {}
 
     /**
@@ -28,11 +40,13 @@ class CommunityController extends Controller
         $employee = auth('employee')->user();
 
         $communities = $employee->communities()
-            ->with(['category', 'leader'])
+            ->with(['category'])
             ->withCount(['members', 'events' => function ($query) {
-                $query->whereIn('status', ['open', 'full', 'confirmed']);
+                $query->whereIn('status', EventStatus::activeValues());
             }])
             ->get();
+
+        Community::attachPrimaryLeaders($communities);
 
         return Inertia::render('employee/community/index', [
             'communities' => $communities,
@@ -48,14 +62,34 @@ class CommunityController extends Controller
 
         $community = $this->communityDetailService->getDetail($community);
         $events = $this->communityDetailService->events($community);
-        $announcements = $this->communityDetailService->announcements($community);
         $members = $this->communityDetailService->members($community);
         $polls = $this->communityDetailService->polls($community, $employee);
 
-        $isCaptain = $community->leader_id === $employee->id
-            || $community->members()->where('employee_id', $employee->id)->wherePivot('role', 'captain')->exists();
+        $announcements = $this->communityDetailService->announcements($community)
+            ->each(fn (CommunityAnnouncement $announcement) => $announcement->setAttribute(
+                'can_modify',
+                $announcement->isModifiableBy($employee),
+            ));
 
-        $isLeader = $community->leader_id === $employee->id;
+        $isLeader = $community->isLeader($employee);
+        $isPrimaryLeader = $isLeader && $community->isPrimaryLeader($employee);
+        $leaderIds = $community->leaderEmployeeIds();
+        $primaryLeaderId = data_get($community->getAttribute('leader'), 'id');
+
+        $actingUser = CommunityActor::forEmployee($employee);
+        $canAnnounce = $actingUser !== null
+            && $this->authorization->can($actingUser, 'announcement.post', 'community', $community->id);
+        $canInvite = $actingUser !== null
+            && $this->authorization->can($actingUser, 'member.invite', 'community', $community->id);
+
+        $invitableEmployees = $canInvite
+            ? Employee::query()
+                ->where('company_id', $community->company_id)
+                ->where('status', 'active')
+                ->whereNotIn('id', $members->pluck('id'))
+                ->orderBy('name')
+                ->get(['id', 'name'])
+            : collect();
 
         $leagues = $community->leagues()
             ->with('departments')
@@ -70,13 +104,18 @@ class CommunityController extends Controller
             'members' => $members,
             'leagues' => $leagues,
             'polls' => $polls,
-            'canAnnounce' => $isCaptain,
+            'canAnnounce' => $canAnnounce,
+            'canInvite' => $canInvite,
             'isLeader' => $isLeader,
+            'isPrimaryLeader' => $isPrimaryLeader,
+            'leaderIds' => $leaderIds,
+            'primaryLeaderId' => $primaryLeaderId,
+            'invitableEmployees' => $invitableEmployees,
         ]);
     }
 
     /**
-     * Join a community.
+     * Join (or rejoin) a community.
      */
     public function join(Community $community): RedirectResponse
     {
@@ -88,7 +127,7 @@ class CommunityController extends Controller
     }
 
     /**
-     * Leave a community.
+     * Leave a community — recorded as a state, the row is never deleted.
      */
     public function leave(Community $community): RedirectResponse
     {
@@ -100,7 +139,81 @@ class CommunityController extends Controller
     }
 
     /**
-     * Post an announcement (AJAX).
+     * Leader removes a member with a documented reason (H §6).
+     */
+    public function removeMember(Request $request, Community $community, Employee $member): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ], [
+            'reason.required' => 'سبب الإزالة مطلوب وموثَّق.',
+        ]);
+
+        $actingUser = CommunityActor::forEmployee($employee);
+        abort_if($actingUser === null, 403);
+
+        $this->membershipService->removeMember($community, $member, $data['reason'], $actingUser);
+
+        return back()->with('success', 'تمت إزالة العضو.');
+    }
+
+    /**
+     * Leader invites a specific employee to the community.
+     */
+    public function invite(Request $request, Community $community): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+
+        $data = $request->validate([
+            'employee_id' => ['required', 'integer'],
+        ]);
+
+        $invitee = Employee::query()->findOrFail($data['employee_id']);
+
+        $this->membershipService->invite($community, $employee, $invitee);
+
+        return back()->with('success', 'تم إرسال الدعوة.');
+    }
+
+    /**
+     * The leader personally transfers primary leadership (manual — H §6).
+     */
+    public function transferLeadership(Request $request, Community $community): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+
+        abort_unless($community->isPrimaryLeader($employee), 403, 'نقل القيادة للقائد الأساسي فقط.');
+
+        $data = $request->validate([
+            'employee_id' => ['required', 'integer'],
+        ]);
+
+        $newLeader = Employee::query()->findOrFail($data['employee_id']);
+
+        $this->leadershipService->transferPrimary($community, $newLeader);
+
+        return back()->with('success', 'تم نقل القيادة.');
+    }
+
+    /**
+     * A leader steps down. No one is auto-promoted; the account manager is
+     * alerted and the leaderless clock starts if no leader remains.
+     */
+    public function stepDown(Community $community): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+
+        abort_unless($community->isLeader($employee), 403);
+
+        $this->leadershipService->removeLeader($community, $employee);
+
+        return back()->with('success', 'تم التنحّي عن القيادة.');
+    }
+
+    /**
+     * Post an announcement (leader/coordinator only — text + link).
      */
     public function postAnnouncement(PostAnnouncementRequest $request, Community $community): RedirectResponse
     {
@@ -108,9 +221,39 @@ class CommunityController extends Controller
 
         $data = $request->validated();
 
-        $this->communityDetailService->postAnnouncement($community, $employee, $data['body']);
+        $this->announcementService->post($community, $employee, $data['body'], $data['link_url'] ?? null);
 
         return back()->with('success', 'تم نشر الإعلان.');
+    }
+
+    /**
+     * Author edits an announcement within the 15-minute window.
+     */
+    public function updateAnnouncement(PostAnnouncementRequest $request, Community $community, CommunityAnnouncement $announcement): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+
+        abort_unless($announcement->community_id === $community->id, 404);
+
+        $data = $request->validated();
+
+        $this->announcementService->edit($announcement, $employee, $data['body'], $data['link_url'] ?? null);
+
+        return back()->with('success', 'تم تعديل الإعلان.');
+    }
+
+    /**
+     * Author deletes an announcement within the 15-minute window.
+     */
+    public function deleteAnnouncement(Community $community, CommunityAnnouncement $announcement): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+
+        abort_unless($announcement->community_id === $community->id, 404);
+
+        $this->announcementService->delete($announcement, $employee);
+
+        return back()->with('success', 'تم حذف الإعلان.');
     }
 
     /**

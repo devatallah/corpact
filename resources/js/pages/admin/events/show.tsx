@@ -1,9 +1,11 @@
 import AdminLayout from '@/layouts/admin-layout';
 import CategoryIcon from '@/components/category-icon';
+import ConfirmModal from '@/components/confirm-modal';
 import StatusBadge from '@/components/status-badge';
 import { fmtDate, fmtTime } from '@/lib/utils';
 import type { Event, Employee, Community, Partner, Category, Company } from '@/types/models';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 
 interface SeriesEvent {
     id: number;
@@ -14,6 +16,23 @@ interface SeriesEvent {
     capacity: number;
 }
 
+interface StatusHistoryEntry {
+    id: number;
+    from_status: string | null;
+    to_status: string;
+    reason: string | null;
+    is_manual: boolean;
+    created_at: string;
+}
+
+interface AttendanceRow {
+    employee_id: number;
+    employee_name: string;
+    attendance_status: string | null;
+    attendance_reason: string | null;
+    attendance_marked_at: string | null;
+}
+
 interface Props {
     event: Event & {
         community: Community;
@@ -21,15 +40,68 @@ interface Props {
         category: Category;
         company: Company;
         creator: Employee;
-        participants: (Employee & { pivot?: { status: string; joined_at: string } })[];
+        participants: (Employee & { pivot?: { seat_status?: string; joined_at?: string } })[];
     };
     seriesEvents: SeriesEvent[];
+    statusHistory?: StatusHistoryEntry[];
+    allStatuses?: string[];
+    attendance?: AttendanceRow[];
+    attendanceWindowClosed?: boolean;
+    attendanceWindowClosesAt?: string | null;
 }
 
-export default function EventShow({ event, seriesEvents }: Props) {
+export default function EventShow({
+    event,
+    seriesEvents,
+    statusHistory = [],
+    allStatuses = [],
+    attendance = [],
+    attendanceWindowClosed = false,
+    attendanceWindowClosesAt = null,
+}: Props) {
+    // A15 — G (أدمن تيمات §3): «تعديل قائمة الحضور بعد انقضاء نافذة الـ24 ساعة
+    // — استثناء لا إجراء روتيني»، بسبب موثَّق ويُسجَّل في سجل التدقيق.
+    const [attendanceTarget, setAttendanceTarget] = useState<AttendanceRow | null>(null);
+    const [attendanceStatus, setAttendanceStatus] = useState<'attended' | 'absent'>('attended');
+    const [attendanceReason, setAttendanceReason] = useState('');
+    const [attendanceConfirm, setAttendanceConfirm] = useState(false);
+
+    function submitAttendance() {
+        if (!attendanceTarget || attendanceReason.trim().length < 3) return;
+        const employeeId = attendanceTarget.employee_id;
+        setAttendanceConfirm(false);
+        router.post(
+            `/admin/events/${event.id}/attendance/${employeeId}`,
+            { attendance_status: attendanceStatus, reason: attendanceReason },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setAttendanceTarget(null);
+                    setAttendanceReason('');
+                },
+            },
+        );
+    }
+
     const joinedParticipants = event.participants?.filter(
-        (p) => p.pivot?.status === 'joined',
+        (p) => p.pivot?.seat_status === 'reserved',
     ) ?? [];
+
+    // H §9 قاعدة 2: التغيير اليدوي — أدمن تيمات وحده بسبب مكتوب، والسجل مقروء أولاً
+    const [forceStatus, setForceStatus] = useState('');
+    const [forceReason, setForceReason] = useState('');
+
+    function submitForceStatus(e: React.FormEvent) {
+        e.preventDefault();
+        if (!forceStatus || forceReason.trim().length < 5) return;
+        if (!confirm(`تغيير الحالة يدوياً إلى ${forceStatus}؟ يُسجَّل بالفاعل والسبب.`)) return;
+        router.post(`/admin/events/${event.id}/force-status`, { status: forceStatus, reason: forceReason }, {
+            onSuccess: () => {
+                setForceStatus('');
+                setForceReason('');
+            },
+        });
+    }
 
     const fillPercent = event.capacity > 0
         ? Math.round((event.participants_count / event.capacity) * 100)
@@ -86,21 +158,19 @@ export default function EventShow({ event, seriesEvents }: Props) {
                 </div>
                 {Number(event.community_contribution) > 0 && (
                     <div className="card">
-                        <div style={{ fontSize: 11, color: '#6B7A99' }}>خصم من المحفظة</div>
+                        <div style={{ fontSize: 11, color: '#6B7A99' }}>استقطاع من المحفظة</div>
                         <div style={{ fontSize: 16, fontWeight: 800, color: '#009E82' }}>{Number(event.community_contribution).toLocaleString()} ريال</div>
                     </div>
                 )}
             </div>
 
-            {/* Recurrence info */}
-            {event.recurrence_type && event.recurrence_type !== 'none' && (
+            {/* A8 — مولّدة من قالب تكرار (H §8) */}
+            {event.template_id && (
                 <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1A5FAB15', borderColor: '#1A5FAB44' }}>
                     <span style={{ fontSize: 16 }}>🔄</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#8AB4F8' }}>
-                        فعالية متكررة — {event.recurrence_type === 'daily' ? 'يومي' : event.recurrence_type === 'weekly' ? 'أسبوعي' : 'شهري'}
-                    </span>
-                    {event.recurrence_end_date && (
-                        <span style={{ fontSize: 11, color: '#6B7A99', marginRight: 'auto' }}>حتى {fmtDate(event.recurrence_end_date)}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#8AB4F8' }}>مولّدة من قالب تكرار #{event.template_id}</span>
+                    {(event.reschedule_attempt ?? 0) > 0 && (
+                        <span style={{ fontSize: 11, color: '#D4820A', marginRight: 'auto' }}>أُعيدت جدولتها مرة — لم يكتمل العدد</span>
                     )}
                 </div>
             )}
@@ -195,6 +265,156 @@ export default function EventShow({ event, seriesEvents }: Props) {
                     <div style={{ fontSize: 13, color: '#C8D0E0' }}>{event.notes}</div>
                 </div>
             )}
+
+            {/* سجل الانتقالات (H §9) — يُقرأ قبل أي تغيير يدوي */}
+            <div className="card">
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 14 }}>
+                    سجل حالات الفعالية ({statusHistory.length})
+                </div>
+                {statusHistory.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#6B7A99', fontSize: 13, padding: '10px 0' }}>لا سجل بعد</div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {statusHistory.map((h) => (
+                            <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: '#161B27', borderRadius: 10, flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: 11, color: '#6B7A99', minWidth: 120 }}>{new Date(h.created_at).toLocaleString('ar-SA')}</span>
+                                <span style={{ fontSize: 12, color: '#C8D0E0' }}>
+                                    {h.from_status ? <StatusBadge status={h.from_status} /> : 'إنشاء'} ← <StatusBadge status={h.to_status} />
+                                </span>
+                                {h.is_manual && <span style={{ fontSize: 10, background: '#E0305022', color: '#E03050', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>يدوي</span>}
+                                {h.reason && <span style={{ fontSize: 11, color: '#6B7A99' }}>{h.reason}</span>}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* التغيير اليدوي — أدمن تيمات وحده بسبب مكتوب (H §9 قاعدة 2) */}
+            <div className="card" style={{ borderColor: '#E0305044' }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#E03050', marginBottom: 6 }}>تغيير الحالة يدوياً</div>
+                <div style={{ fontSize: 12, color: '#6B7A99', marginBottom: 12 }}>
+                    خارج جدول الانتقالات — لتصحيح الواقع فقط (مثل إرجاع فعالية لم تُقم). السبب المكتوب إلزامي ويُسجَّل في سجلي الانتقالات والتدقيق.
+                </div>
+                <form onSubmit={submitForceStatus} style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <select
+                        value={forceStatus}
+                        onChange={(e) => setForceStatus(e.target.value)}
+                        style={{ padding: '9px 12px', borderRadius: 10, background: '#161B27', color: '#E8EAF0', border: '1px solid #2A3245', fontSize: 13, fontFamily: 'inherit' }}
+                    >
+                        <option value="">اختر الحالة...</option>
+                        {allStatuses.filter((s) => s !== event.status).map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                        ))}
+                    </select>
+                    <input
+                        value={forceReason}
+                        onChange={(e) => setForceReason(e.target.value)}
+                        placeholder="السبب المكتوب (إلزامي — 5 أحرف فأكثر)"
+                        style={{ flex: 1, minWidth: 220, padding: '9px 12px', borderRadius: 10, background: '#161B27', color: '#E8EAF0', border: '1px solid #2A3245', fontSize: 13, fontFamily: 'inherit', direction: 'rtl' }}
+                    />
+                    <button
+                        type="submit"
+                        disabled={!forceStatus || forceReason.trim().length < 5}
+                        className="btn btn-danger"
+                        style={{ opacity: !forceStatus || forceReason.trim().length < 5 ? 0.5 : 1 }}
+                    >
+                        تنفيذ التغيير اليدوي
+                    </button>
+                </form>
+            </div>
+
+            {/* A15 — استثناء الحضور بعد النافذة (H §13 / G أدمن تيمات §3) */}
+            {attendance.length > 0 && (
+                <div className="card" style={{ marginTop: 20 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>قائمة الحضور</div>
+                    <div style={{ fontSize: 12, color: '#6B7A99', lineHeight: 1.9, marginBottom: 14 }}>
+                        {attendanceWindowClosed
+                            ? 'نافذة القائد (٢٤ ساعة) أُقفلت — التعديل من هنا استثناء إداري بسبب موثَّق، ويُسجَّل بالفاعل والقيمة قبل وبعد في سجل التدقيق.'
+                            : `النافذة ما زالت مفتوحة للقائد${attendanceWindowClosesAt ? ` حتى ${attendanceWindowClosesAt.slice(0, 16).replace('T', ' ')}` : ''} — الأصل أن يعدّلها هو، والتعديل من هنا يبقى استثناءً.`}
+                    </div>
+
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="portal-table">
+                            <thead>
+                                <tr>
+                                    <th>المشارك</th>
+                                    <th>الحضور</th>
+                                    <th>السبب المسجَّل</th>
+                                    <th>إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {attendance.map((row) => (
+                                    <tr key={row.employee_id}>
+                                        <td style={{ fontWeight: 700, color: '#fff' }}>{row.employee_name}</td>
+                                        <td style={{ color: row.attendance_status === 'absent' ? '#E03050' : '#009E82', fontWeight: 700 }}>
+                                            {row.attendance_status === 'attended' ? 'حاضر' : row.attendance_status === 'absent' ? 'غائب' : '—'}
+                                        </td>
+                                        <td style={{ fontSize: 12, color: '#9CA3BC' }}>{row.attendance_reason ?? '—'}</td>
+                                        <td>
+                                            <button
+                                                className="act-btn btn-view"
+                                                onClick={() => {
+                                                    setAttendanceTarget(row);
+                                                    setAttendanceStatus(row.attendance_status === 'attended' ? 'absent' : 'attended');
+                                                    setAttendanceReason('');
+                                                }}
+                                            >
+                                                تعديل استثنائي
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {attendanceTarget && (
+                        <div style={{ marginTop: 14, padding: 14, background: '#161B27', border: '1px solid #2A3245', borderRadius: 10 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#E8EAF0', marginBottom: 10 }}>
+                                تعديل حضور «{attendanceTarget.employee_name}»
+                            </div>
+                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                                <select
+                                    value={attendanceStatus}
+                                    onChange={(e) => setAttendanceStatus(e.target.value as 'attended' | 'absent')}
+                                    style={{ padding: '9px 12px', borderRadius: 10, background: '#0E121B', color: '#E8EAF0', border: '1px solid #2A3245', fontSize: 13, fontFamily: 'inherit' }}
+                                >
+                                    <option value="attended">حاضر</option>
+                                    <option value="absent">غائب</option>
+                                </select>
+                                <input
+                                    value={attendanceReason}
+                                    onChange={(e) => setAttendanceReason(e.target.value)}
+                                    placeholder="السبب الموثَّق (إلزامي)"
+                                    style={{ flex: 1, minWidth: 220, padding: '9px 12px', borderRadius: 10, background: '#0E121B', color: '#E8EAF0', border: '1px solid #2A3245', fontSize: 13, fontFamily: 'inherit', direction: 'rtl' }}
+                                />
+                                <button
+                                    className="act-btn btn-approve"
+                                    disabled={attendanceReason.trim().length < 3}
+                                    onClick={() => setAttendanceConfirm(true)}
+                                >
+                                    تنفيذ
+                                </button>
+                                <button className="act-btn" onClick={() => setAttendanceTarget(null)}>إلغاء</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <ConfirmModal
+                open={attendanceConfirm}
+                title="تعديل الحضور بعد النافذة"
+                message={
+                    attendanceTarget
+                        ? `سيُسجَّل «${attendanceTarget.employee_name}» ${attendanceStatus === 'attended' ? 'حاضراً' : 'غائباً'} بدل «${attendanceTarget.attendance_status === 'attended' ? 'حاضر' : attendanceTarget.attendance_status === 'absent' ? 'غائب' : 'غير محدد'}». الأثر: يتغيّر احتساب الموظف المفعّل في فاتورة الشهر ولوحتَي الصدارة. السبب يُحفظ في سجل التدقيق ولا يُحذف.`
+                        : ''
+                }
+                confirmLabel="تسجيل الاستثناء"
+                onConfirm={submitAttendance}
+                onCancel={() => setAttendanceConfirm(false)}
+            />
         </AdminLayout>
     );
 }

@@ -56,7 +56,7 @@ class CommunityPolicy
         return match (true) {
             $user instanceof User => true,
             $user instanceof Company => $user->id === $community->company_id,
-            $user instanceof Employee => $user->id === $community->leader_id,
+            $user instanceof Employee => $community->isLeader($user),
             default => false,
         };
     }

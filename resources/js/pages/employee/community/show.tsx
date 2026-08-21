@@ -14,31 +14,107 @@ interface Props {
         events_count?: number;
     };
     events: (Event & { partner: Partner; category?: Category })[];
-    announcements: (CommunityAnnouncement & { employee: Employee })[];
-    members: (Employee & { pivot?: { role: string } })[];
+    announcements: (CommunityAnnouncement & { employee: Employee; link_url?: string | null; edited_at?: string | null; can_modify?: boolean })[];
+    members: Employee[];
     leagues: League[];
     polls: CommunityPoll[];
     canAnnounce?: boolean;
+    canInvite?: boolean;
     isLeader?: boolean;
+    isPrimaryLeader?: boolean;
+    leaderIds?: number[];
+    primaryLeaderId?: number | null;
+    invitableEmployees?: { id: number; name: string }[];
 }
 
 type Tab = 'events' | 'announcements' | 'members' | 'leagues' | 'polls';
 
-export default function CommunityShow({ community, events, announcements, members, leagues, polls, canAnnounce, isLeader }: Props) {
+export default function CommunityShow({ community, events, announcements, members, leagues, polls, canAnnounce, canInvite, isLeader, isPrimaryLeader, leaderIds = [], primaryLeaderId, invitableEmployees = [] }: Props) {
     const initialTab = (new URLSearchParams(window.location.search).get('tab') as Tab) || 'events';
     const [activeTab, setActiveTab] = useState<Tab>(initialTab);
     const color = community.category?.color ?? community.color ?? '#18A86B';
 
-    const announcementForm = useForm({ body: '' });
+    const announcementForm = useForm({ body: '', link_url: '' });
+    const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null);
+    const editForm = useForm({ body: '', link_url: '' });
 
     function submitAnnouncement(e: React.FormEvent) {
         e.preventDefault();
+        announcementForm.transform((data) => ({ ...data, link_url: data.link_url.trim() || null }));
         announcementForm.post(`/employee/community/${community.id}/announcement`, {
             preserveScroll: true,
             onSuccess: () => {
-                announcementForm.reset('body');
+                announcementForm.reset('body', 'link_url');
                 toastr.success('تم نشر الإعلان بنجاح');
             },
+        });
+    }
+
+    function startEditAnnouncement(a: { id: number; body: string; link_url?: string | null }) {
+        setEditingAnnouncementId(a.id);
+        editForm.setData({ body: a.body, link_url: a.link_url ?? '' });
+    }
+
+    function submitEditAnnouncement(e: React.FormEvent, announcementId: number) {
+        e.preventDefault();
+        editForm.transform((data) => ({ ...data, link_url: data.link_url.trim() || null }));
+        editForm.patch(`/employee/community/${community.id}/announcement/${announcementId}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setEditingAnnouncementId(null);
+                toastr.success('تم تعديل الإعلان');
+            },
+        });
+    }
+
+    function deleteAnnouncement(announcementId: number) {
+        if (!confirm('حذف هذا الإعلان؟ (متاح خلال 15 دقيقة من نشره)')) return;
+        router.delete(`/employee/community/${community.id}/announcement/${announcementId}`, {
+            preserveScroll: true,
+            onSuccess: () => toastr.success('تم حذف الإعلان'),
+        });
+    }
+
+    // Member management (leader) — H §6: removal needs a documented reason.
+    const [inviteEmployeeId, setInviteEmployeeId] = useState('');
+    const [transferEmployeeId, setTransferEmployeeId] = useState('');
+
+    function removeMember(member: { id: number; name: string }) {
+        const reason = prompt(`سبب إزالة ${member.name} من المجتمع (إلزامي وموثَّق):`);
+        if (!reason?.trim()) return;
+        router.post(`/employee/community/${community.id}/members/${member.id}/remove`, { reason }, {
+            preserveScroll: true,
+            onSuccess: () => toastr.success('تمت إزالة العضو'),
+        });
+    }
+
+    function inviteEmployee(e: React.FormEvent) {
+        e.preventDefault();
+        if (!inviteEmployeeId) return;
+        router.post(`/employee/community/${community.id}/invite`, { employee_id: inviteEmployeeId }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setInviteEmployeeId('');
+                toastr.success('تم إرسال الدعوة');
+            },
+        });
+    }
+
+    function transferLeadership(e: React.FormEvent) {
+        e.preventDefault();
+        if (!transferEmployeeId) return;
+        if (!confirm('نقل القيادة الأساسية؟ ستفقد دور القائد الأساسي.')) return;
+        router.post(`/employee/community/${community.id}/transfer-leadership`, { employee_id: transferEmployeeId }, {
+            preserveScroll: true,
+            onSuccess: () => toastr.success('تم نقل القيادة'),
+        });
+    }
+
+    function stepDown() {
+        if (!confirm('التنحّي عن القيادة؟ مجتمع بلا قائد 14 يوماً يولّد تنبيهاً لمسؤول الحساب، وبعد 30 يوماً يصبح خاملاً. يُفضَّل نقل القيادة بدل التنحّي.')) return;
+        router.post(`/employee/community/${community.id}/step-down`, {}, {
+            preserveScroll: true,
+            onSuccess: () => toastr.success('تم التنحّي عن القيادة'),
         });
     }
 
@@ -188,6 +264,52 @@ export default function CommunityShow({ community, events, announcements, member
             {/* Events Tab */}
             {activeTab === 'events' && (
                 <div>
+                    {isLeader && (
+                        <Link
+                            href={`/employee/community/${community.id}/templates`}
+                            className="card"
+                            style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none',
+                                border: '2px dashed #EBEBEB', color, fontWeight: 600, fontSize: 14,
+                            }}
+                        >
+                            <span>🔄 قوالب التكرار — محرك التشغيل التلقائي</span>
+                            <span style={{ fontSize: 12, color: '#999' }}>إدارة ←</span>
+                        </Link>
+                    )}
+                    {/* A13 — H §15: تصدير القائد في نطاق مجتمعه، بلا أي بيانات مالية. */}
+                    {isLeader && (
+                        <div
+                            className="card"
+                            style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 13 }}
+                        >
+                            <span style={{ fontWeight: 600 }}>📤 تصدير بيانات المجتمع</span>
+                            <span style={{ fontSize: 11, color: '#888' }}>بلا بيانات مالية ولا أرقام جوال</span>
+                            <span style={{ flex: 1 }} />
+                            {[
+                                { key: 'events_results', label: 'الفعاليات والنتائج' },
+                                { key: 'employees_activation', label: 'الأعضاء والتفعيل' },
+                            ].map((item) => (
+                                <span key={item.key} style={{ display: 'inline-flex', border: '1px solid #DDD', borderRadius: 8, overflow: 'hidden' }}>
+                                    <span style={{ padding: '6px 9px', fontSize: 12, background: '#FAFAFA' }}>{item.label}</span>
+                                    <a
+                                        href={`/employee/community/${community.id}/exports/${item.key}?format=xlsx`}
+                                        style={{ padding: '6px 9px', fontSize: 12, borderRight: '1px solid #DDD', color: '#1A56DB' }}
+                                    >
+                                        Excel
+                                    </a>
+                                    <a
+                                        href={`/employee/community/${community.id}/exports/${item.key}?format=pdf`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        style={{ padding: '6px 9px', fontSize: 12, borderRight: '1px solid #DDD', color: '#1A56DB' }}
+                                    >
+                                        PDF
+                                    </a>
+                                </span>
+                            ))}
+                        </div>
+                    )}
                     {events.length > 0 ? (
                         events.map((event) => {
                             const pct = event.capacity > 0
@@ -226,32 +348,84 @@ export default function CommunityShow({ community, events, announcements, member
             {activeTab === 'announcements' && (
                 <div>
                     {canAnnounce && (
-                        <form onSubmit={submitAnnouncement} style={{ display: 'flex', gap: 8, alignItems: 'flex-end', marginBottom: 16 }}>
-                            <textarea
-                                value={announcementForm.data.body}
-                                onChange={(e) => announcementForm.setData('body', e.target.value)}
-                                placeholder="اكتب إعلانا للمجتمع..."
-                                rows={2}
-                                style={{ flex: 1, resize: 'none', minHeight: 40 }}
+                        <form onSubmit={submitAnnouncement} style={{ marginBottom: 16 }}>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', marginBottom: 8 }}>
+                                <textarea
+                                    value={announcementForm.data.body}
+                                    onChange={(e) => announcementForm.setData('body', e.target.value)}
+                                    placeholder="اكتب إعلانا للمجتمع... (نص ورابط فقط — بلا صور أو مرفقات)"
+                                    rows={2}
+                                    style={{ flex: 1, resize: 'none', minHeight: 40 }}
+                                />
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    disabled={!announcementForm.data.body.trim() || announcementForm.processing}
+                                    style={{ padding: '10px 14px' }}
+                                >
+                                    📤
+                                </button>
+                            </div>
+                            <input
+                                type="url"
+                                value={announcementForm.data.link_url}
+                                onChange={(e) => announcementForm.setData('link_url', e.target.value)}
+                                placeholder="رابط (اختياري) — https://"
+                                style={{ width: '100%', fontSize: 13 }}
                             />
-                            <button
-                                type="submit"
-                                className="btn btn-primary"
-                                disabled={!announcementForm.data.body.trim() || announcementForm.processing}
-                                style={{ padding: '10px 14px' }}
-                            >
-                                📤
-                            </button>
+                            {(announcementForm.errors.body || announcementForm.errors.link_url) && (
+                                <div className="field-error" style={{ marginTop: 6 }}>
+                                    {announcementForm.errors.body ?? announcementForm.errors.link_url}
+                                </div>
+                            )}
                         </form>
                     )}
 
                     {announcements.length > 0 ? (
                         announcements.map((a) => (
                             <div key={a.id} className="card">
-                                <div style={{ fontSize: 14, color: '#0A0A0A', lineHeight: 1.7 }}>{a.body}</div>
-                                <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
-                                    {fmtDateTime(a.created_at)} · {a.employee?.name}
-                                </div>
+                                {editingAnnouncementId === a.id ? (
+                                    <form onSubmit={(e) => submitEditAnnouncement(e, a.id)}>
+                                        <textarea
+                                            value={editForm.data.body}
+                                            onChange={(e) => editForm.setData('body', e.target.value)}
+                                            rows={2}
+                                            style={{ width: '100%', resize: 'none', marginBottom: 8 }}
+                                        />
+                                        <input
+                                            type="url"
+                                            value={editForm.data.link_url}
+                                            onChange={(e) => editForm.setData('link_url', e.target.value)}
+                                            placeholder="رابط (اختياري)"
+                                            style={{ width: '100%', fontSize: 13, marginBottom: 8 }}
+                                        />
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button type="submit" className="btn btn-primary" style={{ fontSize: 12 }} disabled={editForm.processing}>حفظ</button>
+                                            <button type="button" className="btn btn-outline" style={{ fontSize: 12 }} onClick={() => setEditingAnnouncementId(null)}>إلغاء</button>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <>
+                                        <div style={{ fontSize: 14, color: '#0A0A0A', lineHeight: 1.7 }}>{a.body}</div>
+                                        {a.link_url && (
+                                            <a href={a.link_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color, display: 'inline-block', marginTop: 6, direction: 'ltr' }}>
+                                                {a.link_url}
+                                            </a>
+                                        )}
+                                        <div style={{ fontSize: 12, color: '#999', marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span>
+                                                {fmtDateTime(a.created_at)} · {a.employee?.name}
+                                                {a.edited_at && <span> · (مُعدَّل)</span>}
+                                            </span>
+                                            {a.can_modify && (
+                                                <span style={{ display: 'flex', gap: 8 }}>
+                                                    <button onClick={() => startEditAnnouncement(a)} className="btn btn-outline" style={{ padding: '2px 10px', fontSize: 11 }}>تعديل</button>
+                                                    <button onClick={() => deleteAnnouncement(a.id)} className="btn btn-danger" style={{ padding: '2px 10px', fontSize: 11 }}>حذف</button>
+                                                </span>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         ))
                     ) : (
@@ -500,6 +674,42 @@ export default function CommunityShow({ community, events, announcements, member
             {/* Members Tab */}
             {activeTab === 'members' && (
                 <div>
+                    {canInvite && invitableEmployees.length > 0 && (
+                        <form onSubmit={inviteEmployee} className="card" style={{ display: 'flex', gap: 8, alignItems: 'center', border: '2px dashed #EBEBEB' }}>
+                            <select value={inviteEmployeeId} onChange={(e) => setInviteEmployeeId(e.target.value)} style={{ flex: 1, fontSize: 13 }}>
+                                <option value="">دعوة زميل للمجتمع...</option>
+                                {invitableEmployees.map((emp) => (
+                                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                                ))}
+                            </select>
+                            <button type="submit" className="btn btn-primary" style={{ fontSize: 13 }} disabled={!inviteEmployeeId}>
+                                دعوة
+                            </button>
+                        </form>
+                    )}
+
+                    {isPrimaryLeader && (
+                        <form onSubmit={transferLeadership} className="card" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <select value={transferEmployeeId} onChange={(e) => setTransferEmployeeId(e.target.value)} style={{ flex: 1, fontSize: 13 }}>
+                                <option value="">نقل القيادة الأساسية إلى...</option>
+                                {members.filter((m) => m.id !== primaryLeaderId).map((m) => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                ))}
+                            </select>
+                            <button type="submit" className="btn btn-outline" style={{ fontSize: 13 }} disabled={!transferEmployeeId}>
+                                نقل القيادة
+                            </button>
+                        </form>
+                    )}
+
+                    {isLeader && (
+                        <div style={{ textAlign: 'left', marginBottom: 12 }}>
+                            <button onClick={stepDown} className="btn btn-danger" style={{ fontSize: 12 }}>
+                                التنحّي عن القيادة
+                            </button>
+                        </div>
+                    )}
+
                     {members.length > 0 ? (
                         <div className="list-card">
                             {members.map((member) => (
@@ -511,10 +721,19 @@ export default function CommunityShow({ community, events, announcements, member
                                         <div style={{ fontSize: 14, fontWeight: 600 }}>{member.name}</div>
                                         <div style={{ fontSize: 12, color: '#999' }}>{member.department?.name ?? '—'}</div>
                                     </div>
-                                    {(member.pivot?.role === 'captain' || community.leader_id === member.id) && (
+                                    {leaderIds.includes(member.id) && (
                                         <span className="badge" style={{ background: `${color}15`, color }}>
-                                            {community.leader_id === member.id ? 'قائد' : 'كابتن'}
+                                            {member.id === primaryLeaderId ? 'قائد أساسي' : 'قائد'}
                                         </span>
+                                    )}
+                                    {isLeader && !leaderIds.includes(member.id) && (
+                                        <button
+                                            onClick={() => removeMember(member)}
+                                            className="btn btn-danger"
+                                            style={{ padding: '3px 10px', fontSize: 11, marginRight: 8 }}
+                                        >
+                                            إزالة
+                                        </button>
                                     )}
                                 </div>
                             ))}

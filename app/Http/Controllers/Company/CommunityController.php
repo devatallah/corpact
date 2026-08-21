@@ -5,9 +5,17 @@ namespace App\Http\Controllers\Company;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Company\StoreCommunityRequest;
 use App\Http\Requests\Company\UpdateCommunityRequest;
+use App\Models\Category;
 use App\Models\Community;
+use App\Models\Company;
+use App\Models\Employee;
+use App\Models\Notification;
+use App\Services\Community\CommunityActor;
+use App\Services\Community\LeadershipService;
+use App\Services\Community\MembershipService;
 use App\Services\Company\CommunityService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,6 +24,8 @@ class CommunityController extends Controller
 {
     public function __construct(
         private CommunityService $communityService,
+        private LeadershipService $leadershipService,
+        private MembershipService $membershipService,
     ) {}
 
     /**
@@ -24,14 +34,14 @@ class CommunityController extends Controller
     public function index(): Response
     {
         $company = auth('company')->user();
-        $unreadNotifications = \App\Models\Notification::where('notifiable_type', \App\Models\Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
+        $unreadNotifications = Notification::where('notifiable_type', Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
 
         $communities = $this->communityService->listForCompany($company);
 
         return Inertia::render('company/communities/index', [
             'company' => $company,
             'communities' => $communities,
-            'categories' => \App\Models\Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
+            'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
             'unreadNotifications' => $unreadNotifications,
         ]);
     }
@@ -44,8 +54,8 @@ class CommunityController extends Controller
         $company = auth('company')->user();
 
         return Inertia::render('company/communities/create', [
-            'employees' => \App\Models\Employee::where('company_id', $company->id)->active()->select('id', 'name')->orderBy('name')->get(),
-            'categories' => \App\Models\Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
+            'employees' => Employee::where('company_id', $company->id)->active()->select('id', 'name')->orderBy('name')->get(),
+            'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
         ]);
     }
 
@@ -73,10 +83,13 @@ class CommunityController extends Controller
     {
         $company = auth('company')->user();
 
+        $community->load('category');
+        Community::attachPrimaryLeaders([$community]);
+
         return Inertia::render('company/communities/edit', [
-            'community' => $community->load('leader', 'category'),
-            'employees' => \App\Models\Employee::where('company_id', $company->id)->active()->select('id', 'name')->orderBy('name')->get(),
-            'categories' => \App\Models\Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
+            'community' => $community,
+            'employees' => Employee::where('company_id', $company->id)->active()->select('id', 'name')->orderBy('name')->get(),
+            'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
         ]);
     }
 
@@ -92,7 +105,7 @@ class CommunityController extends Controller
         $data = $request->validated();
 
         if (isset($data['leader_id'])) {
-            $newLeader = \App\Models\Employee::findOrFail($data['leader_id']);
+            $newLeader = Employee::findOrFail($data['leader_id']);
             $this->communityService->changeLeader($company, $community, $newLeader);
             unset($data['leader_id']);
         }
@@ -115,5 +128,91 @@ class CommunityController extends Controller
 
         return redirect()->route('company.communities.index')
             ->with('success', 'تم حذف المجتمع بنجاح.');
+    }
+
+    /**
+     * Grant leadership to an employee (multi-leader model, H §6).
+     */
+    public function assignLeader(Request $request, Community $community): RedirectResponse
+    {
+        Gate::authorize('update', $community);
+
+        $data = $request->validate([
+            'employee_id' => ['required', 'integer'],
+            'is_primary' => ['sometimes', 'boolean'],
+        ]);
+
+        $employee = Employee::query()->findOrFail($data['employee_id']);
+
+        $this->leadershipService->assignLeader($community, $employee, (bool) ($data['is_primary'] ?? false));
+
+        return back()->with('success', 'تم تعيين القائد.');
+    }
+
+    /**
+     * Revoke an employee's leadership — never auto-replaced.
+     */
+    public function removeLeader(Community $community, Employee $employee): RedirectResponse
+    {
+        Gate::authorize('update', $community);
+
+        $this->leadershipService->removeLeader($community, $employee);
+
+        return back()->with('success', 'تمت إزالة القيادة.');
+    }
+
+    /**
+     * Designate the primary leader among current leaders.
+     */
+    public function setPrimaryLeader(Community $community, Employee $employee): RedirectResponse
+    {
+        Gate::authorize('update', $community);
+
+        $this->leadershipService->setPrimary($community, $employee);
+
+        return back()->with('success', 'تم تحديد القائد الأساسي.');
+    }
+
+    /**
+     * AM removes a member with a documented reason.
+     */
+    public function removeMember(Request $request, Community $community, Employee $employee): RedirectResponse
+    {
+        Gate::authorize('update', $community);
+
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ], [
+            'reason.required' => 'سبب الإزالة مطلوب وموثَّق.',
+        ]);
+
+        $actingUser = CommunityActor::forCompany(auth('company')->user());
+        abort_if($actingUser === null, 403, 'تعذر تحديد هوية مسؤول الحساب.');
+
+        $this->membershipService->removeMember($community, $employee, $data['reason'], $actingUser);
+
+        return back()->with('success', 'تمت إزالة العضو.');
+    }
+
+    /**
+     * Ban — blocks rejoining. Account-manager-only (H §6), enforced through
+     * the permission matrix.
+     */
+    public function banMember(Request $request, Community $community, Employee $employee): RedirectResponse
+    {
+        Gate::authorize('update', $community);
+
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ], [
+            'reason.required' => 'سبب الحظر مطلوب وموثَّق.',
+        ]);
+
+        $actingUser = CommunityActor::forCompany(auth('company')->user());
+        abort_if($actingUser === null, 403, 'تعذر تحديد هوية مسؤول الحساب.');
+
+        $this->membershipService->banMember($community, $employee, $data['reason'], $actingUser);
+
+        return back()->with('success', 'تم حظر العضو.');
     }
 }

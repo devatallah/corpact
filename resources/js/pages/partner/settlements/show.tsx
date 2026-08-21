@@ -1,110 +1,156 @@
-import PartnerLayout from '@/layouts/partner-layout';
 import StatusBadge from '@/components/status-badge';
-import type { Settlement } from '@/types/models';
+import PartnerLayout from '@/layouts/partner-layout';
 import { fmtDateTime } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/react';
 
-interface Props {
-    settlement: Settlement;
+interface ItemRow {
+    id: number;
+    type: string;
+    status: string;
+    event_id: number;
+    event_title: string | null;
+    event_date: string | null;
+    commission_rate_percent: number | null;
+    gross_amount: string;
+    commission_amount: string;
+    vat_amount: string;
+    net_amount: string;
+    reason: string | null;
+    corrects_item_id: number | null;
 }
 
-export default function SettlementShow({ settlement }: Props) {
-    const rows: { label: string; value: string; highlight?: boolean; color?: string }[] = [
-        {
-            label: 'رقم التسوية',
-            value: `#${settlement.id}`,
-        },
-        {
-            label: 'المبلغ الإجمالي',
-            value: `${(settlement.gross_amount ?? 0).toLocaleString()} ر`,
-        },
-    ];
+interface Statement {
+    id: number;
+    period_key: string;
+    period_start: string | null;
+    period_end: string | null;
+    status: string;
+    items_count: number;
+    gross_amount: string;
+    commission_amount: string;
+    vat_amount: string;
+    net_amount: string;
+    approved_at: string | null;
+    paid_at: string | null;
+    transferred_at: string | null;
+    payout_reference: string | null;
+    items: ItemRow[];
+}
 
-    if (settlement.commission_amount) {
-        rows.push({
-            label: 'العمولة',
-            value: `-${settlement.commission_amount.toLocaleString()} ر`,
-            color: '#C8410A',
-        });
-    }
+interface Props {
+    statement: Statement;
+}
 
-    rows.push({
-        label: 'صافي المبلغ',
-        value: `${(settlement.net_amount ?? 0).toLocaleString()} ر`,
-        highlight: true,
-    });
-
-    rows.push({
-        label: 'تاريخ الإنشاء',
-        value: fmtDateTime(settlement.created_at) || '-',
-    });
-
-    if (settlement.paid_at) {
-        rows.push({
-            label: 'تاريخ الدفع',
-            value: fmtDateTime(settlement.paid_at),
-        });
-    }
-
+export default function SettlementShow({ statement }: Props) {
     return (
         <PartnerLayout>
-            <Head title={`تسوية #${settlement.id}`} />
+            <Head title={`كشف ${statement.period_key}`} />
 
-            {/* Breadcrumb */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <Link href="/partner/settlements" style={{ color: '#8A7868', textDecoration: 'none', fontSize: 14 }}>← التسويات</Link>
-                <span style={{ color: '#C8D0E0' }}>/</span>
-                <span style={{ fontWeight: 700 }}>تسوية #{settlement.id}</span>
+            <div style={{ marginBottom: 16 }}>
+                <Link href="/partner/settlements" style={{ color: '#1A5FAB', fontWeight: 700 }}>
+                    ← كل الكشوف
+                </Link>
             </div>
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 32, maxWidth: 600 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                    <div style={{ fontSize: 18, fontWeight: 700 }}>تفاصيل التسوية</div>
-                    <StatusBadge status={settlement.status} />
+            <div style={{ marginBottom: 20 }}>
+                <div className="page-title">
+                    كشف الفترة {statement.period_key} <StatusBadge status={statement.status} />
                 </div>
-
-                <div style={{ display: 'grid', gap: 16 }}>
-                    {rows.map((row, i) => (
-                        <div
-                            key={i}
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                padding: '12px 0',
-                                borderBottom: i < rows.length - 1 ? '1px solid #E2E8F4' : undefined,
-                            }}
-                        >
-                            <span style={{ fontSize: 13, color: '#7A8BA8' }}>{row.label}</span>
-                            <span
-                                style={{
-                                    fontSize: row.highlight ? 16 : 13,
-                                    fontWeight: row.highlight ? 900 : 600,
-                                    color: row.highlight ? '#1A7A4A' : row.color ?? undefined,
-                                }}
-                            >
-                                {row.value}
-                            </span>
-                        </div>
-                    ))}
+                <div className="page-sub">
+                    {statement.period_start} → {statement.period_end} · {statement.items_count} بند
                 </div>
+            </div>
 
-                <div style={{ marginTop: 24 }}>
-                    <Link
-                        href="/partner/settlements"
-                        style={{
-                            display: 'block',
-                            textAlign: 'center',
-                            padding: 12,
-                            background: '#E2E8F4',
-                            borderRadius: 10,
-                            color: '#4A5C78',
-                            fontSize: 14,
-                            fontWeight: 700,
-                            textDecoration: 'none',
-                        }}
-                    >
-                        العودة للتسويات
-                    </Link>
+            <div className="card" style={{ marginBottom: 16 }}>
+                <table className="portal-table">
+                    <tbody>
+                        <tr>
+                            <td>قيمة الفعاليات شاملة الضريبة</td>
+                            <td style={{ fontWeight: 700 }}>{statement.gross_amount} ر</td>
+                        </tr>
+                        <tr>
+                            <td>عمولة تيمات (تُقتطع من مستحقاتك)</td>
+                            <td style={{ color: '#C8410A', fontWeight: 700 }}>−{statement.commission_amount} ر</td>
+                        </tr>
+                        <tr>
+                            <td>منها ضريبة القيمة المضافة على العمولة</td>
+                            <td>{statement.vat_amount} ر</td>
+                        </tr>
+                        <tr>
+                            <td style={{ fontWeight: 800 }}>صافي التحويل إليك</td>
+                            <td style={{ fontWeight: 800, color: '#1A7A4A' }}>{statement.net_amount} ر</td>
+                        </tr>
+                        {statement.paid_at && (
+                            <>
+                                <tr>
+                                    <td>تاريخ التحويل</td>
+                                    <td>{fmtDateTime(statement.transferred_at) || '—'}</td>
+                                </tr>
+                                <tr>
+                                    <td>مرجع التحويل</td>
+                                    <td>{statement.payout_reference ?? '—'}</td>
+                                </tr>
+                            </>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="card">
+                <div className="card-title">مطابقة البنود مقابل الفعاليات</div>
+                <div style={{ fontSize: 12, color: '#6B7A99', marginBottom: 12 }}>
+                    كل بند يحفظ نسخة ثابتة من السعر ونسبة العمولة وقت الاحتساب، فلا يتغير كشف قديم بتغيير ملفك لاحقاً.
+                    لا توجد واجهة اعتراض في الإصدار الأول: راجع الأدمن المالي في تيمات، ويُضاف بند تصحيحي في الكشف
+                    التالي — والكشف المدفوع لا يُعدَّل.
+                </div>
+                <div style={{ overflow: 'auto' }}>
+                    <table className="portal-table">
+                        <thead>
+                            <tr>
+                                <th>الفعالية</th>
+                                <th>التاريخ</th>
+                                <th>الإجمالي</th>
+                                <th>النسبة</th>
+                                <th>العمولة</th>
+                                <th>الصافي</th>
+                                <th>النوع</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {statement.items.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} style={{ textAlign: 'center', padding: 20, color: '#6B7A99' }}>
+                                        لا بنود.
+                                    </td>
+                                </tr>
+                            ) : (
+                                statement.items.map((item) => (
+                                    <tr key={item.id}>
+                                        <td style={{ fontWeight: 700 }}>
+                                            {item.event_title ?? `#${item.event_id}`}
+                                            {item.reason && (
+                                                <div style={{ fontSize: 11, color: '#C8410A' }}>
+                                                    سبب التصحيح: {item.reason}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td>{item.event_date ?? '—'}</td>
+                                        <td>{item.gross_amount} ر</td>
+                                        <td>{item.commission_rate_percent ?? '—'}%</td>
+                                        <td style={{ color: '#C8410A' }}>{item.commission_amount} ر</td>
+                                        <td style={{ fontWeight: 700 }}>{item.net_amount} ر</td>
+                                        <td>
+                                            {item.type === 'correction' ? (
+                                                <span style={{ color: '#C8410A', fontWeight: 700 }}>بند تصحيحي</span>
+                                            ) : (
+                                                'فعالية'
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </PartnerLayout>

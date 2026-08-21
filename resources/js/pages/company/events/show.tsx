@@ -16,11 +16,9 @@ interface SeriesEvent {
     capacity: number;
 }
 
+/** A10 — H §12.4: إلغاء الشركة = استرداد كامل دائماً — النسب المتدرجة ماتت. */
 interface RefundPreview {
     percentage: number;
-    refund_amount: number;
-    original_contribution: number;
-    hours_until_event: number;
     policy_label: string;
 }
 
@@ -43,11 +41,11 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
     const [processing, setProcessing] = useState<number | null>(null);
     const [cancelProcessing, setCancelProcessing] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
-    const canCancel = ['open', 'waiting_partner', 'alternative_proposed', 'confirmed'].includes(event.status);
-    const canManageMembers = ['open', 'waiting_partner', 'alternative_proposed'].includes(event.status);
+    const canCancel = ['booked', 'confirmed'].includes(event.status); // H §9: إلغاء الشركة من booked/confirmed فقط
+    const canManageMembers = ['open', 'pending_provider', 'provider_alternative', 'booked'].includes(event.status);
 
     const joinedParticipants = event.participants?.filter(
-        (p) => p.pivot?.status === 'joined',
+        (p) => p.pivot?.seat_status === 'reserved',
     ) ?? [];
 
     const fillPercent = event.capacity > 0
@@ -135,7 +133,7 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                 </div>
                 {Number(event.community_contribution) > 0 && (
                     <div style={cardStyle}>
-                        <div style={labelStyle}>خصم من المحفظة</div>
+                        <div style={labelStyle}>استقطاع من المحفظة</div>
                         <div style={{ ...valueStyle, color: '#009E82' }}>{Number(event.community_contribution).toLocaleString()} ريال</div>
                         {!event.budget_deducted_at && (
                             <div style={{ fontSize: 10, color: '#B8860A', marginTop: 4 }}>بانتظار موافقة الشريك</div>
@@ -144,15 +142,13 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                 )}
             </div>
 
-            {/* Recurrence info */}
-            {event.recurrence_type && event.recurrence_type !== 'none' && (
+            {/* A8 — مولّدة من قالب تكرار (H §8) */}
+            {event.template_id && (
                 <div style={{ ...cardStyle, background: '#1A5FAB08', borderColor: '#1A5FAB33', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 16 }}>🔄</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#1A5FAB' }}>
-                        فعالية متكررة — {event.recurrence_type === 'daily' ? 'يومي' : event.recurrence_type === 'weekly' ? 'أسبوعي' : 'شهري'}
-                    </span>
-                    {event.recurrence_end_date && (
-                        <span style={{ fontSize: 11, color: '#7A8BA8', marginRight: 'auto' }}>حتى {fmtDate(event.recurrence_end_date)}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#1A5FAB' }}>مولّدة من قالب تكرار</span>
+                    {(event.reschedule_attempt ?? 0) > 0 && (
+                        <span style={{ fontSize: 11, color: '#D4820A', marginRight: 'auto' }}>أُعيدت جدولتها مرة — لم يكتمل العدد</span>
                     )}
                 </div>
             )}
@@ -336,7 +332,7 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
             )}
 
             {/* Proposed Alternatives */}
-            {event.status === 'alternative_proposed' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
+            {event.status === 'provider_alternative' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
                 <div style={cardStyle}>
                     <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14, color: '#1A5FAB' }}>
                         وقت بديل مقترح من الشريك
@@ -423,30 +419,16 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                             هل أنت متأكد من إلغاء هذه الفعالية؟ لا يمكن التراجع عن هذا الإجراء.
                         </div>
 
-                        {/* Refund policy info */}
-                        {refundPreview && refundPreview.original_contribution > 0 && (
+                        {/* A10 — H §12.4: مصفوفة الاسترداد — إلغاء الشركة استرداد كامل دائماً */}
+                        {refundPreview && (
                             <div style={{ background: '#F8F9FC', border: '1px solid #E4E9F2', borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'right' }}>
                                 <div style={{ fontSize: 12, fontWeight: 700, color: '#7A8BA8', marginBottom: 10 }}>سياسة الاسترداد</div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                    <span style={{ fontSize: 12, color: '#7A8BA8' }}>المبلغ المدفوع من المحفظة</span>
-                                    <span style={{ fontSize: 13, fontWeight: 700 }}>{refundPreview.original_contribution.toLocaleString()} ريال</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                                     <span style={{ fontSize: 12, color: '#7A8BA8' }}>نسبة الاسترداد</span>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: refundPreview.percentage > 0 ? '#0CA678' : '#E03050' }}>{refundPreview.percentage}%</span>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#0CA678' }}>{refundPreview.percentage}%</span>
                                 </div>
-                                <div style={{ height: 1, background: '#E4E9F2', margin: '8px 0' }} />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 13, fontWeight: 700 }}>مبلغ الاسترداد</span>
-                                    <span style={{ fontSize: 18, fontWeight: 900, color: refundPreview.refund_amount > 0 ? '#0CA678' : '#E03050' }}>
-                                        {refundPreview.refund_amount.toLocaleString()} ريال
-                                    </span>
-                                </div>
-                                <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 8, fontSize: 11, textAlign: 'center', background: refundPreview.percentage === 100 ? '#0CA67818' : refundPreview.percentage > 0 ? '#F59E0B18' : '#E0305018', color: refundPreview.percentage === 100 ? '#0CA678' : refundPreview.percentage > 0 ? '#F59E0B' : '#E03050' }}>
+                                <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 8, fontSize: 11, textAlign: 'center', background: '#0CA67818', color: '#0CA678' }}>
                                     {refundPreview.policy_label}
-                                    {refundPreview.percentage === 100 && ' — الإلغاء قبل 24 ساعة أو أكثر'}
-                                    {refundPreview.percentage === 50 && ' — الإلغاء قبل 4 إلى 24 ساعة'}
-                                    {refundPreview.percentage === 0 && ' — الإلغاء قبل أقل من 4 ساعات'}
                                 </div>
                             </div>
                         )}

@@ -5,77 +5,99 @@ namespace App\Services\Company;
 use App\Models\ActivityLog;
 use App\Models\Community;
 use App\Models\Company;
-use App\Models\Employee;
-use App\Models\Event;
-use Illuminate\Support\Carbon;
+use App\Models\Wallet;
+use App\Services\Reporting\KpiDictionary;
+use App\Services\Reporting\ReportPeriod;
+use App\Support\Money;
 use Illuminate\Support\Collection;
 
+/**
+ * لوحة الشركة (H §18: «التفعيل، المشاركة حسب الإدارة، الإنفاق، المجتمعات
+ * النشطة والخاملة»).
+ *
+ * **المؤشر الأول معدل التفعيل لا عدد المسجلين** (G/الشركة §6: «النسبة الحقيقية
+ * للاستفادة — وهو المؤشر الأول لا عدد المسجلين»). ما كان هنا قبل A13 كان يقيس
+ * ثلاثة أشياء لا تقول شيئاً عن الاستفادة: عدد الموظفين النشطين، وعدد
+ * المجتمعات بلا شرط نشاط، وعدد الفعاليات بلا شرط اكتمال — و«نشاط المجتمعات»
+ * كان **نسبة الأعضاء إلى الموظفين** أي عضوية لا حضوراً.
+ *
+ * كل رقم هنا يأتي من {@see KpiDictionary}.
+ */
 class CompanyDashboardService
 {
+    public function __construct(
+        private KpiDictionary $kpi,
+    ) {}
+
     /**
-     * Get dashboard stats for the company.
+     * مؤشرات اللوحة للشهر الجاري — معدل التفعيل أولاً.
      *
-     * @return array{active_employees: int, communities: int, monthly_events: int, wallet_balance: float}
+     * @return array<string, mixed>
      */
-    public function stats(Company $company): array
+    public function stats(Company $company, ?ReportPeriod $period = null): array
     {
-        $startOfMonth = Carbon::now()->startOfMonth();
-        $endOfMonth = Carbon::now()->endOfMonth();
+        $period ??= ReportPeriod::currentMonth();
 
-        $activeEmployees = Employee::query()
+        $activation = $this->kpi->activationRate($company, $period);
+        $attendance = $this->kpi->attendanceRate($company, $period);
+        $communities = $this->kpi->communityActivity($company, $period->end);
+        $cost = $this->kpi->costPerParticipation($company, $period);
+
+        $walletHalalas = (int) Wallet::query()
+            ->withoutGlobalScopes()
             ->where('company_id', $company->id)
-            ->where('status', 'active')
-            ->count();
-
-        $communities = Community::query()
-            ->where('company_id', $company->id)
-            ->count();
-
-        $monthlyEvents = Event::query()
-            ->whereHas('community', fn ($query) => $query->where('company_id', $company->id))
-            ->whereBetween('event_date', [$startOfMonth, $endOfMonth])
-            ->count();
-
-        $walletBalance = $company->wallet?->balance ?? 0;
+            ->sum('balance_halalas');
 
         return [
-            'active_employees' => $activeEmployees,
-            'communities' => $communities,
-            'monthly_events' => $monthlyEvents,
-            'wallet_balance' => (float) $walletBalance,
+            'period' => $period->toArray(),
+            'activation' => $activation->toArray(),
+            'attendance' => $attendance->toArray(),
+            'active_communities' => count($communities['active']),
+            'dormant_communities' => count($communities['dormant']),
+            'completed_events' => $this->kpi->completedEventCount($company, $period),
+            'attendance_count' => $cost['attendance'],
+            'cost_per_participation' => $cost['cost_per_participation'],
+            // إنفاق الشركة — حقل مستقل، لا يُجمع مع حجم التداول ولا يُسمّى إيراداً.
+            ...$cost['spend']->toFields(),
+            'wallet_balance_halalas' => $walletHalalas,
+            'wallet_balance' => Money::format($walletHalalas),
+            // العمود القديم يبقى للتوافق مع بطاقة «الموظفون النشطون».
+            'active_employees' => $activation->denominator,
         ];
     }
 
     /**
-     * Get participation rates per community.
+     * المجتمعات النشطة مقابل الخاملة — «نشاط» بمعنى فعالية مكتملة خلال 30
+     * يوماً (H §15)، لا بمعنى عدد الأعضاء.
      *
-     * @return Collection<int, array{community_id: int, community_name: string, member_count: int, active_participants: int, rate: float}>
+     * @return array{window_days: int, active: list<array<string, mixed>>, dormant: list<array<string, mixed>>}
      */
-    public function communityParticipationRates(Company $company): Collection
+    public function communityActivity(Company $company, ?ReportPeriod $period = null): array
     {
-        $communities = Community::query()
-            ->where('company_id', $company->id)
-            ->withCount('members')
-            ->get();
+        $period ??= ReportPeriod::currentMonth();
+        $activity = $this->kpi->communityActivity($company, $period->end);
 
-        $totalEmployees = Employee::query()
-            ->where('company_id', $company->id)
-            ->where('status', 'active')
-            ->count();
+        return [
+            'window_days' => $activity['window_days'],
+            'active' => $activity['active'],
+            'dormant' => $activity['dormant'],
+        ];
+    }
 
-        return $communities->map(fn (Community $community) => [
-            'community_id' => $community->id,
-            'community_name' => $community->name,
-            'member_count' => $community->members_count,
-            'total_employees' => $totalEmployees,
-            'rate' => $totalEmployees > 0
-                ? round(($community->members_count / $totalEmployees) * 100, 2)
-                : 0,
-        ]);
+    /**
+     * المشاركة حسب الإدارة — بالإسناد وقت الحدث (H §15).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function departmentParticipation(Company $company, ?ReportPeriod $period = null): array
+    {
+        return $this->kpi->participationByDepartment($company, $period ?? ReportPeriod::currentMonth());
     }
 
     /**
      * Get recent activity logs for the company.
+     *
+     * @return Collection<int, ActivityLog>
      */
     public function recentActivity(Company $company, int $limit = 10): Collection
     {
@@ -97,7 +119,7 @@ class CompanyDashboardService
             $names = Community::whereIn('id', array_unique($communityIds))->pluck('name', 'id');
             foreach ($logs as $log) {
                 $log->description = preg_replace_callback('/المجتمع #(\d+)/', function ($m) use ($names) {
-                    return 'المجتمع ' . ($names[(int) $m[1]] ?? "#{$m[1]}");
+                    return 'المجتمع '.($names[(int) $m[1]] ?? "#{$m[1]}");
                 }, $log->description);
             }
         }

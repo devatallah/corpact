@@ -2,15 +2,17 @@
 
 namespace App\Services\Partner;
 
-use App\Models\Partner;
-use App\Models\Community;
-use App\Models\Venue;
+use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Event;
 use App\Models\EventAlternative;
-use App\Models\Notification;
+use App\Models\Partner;
+use App\Models\Venue;
 use App\Services\ActivityLogService;
-use Illuminate\Auth\Access\AuthorizationException;
+use App\Services\Events\EventStateMachine;
+use App\Support\Notify;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -35,88 +37,49 @@ class BookingService
     }
 
     /**
-     * Approve an event booking request.
-     *
-     * Budget is deducted from the community balance AFTER provider approval,
-     * with a 30-minute payment deadline. If the community no longer has
-     * sufficient balance, costs are recalculated so players cover the gap.
+     * قبول المزوّد للطلب → booked عبر آلة الحالات (A7 — H §9): الوحدة محجوزة
+     * والتسجيل ما زال مفتوحاً حتى registration_closes_at، **ولا أثر مالي هنا**
+     * — استقطاع الدعم وتحصيل الحصص عند إغلاق التسجيل (awaiting_payment، قشرة
+     * A7 ثم A10). مهلة الـ 30 دقيقة القديمة ماتت.
      */
     public function approve(Partner $partner, Event $event): Event
     {
         $this->ensureEventBelongsTopartner($partner, $event);
 
-        if ($event->status !== 'waiting_partner') {
+        if ($event->status !== 'pending_provider') {
             throw ValidationException::withMessages([
-                'status' => ['يمكن قبول الفعاليات المنتظرة فقط.'],
+                'status' => ['يمكن قبول الطلبات المنتظرة رد المزوّد فقط.'],
             ]);
         }
 
-        return DB::transaction(function () use ($event) {
-            $paymentDeadline = now()->addMinutes(30);
-
-            // Deduct community budget now that the provider has approved
-            $community = $event->community;
-            $contribution = (float) $event->community_contribution;
-
-            if ($contribution > 0 && $community) {
-                // Lock community to prevent race conditions on balance
-                $community = Community::lockForUpdate()->find($community->id);
-                $currentBalance = (float) $community->balance;
-
-                if ($currentBalance >= $contribution) {
-                    // Full contribution available
-                    $community->decrement('balance', $contribution);
-                } else {
-                    // Partial balance — use what's available, players cover the rest
-                    $actualContribution = $currentBalance;
-                    $community->decrement('balance', $actualContribution);
-
-                    $discountAmount = (float) ($event->discount_amount ?? 0);
-                    $afterDiscount = max(0, (float) $event->total_amount - $discountAmount);
-                    $remaining = $afterDiscount - $actualContribution;
-                    $costPerPerson = $event->capacity > 0 ? round($remaining / $event->capacity, 2) : 0;
-
-                    $event->community_contribution = $actualContribution;
-                    $event->company_subsidy = $actualContribution;
-                    $event->player_payment = $remaining;
-                    $event->cost_per_person = $costPerPerson;
-                }
-            }
-
-            $event->update([
-                'status' => 'confirmed',
-                'budget_deducted_at' => now(),
-                'payment_deadline' => $paymentDeadline,
-            ]);
+        return DB::transaction(function () use ($partner, $event) {
+            app(EventStateMachine::class)->providerAccepted($event, $partner);
 
             ActivityLogService::log(
                 $event->company_id,
                 $event,
                 'event_approved',
-                "تم قبول الفعالية #{$event->id} من الشريك وخصم الميزانية",
+                "قبل المزوّد طلب الفعالية #{$event->id} — الوحدة محجوزة والتسجيل مستمر حتى الإغلاق",
             );
 
             // Notify company
-            Notification::create([
-                'notifiable_type' => \App\Models\Company::class,
-                'notifiable_id' => $event->company_id,
-                'type' => 'success',
-                'title' => 'تم قبول الحجز',
-                'body' => "الشريك وافق على حجز الفعالية #{$event->id} — يجب إتمام الدفع خلال 30 دقيقة",
-                'data' => ['event_id' => $event->id],
-            ]);
+            Notify::sendToId(
+                'provider.decision.accepted.company',
+                Company::class,
+                (int) $event->company_id,
+                ['event_id' => $event->id],
+                ['data' => ['event_id' => $event->id]],
+            );
 
             // Notify community members
             $event->load('community.members');
             foreach ($event->community->members as $member) {
-                Notification::create([
-                    'notifiable_type' => Employee::class,
-                    'notifiable_id' => $member->id,
-                    'type' => 'success',
-                    'title' => 'تم تأكيد الفعالية',
-                    'body' => "تم تأكيد حجز فعالية {$event->community->name} من الشريك",
-                    'data' => ['event_id' => $event->id],
-                ]);
+                Notify::send(
+                    'provider.decision.accepted.member',
+                    $member,
+                    ['community' => $event->community->name],
+                    ['data' => ['event_id' => $event->id]],
+                );
             }
 
             return $event->loadMissing(['company', 'community', 'venues']);
@@ -134,27 +97,15 @@ class BookingService
     {
         $this->ensureEventBelongsTopartner($partner, $event);
 
-        if ($event->status !== 'waiting_partner') {
+        if ($event->status !== 'pending_provider') {
             throw ValidationException::withMessages([
-                'status' => ['يمكن رفض الفعاليات المنتظرة فقط.'],
+                'status' => ['يمكن رفض الطلبات المنتظرة رد المزوّد فقط.'],
             ]);
         }
 
-        $event->update([
-            'status' => 'rejected',
-            'rejection_reason' => $reason,
-        ]);
-
-        // No community balance refund needed — budget was not deducted yet
-        // (deduction only happens after provider approval)
-        // Record refund fields for audit purposes (100% / full amount since nothing was charged)
-        $contribution = (float) $event->community_contribution;
-        if ($contribution > 0) {
-            $event->update([
-                'refund_percentage' => 100,
-                'refund_amount' => $contribution,
-            ]);
-        }
+        // رفض المزوّد → cancelled_provider (H §9) — لا مال استُقطع قبل الإغلاق
+        // فلا استرداد؛ خفض الموثوقية عند A9.
+        app(EventStateMachine::class)->providerRejected($event, $partner, $reason);
 
         ActivityLogService::log(
             $event->company_id,
@@ -165,26 +116,23 @@ class BookingService
         );
 
         // Notify company
-        Notification::create([
-            'notifiable_type' => \App\Models\Company::class,
-            'notifiable_id' => $event->company_id,
-            'type' => 'error',
-            'title' => 'تم رفض الحجز',
-            'body' => "الشريك رفض حجز الفعالية #{$event->id} — السبب: {$reason}",
-            'data' => ['event_id' => $event->id],
-        ]);
+        Notify::sendToId(
+            'provider.decision.rejected.company',
+            Company::class,
+            (int) $event->company_id,
+            ['event_id' => $event->id, 'reason' => $reason],
+            ['data' => ['event_id' => $event->id]],
+        );
 
         // Notify community members
         $event->load('community.members');
         foreach ($event->community->members as $member) {
-            Notification::create([
-                'notifiable_type' => Employee::class,
-                'notifiable_id' => $member->id,
-                'type' => 'error',
-                'title' => 'تم رفض الفعالية',
-                'body' => "تم رفض فعالية {$event->community->name} من الشريك",
-                'data' => ['event_id' => $event->id],
-            ]);
+            Notify::send(
+                'provider.decision.rejected.member',
+                $member,
+                ['community' => $event->community->name],
+                ['data' => ['event_id' => $event->id]],
+            );
         }
 
         return $event->loadMissing(['company', 'community']);
@@ -199,16 +147,18 @@ class BookingService
     {
         $this->ensureEventBelongsTopartner($partner, $event);
 
-        if (! in_array($event->status, ['waiting_partner', 'alternative_proposed'])) {
+        if (! in_array($event->status, ['pending_provider', 'provider_alternative'])) {
             throw ValidationException::withMessages([
-                'status' => ['يمكن اقتراح بدائل للفعاليات المنتظرة فقط.'],
+                'status' => ['يمكن اقتراح بدائل للطلبات المنتظرة رد المزوّد فقط.'],
             ]);
         }
 
-        return DB::transaction(function () use ($event, $data) {
-            $event->update(['status' => 'alternative_proposed']);
+        return DB::transaction(function () use ($partner, $event, $data) {
+            if ($event->status === 'pending_provider') {
+                app(EventStateMachine::class)->providerProposedAlternative($event, $partner);
+            }
 
-            $endTime = \Carbon\Carbon::createFromFormat('H:i', $data['proposed_start_time'])
+            $endTime = Carbon::createFromFormat('H:i', $data['proposed_start_time'])
                 ->addMinutes($event->duration_minutes)
                 ->format('H:i');
 
@@ -232,25 +182,30 @@ class BookingService
             );
 
             // Notify company
-            Notification::create([
-                'notifiable_type' => \App\Models\Company::class,
-                'notifiable_id' => $event->company_id,
-                'type' => 'warning',
-                'title' => 'وقت بديل مقترح من الشريك',
-                'body' => "الشريك اقترح وقت بديل للفعالية #{$event->id} — التاريخ: {$data['proposed_date']} الساعة: {$data['proposed_start_time']}",
-                'data' => ['event_id' => $event->id],
-            ]);
+            Notify::sendToId(
+                'provider.decision.alternative.company',
+                Company::class,
+                (int) $event->company_id,
+                [
+                    'event_id' => $event->id,
+                    'date' => $data['proposed_date'],
+                    'time' => $data['proposed_start_time'],
+                ],
+                ['data' => ['event_id' => $event->id]],
+            );
 
             // Notify event creator
             if ($event->created_by) {
-                Notification::create([
-                    'notifiable_type' => Employee::class,
-                    'notifiable_id' => $event->created_by,
-                    'type' => 'warning',
-                    'title' => 'وقت بديل مقترح من الشريك',
-                    'body' => "الشريك اقترح وقت بديل للفعالية — التاريخ: {$data['proposed_date']} الساعة: {$data['proposed_start_time']}",
-                    'data' => ['event_id' => $event->id],
-                ]);
+                Notify::sendToId(
+                    'provider.decision.alternative.creator',
+                    Employee::class,
+                    (int) $event->created_by,
+                    [
+                        'date' => $data['proposed_date'],
+                        'time' => $data['proposed_start_time'],
+                    ],
+                    ['data' => ['event_id' => $event->id]],
+                );
             }
 
             return $alternative;
@@ -289,7 +244,9 @@ class BookingService
     private function ensureEventBelongsTopartner(Partner $partner, Event $event): void
     {
         if ($event->partner_id !== $partner->id) {
-            throw new AuthorizationException('هذه الفعالية لا تتبع حسابك كشريك.');
+            // Foreign-entity probe → 404, never 403 (H §4 isolation rule).
+            throw (new ModelNotFoundException)
+                ->setModel(Event::class, [$event->id]);
         }
     }
 }

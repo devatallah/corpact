@@ -104,7 +104,7 @@ export default function EventsEdit({ event }: Props) {
                             <label>الحالة</label>
                             <select
                                 value={data.status}
-                                onChange={(e) => setData('status', e.target.value)}
+                                onChange={(e) => setData('status', e.target.value as import('@/types/models').EventStatusValue)}
                             >
                                 <option value="open">مفتوح</option>
                                 <option value="waiting_partner">بانتظار الشريك</option>

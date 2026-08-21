@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\partner;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\partner;
 use App\Models\User;
 
 test('admin can access dashboard', function () {

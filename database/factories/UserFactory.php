@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -24,12 +25,27 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('123456'),
-            'phone' => fake()->phoneNumber(),
+            'phone' => '9665'.fake()->unique()->numerify('########'),
             'avatar' => null,
             'status' => 'active',
-            'role' => 'super_admin',
             'remember_token' => Str::random(10),
         ];
+    }
+
+    /**
+     * Grant the platform admin role (Teamat admin).
+     */
+    public function platformAdmin(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignRole(Role::PlatformAdmin));
+    }
+
+    /**
+     * Grant the finance admin role.
+     */
+    public function financeAdmin(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->assignRole(Role::FinanceAdmin));
     }
 
     public function inactive(): static

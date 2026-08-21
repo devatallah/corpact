@@ -90,7 +90,7 @@ export default function PartnerReportsIndex({ partner, overview, monthlyRevenue,
                 <div className="stat-row">
                     <StatCard
                         emoji="📋"
-                        label="حجوزات من تيمات"
+                        label="فعاليات من تيمات"
                         value={overview.bookings}
                         change={bookingsChange}
                         color="#1A56DB"
@@ -110,9 +110,9 @@ export default function PartnerReportsIndex({ partner, overview, monthlyRevenue,
                     />
                     <StatCard
                         emoji="📊"
-                        label="متوسط الحجز"
+                        label="متوسط قيمة الفعالية"
                         value={overview.avg_booking}
-                        change="ريال / حجز"
+                        change="ريال / فعالية"
                         color="#B45309"
                     />
                 </div>
@@ -170,13 +170,13 @@ export default function PartnerReportsIndex({ partner, overview, monthlyRevenue,
                     {/* Top Companies Table */}
                     <div className="card" ref={companiesRef}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                            <h2 className="sec-title" style={{ margin: 0 }}>الشركات الأكثر حجزاً</h2>
-                            <button className="no-print" onClick={() => printCard(companiesRef.current, 'الشركات الأكثر حجزاً')} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>⬇️ تحميل</button>
+                            <h2 className="sec-title" style={{ margin: 0 }}>الشركات الأكثر طلباً</h2>
+                            <button className="no-print" onClick={() => printCard(companiesRef.current, 'الشركات الأكثر طلباً')} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>⬇️ تحميل</button>
                         </div>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                             <thead>
                                 <tr>
-                                    {['الشركة', 'الحجوزات', 'الإيرادات', 'آخر حجز'].map((col) => (
+                                    {['الشركة', 'الفعاليات', 'الإيرادات', 'آخر فعالية'].map((col) => (
                                         <th
                                             key={col}
                                             style={{
@@ -363,7 +363,7 @@ export default function PartnerReportsIndex({ partner, overview, monthlyRevenue,
                             color: '#B45309',
                         }}
                     >
-                        💡 الأوقات الأقل طلباً مناسبة لعروض تيمات الخاصة دون تعارض مع الحجز المباشر.
+                        💡 الأوقات الأقل طلباً مناسبة لعروض تيمات الخاصة دون تعارض مع الحجز الخارجي.
                     </div>
                 </div>
             </div>

@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\FileCategory;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\IndexCompanyRequest;
 use App\Http\Requests\Admin\StoreCompanyRequest;
 use App\Http\Requests\Admin\UpdateCompanyRequest;
 use App\Models\Company;
+use App\Models\Employee;
+use App\Models\StoredFile;
 use App\Services\Admin\CompanyService;
+use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Password;
@@ -59,12 +63,12 @@ class CompanyController extends Controller
         $company = Company::create($data);
         $this->companyService->approve($company);
 
-        \App\Models\Employee::create([
+        Employee::create([
             'name' => $data['contact_name'] ?? $data['name'],
             'email' => $data['email'],
             'password' => $rawPassword,
             'company_id' => $company->id,
-            'department' => 'الموارد البشرية',
+            'department' => 'الإدارة',
             'status' => 'active',
         ]);
 
@@ -79,6 +83,34 @@ class CompanyController extends Controller
     {
         return Inertia::render('admin/companies/edit', [
             'company' => $company,
+            // A15 — H §16 «الشركات والعقود»: قيم العقد والرقم الضريبي والسجل
+            // التجاري + نسخ ملف العقد (لا يُحذف منها شيء أبداً — H §19).
+            'contract' => [
+                'commercial_registration' => $company->commercial_registration,
+                'vat_number' => $company->vat_number,
+                'contract_fee_per_activated_employee' => $company->contract_fee_per_activated_employee !== null
+                    ? Money::format((int) $company->contract_fee_per_activated_employee)
+                    : '',
+                'contract_monthly_minimum' => $company->contract_monthly_minimum !== null
+                    ? Money::format((int) $company->contract_monthly_minimum)
+                    : '',
+                'contract_coordinator_service' => (bool) $company->contract_coordinator_service,
+            ],
+            'contractFiles' => StoredFile::query()
+                ->where('fileable_type', $company->getMorphClass())
+                ->where('fileable_id', $company->id)
+                ->ofCategory(FileCategory::Contract)
+                ->orderByDesc('version')
+                ->get()
+                ->map(fn (StoredFile $file) => [
+                    'id' => $file->id,
+                    'original_name' => $file->original_name,
+                    'version' => $file->version,
+                    'is_current' => $file->is_current,
+                    'size' => $file->sizeLabel(),
+                    'created_at' => $file->created_at?->toIso8601String(),
+                ])
+                ->all(),
         ]);
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Services\Employee;
 
+use App\Models\Community;
 use App\Models\Employee;
 use App\Models\Event;
 use Illuminate\Database\Eloquent\Collection;
@@ -33,7 +34,7 @@ class ProfileService
     public function stats(Employee $employee): array
     {
         $eventsParticipated = $employee->events()
-            ->wherePivot('status', 'joined')
+            ->wherePivot('seat_status', 'reserved')
             ->count();
 
         $communitiesJoined = $employee->communities()->count();
@@ -58,7 +59,7 @@ class ProfileService
     {
         return $employee->events()
             ->with(['community', 'partner', 'category'])
-            ->wherePivot('status', 'joined')
+            ->wherePivot('seat_status', 'reserved')
             ->when(isset($filters['status']), fn ($query) => $query->where('events.status', $filters['status']))
             ->latest('events.event_date')
             ->get();
@@ -69,9 +70,13 @@ class ProfileService
      */
     public function myCommunities(Employee $employee): Collection
     {
-        return $employee->communities()
-            ->with(['category', 'leader'])
+        $communities = $employee->communities()
+            ->with(['category'])
             ->withCount('members')
             ->get();
+
+        Community::attachPrimaryLeaders($communities);
+
+        return $communities;
     }
 }

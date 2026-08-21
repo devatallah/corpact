@@ -25,11 +25,11 @@ class PartnerService
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->when(isset($filters['search']), fn ($query) => $query->where(function ($q) use ($filters) {
                 $q->where('name', 'like', '%'.$filters['search'].'%')
-                  ->orWhere('city', 'like', '%'.$filters['search'].'%')
-                  ->orWhere('district', 'like', '%'.$filters['search'].'%')
-                  ->orWhere('email', 'like', '%'.$filters['search'].'%')
-                  ->orWhere('contact_phone', 'like', '%'.$filters['search'].'%')
-                  ->orWhereHas('categories', fn ($s) => $s->where('name', 'like', '%'.$filters['search'].'%'));
+                    ->orWhere('city', 'like', '%'.$filters['search'].'%')
+                    ->orWhere('district', 'like', '%'.$filters['search'].'%')
+                    ->orWhere('email', 'like', '%'.$filters['search'].'%')
+                    ->orWhere('contact_phone', 'like', '%'.$filters['search'].'%')
+                    ->orWhereHas('categories', fn ($s) => $s->where('name', 'like', '%'.$filters['search'].'%'));
             }))
             ->latest()
             ->paginate($filters['per_page'] ?? 15);

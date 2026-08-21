@@ -3,12 +3,12 @@
 namespace App\Services\Partner;
 
 use App\Models\Partner;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class PartnerReportService
 {
-    private static array $arabicMonths = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    private static array $arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
     /**
      * Overview stats for the partner.
@@ -20,9 +20,9 @@ class PartnerReportService
 
         $now = Carbon::now();
         $thisMonthStart = $now->copy()->startOfMonth()->toDateString();
-        $thisMonthEnd   = $now->copy()->endOfMonth()->toDateString();
+        $thisMonthEnd = $now->copy()->endOfMonth()->toDateString();
         $lastMonthStart = $now->copy()->subMonth()->startOfMonth()->toDateString();
-        $lastMonthEnd   = $now->copy()->subMonth()->endOfMonth()->toDateString();
+        $lastMonthEnd = $now->copy()->subMonth()->endOfMonth()->toDateString();
 
         $statuses = ['confirmed', 'completed'];
 
@@ -31,7 +31,7 @@ class PartnerReportService
             ->where('partner_id', $partnerId)
             ->whereIn('status', $statuses)
             ->whereBetween('event_date', [$thisMonthStart, $thisMonthEnd])
-            ->selectRaw('COUNT(*) as bookings, COALESCE(SUM(total_amount), 0) as revenue')
+            ->selectRaw('COUNT(*) as bookings, COALESCE(SUM(total_amount_halalas), 0) / 100.0 as revenue')
             ->first();
 
         // Last month
@@ -39,7 +39,7 @@ class PartnerReportService
             ->where('partner_id', $partnerId)
             ->whereIn('status', $statuses)
             ->whereBetween('event_date', [$lastMonthStart, $lastMonthEnd])
-            ->selectRaw('COUNT(*) as bookings, COALESCE(SUM(total_amount), 0) as revenue')
+            ->selectRaw('COUNT(*) as bookings, COALESCE(SUM(total_amount_halalas), 0) / 100.0 as revenue')
             ->first();
 
         // All-time distinct companies
@@ -50,9 +50,9 @@ class PartnerReportService
             ->count('company_id');
 
         $thisBookings = (int) ($thisMonth->bookings ?? 0);
-        $thisRevenue  = (float) ($thisMonth->revenue ?? 0);
+        $thisRevenue = (float) ($thisMonth->revenue ?? 0);
         $lastBookings = (int) ($lastMonth->bookings ?? 0);
-        $lastRevenue  = (float) ($lastMonth->revenue ?? 0);
+        $lastRevenue = (float) ($lastMonth->revenue ?? 0);
 
         $avgBooking = $thisBookings > 0 ? round($thisRevenue / $thisBookings, 2) : 0;
 
@@ -65,12 +65,12 @@ class PartnerReportService
             : ($thisRevenue > 0 ? 100.0 : 0.0);
 
         return [
-            'bookings'             => $thisBookings,
-            'revenue'              => $thisRevenue,
-            'companies'            => $companiesCount,
-            'avg_booking'          => $avgBooking,
-            'bookings_change_pct'  => $bookingsChangePct,
-            'revenue_change_pct'   => $revenueChangePct,
+            'bookings' => $thisBookings,
+            'revenue' => $thisRevenue,
+            'companies' => $companiesCount,
+            'avg_booking' => $avgBooking,
+            'bookings_change_pct' => $bookingsChangePct,
+            'revenue_change_pct' => $revenueChangePct,
         ];
     }
 
@@ -79,11 +79,11 @@ class PartnerReportService
      */
     public function monthlyRevenue(Partner $partner): array
     {
-        $resolved   = $partner->resolvedPartner();
+        $resolved = $partner->resolvedPartner();
         $partnerId = $resolved->id;
 
         $statuses = ['confirmed', 'completed'];
-        $now      = Carbon::now();
+        $now = Carbon::now();
 
         // Build a list of the last 6 months (oldest first)
         $months = [];
@@ -96,7 +96,7 @@ class PartnerReportService
             ->where('partner_id', $partnerId)
             ->whereIn('status', $statuses)
             ->where('event_date', '>=', $months[0]->toDateString())
-            ->selectRaw("DATE_FORMAT(event_date, '%Y-%m') as ym, COALESCE(SUM(total_amount), 0) as amount")
+            ->selectRaw("DATE_FORMAT(event_date, '%Y-%m') as ym, COALESCE(SUM(total_amount_halalas), 0) / 100.0 as amount")
             ->groupBy('ym')
             ->get()
             ->keyBy('ym');
@@ -105,12 +105,12 @@ class PartnerReportService
 
         $result = [];
         foreach ($months as $month) {
-            $ym     = $month->format('Y-m');
+            $ym = $month->format('Y-m');
             $amount = isset($rows[$ym]) ? (float) $rows[$ym]->amount : 0.0;
 
             $result[] = [
-                'month'      => self::$arabicMonths[$month->month - 1],
-                'amount'     => $amount,
+                'month' => self::$arabicMonths[$month->month - 1],
+                'amount' => $amount,
                 'is_current' => $ym === $currentYm,
             ];
         }
@@ -123,7 +123,7 @@ class PartnerReportService
      */
     public function topCompanies(Partner $partner): array
     {
-        $resolved   = $partner->resolvedPartner();
+        $resolved = $partner->resolvedPartner();
         $partnerId = $resolved->id;
 
         $statuses = ['confirmed', 'completed'];
@@ -132,32 +132,32 @@ class PartnerReportService
             ->join('companies', 'events.company_id', '=', 'companies.id')
             ->where('events.partner_id', $partnerId)
             ->whereIn('events.status', $statuses)
-            ->selectRaw('companies.name as company_name, COUNT(*) as bookings, COALESCE(SUM(events.total_amount), 0) as revenue, MAX(events.event_date) as last_booking')
+            ->selectRaw('companies.name as company_name, COUNT(*) as bookings, COALESCE(SUM(events.total_amount_halalas), 0) / 100.0 as revenue, MAX(events.event_date) as last_booking')
             ->groupBy('events.company_id', 'companies.name')
             ->orderByDesc('bookings')
             ->get();
 
-        $top5  = $rows->take(5);
-        $rest  = $rows->skip(5);
+        $top5 = $rows->take(5);
+        $rest = $rows->skip(5);
 
         $result = $top5->map(function ($row) {
             return [
                 'company_name' => $row->company_name,
-                'bookings'     => (int) $row->bookings,
-                'revenue'      => (float) $row->revenue,
+                'bookings' => (int) $row->bookings,
+                'revenue' => (float) $row->revenue,
                 'last_booking' => $row->last_booking,
             ];
         })->values()->toArray();
 
         if ($rest->count() > 0) {
             $othersBookings = $rest->sum('bookings');
-            $othersRevenue  = $rest->sum('revenue');
+            $othersRevenue = $rest->sum('revenue');
             $othersLastBook = $rest->max('last_booking');
 
             $result[] = [
-                'company_name' => 'أخرى (' . $rest->count() . ')',
-                'bookings'     => (int) $othersBookings,
-                'revenue'      => (float) $othersRevenue,
+                'company_name' => 'أخرى ('.$rest->count().')',
+                'bookings' => (int) $othersBookings,
+                'revenue' => (float) $othersRevenue,
                 'last_booking' => $othersLastBook,
             ];
         }
@@ -170,12 +170,12 @@ class PartnerReportService
      */
     public function demandHeatmap(Partner $partner): array
     {
-        $resolved   = $partner->resolvedPartner();
+        $resolved = $partner->resolvedPartner();
         $partnerId = $resolved->id;
 
-        $now            = Carbon::now();
+        $now = Carbon::now();
         $thisMonthStart = $now->copy()->startOfMonth()->toDateString();
-        $thisMonthEnd   = $now->copy()->endOfMonth()->toDateString();
+        $thisMonthEnd = $now->copy()->endOfMonth()->toDateString();
 
         $statuses = ['confirmed', 'completed'];
 
@@ -219,7 +219,7 @@ class PartnerReportService
 
         // Bucket each row into a slot
         foreach ($rows as $row) {
-            $hr  = (int) $row->hr;
+            $hr = (int) $row->hr;
             $cnt = (int) $row->cnt;
             $day = $dowToArabic[$row->dow] ?? null;
 
@@ -256,15 +256,15 @@ class PartnerReportService
                 }
 
                 $daysWithIntensity[$day] = [
-                    'count'     => $count,
+                    'count' => $count,
                     'intensity' => $intensity,
                 ];
             }
 
             $result[] = [
-                'slot'  => $slot,
+                'slot' => $slot,
                 'label' => $slotLabels[$slot],
-                'days'  => $daysWithIntensity,
+                'days' => $daysWithIntensity,
             ];
         }
 
@@ -275,10 +275,10 @@ class PartnerReportService
             $slotTotals[$item['slot']] = $total;
         }
 
-        $minTotal      = min($slotTotals);
-        $lowestSlots   = array_keys(array_filter($slotTotals, fn ($v) => $v === $minTotal));
-        $lowestLabels  = array_map(fn ($s) => $slotLabels[$s], $lowestSlots);
-        $insightText   = 'أقل الأوقات طلباً: ' . implode('، ', $lowestLabels);
+        $minTotal = min($slotTotals);
+        $lowestSlots = array_keys(array_filter($slotTotals, fn ($v) => $v === $minTotal));
+        $lowestLabels = array_map(fn ($s) => $slotLabels[$s], $lowestSlots);
+        $insightText = 'أقل الأوقات طلباً: '.implode('، ', $lowestLabels);
 
         return [
             'heatmap' => $result,

@@ -2,7 +2,6 @@
 
 namespace App\Services\Employee;
 
-use App\Models\Department;
 use App\Models\League;
 use App\Models\LeagueMatch;
 use Illuminate\Support\Collection;
@@ -160,7 +159,7 @@ class LeagueService
                 $round === $totalRounds - 1 => 'نصف النهائي',
                 $round === $totalRounds - 2 => 'ربع النهائي',
                 $matchesInRound === 8 => 'دور الـ16',
-                default => 'الدور ' . $round,
+                default => 'الدور '.$round,
             };
         }
 

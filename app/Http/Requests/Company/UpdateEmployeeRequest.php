@@ -4,6 +4,7 @@ namespace App\Http\Requests\Company;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateEmployeeRequest extends FormRequest
 {
@@ -26,10 +27,18 @@ class UpdateEmployeeRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:employees,email,' . $employeeId],
+            // Email uniqueness is per-company (H §3 — the same person may
+            // exist under several companies on one global account).
+            'email' => [
+                'required', 'email', 'max:255',
+                Rule::unique('employees', 'email')
+                    ->where('company_id', auth('company')->id())
+                    ->ignore($employeeId),
+            ],
             'password' => ['sometimes', 'nullable', 'string', 'min:6'],
             'phone' => ['nullable', 'string', 'max:20'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'employee_number' => ['nullable', 'string', 'max:50'],
             'status' => ['required', 'in:active,inactive'],
         ];
     }

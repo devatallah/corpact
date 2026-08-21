@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 #[Fillable([
     'company_id',
+    'actor_user_id',
+    'actor_name',
     'subject_type',
     'subject_id',
     'type',
@@ -19,6 +21,14 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 class ActivityLog extends Model
 {
     use HasFactory;
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_user_id');
+    }
 
     /**
      * @return array<string, string>

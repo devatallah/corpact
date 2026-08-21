@@ -27,7 +27,7 @@ const portalMeta: Record<string, {
         registerHtml: { question: 'شركة جديدة؟', label: 'سجّل شركتك', href: '/companies#register' },
     },
     partner: {
-        description: 'سجّل دخولك لإدارة طلبات الحجز والتقويم والتسويات',
+        description: 'سجّل دخولك لإدارة الطلبات والتقويم والتسويات',
         buttonText: 'دخول — بوابة الشريك',
         registerHtml: { question: 'شريك جديد؟', label: 'سجّل كشريك', href: '/partners#register' },
     },

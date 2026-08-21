@@ -2,68 +2,59 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Controllers\Auth\Concerns\HandlesOtpLogin;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Employee;
-use App\Services\Auth\EmployeeAuthService;
+use App\Services\Auth\OtpLoginService;
+use App\Services\Auth\PortalLoginService;
+use App\Services\Otp\OtpService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class EmployeeAuthController extends Controller
 {
-    public function __construct(private EmployeeAuthService $authService) {}
+    use HandlesOtpLogin;
 
-    public function showLoginForm(): RedirectResponse
+    public function __construct(
+        protected OtpService $otpService,
+        protected OtpLoginService $otpLogin,
+        protected PortalLoginService $portalLogin,
+    ) {}
+
+    protected function guardName(): string
     {
-        return redirect('/employees?login=1');
+        return 'employee';
+    }
+
+    protected function guardLabel(): string
+    {
+        return 'الموظف';
+    }
+
+    protected function portalTag(): string
+    {
+        return 'EMPLOYEE';
+    }
+
+    protected function homeRoute(): string
+    {
+        return 'employee.home';
     }
 
     /**
-     * @throws ValidationException
+     * Legacy self-registration by corporate email domain (pre-A4 flow —
+     * invitation-based onboarding is brief A4's). Phone is now mandatory:
+     * it is the login identity (H §4).
      */
-    public function login(Request $request): RedirectResponse
-    {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
-
-        if (! Auth::guard('employee')->attempt($credentials, $request->boolean('remember'))) {
-            throw ValidationException::withMessages([
-                'email' => ['البريد الإلكتروني أو كلمة المرور غير صحيحة.'],
-            ]);
-        }
-
-        $employee = Auth::guard('employee')->user();
-
-        if ($employee->status === 'pending_verification') {
-            Auth::guard('employee')->logout();
-            throw ValidationException::withMessages([
-                'email' => ['لم يتم تأكيد بريدك الإلكتروني بعد. يرجى التحقق من بريدك والضغط على رابط التأكيد.'],
-            ]);
-        }
-
-        if ($employee->status !== 'active') {
-            Auth::guard('employee')->logout();
-            throw ValidationException::withMessages([
-                'email' => ['حسابك غير مفعّل. يرجى التواصل مع إدارة الشركة.'],
-            ]);
-        }
-
-        $request->session()->regenerate();
-
-        return redirect()->route('employee.home');
-    }
-
     public function register(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255', 'unique:employees,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['required', 'string', 'max:20'],
         ], [
             'name.required' => 'الاسم مطلوب.',
             'email.required' => 'البريد الإلكتروني مطلوب.',
@@ -72,6 +63,7 @@ class EmployeeAuthController extends Controller
             'password.required' => 'كلمة المرور مطلوبة.',
             'password.min' => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
             'password.confirmed' => 'تأكيد كلمة المرور غير مطابق.',
+            'phone.required' => 'رقم الجوال مطلوب — تسجيل الدخول يتم برقم الجوال.',
         ]);
 
         $domain = substr(strrchr($data['email'], '@'), 1);
@@ -90,7 +82,7 @@ class EmployeeAuthController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
-            'phone' => $data['phone'] ?? null,
+            'phone' => $data['phone'],
             'company_id' => $company->id,
             'status' => 'pending_verification',
         ]);
@@ -103,7 +95,7 @@ class EmployeeAuthController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
-        $this->authService->logout($request);
+        $this->portalLogin->logout($request, 'employee');
 
         return redirect()->route('employee.login');
     }

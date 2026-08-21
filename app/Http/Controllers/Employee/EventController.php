@@ -4,20 +4,32 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Employee\StoreEventRequest;
-use App\Models\Partner;
-use App\Models\VenuePricing;
-use App\Models\Discount;
+use App\Models\Employee;
 use App\Models\Event;
 use App\Models\EventAlternative;
-use App\Models\Notification;
-use Illuminate\Http\Request;
+use App\Models\EventComment;
+use App\Models\Partner;
+use App\Models\RoleAssignment;
+use App\Models\VenuePricing;
+use App\Services\Attendance\AttendanceService;
+use App\Services\Authorization\AuthorizationService;
 use App\Services\Company\CompanyEventService;
+use App\Services\Competition\ResultService;
 use App\Services\Employee\ChallengeService;
 use App\Services\Employee\EventCreationService;
 use App\Services\Employee\EventDetailService;
-use App\Services\RefundService;
+use App\Services\Events\EventStateMachine;
+use App\Services\Events\ParticipationService;
+use App\Services\Events\RescheduleService;
+use App\Services\Payments\EventRefundService;
+use App\Services\Provider\ProviderSuggestionService;
+use App\Support\Competition\MeasurementUnits;
+use App\Support\Notify;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,7 +40,9 @@ class EventController extends Controller
         private EventDetailService $eventDetailService,
         private CompanyEventService $companyEventService,
         private ChallengeService $challengeService,
-        private RefundService $refundService,
+        private EventRefundService $refundService,
+        private ParticipationService $participationService,
+        private EventStateMachine $stateMachine,
     ) {}
 
     /**
@@ -51,30 +65,17 @@ class EventController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Get active discounts for this employee's company communities
-        $communityIds = $communities->pluck('id')->toArray();
-        $discounts = Discount::query()
-            ->where('company_id', $employee->company_id)
-            ->whereIn('community_id', $communityIds)
-            ->where('status', 'active')
-            ->where(function ($q) {
-                // Exclude one_time discounts that have already been used
-                $q->where('usage', '!=', 'one_time')
-                    ->orWhereDoesntHave('events');
-            })
-            ->get();
-
+        // A10 — H §12.1: لا تخفيضات ولا رموز ترويجية — الميزة أُزيلت.
         return Inertia::render('employee/events/create', [
             'communities' => $communities,
             'partners' => $partners,
-            'discounts' => $discounts,
         ]);
     }
 
     /**
      * Return pricings compatible with the given venues, date, and time.
      */
-    public function pricings(Request $request): \Illuminate\Http\JsonResponse
+    public function pricings(Request $request): JsonResponse
     {
         $request->validate([
             'venue_ids' => ['required', 'array', 'min:1'],
@@ -86,7 +87,7 @@ class EventController extends Controller
         $venueIds = $request->input('venue_ids');
         $date = $request->input('date');
         $time = $request->input('time');
-        $dayOfWeek = (int) \Carbon\Carbon::parse($date)->dayOfWeek; // 0=Sun..6=Sat
+        $dayOfWeek = (int) Carbon::parse($date)->dayOfWeek; // 0=Sun..6=Sat
 
         $pricings = VenuePricing::query()
             ->whereIn('venue_id', $venueIds)
@@ -109,7 +110,7 @@ class EventController extends Controller
                 return true;
             })
             // Per venue + duration, keep only the highest price
-            ->groupBy(fn (VenuePricing $p) => $p->venue_id . '-' . $p->duration_minutes)
+            ->groupBy(fn (VenuePricing $p) => $p->venue_id.'-'.$p->duration_minutes)
             ->map(fn ($group) => $group->sortByDesc('price')->first())
             ->values();
 
@@ -125,10 +126,76 @@ class EventController extends Controller
 
         $data = $request->validated();
 
+        // A9 (H §11): لا تُنشأ فعالية بمزوّد غير متاح، وتجاوز الاقتراح
+        // يتطلب سبباً مسجَّلاً إلزامياً. يسري على المزوّدين ذوي التسلسل
+        // (فروع + وحدات)؛ الشركاء القدامى بلا فروع خارج الفحص حتى ترحيلهم.
+        $suggestionCandidates = $this->guardProviderSelection($data);
+
         $event = $this->eventCreationService->create($employee, $data);
+
+        if ($suggestionCandidates !== null) {
+            app(ProviderSuggestionService::class)->logSelection(
+                $event->community,
+                (int) $data['partner_id'],
+                $suggestionCandidates,
+                $data['override_reason'] ?? null,
+                event: $event,
+                actorUserId: $employee->user_id,
+            );
+        }
 
         return redirect()->route('employee.events.show', $event)
             ->with('success', 'تم إنشاء الفعالية بنجاح.');
+    }
+
+    /**
+     * A9 — حارس اختيار المزوّد: توفر إلزامي + سبب تجاوز إلزامي.
+     * يعيد قائمة الاقتراحات لتسجيلها مع الفعالية، أو null لشريك قديم بلا تسلسل.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function guardProviderSelection(array $data): ?array
+    {
+        $partner = Partner::find($data['partner_id']);
+
+        if ($partner === null || ! $partner->hasHierarchy()) {
+            return null;
+        }
+
+        $suggestionService = app(ProviderSuggestionService::class);
+        $pricing = VenuePricing::find($data['venue_pricing_id']);
+        $duration = (int) ($pricing?->duration_minutes ?? 60);
+        $start = Carbon::parse($data['date'].' '.$data['time']);
+
+        if (! $suggestionService->providerAvailableFor($partner, (int) $data['category_id'], $start, $duration, (int) $data['capacity'])) {
+            throw ValidationException::withMessages([
+                'partner_id' => ['المزوّد غير متاح في الوقت المطلوب — لا تُنشأ فعالية بمزوّد غير متاح.'],
+            ]);
+        }
+
+        $suggestions = $suggestionService->suggest([
+            'community_id' => (int) $data['community_id'],
+            'category_id' => (int) $data['category_id'],
+            'date' => $data['date'],
+            'time' => $data['time'],
+            'duration_minutes' => $duration,
+            'participants_count' => (int) $data['capacity'],
+        ]);
+
+        $candidates = $suggestions['candidates'];
+        $topPartnerId = $candidates[0]['partner_id'] ?? null;
+
+        // سبب التجاوز إلزامي حين لا يكون المختار هو الاقتراح الأول
+        if ($topPartnerId !== null
+            && $topPartnerId !== (int) $data['partner_id']
+            && trim((string) ($data['override_reason'] ?? '')) === '') {
+            throw ValidationException::withMessages([
+                'override_reason' => ['سبب تجاوز الاقتراح إلزامي — هذه الأسباب هي مادة أتمتة الاختيار لاحقاً.'],
+            ]);
+        }
+
+        return $candidates;
     }
 
     /**
@@ -138,20 +205,25 @@ class EventController extends Controller
     {
         $employee = auth('employee')->user();
 
-        $detail = $this->eventDetailService->getDetail($event);
+        $detail = $this->eventDetailService->getDetail($event, $employee);
 
         $isJoined = $event->participants()
             ->where('employee_id', $employee->id)
-            ->wherePivot('status', 'joined')
+            ->wherePivot('seat_status', 'reserved')
             ->exists();
 
         $waitlistEntry = $event->participants()
             ->where('employee_id', $employee->id)
-            ->wherePivot('status', 'waitlisted')
+            ->wherePivot('seat_status', 'waitlisted')
             ->first();
 
         $isWaitlisted = $waitlistEntry !== null;
         $waitlistPosition = $isWaitlisted ? $waitlistEntry->pivot->position : null;
+        $seatOffer = $isWaitlisted
+            && $waitlistEntry->pivot->offer_expires_at !== null
+            && $waitlistEntry->pivot->offer_expires_at->gte(now())
+                ? $waitlistEntry->pivot->offer_expires_at->toIso8601String()
+                : null;
 
         $waitlistCount = $event->waitlistEntries()->count();
 
@@ -172,101 +244,122 @@ class EventController extends Controller
                 ->get();
         }
 
-        $canCancel = $event->created_by === $employee->id
-            && ! in_array($event->status, ['cancelled', 'completed', 'rejected']);
-        $refundPreview = $canCancel ? $this->refundService->getRefundPreview($event) : null;
+        // H §9: الإلغاء (cancelled_company) مشروع من booked/confirmed فقط
+        // ولحامل صلاحية event.cancel — لا لمجرد كونه المنشئ.
+        $canCancel = in_array($event->status, ['booked', 'confirmed'], true)
+            && $this->canCancelEvent($employee, $event);
+        // مصفوفة A10 (H §12.4): إلغاء الشركة/الإداري = استرداد كامل دائماً.
+        $refundPreview = $canCancel ? [
+            'percentage' => 100,
+            'policy_label' => 'استرداد كامل — الإلغاء يرد كل ما حُصِّل (H §12.4)',
+        ] : null;
+
+        $canApproveProposal = $event->status === 'pending_approval'
+            && (($event->community !== null && $event->community->isLeader($employee))
+                || ($employee->user !== null && app(AuthorizationService::class)->can(
+                    $employee->user,
+                    'event.approve',
+                    RoleAssignment::SCOPE_COMMUNITY,
+                    $event->community_id,
+                )));
+
+        // H §6: member comments live only under events — 15-min author
+        // edit/delete window, report button routes to the AM.
+        $comments = $event->comments()
+            ->with('employee:id,name')
+            ->orderBy('created_at')
+            ->get()
+            ->each(fn (EventComment $comment) => $comment->setAttribute(
+                'can_modify',
+                $comment->isModifiableBy($employee),
+            ));
+
+        $isCommunityMember = $event->community !== null
+            && ($event->community->members()->where('employee_id', $employee->id)->exists()
+                || $event->community->isLeader($employee));
+
+        // H §24 (A8): تمديد التسجيل 24 ساعة مرة واحدة — قرار القائد/المنسّق/
+        // مسؤول الحساب، قبل الإغلاق وقبل بلوغ الحد الأدنى.
+        $canExtendRegistration = in_array($event->status, ['open', 'booked'], true)
+            && $event->registration_extended_at === null
+            && $event->isRegistrationOpen()
+            && $event->reservedParticipants()->count() < (int) $event->min_participants
+            && $event->community !== null
+            && ($event->community->isLeader($employee)
+                || ($employee->user !== null && app(AuthorizationService::class)->can(
+                    $employee->user,
+                    'event.create_direct',
+                    RoleAssignment::SCOPE_COMMUNITY,
+                    $event->community_id,
+                )));
+
+        // A12 — H §13: قائمة الحضور ونافذة تعديلها (24 ساعة) والنتائج.
+        // الضمانة الوحيدة ضد «الفعالية الشبح» تُعرض هنا على صفحة القائد.
+        $attendance = app(AttendanceService::class);
+        $attendanceEditability = $attendance->editability($event, $employee->user);
+        $attendancePanel = $event->completed_at === null ? null : [
+            'roster' => $attendance->roster($event),
+            'window_closes_at' => $attendance->windowClosesAt($event)?->toIso8601String(),
+            'window_open' => $attendance->isWindowOpen($event),
+            'locked_at' => $event->attendance_locked_at?->toIso8601String(),
+            'can_edit' => $attendanceEditability['allowed'],
+            'edit_mode' => $attendanceEditability['mode'],
+            'reason_required' => $attendanceEditability['reason_required'],
+            'notice' => $attendanceEditability['message'],
+            'results' => app(ResultService::class)->forEvent($event),
+            'units' => MeasurementUnits::forUi(),
+            'can_enter_results' => $employee->user !== null && app(AuthorizationService::class)->can(
+                $employee->user,
+                'results.enter',
+                RoleAssignment::SCOPE_COMMUNITY,
+                $event->community_id,
+            ),
+            'can_correct_results' => $employee->user !== null && app(AuthorizationService::class)->can(
+                $employee->user,
+                'results.correct',
+                RoleAssignment::SCOPE_COMMUNITY,
+                $event->community_id,
+            ),
+        ];
 
         return Inertia::render('employee/events/show', [
+            'attendancePanel' => $attendancePanel,
+            'canExtendRegistration' => $canExtendRegistration,
             'event' => $detail['event'],
             'payment' => $detail['payment_breakdown'],
+            'myIntent' => $detail['my_intent'],
             'isJoined' => $isJoined,
             'isWaitlisted' => $isWaitlisted,
             'waitlistPosition' => $waitlistPosition,
             'waitlistCount' => $waitlistCount,
+            'seatOfferExpiresAt' => $seatOffer,
             'canManageAlternatives' => $canManageAlternatives,
             'isCreator' => $event->created_by === $employee->id,
+            'canCancel' => $canCancel,
+            'canApproveProposal' => $canApproveProposal,
+            'registrationOpen' => $event->isRegistrationOpen(),
             'seriesEvents' => $seriesEvents,
             'refundPreview' => $refundPreview,
+            'comments' => $comments,
+            'canComment' => $isCommunityMember,
         ]);
     }
 
     /**
-     * Join an event (or join the waiting list if full).
+     * الانضمام (H §10): حجز ذري بقفل صف الفعالية داخل ParticipationService —
+     * reserved إن وُجد مقعد وإلا waitlisted بترتيب زمني صارم. لا تحصيل إطلاقاً.
      */
     public function join(Event $event): RedirectResponse
     {
         $employee = auth('employee')->user();
-        $joinedWaitlist = false;
 
         try {
-            DB::transaction(function () use ($event, $employee, &$joinedWaitlist) {
-                // Lock the event row to prevent race conditions
-                $event = Event::lockForUpdate()->findOrFail($event->id);
-
-                if (! in_array($event->status, ['open', 'full', 'waiting_partner', 'confirmed'])) {
-                    throw new \RuntimeException('لا يمكن الانضمام لهذه الفعالية في حالتها الحالية.');
-                }
-
-                // Check if already joined or waitlisted
-                $existing = $event->participants()
-                    ->where('employee_id', $employee->id)
-                    ->wherePivotIn('status', ['joined', 'waitlisted'])
-                    ->first();
-
-                if ($existing) {
-                    $status = $existing->pivot->status;
-                    if ($status === 'joined') {
-                        throw new \RuntimeException('أنت منضم بالفعل.');
-                    }
-                    if ($status === 'waitlisted') {
-                        throw new \RuntimeException('أنت مسجل في قائمة الانتظار بالفعل.');
-                    }
-                }
-
-                // If there is room, join directly
-                if ($event->participants_count < $event->capacity && $event->status === 'open') {
-                    $event->participants()->attach($employee->id, [
-                        'status' => 'joined',
-                        'joined_at' => now(),
-                    ]);
-
-                    $event->increment('participants_count');
-                    $event->refresh();
-
-                    // Auto-transition to waiting_partner when capacity is full
-                    if ($event->participants_count >= $event->capacity) {
-                        $event->update(['status' => 'waiting_partner']);
-
-                        Notification::create([
-                            'notifiable_type' => \App\Models\Partner::class,
-                            'notifiable_id' => $event->partner_id,
-                            'type' => 'info',
-                            'title' => 'طلب حجز جديد',
-                            'body' => "طلب حجز جديد للفعالية #{$event->id} — {$event->venues_count} ملعب بتاريخ {$event->event_date->format('Y-m-d')}",
-                            'data' => ['event_id' => $event->id],
-                        ]);
-                    }
-                } else {
-                    // Event is full — add to waiting list
-                    $maxPosition = (int) DB::table('event_participants')
-                        ->where('event_id', $event->id)
-                        ->where('status', 'waitlisted')
-                        ->max('position');
-
-                    $event->participants()->attach($employee->id, [
-                        'status' => 'waitlisted',
-                        'joined_at' => now(),
-                        'position' => $maxPosition + 1,
-                    ]);
-
-                    $joinedWaitlist = true;
-                }
-            });
+            $result = $this->participationService->join($event, $employee);
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
 
-        if ($joinedWaitlist) {
+        if ($result === 'waitlisted') {
             return back()->with('success', 'تم تسجيلك في قائمة الانتظار.');
         }
 
@@ -276,41 +369,19 @@ class EventController extends Controller
     }
 
     /**
-     * Leave an event.
+     * الانسحاب — حر قبل إغلاق التسجيل، ممنوع بعده (H §10). الصف لا يُحذف.
      */
     public function leave(Event $event): RedirectResponse
     {
-        if (! in_array($event->status, ['open', 'waiting_partner'])) {
-            return back()->with('error', 'لا يمكن مغادرة الفعالية في هذه الحالة.');
-        }
-
         $employee = auth('employee')->user();
 
-        DB::transaction(function () use ($event, $employee) {
-            $event = Event::lockForUpdate()->findOrFail($event->id);
+        try {
+            $this->participationService->withdraw($event, $employee);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
-            $event->participants()->detach($employee->id);
-            $event->decrement('participants_count');
-
-            // Try to promote from waitlist
-            $promoted = $this->promoteFromWaitlist($event);
-
-            // If no one was promoted and the event was waiting_partner, revert to open
-            if (! $promoted && $event->status === 'waiting_partner') {
-                $event->update(['status' => 'open']);
-
-                Notification::create([
-                    'notifiable_type' => \App\Models\Partner::class,
-                    'notifiable_id' => $event->partner_id,
-                    'type' => 'warning',
-                    'title' => 'تغيير في طلب الحجز',
-                    'body' => "الفعالية #{$event->id} رجعت لحالة مفتوحة — أحد اللاعبين غادر",
-                    'data' => ['event_id' => $event->id],
-                ]);
-            }
-        });
-
-        return back()->with('success', 'تم مغادرة الفعالية.');
+        return back()->with('success', 'تم الانسحاب من الفعالية.');
     }
 
     /**
@@ -320,33 +391,114 @@ class EventController extends Controller
     {
         $employee = auth('employee')->user();
 
-        $isWaitlisted = $event->participants()
-            ->where('employee_id', $employee->id)
-            ->wherePivot('status', 'waitlisted')
-            ->exists();
-
-        if (! $isWaitlisted) {
-            return back()->with('error', 'أنت غير مسجل في قائمة الانتظار.');
+        try {
+            $this->participationService->leaveWaitlist($event, $employee);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
         }
 
-        DB::transaction(function () use ($event, $employee) {
-            $removedPosition = (int) DB::table('event_participants')
-                ->where('event_id', $event->id)
-                ->where('employee_id', $employee->id)
-                ->where('status', 'waitlisted')
-                ->value('position');
-
-            $event->participants()->detach($employee->id);
-
-            // Reorder remaining waitlist positions
-            DB::table('event_participants')
-                ->where('event_id', $event->id)
-                ->where('status', 'waitlisted')
-                ->where('position', '>', $removedPosition)
-                ->decrement('position');
-        });
-
         return back()->with('success', 'تم إلغاء تسجيلك من قائمة الانتظار.');
+    }
+
+    /**
+     * قبول عرض المقعد الشاغر داخل مهلته (H §10).
+     */
+    public function acceptSeatOffer(Event $event): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+
+        try {
+            $this->participationService->acceptOffer($event, $employee);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        $this->challengeService->incrementProgress($employee, 'events_count');
+
+        return back()->with('success', 'تم تأكيد مقعدك في الفعالية.');
+    }
+
+    /**
+     * رفض عرض المقعد — ينتقل العرض للتالي في قائمة الانتظار.
+     */
+    public function declineSeatOffer(Event $event): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+
+        try {
+            $this->participationService->declineOffer($event, $employee);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'تم رفض العرض وانتقل للتالي في القائمة.');
+    }
+
+    /**
+     * اعتماد اقتراح فعالية موظف (H §7) — قائد المجتمع أو حامل صلاحية
+     * event.approve على نطاق المجتمع، خلال 48 ساعة.
+     */
+    public function approveProposal(Event $event): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+        $this->authorizeProposalAction($employee, $event);
+
+        if ($event->status !== 'pending_approval') {
+            return back()->with('error', 'هذه الفعالية ليست اقتراحاً بانتظار الاعتماد.');
+        }
+
+        $this->stateMachine->approveProposal($event, $employee);
+
+        // إشعار المقترح والأعضاء بالنشر.
+        Notify::sendToId(
+            'event.proposal.approved',
+            Employee::class,
+            (int) $event->created_by,
+            [],
+            ['data' => ['event_id' => $event->id]],
+        );
+
+        $event->load('community.members');
+        foreach ($event->community?->members ?? [] as $member) {
+            if ($member->id === $event->created_by) {
+                continue;
+            }
+            Notify::send(
+                'event.published.member',
+                $member,
+                ['community' => $event->community->name],
+                ['data' => ['event_id' => $event->id]],
+            );
+        }
+
+        return back()->with('success', 'تم اعتماد الاقتراح ونشر الفعالية.');
+    }
+
+    /**
+     * رفض اقتراح فعالية موظف بسبب مكتوب.
+     */
+    public function rejectProposal(Request $request, Event $event): RedirectResponse
+    {
+        $employee = auth('employee')->user();
+        $this->authorizeProposalAction($employee, $event);
+
+        if ($event->status !== 'pending_approval') {
+            return back()->with('error', 'هذه الفعالية ليست اقتراحاً بانتظار الاعتماد.');
+        }
+
+        $reason = trim((string) $request->input('reason', ''));
+
+        $this->stateMachine->rejectProposal($event, $employee, $reason !== '' ? $reason : null);
+
+        Notify::sendToId(
+            'event.proposal.rejected',
+            Employee::class,
+            (int) $event->created_by,
+            ['reason_suffix' => $reason !== '' ? " السبب: {$reason}" : ''],
+            ['data' => ['event_id' => $event->id]],
+        );
+
+        return back()->with('success', 'تم رفض الاقتراح.');
     }
 
     /**
@@ -357,9 +509,9 @@ class EventController extends Controller
         $employee = auth('employee')->user();
         $this->authorizeAlternativeAction($employee, $event);
 
-        $this->companyEventService->acceptAlternativeForEvent($event, $alternative);
+        $this->companyEventService->acceptAlternativeForEvent($event, $alternative, $employee);
 
-        return back()->with('success', 'تم قبول الوقت البديل وتأكيد الحجز.');
+        return back()->with('success', 'تم قبول الوقت البديل — عادت الفعالية مفتوحة بالتاريخ الجديد مع انسحاب حر 6 ساعات.');
     }
 
     /**
@@ -370,7 +522,7 @@ class EventController extends Controller
         $employee = auth('employee')->user();
         $this->authorizeAlternativeAction($employee, $event);
 
-        $this->companyEventService->rejectAlternativeForEvent($event, $alternative);
+        $this->companyEventService->rejectAlternativeForEvent($event, $alternative, $employee);
 
         return back()->with('success', 'تم رفض الوقت البديل.');
     }
@@ -378,7 +530,7 @@ class EventController extends Controller
     /**
      * Remove a participant from the event (creator only).
      */
-    public function removeMember(Event $event, \App\Models\Employee $employee): RedirectResponse
+    public function removeMember(Event $event, Employee $employee): RedirectResponse
     {
         $creator = auth('employee')->user();
 
@@ -386,7 +538,7 @@ class EventController extends Controller
             return back()->with('error', 'يمكن فقط لمنشئ الفعالية إزالة اللاعبين.');
         }
 
-        if (! in_array($event->status, ['open', 'waiting_partner', 'alternative_proposed'])) {
+        if (! in_array($event->status, ['open', 'pending_provider', 'provider_alternative', 'booked'])) {
             return back()->with('error', 'لا يمكن إزالة لاعب في هذه الحالة.');
         }
 
@@ -394,99 +546,91 @@ class EventController extends Controller
             return back()->with('error', 'لا يمكنك إزالة نفسك.');
         }
 
-        $wasJoined = $event->participants()
-            ->where('employee_id', $employee->id)
-            ->wherePivot('status', 'joined')
-            ->exists();
-
-        if (! $wasJoined) {
-            return back()->with('error', 'هذا اللاعب غير منضم.');
+        try {
+            $this->participationService->remove($event, $employee, $creator, 'إزالة بقرار منشئ الفعالية');
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
         }
 
-        DB::transaction(function () use ($event, $employee) {
-            $event = Event::lockForUpdate()->findOrFail($event->id);
-
-            $event->participants()->detach($employee->id);
-            $event->decrement('participants_count');
-
-            // Try to promote from waitlist
-            $promoted = $this->promoteFromWaitlist($event);
-
-            if (! $promoted && $event->status === 'waiting_partner') {
-                $event->update(['status' => 'open']);
-            }
-        });
-
-        Notification::create([
-            'notifiable_type' => \App\Models\Employee::class,
-            'notifiable_id' => $employee->id,
-            'type' => 'warning',
-            'title' => 'تمت إزالتك من الفعالية',
-            'body' => "قام منشئ الفعالية بإزالتك من فعالية {$event->community?->name}",
-            'data' => ['event_id' => $event->id],
-        ]);
+        Notify::send(
+            'event.participant.removed',
+            $employee,
+            ['community' => $event->community?->name],
+            ['data' => ['event_id' => $event->id]],
+        );
 
         return back()->with('success', "تم إزالة {$employee->name} من الفعالية.");
     }
 
     /**
-     * Preview the refund amount before cancellation.
+     * Preview the refund before cancellation — مصفوفة A10 (H §12.4): إلغاء
+     * الشركة/الإداري استرداد كامل دائماً؛ نسب 100/50/0 القديمة حُذفت.
      */
-    public function refundPreview(Event $event): \Illuminate\Http\JsonResponse
+    public function refundPreview(Event $event): JsonResponse
     {
-        if (in_array($event->status, ['cancelled', 'completed'])) {
-            return response()->json(['error' => 'لا يمكن إلغاء فعالية ملغاة أو منتهية.'], 422);
+        if (! in_array($event->status, ['booked', 'confirmed'], true)) {
+            return response()->json(['error' => 'لا إلغاء إلا لفعالية محجوزة أو مؤكدة (H §9).'], 422);
         }
 
-        $preview = $this->refundService->getRefundPreview($event);
-
-        return response()->json($preview);
+        return response()->json([
+            'percentage' => 100,
+            'policy_label' => 'استرداد كامل — الإلغاء يرد كل ما حُصِّل (H §12.4)',
+        ]);
     }
 
     /**
-     * Cancel/destroy an event with refund policy applied.
-     *
-     * If ?cancel_series=1 is passed and the event is a recurring series parent,
-     * all future occurrences are also cancelled.
+     * إلغاء فعالية (cancelled_company) — H §9: مشروع من booked/confirmed فقط
+     * وبقرار حامل صلاحية `event.cancel` (مسؤول الحساب/أدمن تيمات)؛ لا يعرف
+     * الجدول إلغاءً من open/pending_provider — الفعالية المفتوحة تموت بالانتهاء.
+     * الاسترداد بمصفوفة A10 (H §12.4): كامل دائماً — محفظةً وحصصاً.
      */
     public function destroy(Request $request, Event $event): RedirectResponse
     {
-        if (in_array($event->status, ['cancelled', 'completed'])) {
-            return back()->with('error', 'لا يمكن إلغاء فعالية ملغاة أو منتهية.');
+        $employee = auth('employee')->user();
+
+        if (! $this->canCancelEvent($employee, $event)) {
+            return back()->with('error', 'إلغاء الفعالية صلاحية مسؤول الحساب أو أدمن تيمات (H ملحق ب).');
         }
 
         $cancelSeries = $request->boolean('cancel_series');
 
-        // Apply refund via refund service (handles percentage calculation)
-        // Only processes refund if budget was already deducted
-        $refundAmount = $event->budget_deducted_at
-            ? $this->refundService->applyRefund($event)
-            : 0;
+        if (! $this->stateMachine->canTransition((string) $event->status, 'cancelled_company')
+            && ! ($cancelSeries && $event->isRecurringSeries())) {
+            return back()->with('error', 'لا يمكن إلغاء الفعالية في حالتها الحالية — جدول الحالات (H §9) لا يجيز الإلغاء إلا بعد قبول المزوّد (محجوزة أو مؤكدة).');
+        }
+
+        $cancelled = false;
+
+        if ($this->stateMachine->canTransition((string) $event->status, 'cancelled_company')) {
+            $this->stateMachine->cancelCompany($event, $employee, $request->input('reason'));
+
+            // مصفوفة A10 (H §12.4): استرداد كامل — لا نسب متدرجة.
+            $this->refundService->refundEventCollections($event, 'إلغاء الشركة — استرداد كامل (H §12.4)');
+            $cancelled = true;
+        }
 
         // Notify waitlisted members that the event is cancelled
         $waitlistedIds = $event->waitlistEntries()->pluck('employees.id');
         foreach ($waitlistedIds as $employeeId) {
-            Notification::create([
-                'notifiable_type' => \App\Models\Employee::class,
-                'notifiable_id' => $employeeId,
-                'type' => 'warning',
-                'title' => 'تم إلغاء الفعالية',
-                'body' => 'تم إلغاء الفعالية التي كنت في قائمة انتظارها.',
-                'data' => ['event_id' => $event->id],
-            ]);
+            Notify::sendToId(
+                'event.waitlist.cancelled',
+                Employee::class,
+                (int) $employeeId,
+                [],
+                ['data' => ['event_id' => $event->id]],
+            );
         }
-
-        $event->update(['status' => 'cancelled']);
 
         // Cancel the entire series if requested and event is the parent
         if ($cancelSeries && $event->isRecurringSeries()) {
-            $this->eventCreationService->cancelSeries($event);
+            $cancelled = $this->eventCreationService->cancelSeries($event, $employee);
+
             return redirect()->route('employee.home')
-                ->with('success', 'تم إلغاء سلسلة الفعاليات بالكامل.');
+                ->with('success', "تم إلغاء {$cancelled} فعالية من السلسلة (المفتوحة التي لم يقبلها المزوّد تنتهي تلقائياً وفق آلة الحالات).");
         }
 
-        $message = $refundAmount > 0
-            ? "تم إلغاء الفعالية. تم استرداد {$refundAmount} ريال إلى رصيد المجتمع."
+        $message = $cancelled
+            ? 'تم إلغاء الفعالية — كل ما حُصِّل يُرد كاملاً (المحفظة وحصص الموظفين لوسيلة الدفع الأصلية).'
             : 'تم إلغاء الفعالية بنجاح.';
 
         return redirect()->route('employee.home')
@@ -494,58 +638,73 @@ class EventController extends Controller
     }
 
     /**
-     * Promote the next person from the waiting list to a joined participant.
-     *
-     * Returns true if someone was promoted, false otherwise.
+     * تمديد التسجيل 24 ساعة مرة واحدة — H §24: البديل المعتمد لفتح الفعالية
+     * على مجتمعات أخرى (المؤجل)، قبل الوقوع في مسار إعادة الجدولة (H §8).
+     * قرار قائد المجتمع (أو المنسّق/مسؤول الحساب عبر event.create_direct).
      */
-    private function promoteFromWaitlist(Event $event): bool
+    public function extendRegistration(Event $event): RedirectResponse
     {
-        $next = $event->waitlistEntries()->first();
+        $employee = auth('employee')->user();
+        $community = $event->community;
 
-        if (! $next) {
-            return false;
-        }
+        abort_if($community === null, 404);
 
-        $promotedPosition = $next->pivot->position;
+        $isLeader = $community->isLeader($employee);
+        $canDirect = $employee->user !== null && app(AuthorizationService::class)->can(
+            $employee->user,
+            'event.create_direct',
+            RoleAssignment::SCOPE_COMMUNITY,
+            $community->id,
+        );
 
-        // Update status from waitlisted to joined
-        $event->participants()->updateExistingPivot($next->id, [
-            'status' => 'joined',
-            'joined_at' => now(),
-            'position' => null,
-        ]);
+        abort_unless($isLeader || $canDirect, 403, 'تمديد التسجيل قرار قائد المجتمع أو المنسّق أو مسؤول الحساب.');
 
-        $event->increment('participants_count');
+        app(RescheduleService::class)->extendRegistration($event, $employee);
 
-        // Reorder remaining waitlist positions
-        DB::table('event_participants')
-            ->where('event_id', $event->id)
-            ->where('status', 'waitlisted')
-            ->where('position', '>', $promotedPosition)
-            ->decrement('position');
+        return back()->with('success', 'مُدد التسجيل 24 ساعة (مرة واحدة) وأُشعر أعضاء المجتمع.');
+    }
 
-        // Notify the promoted employee
-        Notification::create([
-            'notifiable_type' => \App\Models\Employee::class,
-            'notifiable_id' => $next->id,
-            'type' => 'success',
-            'title' => 'تم ترقيتك من قائمة الانتظار',
-            'body' => "تم تأكيد مكانك في الفعالية! أحد اللاعبين غادر وأنت الآن منضم.",
-            'data' => ['event_id' => $event->id],
-        ]);
-
-        $this->challengeService->incrementProgress($next, 'events_count');
-
-        return true;
+    /**
+     * هل يحمل الموظف صلاحية إلغاء هذه الفعالية؟ (event.cancel على نطاق مجتمعها
+     * — مسؤول الحساب عبر نطاق الشركة أو أدمن المنصة؛ المنشئ العادي لا يملكها.)
+     */
+    private function canCancelEvent(Employee $employee, Event $event): bool
+    {
+        return $employee->user !== null && app(AuthorizationService::class)->can(
+            $employee->user,
+            'event.cancel',
+            RoleAssignment::SCOPE_COMMUNITY,
+            $event->community_id,
+        );
     }
 
     /**
      * Authorize that employee is the event creator.
      */
-    private function authorizeAlternativeAction(\App\Models\Employee $employee, Event $event): void
+    private function authorizeAlternativeAction(Employee $employee, Event $event): void
     {
         if ($event->created_by !== $employee->id) {
             abort(403, 'يمكن فقط لمنشئ الفعالية قبول أو رفض البدائل.');
+        }
+    }
+
+    /**
+     * صلاحية اعتماد/رفض اقتراحات الفعاليات: قائد المجتمع أو حامل event.approve.
+     */
+    private function authorizeProposalAction(Employee $employee, Event $event): void
+    {
+        $community = $event->community;
+
+        $allowed = ($community !== null && $community->isLeader($employee))
+            || ($employee->user !== null && app(AuthorizationService::class)->can(
+                $employee->user,
+                'event.approve',
+                RoleAssignment::SCOPE_COMMUNITY,
+                $event->community_id,
+            ));
+
+        if (! $allowed) {
+            abort(403, 'اعتماد الاقتراحات لقائد المجتمع أو المنسّق أو مسؤول الحساب.');
         }
     }
 }

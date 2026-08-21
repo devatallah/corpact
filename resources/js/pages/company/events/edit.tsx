@@ -83,7 +83,7 @@ export default function EventEdit({ event }: Props) {
                         </div>
                         <div className="fg">
                             <label>الحالة</label>
-                            <select value={form.data.status} onChange={(e) => form.setData('status', e.target.value)}>
+                            <select value={form.data.status} onChange={(e) => form.setData('status', e.target.value as import('@/types/models').EventStatusValue)}>
                                 <option value="open">مفتوح</option>
                                 <option value="waiting_partner">بانتظار الشريك</option>
                                 <option value="confirmed">مؤكد</option>

@@ -25,8 +25,8 @@ class AdminEventService
             ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('event_date', '<=', $filters['date_to']))
             ->when(isset($filters['search']), fn ($query) => $query->where(function ($q) use ($filters) {
                 $q->whereHas('partner', fn ($c) => $c->where('name', 'like', "%{$filters['search']}%"))
-                  ->orWhereHas('category', fn ($s) => $s->where('name', 'like', "%{$filters['search']}%"))
-                  ->orWhereHas('community.company', fn ($co) => $co->where('name', 'like', "%{$filters['search']}%"));
+                    ->orWhereHas('category', fn ($s) => $s->where('name', 'like', "%{$filters['search']}%"))
+                    ->orWhereHas('community.company', fn ($co) => $co->where('name', 'like', "%{$filters['search']}%"));
             }))
             ->latest('event_date')
             ->paginate($filters['per_page'] ?? 15);

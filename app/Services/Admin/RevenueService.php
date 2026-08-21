@@ -2,88 +2,127 @@
 
 namespace App\Services\Admin;
 
-use App\Models\PlatformRevenue;
-use App\Models\Settlement;
+use App\Models\PlatformFeeInvoice;
+use App\Models\SettlementItem;
+use App\Models\SettlementStatement;
+use App\Support\Money;
 use Illuminate\Support\Collection;
 
+/**
+ * أرقام إيراد المنصة — مبنية على بنود التسوية وفواتير رسوم النظام بالهللة
+ * (A11)، لا على الجدولين المؤرشفين العشريين.
+ *
+ * **حجم التداول ليس إيراداً** (H §15): `gross` قيمة النشاط التي تُحصَّل
+ * نيابةً عن المزوّد (تيمات وكيل فيها)، والإيراد هو **العمولة + رسوم النظام**.
+ * الحقول تعود منفصلة بأسمائها الصريحة ولا تُجمع في حقل واحد أبداً.
+ */
 class RevenueService
 {
     /**
-     * Get monthly revenue statistics for a given year.
+     * إيراد العمولة الشهري لسنة — يُنسب بشهر **اكتمال** الفعالية.
      *
-     * @return Collection<int, array{month: int, total: float}>
+     * @return Collection<int, array{month: int, commission_halalas: int, commission: string}>
      */
-    public function monthlyStats(int $year): Collection
+    public function monthlyCommission(int $year): Collection
     {
-        return PlatformRevenue::query()
-            ->selectRaw('MONTH(revenue_date) as month, SUM(amount) as total')
-            ->whereYear('revenue_date', $year)
-            ->groupByRaw('MONTH(revenue_date)')
-            ->orderBy('month')
+        $driver = SettlementItem::query()->getConnection()->getDriverName();
+        $monthExpression = $driver === 'sqlite'
+            ? "CAST(strftime('%m', computed_at) AS INTEGER)"
+            : 'MONTH(computed_at)';
+
+        return SettlementItem::query()
+            ->whereYear('computed_at', $year)
+            ->selectRaw("{$monthExpression} as month, SUM(commission_amount_halalas) as total")
+            ->groupByRaw($monthExpression)
+            ->orderByRaw($monthExpression)
             ->get()
             ->map(fn ($row) => [
                 'month' => (int) $row->month,
-                'total' => (float) $row->total,
+                'commission_halalas' => (int) $row->total,
+                'commission' => Money::format((int) $row->total),
             ]);
     }
 
     /**
-     * Get revenue breakdown per company.
+     * توزيع العمولة على الشركات (مصدر النشاط) — بالهللة.
      *
-     * @return Collection<int, array{company_id: int, company_name: string, total: float}>
+     * @return Collection<int, array{company_id: int, company_name: string, commission_halalas: int, commission: string}>
      */
     public function perCompanyBreakdown(?int $year = null): Collection
     {
-        return Settlement::query()
-            ->join('companies', 'settlements.company_id', '=', 'companies.id')
-            ->selectRaw('companies.id as company_id, companies.name as company_name, SUM(settlements.commission_amount) as total')
-            ->when($year, fn ($query) => $query->whereYear('settlements.created_at', $year))
+        return SettlementItem::query()
+            ->join('companies', 'settlement_items.company_id', '=', 'companies.id')
+            ->selectRaw('companies.id as company_id, companies.name as company_name, SUM(settlement_items.commission_amount_halalas) as total')
+            ->when($year, fn ($query) => $query->whereYear('settlement_items.computed_at', $year))
             ->groupBy('companies.id', 'companies.name')
             ->orderByDesc('total')
             ->get()
             ->map(fn ($row) => [
                 'company_id' => (int) $row->company_id,
-                'company_name' => $row->company_name,
-                'total' => (float) $row->total,
+                'company_name' => (string) $row->company_name,
+                'commission_halalas' => (int) $row->total,
+                'commission' => Money::format((int) $row->total),
             ]);
     }
 
     /**
-     * Get platform commission totals.
+     * إجماليات المنصة — **بطاقات منفصلة**: حجم التداول ≠ الإيراد.
      *
-     * @return array{total_commission: float, total_gross: float, total_net: float}
+     * @return array<string, mixed>
      */
-    public function platformCommissionTotals(?int $year = null): array
+    public function platformTotals(?int $year = null): array
     {
-        $result = Settlement::query()
-            ->when($year, fn ($query) => $query->whereYear('created_at', $year))
-            ->selectRaw('SUM(gross_amount) as total_gross, SUM(commission_amount) as total_commission, SUM(net_amount) as total_net')
+        $items = SettlementItem::query()
+            ->when($year, fn ($query) => $query->whereYear('computed_at', $year))
+            ->selectRaw('SUM(gross_amount_halalas) as gross, SUM(commission_amount_halalas) as commission, SUM(net_amount_halalas) as net')
             ->first();
 
+        $fees = (int) PlatformFeeInvoice::query()
+            ->whereIn('status', [PlatformFeeInvoice::STATUS_ISSUED, PlatformFeeInvoice::STATUS_PAID])
+            ->when($year, fn ($query) => $query->whereYear('issued_at', $year))
+            ->sum('subtotal_halalas');
+
+        $gross = (int) ($items->gross ?? 0);
+        $commission = (int) ($items->commission ?? 0);
+        $providerNet = (int) ($items->net ?? 0);
+
         return [
-            'total_gross' => (float) ($result->total_gross ?? 0),
-            'total_commission' => (float) ($result->total_commission ?? 0),
-            'total_net' => (float) ($result->total_net ?? 0),
+            // حجم التداول: قيمة النشاط المحصَّلة نيابةً عن المزوّدين — ليس إيراداً.
+            'gmv_halalas' => $gross,
+            'gmv' => Money::format($gross),
+            'provider_net_halalas' => $providerNet,
+            'provider_net' => Money::format($providerNet),
+            // الإيراد: العمولة + رسوم النظام (تيمات أصيل فيهما — H §12.9).
+            'commission_revenue_halalas' => $commission,
+            'commission_revenue' => Money::format($commission),
+            'system_fee_revenue_halalas' => $fees,
+            'system_fee_revenue' => Money::format($fees),
         ];
     }
 
     /**
-     * Get collected vs pending settlement amounts.
+     * المصروف للمزوّدين مقابل ما لم يُصرف بعد.
      *
-     * @return array{collected: float, pending: float, processing: float}
+     * @return array<string, mixed>
      */
-    public function collectedVsPending(): array
+    public function payoutStatus(): array
     {
-        $amounts = Settlement::query()
-            ->selectRaw('status, SUM(net_amount) as total')
+        $byStatus = SettlementStatement::query()
+            ->selectRaw('status, SUM(net_amount_halalas) as net')
             ->groupBy('status')
-            ->pluck('total', 'status')
-            ->toArray();
+            ->pluck('net', 'status');
+
+        $paid = (int) ($byStatus[SettlementStatement::STATUS_PAID] ?? 0);
+        $approved = (int) ($byStatus[SettlementStatement::STATUS_APPROVED] ?? 0);
+        $draft = (int) ($byStatus[SettlementStatement::STATUS_DRAFT] ?? 0);
 
         return [
-            'collected' => (float) ($amounts['paid'] ?? 0),
-            'pending' => (float) ($amounts['pending'] ?? 0),
-            'processing' => (float) ($amounts['processing'] ?? 0),
+            'paid_halalas' => $paid,
+            'paid' => Money::format($paid),
+            'approved_halalas' => $approved,
+            'approved' => Money::format($approved),
+            'draft_halalas' => $draft,
+            'draft' => Money::format($draft),
         ];
     }
 }

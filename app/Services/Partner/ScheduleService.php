@@ -2,10 +2,10 @@
 
 namespace App\Services\Partner;
 
-use App\Models\Partner;
-use App\Models\Venue;
 use App\Models\Event;
+use App\Models\Partner;
 use App\Models\Slot;
+use App\Models\Venue;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 

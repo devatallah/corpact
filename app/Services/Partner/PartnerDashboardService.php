@@ -2,8 +2,8 @@
 
 namespace App\Services\Partner;
 
-use App\Models\Partner;
 use App\Models\Event;
+use App\Models\Partner;
 use Illuminate\Support\Carbon;
 
 class PartnerDashboardService
@@ -20,7 +20,7 @@ class PartnerDashboardService
 
         $pendingRequests = Event::query()
             ->where('partner_id', $partner->id)
-            ->where('status', 'waiting_partner')
+            ->where('status', 'pending_provider')
             ->count();
 
         $monthlyBookings = Event::query()
@@ -29,11 +29,12 @@ class PartnerDashboardService
             ->whereIn('status', ['confirmed', 'completed'])
             ->count();
 
-        $monthlyRevenue = Event::query()
+        // A10: العمود هللات صحيحة — القسمة على 100 للعرض فقط.
+        $monthlyRevenue = ((int) Event::query()
             ->where('partner_id', $partner->id)
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->whereIn('status', ['confirmed', 'completed'])
-            ->sum('total_amount');
+            ->sum('total_amount_halalas')) / 100;
 
         $partnerCompanies = Event::query()
             ->where('partner_id', $partner->id)

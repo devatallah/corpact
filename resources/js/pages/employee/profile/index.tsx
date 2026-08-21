@@ -1,20 +1,29 @@
 import EmployeeLayout from '@/layouts/employee-layout';
 import CategoryIcon from '@/components/category-icon';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { fmtDate, fmtTime } from '@/lib/utils';
-import type { Employee, Community, Event, Partner, Category, Company } from '@/types/models';
+import type { Employee, Community, Event, Partner, Category, Company, NotificationPreferenceRow } from '@/types/models';
 import { useState, useRef } from 'react';
 import toastr from 'toastr';
 
+// آلة حالات H §9 (A7)
 const statusMap: Record<string, { label: string; color: string }> = {
+    pending_approval: { label: 'بانتظار الاعتماد', color: '#D97706' },
     open: { label: 'مفتوح', color: '#18A86B' },
+    pending_provider: { label: 'بانتظار المزوّد', color: '#D97706' },
+    provider_alternative: { label: 'بديل مقترح', color: '#D97706' },
+    booked: { label: 'محجوزة', color: '#18A86B' },
+    awaiting_payment: { label: 'بانتظار الدفع', color: '#D97706' },
     confirmed: { label: 'مؤكد', color: '#2563EB' },
-    waiting_partner: { label: 'معلق', color: '#D97706' },
-    full: { label: 'مكتمل', color: '#8B5CF6' },
+    in_progress: { label: 'جارية الآن', color: '#2563EB' },
     completed: { label: 'منتهي', color: '#666' },
-    cancelled: { label: 'ملغي', color: '#EF4444' },
-    rejected: { label: 'مرفوض', color: '#EF4444' },
-    alternative_proposed: { label: 'بديل مقترح', color: '#D97706' },
+    settled: { label: 'مسوّاة', color: '#666' },
+    expired: { label: 'منتهية دون اكتمال العدد', color: '#EF4444' },
+    rejected: { label: 'اقتراح مرفوض', color: '#EF4444' },
+    cancelled_min_not_met: { label: 'ملغاة — لم يبلغ الحد الأدنى', color: '#EF4444' },
+    cancelled_provider: { label: 'ملغاة من المزوّد', color: '#EF4444' },
+    cancelled_company: { label: 'ملغاة من الشركة', color: '#EF4444' },
+    cancelled_payment_failed: { label: 'ملغاة — فشل التحصيل', color: '#EF4444' },
 };
 
 interface ProfileStats {
@@ -36,11 +45,12 @@ interface Props {
     activityStats: ActivityStats;
     events: (Event & { partner: Partner; community: Community; category?: Category })[];
     communities: (Community & { category?: Category; members_count: number })[];
+    notificationPreferences: NotificationPreferenceRow[];
 }
 
-type ProfileTab = 'events' | 'communities';
+type ProfileTab = 'events' | 'communities' | 'notifications';
 
-export default function ProfileIndex({ employee, stats, activityStats, events, communities }: Props) {
+export default function ProfileIndex({ employee, stats, activityStats, events, communities, notificationPreferences }: Props) {
     const [activeTab, setActiveTab] = useState<ProfileTab>('events');
     const [editing, setEditing] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
@@ -71,7 +81,7 @@ export default function ProfileIndex({ employee, stats, activityStats, events, c
                 <div style={{ position: 'relative', display: 'inline-block', marginBottom: 12 }}>
                     {employee.avatar ? (
                         <img
-                            src={`/storage/${employee.avatar}`}
+                            src={employee.avatar}
                             alt={employee.name}
                             style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }}
                         />
@@ -218,7 +228,20 @@ export default function ProfileIndex({ employee, stats, activityStats, events, c
                 >
                     مجتمعاتي
                 </button>
+                <button
+                    className={`pill${activeTab === 'notifications' ? ' on' : ''}`}
+                    onClick={() => setActiveTab('notifications')}
+                >
+                    الإشعارات
+                </button>
             </div>
+
+            {/* Notification preferences — H §14: الاختيارية فقط تُوقَف */}
+            {activeTab === 'notifications' && (
+                <div className="section">
+                    <NotificationPreferences rows={notificationPreferences} />
+                </div>
+            )}
 
             {/* Events Tab */}
             {activeTab === 'events' && (
@@ -313,5 +336,74 @@ export default function ProfileIndex({ employee, stats, activityStats, events, c
                 </div>
             )}
         </EmployeeLayout>
+    );
+}
+
+/**
+ * تفضيلات الإشعارات (H §14).
+ *
+ * لا تظهر هنا إلا القوالب **الاختيارية** — الإلزامية (رمز الدخول، مطالبة
+ * الدفع، التأكيد، الإلغاء، الفاتورة) غير قابلة للإيقاف أصلاً، والخادم يرفض
+ * إيقافها حتى لو أُرسل مفتاحها مباشرة.
+ */
+function NotificationPreferences({ rows }: { rows: NotificationPreferenceRow[] }) {
+    const [values, setValues] = useState<Record<string, boolean>>(
+        () => Object.fromEntries(rows.map((row) => [row.key, row.enabled])),
+    );
+    const [saving, setSaving] = useState(false);
+
+    function toggle(key: string) {
+        setValues((current) => ({ ...current, [key]: !current[key] }));
+    }
+
+    function save() {
+        setSaving(true);
+        router.put(
+            '/employee/profile/notification-preferences',
+            { preferences: values },
+            {
+                preserveScroll: true,
+                onSuccess: () => toastr.success('حُفظت تفضيلات الإشعارات.'),
+                onFinish: () => setSaving(false),
+            },
+        );
+    }
+
+    if (rows.length === 0) {
+        return (
+            <div className="empty">
+                <div className="ico">🔔</div>
+                <div className="txt">لا توجد إشعارات اختيارية حالياً</div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="list-card">
+            <div style={{ padding: '14px 16px', fontSize: 13, color: '#666', lineHeight: 1.9 }}>
+                تستطيع إيقاف الإشعارات الاختيارية فقط. الإشعارات الإلزامية — رمز الدخول، تأكيد الفعالية، المطالبة
+                بالدفع، الإلغاء وتغيير الموعد، الفاتورة — تصلك دائماً ولا يمكن إيقافها.
+            </div>
+
+            {rows.map((row) => (
+                <label
+                    key={row.key}
+                    className="list-row"
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
+                >
+                    <input type="checkbox" checked={values[row.key] ?? true} onChange={() => toggle(row.key)} />
+                    <span style={{ flex: 1 }}>
+                        <span style={{ display: 'block', fontWeight: 700 }}>{row.title}</span>
+                        {row.audience && <span style={{ fontSize: 12, color: '#999' }}>{row.audience}</span>}
+                    </span>
+                </label>
+            ))}
+
+            <div style={{ padding: '14px 16px' }}>
+                <button type="button" className="btn btn-primary" disabled={saving} onClick={save}>
+                    حفظ التفضيلات
+                </button>
+            </div>
+        </div>
     );
 }

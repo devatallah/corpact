@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Community;
 use App\Models\Company;
-use App\Models\Category;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,7 +14,7 @@ class CommunityController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = Community::with(['category', 'leader', 'company'])
+        $query = Community::with(['category', 'company'])
             ->withCount(['members', 'events']);
 
         if ($search = $request->input('search')) {
@@ -30,6 +30,8 @@ class CommunityController extends Controller
         }
 
         $communities = $query->orderBy('name')->paginate(20)->withQueryString();
+
+        Community::attachPrimaryLeaders($communities->items());
 
         return Inertia::render('admin/communities/index', [
             'communities' => $communities,

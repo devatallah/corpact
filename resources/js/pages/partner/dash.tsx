@@ -32,7 +32,7 @@ export default function PartnerDashboard({ partner, stats, pendingEvents }: Prop
                 </div>
                 <div style={{ textAlign: 'left' }}>
                     <div style={{ fontSize: 32, fontWeight: 900, color: '#F5A623' }}>{partner.rating ?? '0.0'} ⭐</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>{(partner.total_bookings ?? 0).toLocaleString()} حجز إجمالي</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>{(partner.total_bookings ?? 0).toLocaleString()} فعالية إجمالاً</div>
                 </div>
             </div>
 
@@ -47,7 +47,7 @@ export default function PartnerDashboard({ partner, stats, pendingEvents }: Prop
                 />
                 <StatCard
                     emoji="✅"
-                    label="حجوزات هذا الشهر"
+                    label="فعاليات هذا الشهر"
                     value={stats.monthly_bookings}
                     change="هذا الشهر"
                     color="#1A7A4A"

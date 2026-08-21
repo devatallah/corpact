@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\partner;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Event;
+use App\Models\partner;
 use App\Models\User;
 
 test('admin can view any event', function () {

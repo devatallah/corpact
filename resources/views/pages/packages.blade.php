@@ -69,7 +69,7 @@
   <div class="hero">
     <div class="page-container">
       <h1>باقات تيمات للشركاء</h1>
-      <p class="subtitle">بدون رسوم شهرية — عمولة على الحجوزات الناجحة فقط. اختر الباقة المناسبة لحجم منشأتك.</p>
+      <p class="subtitle">بدون رسوم شهرية — عمولة على الفعاليات المكتملة فقط. اختر الباقة المناسبة لحجم منشأتك.</p>
     </div>
   </div>
 
@@ -80,12 +80,12 @@
         <div class="card">
           <span class="card-badge">أساسية</span>
           <h3 class="card-title">الباقة الأساسية</h3>
-          <p class="card-desc">للمرافق الصغيرة التي تبدأ باستقبال الحجوزات المؤسسية.</p>
+          <p class="card-desc">للمرافق الصغيرة التي تبدأ باستقبال الفعاليات المؤسسية.</p>
           <div class="card-size">حتى 3 ملاعب</div>
           <ul class="card-features">
-            <li>طلبات حجز من شركات موثوقة</li>
+            <li>طلبات فعاليات من شركات موثوقة</li>
             <li>تقويم أسبوعي موحد لكل الملاعب</li>
-            <li>أسعار حسب مدة الحجز</li>
+            <li>أسعار حسب مدة الفعالية</li>
             <li>تسويات شهرية تلقائية</li>
             <li>دعم عبر البريد الإلكتروني</li>
           </ul>
@@ -95,13 +95,13 @@
         <div class="card featured">
           <span class="card-badge">الأكثر طلباً</span>
           <h3 class="card-title">الباقة المتقدمة</h3>
-          <p class="card-desc">للأندية النشطة التي تريد ملء الأوقات الهادئة وزيادة الإيراد.</p>
+          <p class="card-desc">لمزوّدي الخدمة النشطين الذين يريدون ملء الأوقات الهادئة وزيادة الإيراد.</p>
           <div class="card-size">حتى 10 ملاعب</div>
           <ul class="card-features">
             <li>كل مزايا الباقة الأساسية</li>
             <li>أسعار الذروة وخارج الذروة</li>
             <li>أسعار مخصصة حسب اليوم</li>
-            <li>خصومات مستهدفة للشركات والمجتمعات</li>
+            <li>أسعار خاصة مستهدفة للشركات والمجتمعات</li>
             <li>تقارير أداء وإيرادات</li>
             <li>دعم ذو أولوية</li>
           </ul>
@@ -147,14 +147,14 @@
             <tr><td class="feat">تقويم أسبوعي موحد لكل الملاعب</td><td class="yes">✓</td><td class="col-featured yes">✓</td><td class="yes">✓</td></tr>
             <tr><td class="feat">فروع متعددة بحساب واحد</td><td class="no">—</td><td class="col-featured no">—</td><td class="yes">✓</td></tr>
 
-            <tr><td class="cat" colspan="4">الأسعار والخصومات</td></tr>
-            <tr><td class="feat">أسعار حسب مدة الحجز (60/90/120 دقيقة)</td><td class="yes">✓</td><td class="col-featured yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td class="cat" colspan="4">الأسعار والعروض</td></tr>
+            <tr><td class="feat">أسعار حسب مدة الفعالية (60/90/120 دقيقة)</td><td class="yes">✓</td><td class="col-featured yes">✓</td><td class="yes">✓</td></tr>
             <tr><td class="feat">أسعار الذروة وخارج الذروة</td><td class="no">—</td><td class="col-featured yes">✓</td><td class="yes">✓</td></tr>
             <tr><td class="feat">أسعار مخصصة حسب اليوم</td><td class="no">—</td><td class="col-featured yes">✓</td><td class="yes">✓</td></tr>
-            <tr><td class="feat">خصومات مستهدفة لشركات أو مجتمعات محددة</td><td class="no">—</td><td class="col-featured yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td class="feat">أسعار خاصة لشركات أو مجتمعات محددة</td><td class="no">—</td><td class="col-featured yes">✓</td><td class="yes">✓</td></tr>
 
-            <tr><td class="cat" colspan="4">الحجوزات والعملاء</td></tr>
-            <tr><td class="feat">طلبات حجز جماعية من شركات موثوقة</td><td class="yes">✓</td><td class="col-featured yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td class="cat" colspan="4">الفعاليات والعملاء</td></tr>
+            <tr><td class="feat">طلبات فعاليات جماعية من شركات موثوقة</td><td class="yes">✓</td><td class="col-featured yes">✓</td><td class="yes">✓</td></tr>
             <tr><td class="feat">قبول أو رفض أو اقتراح بديل لكل طلب</td><td class="yes">✓</td><td class="col-featured yes">✓</td><td class="yes">✓</td></tr>
             <tr><td class="feat">أولوية الظهور في نتائج البحث</td><td class="no">—</td><td class="col-featured no">—</td><td class="yes">✓</td></tr>
 

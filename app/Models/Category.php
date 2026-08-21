@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\FileUrl;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +16,18 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Category extends Model
 {
     use HasFactory, SoftDeletes;
+
+    /**
+     * Uploaded icons are stored on the private default disk; reads resolve
+     * to a temporary signed URL (15 min). Legacy "/storage/…" values (old
+     * public-disk uploads and seeded static assets) pass through unchanged.
+     */
+    protected function icon(): Attribute
+    {
+        return Attribute::get(
+            fn (?string $value) => FileUrl::temporary($value),
+        );
+    }
 
     /**
      * @return BelongsTo<Category, $this>

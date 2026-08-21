@@ -3,76 +3,52 @@
 namespace App\Policies;
 
 use App\Models\Partner;
-use App\Models\Company;
-use App\Models\Settlement;
+use App\Models\SettlementStatement;
 use App\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 
-class SettlementPolicy
+/**
+ * كشف التسوية (H §12.7) يخص **المزوّد** وتيمات فقط — لا الشركة: الشركة تدفع
+ * رسوم النظام بفاتورتها، ولا شأن لها بما يُصرف للمزوّد. الإنشاء والاعتماد
+ * والصرف كلها أفعال أدمن خلف صلاحية `settlement.approve` في المسارات.
+ */
+class SettlementStatementPolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(Authenticatable $user): bool
     {
-        return match (true) {
-            $user instanceof User => true,
-            $user instanceof Partner => true,
-            $user instanceof Company => true,
-            default => false,
-        };
+        return $user instanceof User || $user instanceof Partner;
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(Authenticatable $user, Settlement $settlement): bool
+    public function view(Authenticatable $user, SettlementStatement $statement): bool
     {
         return match (true) {
             $user instanceof User => true,
-            $user instanceof Partner => $user->resolvedPartnerId() === $settlement->partner_id,
-            $user instanceof Company => $user->id === $settlement->company_id,
+            $user instanceof Partner => $user->resolvedPartnerId() === (int) $statement->partner_id,
             default => false,
         };
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(Authenticatable $user): bool
     {
         return $user instanceof User;
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(Authenticatable $user, Settlement $settlement): bool
+    public function update(Authenticatable $user, SettlementStatement $statement): bool
     {
-        return $user instanceof User;
+        // «الكشف المدفوع لا يُعدَّل إطلاقاً» (H §12.7) — حتى للأدمن.
+        return $user instanceof User && ! $statement->isPaid();
     }
 
     /**
-     * Determine whether the user can delete the model.
+     * لا حذف لسجل مالي — لا لأحد (القاعدة الثانية: لا تصحيح بالحذف).
      */
-    public function delete(Authenticatable $user, Settlement $settlement): bool
+    public function delete(Authenticatable $user, SettlementStatement $statement): bool
     {
-        return $user instanceof User;
+        return false;
     }
 
-    /**
-     * Determine whether the user can restore the model.
-     */
-    public function restore(Authenticatable $user, Settlement $settlement): bool
+    public function forceDelete(Authenticatable $user, SettlementStatement $statement): bool
     {
-        return $user instanceof User;
-    }
-
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
-    public function forceDelete(Authenticatable $user, Settlement $settlement): bool
-    {
-        return $user instanceof User;
+        return false;
     }
 }

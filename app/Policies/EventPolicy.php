@@ -2,10 +2,10 @@
 
 namespace App\Policies;
 
-use App\Models\Partner;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Event;
+use App\Models\Partner;
 use App\Models\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 

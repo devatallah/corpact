@@ -63,7 +63,7 @@ class GenerateMonthlyChallenges extends Command
             ]);
         }
 
-        $this->info('تم توليد ' . count($challenges) . ' تحديات لهذا الشهر.');
+        $this->info('تم توليد '.count($challenges).' تحديات لهذا الشهر.');
 
         return self::SUCCESS;
     }

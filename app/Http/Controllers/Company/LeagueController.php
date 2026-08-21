@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Models\League;
+use App\Models\Notification;
 use App\Services\Employee\LeagueService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -27,7 +29,7 @@ class LeagueController extends Controller
             ->latest()
             ->paginate(15);
 
-        $unreadNotifications = \App\Models\Notification::where('notifiable_type', \App\Models\Company::class)
+        $unreadNotifications = Notification::where('notifiable_type', Company::class)
             ->where('notifiable_id', $company->id)
             ->whereNull('read_at')
             ->count();
@@ -55,7 +57,7 @@ class LeagueController extends Controller
 
         $standings = $league->isRoundRobin() ? $this->leagueService->standings($league) : null;
 
-        $unreadNotifications = \App\Models\Notification::where('notifiable_type', \App\Models\Company::class)
+        $unreadNotifications = Notification::where('notifiable_type', Company::class)
             ->where('notifiable_id', $company->id)
             ->whereNull('read_at')
             ->count();

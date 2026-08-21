@@ -6,8 +6,8 @@ use App\Models\Community;
 use App\Models\CommunityRequest;
 use App\Models\Company;
 use App\Models\Employee;
-use App\Models\Notification;
 use App\Services\Company\CommunityService;
+use App\Support\Notify;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -49,14 +49,13 @@ class CommunityRequestService
         ]);
 
         // Notify the company about the new request
-        Notification::create([
-            'notifiable_type' => Company::class,
-            'notifiable_id' => $employee->company_id,
-            'type' => 'community_request',
-            'title' => 'طلب إنشاء مجتمع جديد',
-            'body' => "قام {$employee->name} بطلب إنشاء مجتمع '{$data['name']}'.",
-            'data' => ['community_request_id' => $request->id],
-        ]);
+        Notify::sendToId(
+            'community.request.submitted',
+            Company::class,
+            (int) $employee->company_id,
+            ['employee' => $employee->name, 'community' => $data['name']],
+            ['data' => ['community_request_id' => $request->id]],
+        );
 
         return $request->load(['employee', 'category']);
     }
@@ -119,17 +118,16 @@ class CommunityRequestService
             ]);
 
             // Notify the employee
-            Notification::create([
-                'notifiable_type' => Employee::class,
-                'notifiable_id' => $communityRequest->employee_id,
-                'type' => 'community_request_approved',
-                'title' => 'تمت الموافقة على طلبك',
-                'body' => "تمت الموافقة على طلب إنشاء مجتمع '{$communityRequest->name}'.",
-                'data' => [
+            Notify::sendToId(
+                'community.request.approved',
+                Employee::class,
+                (int) $communityRequest->employee_id,
+                ['community' => $communityRequest->name],
+                ['data' => [
                     'community_request_id' => $communityRequest->id,
                     'community_id' => $community->id,
-                ],
-            ]);
+                ]],
+            );
 
             ActivityLogService::log(
                 $company->id,
@@ -166,20 +164,16 @@ class CommunityRequestService
             'reviewed_at' => now(),
         ]);
 
-        // Notify the employee
-        $body = "تم رفض طلب إنشاء مجتمع '{$communityRequest->name}'.";
-        if ($rejectionReason) {
-            $body .= " السبب: {$rejectionReason}";
-        }
-
-        Notification::create([
-            'notifiable_type' => Employee::class,
-            'notifiable_id' => $communityRequest->employee_id,
-            'type' => 'community_request_rejected',
-            'title' => 'تم رفض طلبك',
-            'body' => $body,
-            'data' => ['community_request_id' => $communityRequest->id],
-        ]);
+        Notify::sendToId(
+            'community.request.rejected',
+            Employee::class,
+            (int) $communityRequest->employee_id,
+            [
+                'community' => $communityRequest->name,
+                'reason_suffix' => $rejectionReason ? " السبب: {$rejectionReason}" : '',
+            ],
+            ['data' => ['community_request_id' => $communityRequest->id]],
+        );
 
         ActivityLogService::log(
             $company->id,

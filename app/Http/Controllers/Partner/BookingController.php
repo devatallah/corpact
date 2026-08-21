@@ -7,7 +7,9 @@ use App\Http\Requests\Partner\IndexBookingRequest;
 use App\Http\Requests\Partner\ProposeAlternativeRequest;
 use App\Http\Requests\Partner\RejectBookingRequest;
 use App\Models\Event;
+use App\Models\EventProviderRequest;
 use App\Services\Partner\BookingService;
+use App\Services\Provider\ProviderRequestService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -30,7 +32,7 @@ class BookingController extends Controller
 
         $events = $this->bookingService->listForpartner($partner, $filters);
 
-        $pendingCount = $partner->events()->where('status', 'waiting_partner')->count();
+        $pendingCount = $partner->events()->where('status', 'pending_provider')->count();
 
         return Inertia::render('partner/requests/index', [
             'partner' => $partner,
@@ -42,15 +44,24 @@ class BookingController extends Controller
 
     /**
      * Approve a booking request.
+     *
+     * A9: حين يوجد طلب مزوّد مفتوح للفعالية يمر القرار عبر قناة الطلبات
+     * (أول رد يثبّت + حجز الوحدة بقفل + أثر الموثوقية)؛ وإلا فالمسار القديم.
      */
     public function approve(Event $event): RedirectResponse
     {
         Gate::authorize('approve', $event);
 
-        $partner = auth('partner')->user()->resolvedPartner();
-        $this->bookingService->approve($partner, $event);
+        $open = $this->openProviderRequest($event);
 
-        return back()->with('success', 'تم قبول الحجز بنجاح.');
+        if ($open !== null) {
+            app(ProviderRequestService::class)->accept(auth('partner')->user(), $open);
+        } else {
+            $partner = auth('partner')->user()->resolvedPartner();
+            $this->bookingService->approve($partner, $event);
+        }
+
+        return back()->with('success', 'تم قبول الطلب بنجاح.');
     }
 
     /**
@@ -60,13 +71,18 @@ class BookingController extends Controller
     {
         Gate::authorize('reject', $event);
 
-        $partner = auth('partner')->user()->resolvedPartner();
-
         $data = $request->validated();
 
-        $this->bookingService->reject($partner, $event, $data['reason']);
+        $open = $this->openProviderRequest($event);
 
-        return back()->with('success', 'تم رفض الحجز.');
+        if ($open !== null) {
+            app(ProviderRequestService::class)->reject(auth('partner')->user(), $open, $data['reason']);
+        } else {
+            $partner = auth('partner')->user()->resolvedPartner();
+            $this->bookingService->reject($partner, $event, $data['reason']);
+        }
+
+        return back()->with('success', 'تم رفض الطلب.');
     }
 
     /**
@@ -76,10 +92,27 @@ class BookingController extends Controller
     {
         Gate::authorize('approve', $event);
 
-        $partner = auth('partner')->user()->resolvedPartner();
+        $open = $this->openProviderRequest($event);
 
-        $this->bookingService->proposeAlternative($partner, $event, $request->validated());
+        if ($open !== null) {
+            app(ProviderRequestService::class)->proposeAlternative(auth('partner')->user(), $open, $request->validated());
+        } else {
+            $partner = auth('partner')->user()->resolvedPartner();
+            $this->bookingService->proposeAlternative($partner, $event, $request->validated());
+        }
 
         return back()->with('success', 'تم إرسال الوقت البديل.');
+    }
+
+    /**
+     * الطلب المفتوح (pending) لهذه الفعالية لدى المزوّد الحالي إن وُجد.
+     */
+    private function openProviderRequest(Event $event): ?EventProviderRequest
+    {
+        return EventProviderRequest::query()
+            ->where('event_id', $event->id)
+            ->where('partner_id', auth('partner')->user()->resolvedPartnerId())
+            ->pending()
+            ->first();
     }
 }

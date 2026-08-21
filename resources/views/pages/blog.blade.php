@@ -65,7 +65,7 @@
       <a href="#" style="background:#fff;border:1px solid rgba(10,10,10,0.1);border-radius:16px;padding:32px;text-decoration:none;display:block;transition:border-color 0.2s,box-shadow 0.2s;" onmouseover="this.style.borderColor='#C8FF00';this.style.boxShadow='0 8px 32px rgba(10,10,10,0.08)'" onmouseout="this.style.borderColor='rgba(10,10,10,0.1)';this.style.boxShadow='none'">
         <span style="display:inline-block;background:#C8FF00;color:#0A0A0A;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:16px;font-family:'Almarai',sans-serif;">نصائح</span>
         <h2 style="font-size:20px;font-weight:700;color:#0A0A0A;margin:0 0 10px 0;font-family:'Almarai',sans-serif;line-height:1.5;">كيف تختار الرياضة المناسبة لفريقك؟</h2>
-        <p style="font-size:14px;color:rgba(10,10,10,0.6);margin:0 0 16px 0;font-family:'Almarai',sans-serif;line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">دليل عملي لمدراء HR لاختيار الأنشطة الرياضية التي تناسب حجم الفريق واهتمامات الموظفين وميزانية الشركة.</p>
+        <p style="font-size:14px;color:rgba(10,10,10,0.6);margin:0 0 16px 0;font-family:'Almarai',sans-serif;line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">دليل عملي لمسؤولي الحسابات لاختيار الأنشطة الرياضية التي تناسب حجم الفريق واهتمامات الموظفين وميزانية الشركة.</p>
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <span style="font-size:14px;font-weight:700;color:#C8FF00;font-family:'Almarai',sans-serif;">اقرأ المزيد ←</span>
           <span style="font-size:12px;color:rgba(10,10,10,0.4);font-family:'Almarai',sans-serif;">يوليو ٢٠٢٦</span>
@@ -86,8 +86,8 @@
       <!-- Article 4 -->
       <a href="#" style="background:#fff;border:1px solid rgba(10,10,10,0.1);border-radius:16px;padding:32px;text-decoration:none;display:block;transition:border-color 0.2s,box-shadow 0.2s;" onmouseover="this.style.borderColor='#C8FF00';this.style.boxShadow='0 8px 32px rgba(10,10,10,0.08)'" onmouseout="this.style.borderColor='rgba(10,10,10,0.1)';this.style.boxShadow='none'">
         <span style="display:inline-block;background:#C8FF00;color:#0A0A0A;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:16px;font-family:'Almarai',sans-serif;">دليل</span>
-        <h2 style="font-size:20px;font-weight:700;color:#0A0A0A;margin:0 0 10px 0;font-family:'Almarai',sans-serif;line-height:1.5;">دليل HR لإطلاق برنامج عافية ناجح</h2>
-        <p style="font-size:14px;color:rgba(10,10,10,0.6);margin:0 0 16px 0;font-family:'Almarai',sans-serif;line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">خطوات عملية لفرق الموارد البشرية لتصميم وإطلاق برنامج عافية مؤسسي يحقق نتائج ملموسة في أقل من شهر.</p>
+        <h2 style="font-size:20px;font-weight:700;color:#0A0A0A;margin:0 0 10px 0;font-family:'Almarai',sans-serif;line-height:1.5;">دليل مسؤول الحساب لإطلاق برنامج عافية ناجح</h2>
+        <p style="font-size:14px;color:rgba(10,10,10,0.6);margin:0 0 16px 0;font-family:'Almarai',sans-serif;line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">خطوات عملية لمسؤولي الحسابات في الشركات لتصميم وإطلاق برنامج عافية مؤسسي يحقق نتائج ملموسة في أقل من شهر.</p>
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <span style="font-size:14px;font-weight:700;color:#C8FF00;font-family:'Almarai',sans-serif;">اقرأ المزيد ←</span>
           <span style="font-size:12px;color:rgba(10,10,10,0.4);font-family:'Almarai',sans-serif;">يوليو ٢٠٢٦</span>
@@ -98,7 +98,7 @@
       <a href="#" style="background:#fff;border:1px solid rgba(10,10,10,0.1);border-radius:16px;padding:32px;text-decoration:none;display:block;transition:border-color 0.2s,box-shadow 0.2s;" onmouseover="this.style.borderColor='#C8FF00';this.style.boxShadow='0 8px 32px rgba(10,10,10,0.08)'" onmouseout="this.style.borderColor='rgba(10,10,10,0.1)';this.style.boxShadow='none'">
         <span style="display:inline-block;background:#C8FF00;color:#0A0A0A;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:16px;font-family:'Almarai',sans-serif;">رياضة</span>
         <h2 style="font-size:20px;font-weight:700;color:#0A0A0A;margin:0 0 10px 0;font-family:'Almarai',sans-serif;line-height:1.5;">بادل: الرياضة الأسرع نمواً في المملكة</h2>
-        <p style="font-size:14px;color:rgba(10,10,10,0.6);margin:0 0 16px 0;font-family:'Almarai',sans-serif;line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">لماذا أصبحت رياضة البادل الخيار الأول للشركات السعودية ولماذا تتصدر قائمة الحجوزات المؤسسية على تيمات.</p>
+        <p style="font-size:14px;color:rgba(10,10,10,0.6);margin:0 0 16px 0;font-family:'Almarai',sans-serif;line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">لماذا أصبحت رياضة البادل الخيار الأول للشركات السعودية ولماذا تتصدر قائمة الفعاليات المؤسسية على تيمات.</p>
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <span style="font-size:14px;font-weight:700;color:#C8FF00;font-family:'Almarai',sans-serif;">اقرأ المزيد ←</span>
           <span style="font-size:12px;color:rgba(10,10,10,0.4);font-family:'Almarai',sans-serif;">يوليو ٢٠٢٦</span>

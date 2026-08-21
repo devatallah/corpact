@@ -129,7 +129,7 @@ export default function DepartmentsIndex({ departments }: Props) {
                                         type="text"
                                         value={form.data.name}
                                         onChange={(e) => form.setData('name', e.target.value)}
-                                        placeholder="مثال: الموارد البشرية"
+                                        placeholder="مثال: التسويق"
                                         required
                                     />
                                 </div>

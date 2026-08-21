@@ -6,7 +6,7 @@ use App\Models\CommunityMember;
 use App\Models\Employee;
 use App\Models\Event;
 use App\Models\LeagueMatch;
-use App\Models\Notification;
+use App\Support\Notify;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -67,25 +67,22 @@ class SendWeeklyDigest extends Command
             // 4. Streak — consecutive weeks with event participation
             $streak = $this->calculateStreak($employee);
 
-            // Build Arabic body text
-            $body = "📅 لديك {$upcomingEventsCount} فعاليات قادمة هذا الأسبوع\n"
-                . "👥 انضم {$newMembersCount} أعضاء جدد لمجتمعاتك\n"
-                . "🏆 تم لعب {$matchesPlayed} مباريات في الدوريات\n"
-                . "🔥 سلسلتك: {$streak} أسابيع متتالية";
-
-            Notification::create([
-                'notifiable_type' => Employee::class,
-                'notifiable_id' => $employee->id,
-                'type' => 'weekly_digest',
-                'title' => 'ملخصك الأسبوعي',
-                'body' => $body,
-                'data' => [
+            Notify::send(
+                'engagement.weekly_digest',
+                $employee,
+                [
+                    'events' => $upcomingEventsCount,
+                    'members' => $newMembersCount,
+                    'matches' => $matchesPlayed,
+                    'streak' => $streak,
+                ],
+                ['data' => [
                     'upcoming_events_count' => $upcomingEventsCount,
                     'new_members_count' => $newMembersCount,
                     'matches_played' => $matchesPlayed,
                     'streak' => $streak,
-                ],
-            ]);
+                ]],
+            );
 
             $count++;
         }
@@ -111,7 +108,7 @@ class SendWeeklyDigest extends Command
 
             $hasParticipation = $employee->events()
                 ->whereIn('events.status', ['confirmed', 'completed'])
-                ->wherePivot('status', 'joined')
+                ->wherePivot('seat_status', 'reserved')
                 ->whereBetween('event_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
                 ->exists();
 

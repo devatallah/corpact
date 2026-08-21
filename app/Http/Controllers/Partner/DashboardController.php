@@ -23,7 +23,7 @@ class DashboardController extends Controller
 
         $pendingEvents = $partner->events()
             ->with(['company', 'category'])
-            ->where('status', 'waiting_partner')
+            ->where('status', 'pending_provider')
             ->latest()
             ->take(5)
             ->get();

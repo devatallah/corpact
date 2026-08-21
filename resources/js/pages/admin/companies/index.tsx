@@ -313,7 +313,7 @@ return;
                                         type="text"
                                         value={form.data.contact_name}
                                         onChange={(e) => form.setData('contact_name', e.target.value)}
-                                        placeholder="اسم مسؤول الموارد البشرية"
+                                        placeholder="اسم مسؤول الحساب"
                                     />
                                 </div>
                                 <div className="fg">

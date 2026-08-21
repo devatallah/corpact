@@ -7,12 +7,23 @@ use App\Models\Company;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Services\ActivityLogService;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\DB;
+use App\Services\Wallet\LedgerService;
+use App\Services\Wallet\TopupRequestService;
+use App\Support\Identity\CurrentActor;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * محفظة الشركة من بوابة مسؤول الحساب. لا تعديل رصيد مباشراً هنا أبداً —
+ * كل الحركات عبر {@see LedgerService}. الشحن الذاتي الفوري أُزيل نهائياً:
+ * الشحن حصراً بطلب تحويل بنكي يعتمده الأدمن المالي
+ * ({@see TopupRequestService}).
+ */
 class WalletService
 {
+    public function __construct(private LedgerService $ledger) {}
+
     /**
      * Get the wallet balance for a company.
      *
@@ -20,103 +31,59 @@ class WalletService
      */
     public function getBalance(Company $company): array
     {
-        $wallet = $this->getOrFailWallet($company);
+        $wallet = Wallet::mainFor($company);
 
         return [
             'wallet_id' => $wallet->id,
-            'balance' => (float) $wallet->balance,
+            'balance' => $wallet->balance,
         ];
     }
 
     /**
-     * Charge (credit) the company wallet.
-     */
-    public function charge(Company $company, float $amount, ?string $description = null): WalletTransaction
-    {
-        if ($amount <= 0) {
-            throw ValidationException::withMessages([
-                'amount' => ['المبلغ يجب أن يكون أكبر من صفر.'],
-            ]);
-        }
-
-        $wallet = $this->getOrFailWallet($company);
-
-        return DB::transaction(function () use ($company, $wallet, $amount, $description) {
-            $wallet->increment('balance', $amount);
-
-            $transaction = WalletTransaction::create([
-                'wallet_id' => $wallet->id,
-                'type' => 'credit',
-                'amount' => $amount,
-                'description' => $description,
-            ]);
-
-            ActivityLogService::log(
-                $company->id,
-                $transaction,
-                'wallet_charged',
-                "تم شحن المحفظة بمبلغ {$amount}",
-                ['amount' => $amount],
-            );
-
-            return $transaction;
-        });
-    }
-
-    /**
-     * Distribute funds from wallet to a community balance.
+     * تخصيص من المحفظة الرئيسية إلى محفظة مجتمع فرعية — زوج قيود allocation
+     * في الدفتر (H §12.5)، لا عمود رصيد.
      */
     public function distributeToCommunity(Company $company, Community $community, float $amount): WalletTransaction
     {
         if ($community->company_id !== $company->id) {
-            throw new AuthorizationException('This community does not belong to your company.');
+            // Cross-company probe → 404, never 403 (H §4) — audited centrally.
+            throw (new ModelNotFoundException)
+                ->setModel(Community::class, [$community->id]);
         }
 
-        if ($amount <= 0) {
+        $amountHalalas = (int) round($amount * 100);
+
+        if ($amountHalalas <= 0) {
             throw ValidationException::withMessages([
                 'amount' => ['المبلغ يجب أن يكون أكبر من صفر.'],
             ]);
         }
 
-        $wallet = $this->getOrFailWallet($company);
+        $wallet = Wallet::mainFor($company);
 
-        if ($wallet->balance < $amount) {
+        if ($wallet->balance_halalas < $amountHalalas) {
             throw ValidationException::withMessages([
                 'amount' => ['رصيد المحفظة غير كافٍ.'],
             ]);
         }
 
-        return DB::transaction(function () use ($company, $wallet, $community, $amount) {
-            $wallet->decrement('balance', $amount);
-            $community->increment('balance', $amount);
-
-            $transaction = WalletTransaction::create([
-                'wallet_id' => $wallet->id,
-                'community_id' => $community->id,
-                'type' => 'debit',
-                'amount' => $amount,
-            ]);
-
-            ActivityLogService::log(
-                $company->id,
-                $transaction,
-                'wallet_distributed',
-                "تم توزيع {$amount} على المجتمع {$community->name}",
-                ['amount' => $amount, 'community_id' => $community->id],
-            );
-
-            return $transaction;
-        });
-    }
-
-    /**
-     * Get the wallet for a company or throw an exception.
-     */
-    private function getOrFailWallet(Company $company): Wallet
-    {
-        return Wallet::query()->where('company_id', $company->id)->firstOrCreate(
-            ['company_id' => $company->id],
-            ['balance' => 0],
+        $pair = $this->ledger->allocate(
+            $wallet,
+            Wallet::subFor($community),
+            $amountHalalas,
+            'allocation:'.Str::uuid(),
+            CurrentActor::resolve()['id'],
+            "تخصيص لمجتمع {$community->name}",
         );
+
+        ActivityLogService::log(
+            $company->id,
+            $pair['out'],
+            'wallet_distributed',
+            "تم تخصيص {$amount} للمجتمع {$community->name}",
+            ['amount_halalas' => $amountHalalas, 'community_id' => $community->id],
+        );
+
+        return $pair['out'];
     }
 }

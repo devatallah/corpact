@@ -22,8 +22,10 @@ class PostAnnouncementRequest extends FormRequest
      */
     public function rules(): array
     {
+        // H §6: نص ورابط فقط — بلا صور ولا مرفقات.
         return [
             'body' => ['required', 'string', 'max:500'],
+            'link_url' => ['nullable', 'string', 'url', 'max:2048'],
         ];
     }
 
@@ -37,6 +39,7 @@ class PostAnnouncementRequest extends FormRequest
         return [
             'body.required' => 'نص الإعلان مطلوب.',
             'body.max' => 'نص الإعلان يجب ألا يتجاوز 500 حرف.',
+            'link_url.url' => 'الرابط غير صالح.',
         ];
     }
 }

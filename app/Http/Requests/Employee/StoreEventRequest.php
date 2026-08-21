@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Employee;
 
+use App\Models\Event;
 use App\Models\Venue;
 use App\Models\VenuePricing;
-use App\Models\Event;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -35,14 +35,16 @@ class StoreEventRequest extends FormRequest
             'date' => ['required', 'date', 'after:today'],
             'time' => ['required', 'date_format:H:i'],
             'capacity' => ['required', 'integer', 'min:2'],
+            // H §7: الحد الأدنى مطلوب لآلة الحالات (بلوغه يرسل الطلب للمزوّد)
+            // ومقيد بالسعة؛ افتراضيه 2 حين لا ترسله الواجهة.
+            'min_participants' => ['sometimes', 'integer', 'min:2', 'lte:capacity'],
             'company_subsidy' => ['sometimes', 'numeric', 'min:0'],
-            'discount_id' => ['nullable', 'integer', 'exists:discounts,id'],
             'quick_match_id' => ['nullable', 'integer', 'exists:quick_matches,id'],
-            'recurrence_type' => ['sometimes', 'string', 'in:none,daily,weekly,monthly'],
-            'recurrence_end_date' => ['nullable', 'required_if:recurrence_type,daily', 'required_if:recurrence_type,weekly', 'required_if:recurrence_type,monthly', 'date', 'after:date'],
-            'recurrence_days' => ['nullable', 'array'],
-            'recurrence_days.*' => ['integer', 'between:0,6'],
+            // التكرار لم يعد على الفعالية (A8): مساره الوحيد قوالب H §8
+            // يديرها القائد/المنسّق/مسؤول الحساب من صفحة القوالب.
             'notes' => ['nullable', 'string', 'max:500'],
+            // A9: سبب تجاوز الاقتراح الآلي — يفرضه الحارس عند الحاجة (H §11)
+            'override_reason' => ['nullable', 'string', 'max:500'],
         ];
     }
 
@@ -75,6 +77,7 @@ class StoreEventRequest extends FormRequest
 
             if ($validVenues !== $venuesCount) {
                 $validator->errors()->add('venue_ids', 'أحد المرافق المختارة لا ينتمي لالشريك أو الفئة المحددة.');
+
                 return;
             }
 
@@ -116,10 +119,6 @@ class StoreEventRequest extends FormRequest
             'venue_ids.min' => 'يجب اختيار مرفق واحد على الأقل.',
             'venue_ids.*.exists' => 'أحد المرافق المختارة غير موجود.',
             'company_subsidy.min' => 'دعم الشركة يجب أن يكون 0 على الأقل.',
-            'recurrence_type.in' => 'نوع التكرار غير صالح.',
-            'recurrence_end_date.required_if' => 'تاريخ انتهاء التكرار مطلوب عند اختيار التكرار.',
-            'recurrence_end_date.after' => 'تاريخ انتهاء التكرار يجب أن يكون بعد تاريخ الفعالية.',
-            'recurrence_days.array' => 'أيام التكرار يجب أن تكون قائمة.',
             'notes.max' => 'الملاحظات يجب ألا تتجاوز 500 حرف.',
         ];
     }

@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\Partner;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\Partner;
 use App\Models\User;
 
 return [

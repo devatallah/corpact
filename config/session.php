@@ -32,7 +32,9 @@ return [
     |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    // Idle lifetime. The ABSOLUTE per-portal lifetimes (30d / 14d / 12h —
+    // G ملحق أ) are enforced by EnforcePortalSession on top of this.
+    'lifetime' => (int) env('SESSION_LIFETIME', 43200),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 

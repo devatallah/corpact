@@ -1,18 +1,36 @@
 import EmployeeLayout from '@/layouts/employee-layout';
+import StatusBadge from '@/components/status-badge';
+import AttendancePanel, { type AttendancePanelData } from '@/components/attendance-panel';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { fmtDate, fmtTime } from '@/lib/utils';
 import type { Event, Employee, Community, Partner, EventAlternative } from '@/types/models';
 import toastr from 'toastr';
 
+/** A10 — H §12.2: القيم بالريال للعرض (سلاسل)؛ الحساب هللات على الخادم. */
 interface PaymentBreakdown {
-    total_amount: number;
-    community_balance: number;
-    community_contribution: number;
-    remaining: number;
-    player_payment: number;
-    cost_per_person: number;
+    total_amount: string;
+    vat_amount: string;
+    community_balance: string;
+    subsidy: string;
+    remaining: string;
+    /** السقف الملزم المعروض عند الانضمام — لا يُتجاوز أبداً */
+    max_share: string;
+    share_locked: boolean;
+    final_share: string | null;
+    collection_deadline_at: string | null;
+    participants_count: number;
+    min_participants: number;
     capacity: number;
+}
+
+interface MyPaymentIntent {
+    id: number;
+    amount: string;
+    status: 'pending' | 'paid' | 'expired' | 'cancelled' | 'refunded';
+    expires_at: string | null;
+    paid_at: string | null;
+    payment_url: string | null;
 }
 
 interface SeriesEvent {
@@ -24,11 +42,9 @@ interface SeriesEvent {
     capacity: number;
 }
 
+/** A10 — H §12.4: الإلغاء المشروع استرداد كامل دائماً — النسب المتدرجة ماتت. */
 interface RefundPreview {
     percentage: number;
-    refund_amount: number;
-    original_contribution: number;
-    hours_until_event: number;
     policy_label: string;
 }
 
@@ -36,21 +52,40 @@ interface Props {
     event: Event & {
         community: Community;
         partner: Partner;
-        participants: (Employee & { pivot?: { status: string; position?: number } })[];
-        waitlist_entries: (Employee & { pivot?: { status: string; position?: number } })[];
+        participants: (Employee & { pivot?: { seat_status?: string; position?: number | null } })[];
+        waitlist_entries: (Employee & { pivot?: { seat_status?: string; position?: number | null } })[];
     };
     payment: PaymentBreakdown;
+    myIntent?: MyPaymentIntent | null;
     isJoined: boolean;
     isWaitlisted: boolean;
     waitlistPosition: number | null;
     waitlistCount: number;
+    seatOfferExpiresAt?: string | null;
     canManageAlternatives: boolean;
     isCreator: boolean;
+    canCancel?: boolean;
+    canApproveProposal?: boolean;
+    canExtendRegistration?: boolean;
+    registrationOpen?: boolean;
     seriesEvents: SeriesEvent[];
     refundPreview: RefundPreview | null;
+    comments?: EventCommentItem[];
+    canComment?: boolean;
+    /** A12 — H §13: قائمة الحضور ونافذة الـ24 ساعة والنتائج (بعد الاكتمال فقط) */
+    attendancePanel?: AttendancePanelData | null;
 }
 
-export default function EventShow({ event, payment, isJoined, isWaitlisted, waitlistPosition, waitlistCount, canManageAlternatives, isCreator, seriesEvents, refundPreview }: Props) {
+interface EventCommentItem {
+    id: number;
+    body: string;
+    created_at: string;
+    edited_at?: string | null;
+    can_modify?: boolean;
+    employee?: { id: number; name: string };
+}
+
+export default function EventShow({ event, payment, myIntent = null, isJoined, isWaitlisted, waitlistPosition, waitlistCount, seatOfferExpiresAt = null, canManageAlternatives, isCreator, canCancel = false, canApproveProposal = false, canExtendRegistration = false, registrationOpen = true, seriesEvents, refundPreview, comments = [], canComment, attendancePanel = null }: Props) {
     const color = event.category?.color ?? event.community?.color ?? '#18A86B';
     const pct =
         event.capacity > 0
@@ -58,19 +93,24 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
             : 0;
 
     const joinedParticipants = event.participants?.filter(
-        (p) => (p as Employee & { pivot?: { status: string } }).pivot?.status === 'joined',
+        (p) => (p as Employee & { pivot?: { seat_status?: string } }).pivot?.seat_status === 'reserved',
     ) ?? [];
     const emptySlots = Math.max(0, event.capacity - joinedParticipants.length);
 
     const waitlistEntries = event.waitlist_entries ?? [];
 
-    const isFull = event.participants_count >= event.capacity;
-    const canJoinWaitlist = isFull && !isJoined && !isWaitlisted && !['completed', 'cancelled', 'rejected'].includes(event.status);
+    // آلة حالات H §9: الانضمام متاح قبل إغلاق التسجيل في هذه الحالات فقط
+    const joinableStatuses = ['open', 'pending_provider', 'provider_alternative', 'booked'];
+    const deadStatuses = ['completed', 'settled', 'expired', 'rejected', 'cancelled_min_not_met', 'cancelled_provider', 'cancelled_company', 'cancelled_payment_failed'];
+    const isCancelledStatus = event.status.startsWith('cancelled');
+    const isFull = event.is_full ?? event.participants_count >= event.capacity;
+    const canJoin = joinableStatuses.includes(event.status) && registrationOpen && !isFull && !isJoined && !isWaitlisted;
+    const canJoinWaitlist = isFull && !isJoined && !isWaitlisted && registrationOpen && joinableStatuses.includes(event.status);
 
     const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [cancelProcessing, setCancelProcessing] = useState(false);
-    const canCancel = isCreator && !['cancelled', 'completed', 'rejected'].includes(event.status);
+    // canCancel يأتي من الخادم: صلاحية event.cancel + حالة booked/confirmed (H §9)
 
     function confirmRemove() {
         if (!removeTarget) return;
@@ -79,6 +119,51 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
             onSuccess: () => toastr.success('تم إزالة اللاعب من الفعالية'),
         });
         setRemoveTarget(null);
+    }
+
+    // Comments — تعليقات الأعضاء تحت الفعالية فقط (H §6)
+    const [commentBody, setCommentBody] = useState('');
+    const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+    const [editCommentBody, setEditCommentBody] = useState('');
+
+    function submitComment(e: React.FormEvent) {
+        e.preventDefault();
+        if (!commentBody.trim()) return;
+        router.post(`/employee/detail/${event.id}/comments`, { body: commentBody }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setCommentBody('');
+                toastr.success('تم نشر التعليق');
+            },
+        });
+    }
+
+    function submitEditComment(e: React.FormEvent, commentId: number) {
+        e.preventDefault();
+        router.patch(`/employee/comments/${commentId}`, { body: editCommentBody }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setEditingCommentId(null);
+                toastr.success('تم تعديل التعليق');
+            },
+        });
+    }
+
+    function deleteComment(commentId: number) {
+        if (!confirm('حذف التعليق؟ (متاح خلال 15 دقيقة من نشره)')) return;
+        router.delete(`/employee/comments/${commentId}`, {
+            preserveScroll: true,
+            onSuccess: () => toastr.success('تم حذف التعليق'),
+        });
+    }
+
+    function reportComment(commentId: number) {
+        const reason = prompt('سبب التبليغ (اختياري) — يصل التبليغ لمسؤول الحساب في شركتك:');
+        if (reason === null) return;
+        router.post(`/employee/comments/${commentId}/report`, { reason: reason || null }, {
+            preserveScroll: true,
+            onSuccess: () => toastr.success('تم إرسال التبليغ لمسؤول الحساب'),
+        });
     }
 
     function handleJoin() {
@@ -105,6 +190,34 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
         });
     }
 
+    // H §10: عرض المقعد الشاغر بمهلة — قبول أو رفض
+    function handleAcceptSeatOffer() {
+        router.post(`/employee/detail/${event.id}/waitlist-offer/accept`, {}, {
+            onSuccess: () => toastr.success('تم تأكيد مقعدك في الفعالية'),
+        });
+    }
+
+    function handleDeclineSeatOffer() {
+        router.post(`/employee/detail/${event.id}/waitlist-offer/decline`, {}, {
+            onSuccess: () => toastr.success('تم رفض العرض'),
+        });
+    }
+
+    // H §7: اعتماد/رفض اقتراح الموظف (قائد/منسّق)
+    function handleApproveProposal() {
+        router.post(`/employee/detail/${event.id}/proposal/approve`, {}, {
+            onSuccess: () => toastr.success('تم اعتماد الاقتراح ونشر الفعالية'),
+        });
+    }
+
+    function handleRejectProposal() {
+        const reason = prompt('سبب الرفض (اختياري):');
+        if (reason === null) return;
+        router.post(`/employee/detail/${event.id}/proposal/reject`, { reason }, {
+            onSuccess: () => toastr.success('تم رفض الاقتراح'),
+        });
+    }
+
     return (
         <EmployeeLayout>
             <Head title="تفاصيل الفعالية" />
@@ -115,16 +228,21 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                 <p style={{ fontSize: 14, color: '#666', marginTop: 4 }}>{event.partner?.district}</p>
             </div>
 
-            {/* Recurrence badge */}
-            {(event.recurrence_type && event.recurrence_type !== 'none') && (
+            {/* A8 — مولّدة من قالب تكرار (H §8) */}
+            {event.template_id && (
                 <div className="card" style={{ background: '#EFF6FF', borderColor: '#93C5FD', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 16 }}>🔄</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#2563EB' }}>
-                        فعالية متكررة — {event.recurrence_type === 'daily' ? 'يومي' : event.recurrence_type === 'weekly' ? 'أسبوعي' : 'شهري'}
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#2563EB' }}>فعالية متكررة — مولّدة من قالب</span>
+                </div>
+            )}
+
+            {/* A8 — H §8: أُعيدت جدولتها مرة لعدم اكتمال العدد */}
+            {(event.reschedule_attempt ?? 0) > 0 && event.original_starts_at && (
+                <div className="card" style={{ background: '#FFF7ED', borderColor: '#FDBA74', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>⏭️</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#C2410C' }}>
+                        أُعيدت جدولتها مرة — لم يكتمل العدد في الموعد الأصلي ({fmtDate(event.original_starts_at)}). إن لم يكتمل هذه المرة تُلغى نهائياً.
                     </span>
-                    {event.recurrence_end_date && (
-                        <span style={{ fontSize: 12, color: '#999', marginRight: 'auto' }}>حتى {fmtDate(event.recurrence_end_date)}</span>
-                    )}
                 </div>
             )}
 
@@ -181,7 +299,7 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                             >
                                 {p.name?.charAt(0)}
                             </div>
-                            {isCreator && p.id !== event.created_by && ['open', 'waiting_partner', 'alternative_proposed'].includes(event.status) && (
+                            {isCreator && p.id !== event.created_by && ['open', 'pending_provider', 'provider_alternative', 'booked'].includes(event.status) && (
                                 <button
                                     onClick={() => setRemoveTarget({ id: p.id, name: p.name ?? '' })}
                                     title="إزالة"
@@ -231,8 +349,8 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                     <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {seriesEvents.map((se) => {
                             const isCurrent = se.id === event.id;
-                            const statusColor = se.status === 'cancelled' ? '#EF4444' : se.status === 'completed' ? '#999' : '#18A86B';
-                            const statusLabel = se.status === 'cancelled' ? 'ملغية' : se.status === 'completed' ? 'منتهية' : `${se.participants_count}/${se.capacity}`;
+                            const statusColor = se.status.startsWith('cancelled') || se.status === 'expired' ? '#EF4444' : se.status === 'completed' ? '#999' : '#18A86B';
+                            const statusLabel = se.status.startsWith('cancelled') || se.status === 'expired' ? 'ملغية' : se.status === 'completed' ? 'منتهية' : `${se.participants_count}/${se.capacity}`;
                             return (
                                 <div
                                     key={se.id}
@@ -289,7 +407,7 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
             )}
 
             {/* Alternative proposed */}
-            {event.status === 'alternative_proposed' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
+            {event.status === 'provider_alternative' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
                 <div className="card" style={{ borderColor: '#93C5FD', background: '#EFF6FF' }}>
                     <div style={{ fontSize: 15, fontWeight: 600, color: '#2563EB', marginBottom: 12 }}>وقت بديل مقترح من الشريك</div>
                     {event.alternatives.filter((a) => a.status === 'proposed').map((alt) => (
@@ -343,69 +461,120 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                 </div>
             )}
 
-            {/* Payment */}
+            {/* Payment — A10 (H §12.2): الحصة القصوى سقف ملزم، والنهائية تُقفل عند الإغلاق */}
             <div className="card" style={{ background: '#ECFDF3', borderColor: '#18A86B33' }}>
                 {/* Wallet balance */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ fontSize: 13, color: '#666' }}>رصيد محفظة المجتمع</span>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{payment.community_balance.toLocaleString()} ريال</span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{Number(payment.community_balance).toLocaleString()} ريال</span>
                 </div>
 
                 <div style={{ height: 1, background: '#18A86B22', margin: '8px 0' }} />
 
                 {/* Total */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>إجمالي الحجز</span>
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>{payment.total_amount.toLocaleString()} ريال</span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>إجمالي الفعالية (شامل الضريبة)</span>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>{Number(payment.total_amount).toLocaleString()} ريال</span>
                 </div>
 
-                {/* Wallet deduction */}
-                {payment.community_contribution > 0 && (
+                {/* Subsidy */}
+                {Number(payment.subsidy) > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 }}>
-                        <span style={{ fontSize: 13, color: '#666' }}>خصم من المحفظة</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#18A86B' }}>{payment.community_contribution.toLocaleString()} ريال</span>
+                        <span style={{ fontSize: 13, color: '#666' }}>دعم المجتمع</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#18A86B' }}>{Number(payment.subsidy).toLocaleString()} ريال</span>
                     </div>
                 )}
 
-                {/* Remaining after wallet */}
-                {payment.community_contribution > 0 && (
+                {/* Remaining after subsidy */}
+                {Number(payment.subsidy) > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: 13, color: '#666' }}>المتبقي على اللاعبين</span>
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>{payment.remaining.toLocaleString()} ريال</span>
+                        <span style={{ fontSize: 13, color: '#666' }}>المتبقي على المشاركين</span>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>{Number(payment.remaining).toLocaleString()} ريال</span>
                     </div>
                 )}
 
                 <div style={{ height: 1, background: '#18A86B22', margin: '8px 0' }} />
 
-                {/* Per player */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 14, fontWeight: 600 }}>حصة كل لاعب</span>
-                    <span style={{ fontSize: 22, fontWeight: 700, color: '#18A86B' }}>{payment.player_payment.toLocaleString()} ريال</span>
-                </div>
-                {payment.player_payment <= 0 && payment.total_amount > 0 && (
+                {payment.share_locked && payment.final_share !== null ? (
+                    <>
+                        {/* الحصة النهائية المقفلة عند الإغلاق — لا تتغير بعدها أبداً */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 14, fontWeight: 600 }}>حصة الفرد النهائية</span>
+                            <span style={{ fontSize: 22, fontWeight: 700, color: '#18A86B' }}>{Number(payment.final_share).toLocaleString()} ريال</span>
+                        </div>
+                        <div style={{ marginTop: 4, fontSize: 12, color: '#666' }}>
+                            قُفلت عند إغلاق التسجيل ولن تتغير — ولن يُطلب منك مبلغ إضافي بعد الدفع أبداً
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        {/* H §12.2: «حصتك بحد أقصى … وتقل كلما انضم زملاؤك» — وعد ملزم */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 14, fontWeight: 600 }}>حصتك بحد أقصى</span>
+                            <span style={{ fontSize: 22, fontWeight: 700, color: '#18A86B' }}>{Number(payment.max_share).toLocaleString()} ريال</span>
+                        </div>
+                        {Number(payment.max_share) > 0 && (
+                            <div style={{ marginTop: 4, fontSize: 12, color: '#666' }}>
+                                وتقل كلما انضم زملاؤك — هذا السقف وعد ملزم لا يُتجاوز أبداً
+                            </div>
+                        )}
+                    </>
+                )}
+                {Number(payment.max_share) <= 0 && Number(payment.total_amount) > 0 && (
                     <div style={{ marginTop: 8, background: '#18A86B18', borderRadius: 10, padding: '6px 10px', fontSize: 12, color: '#18A86B', textAlign: 'center' }}>
                         مغطى بالكامل من رصيد المجتمع
                     </div>
                 )}
-                {!event.budget_deducted_at && payment.community_contribution > 0 && (
+                {!event.budget_deducted_at && Number(payment.subsidy) > 0 && !payment.share_locked && (
                     <div style={{ marginTop: 8, background: '#FEF3C7', borderRadius: 10, padding: '6px 10px', fontSize: 12, color: '#92400E', textAlign: 'center' }}>
-                        سيتم خصم مساهمة المجتمع بعد موافقة الشريك
+                        يُحجز دعم المجتمع من المحفظة عند إغلاق التسجيل (H §12.3)
                     </div>
                 )}
             </div>
 
-            {/* Action buttons */}
-            {event.status === 'completed' || event.status === 'cancelled' || event.status === 'rejected' ? (
+            {/* A10 — مطالبة الدفع الخاصة بك (H §12.3): مقعدك محجوز طوال النافذة */}
+            {myIntent && myIntent.status === 'pending' && myIntent.payment_url && (
+                <div className="card" style={{ background: '#FFFBEB', borderColor: '#F59E0B66' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E', marginBottom: 4 }}>
+                        حصتك النهائية {Number(myIntent.amount).toLocaleString()} ريال — بانتظار الدفع
+                    </div>
+                    <div style={{ fontSize: 12, color: '#B45309', marginBottom: 10 }}>
+                        مقعدك محجوز طوال المهلة{myIntent.expires_at ? ` (حتى ${fmtTime(myIntent.expires_at)})` : ''} — إغلاق الصفحة لا يلغي شيئاً وتستأنف من نفس الرابط.
+                    </div>
+                    <a href={myIntent.payment_url} className="btn btn-primary btn-full" style={{ padding: '12px 20px', textAlign: 'center', display: 'block' }}>
+                        ادفع حصتك الآن
+                    </a>
+                </div>
+            )}
+            {myIntent && myIntent.status === 'paid' && (
+                <div className="card" style={{ background: '#ECFDF5', borderColor: '#18A86B44', textAlign: 'center' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#18A86B' }}>دفعت حصتك ({Number(myIntent.amount).toLocaleString()} ريال) — لن يُطلب منك أي مبلغ إضافي</div>
+                </div>
+            )}
+
+            {/* Action buttons — آلة حالات H §9 + قواعد الانضمام H §10 */}
+            {event.status === 'pending_approval' && canApproveProposal && (
+                <div className="card" style={{ background: '#EFF6FF', borderColor: '#93C5FD' }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#2563EB', textAlign: 'center', marginBottom: 10 }}>
+                        اقتراح فعالية بانتظار اعتمادك (خلال 48 ساعة وإلا رُفض تلقائياً)
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        <button onClick={handleApproveProposal} className="btn btn-primary" style={{ flex: 1 }}>اعتماد ونشر</button>
+                        <button onClick={handleRejectProposal} className="btn btn-danger" style={{ flex: 1 }}>رفض</button>
+                    </div>
+                </div>
+            )}
+            {deadStatuses.includes(event.status) ? (
                 <div className="card" style={{ textAlign: 'center', background: '#F5F5F5', borderColor: '#EBEBEB' }}>
                     <div style={{ fontSize: 15, fontWeight: 600, color: '#999' }}>
-                        {event.status === 'completed' ? 'الفعالية منتهية' : event.status === 'rejected' ? 'الفعالية مرفوضة' : 'الفعالية ملغاة'}
+                        <StatusBadge status={event.status} />
                     </div>
-                    {event.status === 'cancelled' && event.refund_amount != null && event.refund_amount > 0 && (
+                    {isCancelledStatus && event.refund_amount != null && event.refund_amount > 0 && (
                         <div style={{ fontSize: 13, color: '#18A86B', marginTop: 6 }}>
                             تم استرداد {Number(event.refund_amount).toLocaleString()} ريال ({event.refund_percentage}%)
                         </div>
                     )}
-                    {event.status === 'cancelled' && event.refund_percentage === 0 && (
+                    {isCancelledStatus && event.refund_percentage === 0 && (
                         <div style={{ fontSize: 13, color: '#EF4444', marginTop: 6 }}>
                             لم يتم استرداد أي مبلغ
                         </div>
@@ -413,11 +582,26 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                 </div>
             ) : isWaitlisted ? (
                 <>
-                    <div className="card" style={{ background: '#FFFBEB', borderColor: '#F59E0B44', textAlign: 'center' }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: '#D97706' }}>
-                            أنت في قائمة الانتظار (الترتيب: #{waitlistPosition})
+                    {seatOfferExpiresAt ? (
+                        <div className="card" style={{ background: '#ECFDF5', borderColor: '#18A86B66' }}>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: '#18A86B', textAlign: 'center', marginBottom: 6 }}>
+                                شغر مقعد لك — أكّد انضمامك قبل انتهاء المهلة
+                            </div>
+                            <div style={{ fontSize: 12, color: '#666', textAlign: 'center', marginBottom: 10 }}>
+                                تنتهي المهلة: {new Date(seatOfferExpiresAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button onClick={handleAcceptSeatOffer} className="btn btn-primary" style={{ flex: 1 }}>تأكيد المقعد</button>
+                                <button onClick={handleDeclineSeatOffer} className="btn btn-outline" style={{ flex: 1 }}>رفض العرض</button>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="card" style={{ background: '#FFFBEB', borderColor: '#F59E0B44', textAlign: 'center' }}>
+                            <div style={{ fontSize: 15, fontWeight: 600, color: '#D97706' }}>
+                                أنت في قائمة الانتظار (الترتيب: #{waitlistPosition})
+                            </div>
+                        </div>
+                    )}
                     <button
                         onClick={handleLeaveWaitlist}
                         className="btn btn-outline btn-full"
@@ -432,24 +616,34 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                         <div style={{ fontSize: 15, fontWeight: 600, color }}>
                             ✓ أنت منضم في هذه الفعالية
                         </div>
+                        {event.free_withdrawal_until && new Date(event.free_withdrawal_until) > new Date() && (
+                            <div style={{ fontSize: 12, color: '#D97706', marginTop: 6 }}>
+                                تغيّر موعد الفعالية — لك انسحاب حر حتى {new Date(event.free_withdrawal_until).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                        )}
                     </div>
-                    {!isCreator && (event.status === 'open' || event.status === 'waiting_partner') && (
+                    {!isCreator && joinableStatuses.includes(event.status) && registrationOpen && (
                         <button
                             onClick={handleLeave}
                             className="btn btn-outline btn-full"
                             style={{ padding: '14px 20px', marginBottom: 12 }}
                         >
-                            مغادرة الفعالية
+                            الانسحاب من الفعالية (حر قبل إغلاق التسجيل)
                         </button>
                     )}
+                    {!registrationOpen && !deadStatuses.includes(event.status) && (
+                        <div style={{ fontSize: 12, color: '#999', textAlign: 'center', marginBottom: 12 }}>
+                            أُغلق التسجيل — لا انسحاب باسترداد بعد الإغلاق (H §10)
+                        </div>
+                    )}
                 </>
-            ) : event.status === 'open' && event.participants_count < event.capacity ? (
+            ) : canJoin ? (
                 <button
                     onClick={handleJoin}
                     className="btn btn-primary btn-full"
                     style={{ padding: '14px 20px', marginBottom: 12 }}
                 >
-                    انضم للفعالية
+                    انضم للفعالية{event.cost_per_person > 0 ? ` — حصتك بحد أقصى ${Number(event.cost_per_person).toLocaleString()} ر.س وتقل كلما انضم زملاؤك` : ''}
                 </button>
             ) : canJoinWaitlist ? (
                 <button
@@ -459,35 +653,63 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                 >
                     انضم لقائمة الانتظار {waitlistCount > 0 ? `(${waitlistCount} منتظرين)` : ''}
                 </button>
-            ) : event.status === 'waiting_partner' ? (
+            ) : event.status === 'pending_provider' ? (
                 <div className="card" style={{ background: '#FFFBEB', borderColor: '#F59E0B44', textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#D97706' }}>بانتظار رد الشريك</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#D97706' }}>بلغت الحد الأدنى — بانتظار رد المزوّد</div>
                 </div>
-            ) : event.status === 'confirmed' ? (
-                <div>
-                    <div className="card" style={{ background: `${color}08`, borderColor: `${color}44`, textAlign: 'center' }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color }}>الفعالية مؤكدة</div>
-                    </div>
-                    {event.payment_deadline && (
-                        <div className="card" style={{ background: '#FFFBEB', borderColor: '#F59E0B44', textAlign: 'center' }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#D97706' }}>
-                                مهلة الدفع: {new Date(event.payment_deadline).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                        </div>
-                    )}
+            ) : event.status === 'booked' ? (
+                <div className="card" style={{ background: '#ECFDF5', borderColor: '#18A86B44', textAlign: 'center' }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#18A86B' }}>قبل المزوّد — الوحدة محجوزة والتسجيل مستمر حتى الإغلاق</div>
                 </div>
-            ) : event.status === 'alternative_proposed' ? (
+            ) : event.status === 'awaiting_payment' ? (
+                <div className="card" style={{ background: '#FFFBEB', borderColor: '#F59E0B44', textAlign: 'center' }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#D97706' }}>أُغلق التسجيل — جارٍ التحصيل</div>
+                </div>
+            ) : event.status === 'confirmed' || event.status === 'in_progress' ? (
+                <div className="card" style={{ background: `${color}08`, borderColor: `${color}44`, textAlign: 'center' }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color }}>{event.status === 'confirmed' ? 'الفعالية مؤكدة' : 'الفعالية جارية الآن'}</div>
+                </div>
+            ) : event.status === 'provider_alternative' ? (
                 <div className="card" style={{ background: '#EFF6FF', borderColor: '#93C5FD', textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#2563EB' }}>بانتظار الرد على الوقت البديل</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#2563EB' }}>بانتظار رد المنشئ على الوقت البديل (خلال 12 ساعة)</div>
+                </div>
+            ) : event.status === 'pending_approval' ? (
+                <div className="card" style={{ background: '#EFF6FF', borderColor: '#93C5FD', textAlign: 'center' }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#2563EB' }}>اقتراح بانتظار اعتماد قائد المجتمع أو المنسّق</div>
                 </div>
             ) : (
                 <div className="card" style={{ background: '#F5F5F5', borderColor: '#EBEBEB', textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#999' }}>الفعالية مكتملة</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#999' }}>أُغلق التسجيل</div>
                 </div>
             )}
 
-            {/* Cancel series button for recurring event creators */}
-            {isCreator && event.recurrence_type && event.recurrence_type !== 'none' && !event.parent_event_id && !['cancelled', 'completed'].includes(event.status) && (
+            {/* A8 — H §24: تمديد التسجيل 24 ساعة مرة واحدة (بديل فتحها على مجتمعات أخرى) */}
+            {canExtendRegistration && (
+                <div className="card" style={{ background: '#FFFBEB', borderColor: '#FCD34D', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#92400E' }}>العدد لم يبلغ الحد الأدنى بعد</div>
+                        <div style={{ fontSize: 12, color: '#B45309', marginTop: 2 }}>
+                            تستطيع تمديد التسجيل 24 ساعة — مرة واحدة فقط. إن أُغلق التسجيل دون اكتمال العدد تُعاد الجدولة تلقائياً +7 أيام (مرة واحدة) ثم تُلغى.
+                        </div>
+                    </div>
+                    <button
+                        className="btn btn-outline"
+                        style={{ borderColor: '#D97706', color: '#B45309' }}
+                        onClick={() => {
+                            if (confirm('تمديد التسجيل 24 ساعة؟ التمديد متاح مرة واحدة فقط.')) {
+                                router.post(`/employee/detail/${event.id}/extend-registration`, {}, {
+                                    onSuccess: () => toastr.success('مُدد التسجيل 24 ساعة'),
+                                });
+                            }
+                        }}
+                    >
+                        تمديد التسجيل 24 ساعة
+                    </button>
+                </div>
+            )}
+
+            {/* أزرار سلسلة قديمة مرحّلة (أم لها تكرارات) — القوالب الجديدة تدار من صفحة القوالب */}
+            {isCreator && !event.parent_event_id && seriesEvents.length > 0 && !event.template_id && !['cancelled', 'completed'].includes(event.status) && (
                 <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
                     <button
                         onClick={() => {
@@ -518,8 +740,8 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                 </div>
             )}
 
-            {/* Cancel event button (creator only, non-recurring) */}
-            {canCancel && !(event.recurrence_type && event.recurrence_type !== 'none' && !event.parent_event_id) && (
+            {/* Cancel event button */}
+            {canCancel && !(!event.parent_event_id && seriesEvents.length > 0 && !event.template_id) && (
                 <button
                     onClick={() => setShowCancelModal(true)}
                     disabled={cancelProcessing}
@@ -542,30 +764,16 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                             هل أنت متأكد من إلغاء هذه الفعالية؟ لا يمكن التراجع عن هذا الإجراء.
                         </div>
 
-                        {/* Refund policy info */}
-                        {refundPreview && refundPreview.original_contribution > 0 && (
+                        {/* A10 — H §12.4: الإلغاء المشروع = استرداد كامل دائماً */}
+                        {refundPreview && (
                             <div style={{ background: '#2A2A2A', borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'right' }}>
                                 <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.5)', marginBottom: 10 }}>سياسة الاسترداد</div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>المبلغ المدفوع من المحفظة</span>
-                                    <span style={{ fontSize: 14, fontWeight: 600 }}>{refundPreview.original_contribution.toLocaleString()} ريال</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                                     <span style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>نسبة الاسترداد</span>
-                                    <span style={{ fontSize: 14, fontWeight: 600, color: refundPreview.percentage > 0 ? '#18A86B' : '#EF4444' }}>{refundPreview.percentage}%</span>
+                                    <span style={{ fontSize: 14, fontWeight: 600, color: '#18A86B' }}>{refundPreview.percentage}%</span>
                                 </div>
-                                <div style={{ height: 1, background: '#3A3A3A', margin: '8px 0' }} />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 14, fontWeight: 600 }}>مبلغ الاسترداد</span>
-                                    <span style={{ fontSize: 20, fontWeight: 700, color: refundPreview.refund_amount > 0 ? '#18A86B' : '#EF4444' }}>
-                                        {refundPreview.refund_amount.toLocaleString()} ريال
-                                    </span>
-                                </div>
-                                <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 10, fontSize: 12, textAlign: 'center', background: refundPreview.percentage === 100 ? '#18A86B18' : refundPreview.percentage > 0 ? '#F59E0B18' : '#EF444418', color: refundPreview.percentage === 100 ? '#18A86B' : refundPreview.percentage > 0 ? '#F59E0B' : '#EF4444' }}>
+                                <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 10, fontSize: 12, textAlign: 'center', background: '#18A86B18', color: '#18A86B' }}>
                                     {refundPreview.policy_label}
-                                    {refundPreview.percentage === 100 && ' — الإلغاء قبل 24 ساعة أو أكثر'}
-                                    {refundPreview.percentage === 50 && ' — الإلغاء قبل 4 إلى 24 ساعة'}
-                                    {refundPreview.percentage === 0 && ' — الإلغاء قبل أقل من 4 ساعات'}
                                 </div>
                             </div>
                         )}
@@ -597,6 +805,81 @@ export default function EventShow({ event, payment, isJoined, isWaitlisted, wait
                     </div>
                 </div>
             )}
+
+            {/* A12 — H §13: الحضور والنتائج (تظهر بعد اكتمال الفعالية) */}
+            {attendancePanel && <AttendancePanel eventId={event.id} data={attendancePanel} />}
+
+            {/* Comments — تعليقات الأعضاء تحت الفعالية فقط (H §6) */}
+            <div className="card">
+                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>التعليقات</div>
+
+                {comments.length > 0 ? (
+                    comments.map((comment) => (
+                        <div key={comment.id} style={{ borderBottom: '1px solid #F0F0F0', padding: '10px 0' }}>
+                            {editingCommentId === comment.id ? (
+                                <form onSubmit={(e) => submitEditComment(e, comment.id)} style={{ display: 'flex', gap: 8 }}>
+                                    <input
+                                        type="text"
+                                        value={editCommentBody}
+                                        onChange={(e) => setEditCommentBody(e.target.value)}
+                                        style={{ flex: 1, fontSize: 13 }}
+                                        maxLength={500}
+                                    />
+                                    <button type="submit" className="btn btn-primary" style={{ fontSize: 12 }}>حفظ</button>
+                                    <button type="button" className="btn btn-outline" style={{ fontSize: 12 }} onClick={() => setEditingCommentId(null)}>إلغاء</button>
+                                </form>
+                            ) : (
+                                <>
+                                    <div style={{ fontSize: 13, lineHeight: 1.7 }}>{comment.body}</div>
+                                    <div style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span>
+                                            {comment.employee?.name} · {fmtDate(comment.created_at)}
+                                            {comment.edited_at && <span> · (مُعدَّل)</span>}
+                                        </span>
+                                        <span style={{ display: 'flex', gap: 8 }}>
+                                            {comment.can_modify && (
+                                                <>
+                                                    <button
+                                                        onClick={() => { setEditingCommentId(comment.id); setEditCommentBody(comment.body); }}
+                                                        className="btn btn-outline"
+                                                        style={{ padding: '1px 8px', fontSize: 10 }}
+                                                    >
+                                                        تعديل
+                                                    </button>
+                                                    <button onClick={() => deleteComment(comment.id)} className="btn btn-danger" style={{ padding: '1px 8px', fontSize: 10 }}>
+                                                        حذف
+                                                    </button>
+                                                </>
+                                            )}
+                                            <button onClick={() => reportComment(comment.id)} className="btn btn-outline" style={{ padding: '1px 8px', fontSize: 10, color: '#EF4444' }}>
+                                                تبليغ
+                                            </button>
+                                        </span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ))
+                ) : (
+                    <div style={{ fontSize: 13, color: '#999' }}>لا توجد تعليقات بعد.</div>
+                )}
+
+                {canComment && (
+                    <form onSubmit={submitComment} style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        <input
+                            type="text"
+                            value={commentBody}
+                            onChange={(e) => setCommentBody(e.target.value)}
+                            placeholder="اكتب تعليقا... (نص فقط)"
+                            maxLength={500}
+                            style={{ flex: 1, fontSize: 13 }}
+                        />
+                        <button type="submit" className="btn btn-primary" style={{ fontSize: 13 }} disabled={!commentBody.trim()}>
+                            إرسال
+                        </button>
+                    </form>
+                )}
+            </div>
 
             {/* Remove member confirmation */}
             {removeTarget && (

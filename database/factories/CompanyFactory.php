@@ -23,7 +23,7 @@ class CompanyFactory extends Factory
             'email' => fake()->unique()->companyEmail(),
             'password' => static::$password ??= Hash::make('password'),
             'contact_name' => fake()->name(),
-            'contact_phone' => fake()->phoneNumber(),
+            'contact_phone' => '05'.fake()->unique()->numerify('########'),
             'domain' => fake()->domainName(),
             'sector' => fake()->randomElement(['تقنية', 'مالية', 'صحة', 'تعليم', 'طاقة', 'اتصالات', 'عقارات']),
             'employee_count' => fake()->numberBetween(50, 500),

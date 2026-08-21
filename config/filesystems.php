@@ -17,6 +17,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Signed URL Lifetime (minutes)
+    |--------------------------------------------------------------------------
+    |
+    | User uploads (avatars, category icons, …) are stored on the default
+    | disk, which must be PRIVATE (local "private" root in dev, private S3
+    | bucket in production). Files are served exclusively through temporary
+    | signed URLs with this lifetime. Spec (H §20/§22): no public file, ever;
+    | signed URLs valid 15 minutes.
+    |
+    */
+
+    'signed_url_minutes' => (int) env('FILESYSTEM_SIGNED_URL_MINUTES', 15),
+
+    /*
+    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |
@@ -47,6 +62,9 @@ return [
             'report' => false,
         ],
 
+        // Production default for user uploads (FILESYSTEM_DISK=s3).
+        // Bucket must block ALL public access; files are only reachable
+        // through temporary signed URLs (see 'signed_url_minutes' above).
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
@@ -56,6 +74,7 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'private',
             'throw' => false,
             'report' => false,
         ],

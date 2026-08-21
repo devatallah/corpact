@@ -83,10 +83,10 @@ function formatDateShort(dateStr: string): string {
 
 const statusColors: Record<string, string> = {
     open: '#3B5BDB',
-    waiting_partner: '#B8860A',
+    pending_provider: '#B8860A',
     confirmed: '#1A7A4A',
     full: '#6B7A99',
-    alternative_proposed: '#C8410A',
+    provider_alternative: '#C8410A',
     completed: '#2E7D32',
     cancelled: '#9E9E9E',
     rejected: '#D32F2F',
@@ -109,7 +109,7 @@ export default function PartnerSchedule({ schedule, date }: Props) {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
                 <div>
-                    <div className="page-title">تقويم الحجوزات</div>
+                    <div className="page-title">تقويم الفعاليات</div>
                     <div className="page-sub">
                         {schedule.week_start} — {schedule.week_end}
                     </div>
@@ -288,7 +288,7 @@ export default function PartnerSchedule({ schedule, date }: Props) {
                 <div className="detail-overlay open" onClick={() => setSelectedEvent(null)}>
                     <div className="detail-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400 }}>
                         <h3>
-                            تفاصيل الحجز
+                            تفاصيل الفعالية
                             <button className="close-btn" onClick={() => setSelectedEvent(null)}>×</button>
                         </h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

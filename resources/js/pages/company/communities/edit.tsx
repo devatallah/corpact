@@ -30,7 +30,7 @@ export default function CommunityEdit({ community, employees, categories }: Prop
         description: community.description ?? '',
         category_id: String(community.category_id ?? ''),
         parent_category_id: initialParentId,
-        leader_id: String(community.leader_id ?? ''),
+        leader_id: String(community.leader?.id ?? ''),
     });
 
     const subcategories = useMemo(() => {

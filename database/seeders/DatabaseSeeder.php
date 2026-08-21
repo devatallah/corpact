@@ -2,34 +2,32 @@
 
 namespace Database\Seeders;
 
+use App\Enums\Role;
+use App\Models\Category;
 use App\Models\Challenge;
 use App\Models\ChallengeProgress;
-use App\Models\Partner;
 use App\Models\Community;
 use App\Models\CommunityAnnouncement;
 use App\Models\CommunityPoll;
 use App\Models\Company;
-use App\Models\Venue;
-use App\Models\VenuePricing;
 use App\Models\Department;
-use App\Models\Discount;
 use App\Models\Employee;
+use App\Models\Invitation;
 use App\Models\League;
 use App\Models\LeagueMatch;
-use App\Models\Invitation;
 use App\Models\Notification;
-use App\Models\PlatformRevenue;
+use App\Models\Partner;
 use App\Models\PollOption;
 use App\Models\PollVote;
 use App\Models\QuickMatch;
 use App\Models\QuickMatchOption;
 use App\Models\QuickMatchVote;
-use App\Models\Settlement;
 use App\Models\Slot;
-use App\Models\Category;
 use App\Models\User;
-use App\Models\Wallet;
-use App\Models\WalletTransaction;
+use App\Models\Venue;
+use App\Models\VenuePricing;
+use App\Services\Community\LeadershipService;
+use App\Services\Identity\IdentityBackfillService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -42,14 +40,21 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // ╔══════════════════════════════════════════════════════════╗
+        // ║  NOTIFICATION TEMPLATES (A14 — H §14)                    ║
+        // ╚══════════════════════════════════════════════════════════╝
+        // أولاً دائماً: بقية الـ seeder يمر بمسارات تُرسل إشعارات، ونصوصها
+        // كلها في القوالب — «لا تُكتب نصوص الرسائل داخل الكود».
+        $this->call(NotificationTemplateSeeder::class);
+
+        // ╔══════════════════════════════════════════════════════════╗
         // ║  CATEGORIES                                               ║
         // ╚══════════════════════════════════════════════════════════╝
         $racketCat = Category::create(['name' => 'رياضات مضرب', 'name_en' => 'Racket Sports']);
-        $ballCat   = Category::create(['name' => 'رياضات كرة', 'name_en' => 'Ball Sports']);
+        $ballCat = Category::create(['name' => 'رياضات كرة', 'name_en' => 'Ball Sports']);
 
-        $padelCat      = Category::create(['name' => 'بادل', 'name_en' => 'Padel', 'icon' => '/storage/sports/padel.svg', 'parent_id' => $racketCat->id]);
-        $tennisCat     = Category::create(['name' => 'تنس', 'name_en' => 'Tennis', 'icon' => '/storage/sports/tennis.svg', 'parent_id' => $racketCat->id]);
-        $footballCat   = Category::create(['name' => 'كرة قدم', 'name_en' => 'Football', 'icon' => '/storage/sports/football.svg', 'parent_id' => $ballCat->id]);
+        $padelCat = Category::create(['name' => 'بادل', 'name_en' => 'Padel', 'icon' => '/storage/sports/padel.svg', 'parent_id' => $racketCat->id]);
+        $tennisCat = Category::create(['name' => 'تنس', 'name_en' => 'Tennis', 'icon' => '/storage/sports/tennis.svg', 'parent_id' => $racketCat->id]);
+        $footballCat = Category::create(['name' => 'كرة قدم', 'name_en' => 'Football', 'icon' => '/storage/sports/football.svg', 'parent_id' => $ballCat->id]);
         $basketballCat = Category::create(['name' => 'كرة سلة', 'name_en' => 'Basketball', 'icon' => '/storage/sports/basketball.svg', 'parent_id' => $ballCat->id]);
 
         // ╔══════════════════════════════════════════════════════════╗
@@ -58,15 +63,17 @@ class DatabaseSeeder extends Seeder
         $admin = User::factory()->create([
             'name' => 'مدير النظام',
             'email' => 'admin@teamat.com',
-            'role' => 'super_admin',
+            'phone' => '966500000001',
         ]);
+        $admin->assignRole(Role::PlatformAdmin);
 
-        // Accountant admin for testing
-        User::factory()->create([
+        // Finance admin for testing (financial approvals only)
+        $financeAdmin = User::factory()->create([
             'name' => 'محاسب المنصة',
             'email' => 'accountant@teamat.com',
-            'role' => 'accountant',
+            'phone' => '966500000002',
         ]);
+        $financeAdmin->assignRole(Role::FinanceAdmin);
 
         // ╔══════════════════════════════════════════════════════════╗
         // ║  partnerS                                                   ║
@@ -74,16 +81,17 @@ class DatabaseSeeder extends Seeder
 
         // ── Partner 1: Active, fully set up ──
         $biz1 = Partner::factory()->create([
-            'name'            => 'مرافق الرياض للبادل',
-            'email'           => 'biz1@teamat.com',
-            'password'        => Hash::make('123456'),
-            'city'            => 'الرياض',
-            'district'        => 'حي الملقا',
-            'contact_name'    => 'فهد العتيبي',
-            'contact_title'   => 'مدير الملاعب',
-            'working_hours'   => '06:00 - 00:00',
-            'rating'          => 4.7,
-            'total_bookings'  => 156,
+            'name' => 'مرافق الرياض للبادل',
+            'email' => 'biz1@teamat.com',
+            'password' => Hash::make('123456'),
+            'city' => 'الرياض',
+            'district' => 'حي الملقا',
+            'contact_name' => 'فهد العتيبي',
+            'contact_phone' => '0533000001',
+            'contact_title' => 'مدير الملاعب',
+            'working_hours' => '06:00 - 00:00',
+            'rating' => 4.7,
+            'total_bookings' => 156,
             'commission_rate' => 10.00,
         ]);
         $biz1->categories()->attach([$padelCat->id, $tennisCat->id]);
@@ -105,16 +113,17 @@ class DatabaseSeeder extends Seeder
 
         // ── Partner 2: Active, multi-sport ──
         $biz2 = Partner::factory()->create([
-            'name'            => 'مرافق جدة الرياضية',
-            'email'           => 'biz2@teamat.com',
-            'password'        => Hash::make('123456'),
-            'city'            => 'جدة',
-            'district'        => 'حي الروضة',
-            'contact_name'    => 'سعد الغامدي',
-            'contact_title'   => 'مشرف',
-            'working_hours'   => '06:00 - 23:00',
-            'rating'          => 4.3,
-            'total_bookings'  => 89,
+            'name' => 'مرافق جدة الرياضية',
+            'email' => 'biz2@teamat.com',
+            'password' => Hash::make('123456'),
+            'city' => 'جدة',
+            'district' => 'حي الروضة',
+            'contact_name' => 'سعد الغامدي',
+            'contact_phone' => '0533000002',
+            'contact_title' => 'مشرف',
+            'working_hours' => '06:00 - 23:00',
+            'rating' => 4.3,
+            'total_bookings' => 89,
             'commission_rate' => 12.00,
         ]);
         $biz2->categories()->attach([$padelCat->id, $footballCat->id]);
@@ -133,13 +142,14 @@ class DatabaseSeeder extends Seeder
 
         // ── Partner 3: Active, Dammam ──
         $biz3 = Partner::factory()->create([
-            'name'            => 'مرافق الدمام',
-            'email'           => 'biz3@teamat.com',
-            'password'        => Hash::make('123456'),
-            'city'            => 'الدمام',
-            'district'        => 'حي الشاطئ',
-            'rating'          => 4.1,
-            'total_bookings'  => 42,
+            'name' => 'مرافق الدمام',
+            'email' => 'biz3@teamat.com',
+            'password' => Hash::make('123456'),
+            'city' => 'الدمام',
+            'district' => 'حي الشاطئ',
+            'contact_phone' => '0533000003',
+            'rating' => 4.1,
+            'total_bookings' => 42,
             'commission_rate' => 10.00,
         ]);
         $biz3->categories()->attach([$tennisCat->id, $basketballCat->id]);
@@ -156,74 +166,77 @@ class DatabaseSeeder extends Seeder
 
         // ── Partner 4: Pending (waiting admin approval) ──
         $biz4 = Partner::factory()->pending()->create([
-            'name'          => 'مرافق الخبر الرياضية',
-            'email'         => 'khobar@biz.sa',
-            'password'      => null,
-            'city'          => 'الخبر',
-            'district'      => 'حي العقربية',
-            'contact_name'  => 'عادل المحمد',
+            'name' => 'مرافق الخبر الرياضية',
+            'email' => 'khobar@biz.sa',
+            'password' => null,
+            'city' => 'الخبر',
+            'district' => 'حي العقربية',
+            'contact_name' => 'عادل المحمد',
             'contact_title' => 'مالك الشريك',
-            'venues_count'  => 3,
-            'notes'         => 'شريك جديد يحتوي على 3 ملاعب بادل حديثة',
+            'venues_count' => 3,
+            'notes' => 'شريك جديد يحتوي على 3 ملاعب بادل حديثة',
         ]);
         $biz4->categories()->attach([$padelCat->id]);
 
         // ── Partner 5: Pending (another pending for admin) ──
         Partner::factory()->pending()->create([
-            'name'          => 'مرافق المدينة الرياضية',
-            'email'         => 'madinah@biz.sa',
-            'password'      => null,
-            'city'          => 'المدينة',
-            'district'      => 'حي السلام',
-            'contact_name'  => 'خالد الحسن',
+            'name' => 'مرافق المدينة الرياضية',
+            'email' => 'madinah@biz.sa',
+            'password' => null,
+            'city' => 'المدينة',
+            'district' => 'حي السلام',
+            'contact_name' => 'خالد الحسن',
             'contact_title' => 'المدير العام',
-            'venues_count'  => 5,
-            'notes'         => 'شريك كبير يضم ملاعب متعددة الرياضات',
+            'venues_count' => 5,
+            'notes' => 'شريك كبير يضم ملاعب متعددة الرياضات',
         ]);
 
         // ── Partner 6: Approved but not activated (has activation token) ──
         Partner::factory()->create([
-            'name'             => 'مرافق النخيل',
-            'email'            => 'nakheel@biz.sa',
-            'password'         => null,
-            'city'             => 'الرياض',
-            'district'         => 'حي النخيل',
+            'name' => 'مرافق النخيل',
+            'email' => 'nakheel@biz.sa',
+            'password' => null,
+            'city' => 'الرياض',
+            'district' => 'حي النخيل',
             'activation_token' => Str::random(64),
             'email_verified_at' => null,
         ]);
 
         // ── Partner Staff (Receptionists) ──
         Partner::create([
-            'name'              => 'سارة المالكي',
-            'email'             => 'reception1@biz1.sa',
-            'password'          => Hash::make('123456'),
-            'city'              => $biz1->city,
-            'district'          => $biz1->district,
-            'role'              => 'receptionist',
-            'parent_id'         => $biz1->id,
-            'status'            => 'active',
+            'name' => 'سارة المالكي',
+            'email' => 'reception1@biz1.sa',
+            'password' => Hash::make('123456'),
+            'city' => $biz1->city,
+            'district' => $biz1->district,
+            'contact_phone' => '0533000011',
+            'role' => 'receptionist',
+            'parent_id' => $biz1->id,
+            'status' => 'active',
             'email_verified_at' => now(),
         ]);
         Partner::create([
-            'name'              => 'عبدالله الحربي',
-            'email'             => 'reception2@biz1.sa',
-            'password'          => Hash::make('123456'),
-            'city'              => $biz1->city,
-            'district'          => $biz1->district,
-            'role'              => 'receptionist',
-            'parent_id'         => $biz1->id,
-            'status'            => 'active',
+            'name' => 'عبدالله الحربي',
+            'email' => 'reception2@biz1.sa',
+            'password' => Hash::make('123456'),
+            'city' => $biz1->city,
+            'district' => $biz1->district,
+            'contact_phone' => '0533000012',
+            'role' => 'receptionist',
+            'parent_id' => $biz1->id,
+            'status' => 'active',
             'email_verified_at' => now(),
         ]);
         Partner::create([
-            'name'              => 'منى القحطاني',
-            'email'             => 'reception1@biz2.sa',
-            'password'          => Hash::make('123456'),
-            'city'              => $biz2->city,
-            'district'          => $biz2->district,
-            'role'              => 'receptionist',
-            'parent_id'         => $biz2->id,
-            'status'            => 'active',
+            'name' => 'منى القحطاني',
+            'email' => 'reception1@biz2.sa',
+            'password' => Hash::make('123456'),
+            'city' => $biz2->city,
+            'district' => $biz2->district,
+            'contact_phone' => '0533000021',
+            'role' => 'receptionist',
+            'parent_id' => $biz2->id,
+            'status' => 'active',
             'email_verified_at' => now(),
         ]);
 
@@ -240,11 +253,11 @@ class DatabaseSeeder extends Seeder
                 $date = now()->addDays($dayOffset)->toDateString();
                 foreach ($slotHours as [$start, $end]) {
                     Slot::create([
-                        'venue_id'   => $venue->id,
-                        'date'       => $date,
+                        'venue_id' => $venue->id,
+                        'date' => $date,
                         'start_time' => $start,
-                        'end_time'   => $end,
-                        'status'     => fake()->boolean(25) ? 'booked' : 'available',
+                        'end_time' => $end,
+                        'status' => fake()->boolean(25) ? 'booked' : 'available',
                     ]);
                 }
             }
@@ -256,75 +269,74 @@ class DatabaseSeeder extends Seeder
 
         // ── Company 1: Active, full data ──
         $company1 = Company::factory()->create([
-            'name'           => 'شركة التقنية المتقدمة',
-            'email'          => 'hr@advancedtech.sa',
-            'password'       => Hash::make('123456'),
-            'contact_name'        => 'نورة القحطاني',
-            'contact_phone'       => '0501234567',
-            'contact_title'       => 'مديرة الموارد البشرية',
-            'domain'         => 'advancedtech.sa',
-            'sector'         => 'تقنية',
+            'name' => 'شركة التقنية المتقدمة',
+            'email' => 'hr@advancedtech.sa',
+            'password' => Hash::make('123456'),
+            'contact_name' => 'نورة القحطاني',
+            'contact_phone' => '0501234567',
+            'contact_title' => 'مسؤولة الحساب',
+            'domain' => 'advancedtech.sa',
+            'sector' => 'تقنية',
             'employee_count' => 120,
-            'city'           => 'الرياض',
+            'city' => 'الرياض',
         ]);
-        $wallet1 = Wallet::factory()->create(['company_id' => $company1->id, 'balance' => 45000]);
+        // A6: المحفظة تُنشأ ويُموَّل رصيدها عبر الدفتر في WalletLedgerSeeder.
 
         // ── Company 2: Active ──
         $company2 = Company::factory()->create([
-            'name'           => 'مجموعة الابتكار',
-            'email'          => 'hr@innovation.sa',
-            'password'       => Hash::make('123456'),
-            'contact_name'        => 'ريم السعيد',
-            'contact_phone'       => '0559876543',
-            'contact_title'       => 'مسؤولة الرفاهية',
-            'domain'         => 'innovation.sa',
-            'sector'         => 'مالية',
+            'name' => 'مجموعة الابتكار',
+            'email' => 'hr@innovation.sa',
+            'password' => Hash::make('123456'),
+            'contact_name' => 'ريم السعيد',
+            'contact_phone' => '0559876543',
+            'contact_title' => 'مسؤولة الرفاهية',
+            'domain' => 'innovation.sa',
+            'sector' => 'مالية',
             'employee_count' => 80,
-            'city'           => 'جدة',
+            'city' => 'جدة',
         ]);
-        $wallet2 = Wallet::factory()->create(['company_id' => $company2->id, 'balance' => 30000]);
 
         // ── Company 3: Pending (waiting admin approval) ──
         $company3 = Company::factory()->pending()->create([
-            'name'                => 'شركة الأفق الجديد',
-            'email'               => 'hr@horizon.sa',
-            'password'            => null,
-            'contact_name'             => 'سارة الأحمد',
-            'contact_phone'            => '0551112233',
-            'sector'              => 'عقارات',
-            'city'                => 'الرياض',
-            'requester_name'      => 'محمد العمر',
-            'requester_email'     => 'mohammed@horizon.sa',
-            'requester_phone'     => '0551112200',
+            'name' => 'شركة الأفق الجديد',
+            'email' => 'hr@horizon.sa',
+            'password' => null,
+            'contact_name' => 'سارة الأحمد',
+            'contact_phone' => '0551112233',
+            'sector' => 'عقارات',
+            'city' => 'الرياض',
+            'requester_name' => 'محمد العمر',
+            'requester_email' => 'mohammed@horizon.sa',
+            'requester_phone' => '0551112200',
             'employee_count_range' => '50-100',
-            'notes'               => 'نرغب في تسجيل الشركة لتنظيم أنشطة رياضية للموظفين',
+            'notes' => 'نرغب في تسجيل الشركة لتنظيم أنشطة رياضية للموظفين',
         ]);
 
         // ── Company 4: Pending ──
         Company::factory()->pending()->create([
-            'name'                => 'شركة البناء الحديث',
-            'email'               => 'hr@modern-build.sa',
-            'password'            => null,
-            'contact_name'             => 'عهود الفيصل',
-            'contact_phone'            => '0561234567',
-            'sector'              => 'عقارات',
-            'city'                => 'جدة',
-            'requester_name'      => 'طلال الناصر',
-            'requester_email'     => 'talal@modern-build.sa',
-            'requester_phone'     => '0561234500',
+            'name' => 'شركة البناء الحديث',
+            'email' => 'hr@modern-build.sa',
+            'password' => null,
+            'contact_name' => 'عهود الفيصل',
+            'contact_phone' => '0561234567',
+            'sector' => 'عقارات',
+            'city' => 'جدة',
+            'requester_name' => 'طلال الناصر',
+            'requester_email' => 'talal@modern-build.sa',
+            'requester_phone' => '0561234500',
             'employee_count_range' => '100-200',
         ]);
 
         // ── Company 5: Approved but not activated ──
         Company::factory()->create([
-            'name'              => 'شركة الطاقة الخضراء',
-            'email'             => 'hr@greenergy.sa',
-            'password'          => null,
-            'contact_name'           => 'لمياء الحربي',
-            'contact_phone'          => '0571234567',
-            'sector'            => 'طاقة',
-            'city'              => 'الدمام',
-            'activation_token'  => Str::random(64),
+            'name' => 'شركة الطاقة الخضراء',
+            'email' => 'hr@greenergy.sa',
+            'password' => null,
+            'contact_name' => 'لمياء الحربي',
+            'contact_phone' => '0571234567',
+            'sector' => 'طاقة',
+            'city' => 'الدمام',
+            'activation_token' => Str::random(64),
             'email_verified_at' => null,
         ]);
 
@@ -355,10 +367,11 @@ class DatabaseSeeder extends Seeder
         $c1Employees = collect();
         foreach ($c1Names as $i => $name) {
             $c1Employees->push(Employee::factory()->create([
-                'name'          => $name,
-                'email'         => 'emp' . ($i + 1) . '@advancedtech.sa',
-                'password'      => Hash::make('123456'),
-                'company_id'    => $company1->id,
+                'name' => $name,
+                'email' => 'emp'.($i + 1).'@advancedtech.sa',
+                'phone' => sprintf('05010%05d', $i + 1),
+                'password' => Hash::make('123456'),
+                'company_id' => $company1->id,
                 'department_id' => $c1Departments->random()->id,
             ]));
         }
@@ -372,13 +385,34 @@ class DatabaseSeeder extends Seeder
         $c2Employees = collect();
         foreach ($c2Names as $i => $name) {
             $c2Employees->push(Employee::factory()->create([
-                'name'          => $name,
-                'email'         => 'emp' . ($i + 1) . '@innovation.sa',
-                'password'      => Hash::make('123456'),
-                'company_id'    => $company2->id,
+                'name' => $name,
+                'email' => 'emp'.($i + 1).'@innovation.sa',
+                'phone' => sprintf('05020%05d', $i + 1),
+                'password' => Hash::make('123456'),
+                'company_id' => $company2->id,
                 'department_id' => $c2Departments->random()->id,
             ]));
         }
+
+        // ── Multi-company demo: SAME phone under both companies → one global
+        //    user with two memberships and a context switcher (H §3/§4) ──
+        $multi1 = Employee::factory()->create([
+            'name' => 'عبدالعزيز المشترك',
+            'email' => 'multi@advancedtech.sa',
+            'phone' => '0503000001',
+            'password' => Hash::make('123456'),
+            'company_id' => $company1->id,
+            'department_id' => $c1Departments->first()->id,
+        ]);
+        Employee::factory()->create([
+            'name' => 'عبدالعزيز المشترك',
+            'email' => 'multi@innovation.sa',
+            'phone' => '0503000001',
+            'password' => Hash::make('123456'),
+            'company_id' => $company2->id,
+            'department_id' => $c2Departments->first()->id,
+        ]);
+        $c1Employees->push($multi1);
 
         // ╔══════════════════════════════════════════════════════════╗
         // ║  COMMUNITIES                                             ║
@@ -388,95 +422,71 @@ class DatabaseSeeder extends Seeder
         $padelCom1 = Community::factory()->create([
             'name' => 'فريق البادل', 'description' => 'مجتمع محبي رياضة البادل في الشركة',
             'icon' => '🏸', 'color' => '#3B82F6', 'company_id' => $company1->id,
-            'category_id' => $padelCat->id, 'leader_id' => $c1Employees[0]->id,
-            'member_count' => 10, 'balance' => 2500,
+            'category_id' => $padelCat->id,
+            'member_count' => 10,
         ]);
         $footballCom1 = Community::factory()->create([
             'name' => 'فريق كرة القدم', 'description' => 'مجتمع كرة القدم للموظفين',
             'icon' => '⚽', 'color' => '#10B981', 'company_id' => $company1->id,
-            'category_id' => $footballCat->id, 'leader_id' => $c1Employees[3]->id,
-            'member_count' => 12, 'balance' => 1800,
+            'category_id' => $footballCat->id,
+            'member_count' => 12,
         ]);
         $tennisCom1 = Community::factory()->create([
             'name' => 'مجتمع التنس', 'description' => 'لعشاق التنس',
             'icon' => '🎾', 'color' => '#F59E0B', 'company_id' => $company1->id,
-            'category_id' => $tennisCat->id, 'leader_id' => $c1Employees[6]->id,
-            'member_count' => 6, 'balance' => 800,
+            'category_id' => $tennisCat->id,
+            'member_count' => 6,
         ]);
 
         // Company 2 communities
         $padelCom2 = Community::factory()->create([
             'name' => 'بادل الابتكار', 'description' => 'فريق البادل في مجموعة الابتكار',
             'icon' => '🏸', 'color' => '#8B5CF6', 'company_id' => $company2->id,
-            'category_id' => $padelCat->id, 'leader_id' => $c2Employees[0]->id,
-            'member_count' => 8, 'balance' => 1500,
+            'category_id' => $padelCat->id,
+            'member_count' => 8,
         ]);
         $basketCom2 = Community::factory()->create([
             'name' => 'فريق السلة', 'description' => 'مجتمع كرة السلة',
             'icon' => '🏀', 'color' => '#EF4444', 'company_id' => $company2->id,
-            'category_id' => $basketballCat->id, 'leader_id' => $c2Employees[4]->id,
-            'member_count' => 6, 'balance' => 900,
+            'category_id' => $basketballCat->id,
+            'member_count' => 6,
         ]);
 
-        // Attach members
-        $padelCom1->members()->attach($c1Employees->take(10)->mapWithKeys(fn ($e) => [$e->id => ['role' => 'member', 'joined_at' => now()->subDays(rand(5, 60))]])->all());
-        $padelCom1->members()->updateExistingPivot($c1Employees[0]->id, ['role' => 'captain']);
+        // Attach members (membership = states, never deleted rows — A5/H §6)
+        $padelCom1->members()->attach($c1Employees->take(10)->mapWithKeys(fn ($e) => [$e->id => ['status' => 'active', 'joined_at' => now()->subDays(rand(5, 60))]])->all());
 
-        $footballCom1->members()->attach($c1Employees->slice(2, 12)->mapWithKeys(fn ($e) => [$e->id => ['role' => 'member', 'joined_at' => now()->subDays(rand(5, 60))]])->all());
-        $footballCom1->members()->updateExistingPivot($c1Employees[3]->id, ['role' => 'captain']);
+        $footballCom1->members()->attach($c1Employees->slice(2, 12)->mapWithKeys(fn ($e) => [$e->id => ['status' => 'active', 'joined_at' => now()->subDays(rand(5, 60))]])->all());
 
-        $tennisCom1->members()->attach($c1Employees->slice(5, 6)->mapWithKeys(fn ($e) => [$e->id => ['role' => 'member', 'joined_at' => now()->subDays(rand(5, 60))]])->all());
+        $tennisCom1->members()->attach($c1Employees->slice(5, 6)->mapWithKeys(fn ($e) => [$e->id => ['status' => 'active', 'joined_at' => now()->subDays(rand(5, 60))]])->all());
 
-        $padelCom2->members()->attach($c2Employees->take(8)->mapWithKeys(fn ($e) => [$e->id => ['role' => 'member', 'joined_at' => now()->subDays(rand(5, 40))]])->all());
-        $padelCom2->members()->updateExistingPivot($c2Employees[0]->id, ['role' => 'captain']);
+        $padelCom2->members()->attach($c2Employees->take(8)->mapWithKeys(fn ($e) => [$e->id => ['status' => 'active', 'joined_at' => now()->subDays(rand(5, 40))]])->all());
 
-        $basketCom2->members()->attach($c2Employees->slice(3, 6)->mapWithKeys(fn ($e) => [$e->id => ['role' => 'member', 'joined_at' => now()->subDays(rand(5, 40))]])->all());
-
+        $basketCom2->members()->attach($c2Employees->slice(3, 6)->mapWithKeys(fn ($e) => [$e->id => ['status' => 'active', 'joined_at' => now()->subDays(rand(5, 40))]])->all());
 
         // ╔══════════════════════════════════════════════════════════╗
-        // ║  WALLET TRANSACTIONS                                     ║
+        // ║  WALLETS & LEDGER (A6 — H §12.5)                        ║
         // ╚══════════════════════════════════════════════════════════╝
-        WalletTransaction::factory()->credit()->create(['wallet_id' => $wallet1->id, 'amount' => 50000, 'description' => 'شحن رصيد أولي']);
-        WalletTransaction::factory()->debit()->create(['wallet_id' => $wallet1->id, 'community_id' => $padelCom1->id, 'amount' => 2500, 'description' => 'توزيع على فريق البادل']);
-        WalletTransaction::factory()->debit()->create(['wallet_id' => $wallet1->id, 'community_id' => $footballCom1->id, 'amount' => 1800, 'description' => 'توزيع على فريق كرة القدم']);
-
-        WalletTransaction::factory()->credit()->create(['wallet_id' => $wallet2->id, 'amount' => 35000, 'description' => 'شحن رصيد']);
-        WalletTransaction::factory()->debit()->create(['wallet_id' => $wallet2->id, 'community_id' => $padelCom2->id, 'amount' => 1500, 'description' => 'توزيع على فريق بادل الابتكار']);
-        WalletTransaction::factory()->debit()->create(['wallet_id' => $wallet2->id, 'community_id' => $basketCom2->id, 'amount' => 900, 'description' => 'توزيع على فريق السلة']);
+        // شحن عبر طلبات تحويل بنكي معتمدة + تخصيص للمجتمعات — كله قيود دفتر.
+        $this->call(WalletLedgerSeeder::class);
 
         // ╔══════════════════════════════════════════════════════════╗
-        // ║  SETTLEMENTS                                             ║
+        // ║  SETTLEMENTS & BILLING (A11 — H §12.7/§12.8)             ║
         // ╚══════════════════════════════════════════════════════════╝
-        $s1 = Settlement::factory()->paid()->create([
-            'partner_id' => $biz1->id, 'company_id' => $company1->id,
-            'period' => now()->subMonth()->format('Y-m'), 'events_count' => 8,
-            'gross_amount' => 2240, 'commission_amount' => 224, 'net_amount' => 2016,
-        ]);
-        Settlement::factory()->create([
-            'partner_id' => $biz1->id, 'company_id' => $company1->id,
-            'period' => now()->format('Y-m'), 'events_count' => 4,
-            'gross_amount' => 1120, 'commission_amount' => 112, 'net_amount' => 1008,
-            'status' => 'pending',
-        ]);
-        Settlement::factory()->paid()->create([
-            'partner_id' => $biz2->id, 'company_id' => $company2->id,
-            'period' => now()->subMonth()->format('Y-m'), 'events_count' => 5,
-            'gross_amount' => 900, 'commission_amount' => 108, 'net_amount' => 792,
-        ]);
-        Settlement::factory()->create([
-            'partner_id' => $biz2->id, 'company_id' => $company1->id,
-            'period' => now()->format('Y-m'), 'events_count' => 2,
-            'gross_amount' => 700, 'commission_amount' => 84, 'net_amount' => 616,
-            'status' => 'processing',
-        ]);
-
-        // ╔══════════════════════════════════════════════════════════╗
-        // ║  PLATFORM REVENUE                                        ║
-        // ╚══════════════════════════════════════════════════════════╝
-        PlatformRevenue::factory()->create(['settlement_id' => $s1->id, 'amount' => 224, 'source' => 'commission', 'description' => 'عمولة تسوية مرافق الرياض', 'revenue_date' => now()->subMonth()->endOfMonth()->toDateString()]);
-        PlatformRevenue::factory()->create(['amount' => 108, 'source' => 'commission', 'description' => 'عمولة تسوية مرافق جدة', 'revenue_date' => now()->subMonth()->endOfMonth()->toDateString()]);
-        PlatformRevenue::factory()->create(['amount' => 500, 'source' => 'subscription', 'description' => 'اشتراك شركة التقنية المتقدمة', 'revenue_date' => now()->startOfMonth()->toDateString()]);
-        PlatformRevenue::factory()->create(['amount' => 500, 'source' => 'subscription', 'description' => 'اشتراك مجموعة الابتكار', 'revenue_date' => now()->startOfMonth()->toDateString()]);
+        // لا بذور تسوية جاهزة: **بند التسوية لا يُنشأ إلا عند انتقال الفعالية
+        // إلى `completed`** (H §12.7)، وكشوفها يولّدها app:generate-settlements،
+        // وفواتير رسوم النظام يولّدها app:generate-monthly-invoices من عدد
+        // الموظفين المفعّلين. زرع صفوف يدوية هنا كان سيخلق مالاً بلا مصدر.
+        // الجدولان القديمان (settlements / platform_revenue) مؤرشفان
+        // legacy_settlements / legacy_platform_revenue.
+        //
+        // قيم العقد للتجربة (H §12.8) — أرقام العقد من المالك في الإنتاج.
+        $company1->forceFill([
+            'contract_fee_per_activated_employee' => 30000,   // 300.00 ريال
+            'contract_monthly_minimum' => 500000,             // 5,000.00 ريال
+        ])->save();
+        $company2->forceFill([
+            'contract_fee_per_activated_employee' => 25000,   // 250.00 ريال
+        ])->save();
 
         // ╔══════════════════════════════════════════════════════════╗
         // ║  NOTIFICATIONS — realistic per portal                    ║
@@ -490,29 +500,29 @@ class DatabaseSeeder extends Seeder
         // Company 1
         Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'alternative_proposed', 'title' => 'وقت بديل مقترح', 'body' => 'اقترحت مرافق الرياض وقتاً بديلاً لحدث تدريب بادل مسائي.']);
         Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'alternative_proposed', 'title' => 'وقت بديل مقترح', 'body' => 'اقترحت مرافق جدة وقتاً بديلاً لمباراة كرة القدم.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'event_approved', 'title' => 'تمت الموافقة على الحجز', 'body' => 'وافقت مرافق الرياض على حجز بادل الأربعاء.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'event_rejected', 'title' => 'تم رفض الحجز', 'body' => 'رفضت مرافق الرياض حجزك. السبب: الملعب محجوز.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'event_approved', 'title' => 'تمت الموافقة على الفعالية', 'body' => 'وافقت مرافق الرياض على فعالية بادل الأربعاء.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'event_rejected', 'title' => 'تم رفض الطلب', 'body' => 'رفضت مرافق الرياض طلبك. السبب: الملعب غير متاح.']);
         Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'event_created', 'title' => 'حدث جديد', 'body' => 'أنشأ أحمد السالم حدث بادل جديد.']);
-        Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'payment', 'title' => 'خصم من المحفظة', 'body' => 'تم خصم 100 ر.س كدعم لحدث بادل.']);
+        Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'payment', 'title' => 'استقطاع من المحفظة', 'body' => 'تم استقطاع 100 ر.س كدعم لفعالية بادل.']);
         Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'system', 'title' => 'مرحباً بك في تيمات', 'body' => 'تم تفعيل حسابك. ابدأ بإنشاء مجتمعات لموظفيك.']);
         Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company1->id, 'type' => 'reminder', 'title' => 'تذكير: حدث غداً', 'body' => 'لديك حدث بادل غداً الساعة 6 مساءً.']);
 
         // Company 2
         Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company2->id, 'type' => 'alternative_proposed', 'title' => 'وقت بديل مقترح', 'body' => 'اقترحت مرافق جدة وقتاً بديلاً للقاء البادل.']);
         Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company2->id, 'type' => 'alternative_proposed', 'title' => 'وقت بديل جديد', 'body' => 'اقترحت مرافق الرياض وقتاً بديلاً ثانياً لحدث بادل نهاية الأسبوع.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company2->id, 'type' => 'event_approved', 'title' => 'تمت الموافقة', 'body' => 'وافقت مرافق جدة على حجز بادل مساء الخميس.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company2->id, 'type' => 'event_approved', 'title' => 'تمت الموافقة', 'body' => 'وافقت مرافق جدة على فعالية بادل مساء الخميس.']);
         Notification::factory()->read()->create(['notifiable_type' => Company::class, 'notifiable_id' => $company2->id, 'type' => 'system', 'title' => 'مرحباً بك', 'body' => 'تم تفعيل حساب شركتك بنجاح.']);
 
         // Partner 1
-        Notification::factory()->unread()->create(['notifiable_type' => Partner::class, 'notifiable_id' => $biz1->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من شركة التقنية المتقدمة — تدريب أسبوعي.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Partner::class, 'notifiable_id' => $biz1->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من مجموعة الابتكار — تدريب بادل.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Partner::class, 'notifiable_id' => $biz1->id, 'type' => 'event_created', 'title' => 'طلب فعالية جديد', 'body' => 'طلب فعالية من شركة التقنية المتقدمة — تدريب أسبوعي.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Partner::class, 'notifiable_id' => $biz1->id, 'type' => 'event_created', 'title' => 'طلب فعالية جديد', 'body' => 'طلب فعالية من مجموعة الابتكار — تدريب بادل.']);
         Notification::factory()->unread()->create(['notifiable_type' => Partner::class, 'notifiable_id' => $biz1->id, 'type' => 'alternative_rejected', 'title' => 'رفض الوقت البديل', 'body' => 'رفضت مجموعة الابتكار وقتك البديل الأول لحدث بادل نهاية الأسبوع.']);
         Notification::factory()->unread()->create(['notifiable_type' => Partner::class, 'notifiable_id' => $biz1->id, 'type' => 'payment', 'title' => 'تسوية مالية', 'body' => 'تم إصدار تسوية بمبلغ 2,016 ر.س.']);
         Notification::factory()->read()->create(['notifiable_type' => Partner::class, 'notifiable_id' => $biz1->id, 'type' => 'system', 'title' => 'مرحباً بك في تيمات', 'body' => 'تم تفعيل حسابك كشريك بنجاح.']);
 
         // Partner 2
-        Notification::factory()->unread()->create(['notifiable_type' => Partner::class, 'notifiable_id' => $biz2->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من شركة التقنية المتقدمة — مباراة ودية.']);
-        Notification::factory()->unread()->create(['notifiable_type' => Partner::class, 'notifiable_id' => $biz2->id, 'type' => 'event_created', 'title' => 'طلب حجز جديد', 'body' => 'طلب حجز من مجموعة الابتكار — مباراة صباحية.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Partner::class, 'notifiable_id' => $biz2->id, 'type' => 'event_created', 'title' => 'طلب فعالية جديد', 'body' => 'طلب فعالية من شركة التقنية المتقدمة — مباراة ودية.']);
+        Notification::factory()->unread()->create(['notifiable_type' => Partner::class, 'notifiable_id' => $biz2->id, 'type' => 'event_created', 'title' => 'طلب فعالية جديد', 'body' => 'طلب فعالية من مجموعة الابتكار — مباراة صباحية.']);
         Notification::factory()->read()->create(['notifiable_type' => Partner::class, 'notifiable_id' => $biz2->id, 'type' => 'alternative_accepted', 'title' => 'تم قبول البديل', 'body' => 'قبلت مجموعة الابتكار الوقت البديل لحدث بادل.']);
 
         // Employee notifications
@@ -545,64 +555,12 @@ class DatabaseSeeder extends Seeder
         CommunityAnnouncement::factory()->create(['community_id' => $basketCom2->id, 'employee_id' => $c2Employees[4]->id, 'body' => 'بطولة السلة الشهرية ستبدأ قريباً، سجلوا أسماءكم.']);
 
         // ╔══════════════════════════════════════════════════════════╗
-        // ║  DISCOUNTS                                                ║
+        // ║  DISCOUNTS — أُزيلت (A10)                                 ║
         // ╚══════════════════════════════════════════════════════════╝
-
-        // Partner 1 → Company 1, Padel community — 15% one-time
-        Discount::create([
-            'partner_id' => $biz1->id,
-            'company_id' => $company1->id,
-            'community_id' => $padelCom1->id,
-            'name' => 'خصم ترحيبي',
-            'type' => 'percentage',
-            'value' => 15,
-            'usage' => 'one_time',
-            'status' => 'active',
-        ]);
-
-        // Partner 1 → Company 2, Padel community — date range with time restriction
-        Discount::create([
-            'partner_id' => $biz1->id,
-            'company_id' => $company2->id,
-            'community_id' => $padelCom2->id,
-            'name' => 'خصم الصيف',
-            'type' => 'percentage',
-            'value' => 20,
-            'usage' => 'date_range',
-            'starts_at' => now()->startOfMonth()->toDateString(),
-            'expires_at' => now()->addMonths(2)->endOfMonth()->toDateString(),
-            'start_time' => '08:00',
-            'end_time' => '14:00',
-            'status' => 'active',
-        ]);
-
-        // Partner 2 → Company 1, Football community — fixed amount
-        Discount::create([
-            'partner_id' => $biz2->id,
-            'company_id' => $company1->id,
-            'community_id' => $footballCom1->id,
-            'name' => 'خصم كرة القدم',
-            'type' => 'fixed',
-            'value' => 50,
-            'usage' => 'date_range',
-            'starts_at' => now()->subMonth()->toDateString(),
-            'expires_at' => now()->addMonth()->toDateString(),
-            'status' => 'active',
-        ]);
-
-        // Expired discount for testing
-        Discount::create([
-            'partner_id' => $biz1->id,
-            'company_id' => $company1->id,
-            'community_id' => $tennisCom1->id,
-            'name' => 'عرض رمضان',
-            'type' => 'percentage',
-            'value' => 25,
-            'usage' => 'date_range',
-            'starts_at' => now()->subMonths(3)->toDateString(),
-            'expires_at' => now()->subMonth()->toDateString(),
-            'status' => 'expired',
-        ]);
+        // «لا تخفيضات ولا رموز ترويجية في الإصدار الأول» (H §12.1)، و«خصم»
+        // محظورة في H §2. أرشف A10 الجدول باسم `legacy_discounts` وحذف النموذج
+        // والمسارات، لكن أربعة نداءات `Discount::create` بقيت هنا فكانت تُسقط
+        // `migrate:fresh --seed` بـ «Class Discount not found» — حُذفت (A14).
 
         // ╔══════════════════════════════════════════════════════════╗
         // ║  LEAGUES                                                 ║
@@ -775,7 +733,7 @@ class DatabaseSeeder extends Seeder
         $qm1 = QuickMatch::create([
             'community_id' => $padelCom1->id,
             'created_by' => $c1Employees[1]->id,
-            'message' => 'نبي نلعب بادل بعد الدوام، صوّتوا على الموعد!',
+            'message' => 'نبي نلعب بادل بعد الدوام، صوّتوا على الوقت!',
             'source' => 'manual',
             'status' => 'open',
         ]);
@@ -789,7 +747,7 @@ class DatabaseSeeder extends Seeder
         $qm2 = QuickMatch::create([
             'community_id' => $footballCom1->id,
             'created_by' => $c1Employees[3]->id,
-            'message' => 'مباراة ودية، صوّتوا على الموعد الأنسب',
+            'message' => 'مباراة ودية، صوّتوا على الوقت الأنسب',
             'source' => 'manual',
             'status' => 'open',
         ]);
@@ -802,7 +760,7 @@ class DatabaseSeeder extends Seeder
         $qm3 = QuickMatch::create([
             'community_id' => $tennisCom1->id,
             'created_by' => null,
-            'message' => 'مجتمعكم ما لعب من فترة، صوّتوا على الموعد المناسب!',
+            'message' => 'مجتمعكم ما لعب من فترة، صوّتوا على الوقت المناسب!',
             'source' => 'auto',
             'status' => 'open',
         ]);
@@ -814,7 +772,7 @@ class DatabaseSeeder extends Seeder
         $qm4 = QuickMatch::create([
             'community_id' => $basketCom2->id,
             'created_by' => null,
-            'message' => 'مجتمعكم ما لعب من فترة، صوّتوا على الموعد المناسب!',
+            'message' => 'مجتمعكم ما لعب من فترة، صوّتوا على الوقت المناسب!',
             'source' => 'auto',
             'status' => 'open',
         ]);
@@ -896,8 +854,28 @@ class DatabaseSeeder extends Seeder
             'notifiable_id' => $c1Employees[5]->id,
             'type' => 'quick_match',
             'title' => 'تصويت جديد في فريق البادل',
-            'body' => 'نبي نلعب بادل بعد الدوام، صوّتوا على الموعد!',
+            'body' => 'نبي نلعب بادل بعد الدوام، صوّتوا على الوقت!',
             'data' => ['community_id' => $padelCom1->id, 'quick_match_id' => $qm1->id],
         ]);
+
+        // ╔══════════════════════════════════════════════════════════╗
+        // ║  GLOBAL IDENTITY (A3)                                    ║
+        // ╚══════════════════════════════════════════════════════════╝
+        // The seeder suppresses model events, so run the identity backfill
+        // explicitly: users + company_memberships + role_assignments for
+        // every account created above (phone = login identity).
+        app(IdentityBackfillService::class)->run();
+
+        // ╔══════════════════════════════════════════════════════════╗
+        // ║  COMMUNITY LEADERSHIP (A5 — H §6)                        ║
+        // ╚══════════════════════════════════════════════════════════╝
+        // After the backfill so every employee has a global user id.
+        // Leadership through role_assignments — exactly one primary each.
+        $leadership = app(LeadershipService::class);
+        $leadership->assignLeader($padelCom1, $c1Employees[0]->fresh(), asPrimary: true);
+        $leadership->assignLeader($footballCom1, $c1Employees[3]->fresh(), asPrimary: true);
+        $leadership->assignLeader($tennisCom1, $c1Employees[6]->fresh(), asPrimary: true);
+        $leadership->assignLeader($padelCom2, $c2Employees[0]->fresh(), asPrimary: true);
+        $leadership->assignLeader($basketCom2, $c2Employees[4]->fresh(), asPrimary: true);
     }
 }

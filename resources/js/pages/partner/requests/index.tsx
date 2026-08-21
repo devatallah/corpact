@@ -20,21 +20,21 @@ interface Props {
 
 const statusFilters = [
     { label: 'الكل', value: '' },
-    { label: 'معلق', value: 'waiting_partner' },
+    { label: 'بانتظار رد المزوّد', value: 'pending_provider' },
     { label: 'مقبول', value: 'confirmed' },
     { label: 'مرفوض', value: 'rejected' },
-    { label: 'وقت بديل', value: 'alternative_proposed' },
+    { label: 'وقت بديل', value: 'provider_alternative' },
 ];
 
 function statusBorderColor(status: string): string {
     switch (status) {
-        case 'waiting_partner':
+        case 'pending_provider':
             return '#B8860A';
         case 'confirmed':
             return '#1A7A4A';
         case 'rejected':
             return '#C8410A';
-        case 'alternative_proposed':
+        case 'provider_alternative':
             return '#1A5FAB';
         default:
             return '#8A7868';
@@ -62,7 +62,7 @@ function RequestCard({ event }: { event: Event }) {
 
     const handleApprove = () => {
         router.post(`/partner/requests/${event.id}/approve`, {}, {
-            onSuccess: () => toastr.success('تم قبول الحجز بنجاح'),
+            onSuccess: () => toastr.success('تم قبول الطلب بنجاح'),
         });
     };
 
@@ -74,7 +74,7 @@ function RequestCard({ event }: { event: Event }) {
         rejectForm.post(`/partner/requests/${event.id}/reject`, {
             onSuccess: () => {
                 setShowRejectDialog(false);
-                toastr.success('تم رفض الحجز');
+                toastr.success('تم رفض الطلب');
             },
         });
     };
@@ -126,7 +126,7 @@ function RequestCard({ event }: { event: Event }) {
             </div>
 
             {/* Proposed alternative info */}
-            {event.status === 'alternative_proposed' && event.alternatives && event.alternatives.length > 0 && (() => {
+            {event.status === 'provider_alternative' && event.alternatives && event.alternatives.length > 0 && (() => {
                 const alt = event.alternatives.find((a) => a.status === 'proposed') ?? event.alternatives[event.alternatives.length - 1];
                 return (
                     <div style={{ background: 'rgba(26,95,171,.06)', border: '1px solid rgba(26,95,171,.25)', borderRadius: 10, padding: '12px 16px', marginTop: 10 }}>
@@ -171,7 +171,7 @@ function RequestCard({ event }: { event: Event }) {
             )}
 
             {/* Alternative form */}
-            {event.status === 'waiting_partner' && showAlt && (
+            {event.status === 'pending_provider' && showAlt && (
                 <div style={{ background: 'rgba(26,95,171,.06)', border: '1px solid rgba(26,95,171,.25)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#1A5FAB', marginBottom: 14 }}>اقتراح وقت وتفاصيل بديلة</div>
                     <div className="frow">
@@ -218,7 +218,7 @@ function RequestCard({ event }: { event: Event }) {
                         <textarea
                             value={rejectForm.data.reason}
                             onChange={(e) => rejectForm.setData('reason', e.target.value)}
-                            placeholder="اكتب سبب رفض الحجز..."
+                            placeholder="اكتب سبب رفض الطلب..."
                             style={{ minHeight: 80 }}
                         />
                         {rejectForm.errors.reason && (
@@ -246,7 +246,7 @@ function RequestCard({ event }: { event: Event }) {
             )}
 
             {/* Action buttons */}
-            {event.status === 'waiting_partner' && !showAlt && !showRejectDialog && (
+            {event.status === 'pending_provider' && !showAlt && !showRejectDialog && (
                 <div style={{ display: 'flex', gap: 10 }}>
                     <button
                         className="act-btn btn-reject"
@@ -267,7 +267,7 @@ function RequestCard({ event }: { event: Event }) {
                         style={{ flex: 2 }}
                         onClick={handleApprove}
                     >
-                        قبول الحجز
+                        قبول الطلب
                     </button>
                 </div>
             )}
@@ -278,10 +278,10 @@ function RequestCard({ event }: { event: Event }) {
 export default function BookingRequests({ partner, events, filters, pendingCount }: Props) {
     return (
         <PartnerLayout>
-            <Head title="طلبات الحجز" />
+            <Head title="طلبات الفعاليات" />
 
             <div style={{ marginBottom: 24 }}>
-                <div className="page-title">طلبات الحجز</div>
+                <div className="page-title">طلبات الفعاليات</div>
                 <div className="page-sub">{pendingCount} طلبات معلقة من أصل {events.total}</div>
             </div>
 
@@ -294,7 +294,7 @@ export default function BookingRequests({ partner, events, filters, pendingCount
                 {events.data.length === 0 ? (
                     <div className="card" style={{ textAlign: 'center', padding: 40, color: '#8A7868' }}>
                         <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-                        <div style={{ fontSize: 15, fontWeight: 700 }}>لا توجد طلبات حجز</div>
+                        <div style={{ fontSize: 15, fontWeight: 700 }}>لا توجد طلبات فعاليات</div>
                     </div>
                 ) : (
                     events.data.map((event) => (

@@ -76,7 +76,7 @@ export default function CompanyProfile({ company }: Props) {
 
                     <div className="frow">
                         <div className="fg">
-                            <label>اسم مسؤول HR</label>
+                            <label>اسم مسؤول الحساب</label>
                             <input
                                 type="text"
                                 value={form.data.contact_name}
@@ -85,7 +85,7 @@ export default function CompanyProfile({ company }: Props) {
                             />
                         </div>
                         <div className="fg">
-                            <label>رقم جوال HR</label>
+                            <label>رقم جوال مسؤول الحساب</label>
                             <input
                                 type="text"
                                 value={form.data.contact_phone}

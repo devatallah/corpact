@@ -2,6 +2,8 @@
 
 namespace App\Services\Employee;
 
+use App\Enums\EventStatus;
+use App\Models\Community;
 use App\Models\Employee;
 use App\Models\Event;
 use Illuminate\Database\Eloquent\Collection;
@@ -13,10 +15,14 @@ class HomeService
      */
     public function myCommunities(Employee $employee): Collection
     {
-        return $employee->communities()
-            ->with(['category', 'leader'])
+        $communities = $employee->communities()
+            ->with(['category'])
             ->withCount('members')
             ->get();
+
+        Community::attachPrimaryLeaders($communities);
+
+        return $communities;
     }
 
     /**
@@ -29,7 +35,7 @@ class HomeService
         return Event::query()
             ->with(['community', 'partner', 'category'])
             ->whereIn('community_id', $communityIds)
-            ->whereIn('status', ['open', 'full', 'confirmed'])
+            ->whereIn('status', EventStatus::activeValues())
             ->where('event_date', '>=', now())
             ->orderBy('event_date')
             ->orderBy('start_time')

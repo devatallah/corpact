@@ -9,13 +9,24 @@ import { Head, Link } from '@inertiajs/react';
 import React from 'react';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 
+// آلة حالات H §9 (A7)
 const STATUS_OPTIONS = [
     { label: 'الكل', value: '' },
+    { label: 'بانتظار الاعتماد', value: 'pending_approval' },
     { label: 'مفتوحة', value: 'open' },
-    { label: 'انتظار الشريك', value: 'waiting_partner' },
+    { label: 'بانتظار المزوّد', value: 'pending_provider' },
+    { label: 'وقت بديل', value: 'provider_alternative' },
+    { label: 'محجوزة', value: 'booked' },
+    { label: 'بانتظار الدفع', value: 'awaiting_payment' },
     { label: 'مؤكدة', value: 'confirmed' },
-    { label: 'وقت بديل', value: 'alternative_proposed' },
+    { label: 'جارية', value: 'in_progress' },
     { label: 'منتهية', value: 'completed' },
+    { label: 'مسوّاة', value: 'settled' },
+    { label: 'منتهية دون اكتمال', value: 'expired' },
+    { label: 'ملغاة — الحد الأدنى', value: 'cancelled_min_not_met' },
+    { label: 'ملغاة من المزوّد', value: 'cancelled_provider' },
+    { label: 'ملغاة من الشركة', value: 'cancelled_company' },
+    { label: 'ملغاة — فشل التحصيل', value: 'cancelled_payment_failed' },
 ];
 
 interface Props {
@@ -93,9 +104,9 @@ export default function EventsIndex({ events, filters, totalEvents, activeEvents
                                             <td>
                                                 <div style={{ fontSize: 12 }}>
                                                     {fmtDate(event.event_date)}
-                                                    {event.recurrence_type && event.recurrence_type !== 'none' && (
-                                                        <span style={{ marginRight: 6, fontSize: 10, background: '#1A5FAB18', color: '#1A5FAB', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>
-                                                            {event.recurrence_type === 'daily' ? 'يومي' : event.recurrence_type === 'weekly' ? 'أسبوعي' : 'شهري'}
+                                                    {event.template_id && (
+                                                        <span style={{ marginRight: 6, fontSize: 10, background: '#1A5FAB18', color: '#1A5FAB', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }} title="مولّدة من قالب تكرار">
+                                                            قالب
                                                         </span>
                                                     )}
                                                     {event.parent_event_id && (
@@ -127,7 +138,7 @@ export default function EventsIndex({ events, filters, totalEvents, activeEvents
                                                 </Link>
                                             </td>
                                         </tr>
-                                        {event.status === 'alternative_proposed' && proposedAlts.length > 0 && (
+                                        {event.status === 'provider_alternative' && proposedAlts.length > 0 && (
                                             <tr>
                                                 <td colSpan={7} style={{ padding: '0 16px 16px', background: '#1A5FAB06' }}>
                                                     {proposedAlts.map((alt) => (

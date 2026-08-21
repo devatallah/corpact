@@ -3,52 +3,137 @@
 namespace App\Services\Partner;
 
 use App\Models\Partner;
-use App\Models\Settlement;
+use App\Models\SettlementItem;
+use App\Models\SettlementStatement;
+use App\Support\Money;
 use Illuminate\Pagination\LengthAwarePaginator;
 
+/**
+ * صفحات المزوّد للتسويات (G/دليل المزوّد §7): قائمة الكشوف وتفاصيل كل كشف
+ * مقابل فعالياته. المزوّد يقرأ فقط — الاعتماد والصرف من الأدمن المالي.
+ */
 class PartnerSettlementService
 {
     /**
-     * List settlements for a specific partner.
-     *
      * @param  array{status?: string, per_page?: int}  $filters
+     * @return LengthAwarePaginator<int, SettlementStatement>
      */
-    public function listForpartner(Partner $partner, array $filters = []): LengthAwarePaginator
+    public function listForPartner(Partner $partner, array $filters = []): LengthAwarePaginator
     {
-        return Settlement::query()
-            ->with('company')
+        return SettlementStatement::query()
             ->where('partner_id', $partner->id)
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
-            ->when(isset($filters['search']), fn ($query) => $query->whereHas('company', fn ($q) => $q->where('name', 'like', "%{$filters['search']}%")))
-            ->latest()
-            ->paginate($filters['per_page'] ?? 15);
+            ->orderByDesc('period_end')
+            ->orderByDesc('id')
+            ->paginate($filters['per_page'] ?? 15)
+            ->through(fn (SettlementStatement $statement) => $this->presentStatement($statement));
     }
 
     /**
-     * Get settlement totals for a partner (received vs pending).
+     * المستحقات: المصروف فعلاً مقابل ما لم يُصرف بعد، وبنود لم تدخل كشفاً.
      *
-     * @return array{received: float, pending: float, processing: float, total_gross: float, total_commission: float, total_net: float}
+     * @return array<string, mixed>
      */
     public function totals(Partner $partner): array
     {
-        $amounts = Settlement::query()
+        $byStatus = SettlementStatement::query()
             ->where('partner_id', $partner->id)
-            ->selectRaw('status, SUM(net_amount) as total_net, SUM(gross_amount) as total_gross, SUM(commission_amount) as total_commission')
+            ->selectRaw('status, SUM(net_amount_halalas) as net, SUM(gross_amount_halalas) as gross, SUM(commission_amount_halalas) as commission')
             ->groupBy('status')
             ->get()
             ->keyBy('status');
 
-        $allGross = Settlement::query()->where('partner_id', $partner->id)->sum('gross_amount');
-        $allCommission = Settlement::query()->where('partner_id', $partner->id)->sum('commission_amount');
-        $allNet = Settlement::query()->where('partner_id', $partner->id)->sum('net_amount');
+        $pendingItems = (int) SettlementItem::query()
+            ->where('partner_id', $partner->id)
+            ->where('status', SettlementItem::STATUS_PENDING)
+            ->sum('net_amount_halalas');
+
+        $paidNet = (int) ($byStatus->get(SettlementStatement::STATUS_PAID)->net ?? 0);
+        $draftNet = (int) ($byStatus->get(SettlementStatement::STATUS_DRAFT)->net ?? 0);
+        $approvedNet = (int) ($byStatus->get(SettlementStatement::STATUS_APPROVED)->net ?? 0);
 
         return [
-            'received' => (float) ($amounts->get('paid')?->total_net ?? 0),
-            'pending' => (float) ($amounts->get('pending')?->total_net ?? 0),
-            'processing' => (float) ($amounts->get('processing')?->total_net ?? 0),
-            'total_gross' => (float) $allGross,
-            'total_commission' => (float) $allCommission,
-            'total_net' => (float) $allNet,
+            'paid_net_halalas' => $paidNet,
+            'paid_net' => Money::format($paidNet),
+            'draft_net_halalas' => $draftNet,
+            'draft_net' => Money::format($draftNet),
+            'approved_net_halalas' => $approvedNet,
+            'approved_net' => Money::format($approvedNet),
+            // بنود اكتملت فعالياتها ولم يحن كشفها بعد (تدخل الكشف القادم).
+            'unstated_net_halalas' => $pendingItems,
+            'unstated_net' => Money::format($pendingItems),
+            'payouts_blocked' => $partner->payoutsBlocked(),
+        ];
+    }
+
+    /**
+     * تفاصيل كشف واحد + بنوده مقابل الفعاليات (مطابقة بند ببند).
+     *
+     * @return array<string, mixed>
+     */
+    public function statementDetail(SettlementStatement $statement): array
+    {
+        $items = $statement->items()->with('event:id,title,event_date,status')->get();
+
+        return [
+            ...$this->presentStatement($statement),
+            'items' => $items->map(fn (SettlementItem $item) => $this->presentItem($item))->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentStatement(SettlementStatement $statement): array
+    {
+        return [
+            'id' => $statement->id,
+            'period_key' => $statement->period_key,
+            'period_start' => $statement->period_start?->toDateString(),
+            'period_end' => $statement->period_end?->toDateString(),
+            'status' => $statement->status,
+            'items_count' => (int) $statement->items_count,
+            'gross_amount_halalas' => (int) $statement->gross_amount_halalas,
+            'commission_amount_halalas' => (int) $statement->commission_amount_halalas,
+            'vat_amount_halalas' => (int) $statement->vat_amount_halalas,
+            'net_amount_halalas' => (int) $statement->net_amount_halalas,
+            'gross_amount' => Money::format((int) $statement->gross_amount_halalas),
+            'commission_amount' => Money::format((int) $statement->commission_amount_halalas),
+            'vat_amount' => Money::format((int) $statement->vat_amount_halalas),
+            'net_amount' => Money::format((int) $statement->net_amount_halalas),
+            'approved_at' => $statement->approved_at?->toIso8601String(),
+            'paid_at' => $statement->paid_at?->toIso8601String(),
+            'transferred_at' => $statement->transferred_at?->toIso8601String(),
+            'payout_reference' => $statement->payout_reference,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentItem(SettlementItem $item): array
+    {
+        $snapshot = $item->snapshot_json ?? [];
+
+        return [
+            'id' => $item->id,
+            'type' => $item->type,
+            'status' => $item->status,
+            'event_id' => (int) $item->event_id,
+            'event_title' => $snapshot['event']['title'] ?? $item->event?->title,
+            'event_date' => $item->event?->event_date?->toDateString(),
+            'commission_rate_percent' => $item->commission_rate_percent !== null ? (float) $item->commission_rate_percent : null,
+            'gross_amount_halalas' => (int) $item->gross_amount_halalas,
+            'commission_amount_halalas' => (int) $item->commission_amount_halalas,
+            'vat_amount_halalas' => (int) $item->vat_amount_halalas,
+            'net_amount_halalas' => (int) $item->net_amount_halalas,
+            'gross_amount' => Money::format((int) $item->gross_amount_halalas),
+            'commission_amount' => Money::format((int) $item->commission_amount_halalas),
+            'vat_amount' => Money::format((int) $item->vat_amount_halalas),
+            'net_amount' => Money::format((int) $item->net_amount_halalas),
+            'reason' => $item->reason,
+            'corrects_item_id' => $item->corrects_item_id !== null ? (int) $item->corrects_item_id : null,
+            'computed_at' => $item->computed_at?->toIso8601String(),
         ];
     }
 }

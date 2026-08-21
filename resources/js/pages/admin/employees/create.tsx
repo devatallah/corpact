@@ -121,7 +121,7 @@ export default function EmployeesCreate({ companies }: Props) {
                                 type="text"
                                 value={data.department}
                                 onChange={(e) => setData('department', e.target.value)}
-                                placeholder="مثال: الموارد البشرية"
+                                placeholder="مثال: التسويق"
                             />
                         </div>
                     </div>

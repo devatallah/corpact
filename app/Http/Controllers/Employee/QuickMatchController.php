@@ -83,7 +83,7 @@ class QuickMatchController extends Controller
         // Only creator or community leader can convert
         $community = $quickMatch->community;
         $isCreator = $quickMatch->created_by === $employee->id;
-        $isLeader = $community->leader_id === $employee->id;
+        $isLeader = $community->isLeader($employee);
 
         if (! $isCreator && ! $isLeader) {
             return back()->with('error', 'يمكن فقط لمنشئ التصويت أو قائد المجتمع التحويل.');

@@ -56,7 +56,7 @@ class SuggestQuickMatches extends Command
             $quickMatch = QuickMatch::create([
                 'community_id' => $community->id,
                 'created_by' => null,
-                'message' => 'مجتمعكم ما لعب من فترة، وش رايكم نسوي مباراة؟ صوّتوا على الموعد المناسب!',
+                'message' => 'مجتمعكم ما لعب من فترة، وش رايكم نسوي مباراة؟ صوّتوا على الوقت المناسب!',
                 'source' => 'auto',
                 'status' => 'open',
             ]);

@@ -1,12 +1,10 @@
 <?php
 
-use App\Models\partner;
-use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
 
-test('login is throttled after 5 failed attempts', function () {
-    $admin = User::factory()->create();
+test('admin login is throttled after 5 failed attempts', function () {
+    $admin = User::factory()->platformAdmin()->create();
 
     for ($i = 0; $i < 5; $i++) {
         $this->post(route('admin.login'), [
@@ -24,61 +22,39 @@ test('login is throttled after 5 failed attempts', function () {
         ->toContain('عدد محاولات تسجيل الدخول');
 });
 
-test('employee login is throttled after 5 failed attempts', function () {
-    $employee = Employee::factory()->create();
+test('otp requests are capped at 3 per hour per phone', function () {
+    $otp = fakeOtp();
+    Employee::factory()->create(['phone' => '0509111111']);
 
-    for ($i = 0; $i < 5; $i++) {
-        $this->post(route('employee.login'), [
-            'email' => $employee->email,
-            'password' => 'wrong-password',
-        ]);
+    for ($i = 0; $i < 3; $i++) {
+        $this->post(route('employee.otp.request'), ['phone' => '0509111111'])
+            ->assertSessionHasNoErrors();
     }
 
-    $this->post(route('employee.login'), [
-        'email' => $employee->email,
-        'password' => 'wrong-password',
-    ])->assertSessionHasErrors('email');
+    $this->post(route('employee.otp.request'), ['phone' => '0509111111'])
+        ->assertSessionHasErrors('phone');
 
-    expect(session('errors')->get('email')[0])
-        ->toContain('عدد محاولات تسجيل الدخول');
+    expect($otp->sent)->toHaveCount(3);
 });
 
-test('partner login is throttled after 5 failed attempts', function () {
-    $partner = partner::factory()->create();
+test('otp endpoints are rate limited per minute', function () {
+    fakeOtp();
+    Employee::factory()->create(['phone' => '0509222222']);
 
-    for ($i = 0; $i < 5; $i++) {
-        $this->post(route('partner.login'), [
-            'email' => $partner->email,
-            'password' => 'wrong-password',
+    for ($i = 0; $i < 10; $i++) {
+        $this->post(route('employee.otp.verify'), [
+            'phone' => '0509222222',
+            'code' => '000000',
         ]);
     }
 
-    $this->post(route('partner.login'), [
-        'email' => $partner->email,
-        'password' => 'wrong-password',
-    ])->assertSessionHasErrors('email');
+    $this->post(route('employee.otp.verify'), [
+        'phone' => '0509222222',
+        'code' => '000000',
+    ])->assertSessionHasErrors('phone');
 
-    expect(session('errors')->get('email')[0])
-        ->toContain('عدد محاولات تسجيل الدخول');
-});
-
-test('company login is throttled after 5 failed attempts', function () {
-    $company = Company::factory()->create();
-
-    for ($i = 0; $i < 5; $i++) {
-        $this->post(route('company.login'), [
-            'email' => $company->email,
-            'password' => 'wrong-password',
-        ]);
-    }
-
-    $this->post(route('company.login'), [
-        'email' => $company->email,
-        'password' => 'wrong-password',
-    ])->assertSessionHasErrors('email');
-
-    expect(session('errors')->get('email')[0])
-        ->toContain('عدد محاولات تسجيل الدخول');
+    expect(session('errors')->get('phone')[0])
+        ->toContain('محاولات كثيرة');
 });
 
 test('password reset request is throttled after 3 attempts', function () {

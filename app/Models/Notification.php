@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
     'notifiable_type',
     'notifiable_id',
     'type',
+    'template_key',
     'title',
     'body',
     'data',

@@ -22,8 +22,8 @@ class NotificationFactory extends Factory
             'type' => fake()->randomElement(['event_created', 'event_approved', 'event_rejected', 'payment', 'system', 'reminder']),
             'title' => fake()->randomElement([
                 'تم إنشاء حدث جديد',
-                'تمت الموافقة على الحجز',
-                'تم رفض الحجز',
+                'تمت الموافقة على الفعالية',
+                'تم رفض الطلب',
                 'تم استلام دفعة',
                 'تذكير بالحدث القادم',
                 'تحديث النظام',

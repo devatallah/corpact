@@ -1,0 +1,69 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\BlackoutDate;
+use App\Services\ActivityLogService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+/**
+ * أيام الحظر — أدمن تيمات (H §8): إجازات/رمضان. الفعالية المولَّدة من قالب
+ * والواقعة في نطاق حظر تُتخطى افتراضياً أو تُزاح أسبوعاً حسب إعداد القالب.
+ * CRUD أدنى — يوسّعه A15.
+ */
+class BlackoutDateController extends Controller
+{
+    public function index(): Response
+    {
+        return Inertia::render('admin/blackouts/index', [
+            'blackouts' => BlackoutDate::query()->orderByDesc('starts_on')->get(),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'starts_on' => ['required', 'date'],
+            'ends_on' => ['required', 'date', 'after_or_equal:starts_on'],
+        ]);
+
+        $blackout = BlackoutDate::create([
+            ...$data,
+            'created_by' => auth('admin')->id(),
+        ]);
+
+        ActivityLogService::log(
+            null,
+            $blackout,
+            'blackout_created',
+            "أُضيف نطاق حظر «{$blackout->name}» ({$blackout->starts_on->format('Y-m-d')} — {$blackout->ends_on->format('Y-m-d')})",
+        );
+
+        return back()->with('success', 'أُضيف نطاق الحظر — يسري على التوليد القادم فقط.');
+    }
+
+    public function update(Request $request, BlackoutDate $blackout): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'starts_on' => ['required', 'date'],
+            'ends_on' => ['required', 'date', 'after_or_equal:starts_on'],
+        ]);
+
+        $blackout->update($data);
+
+        return back()->with('success', 'عُدّل نطاق الحظر.');
+    }
+
+    public function destroy(BlackoutDate $blackout): RedirectResponse
+    {
+        $blackout->delete();
+
+        return back()->with('success', 'حُذف نطاق الحظر.');
+    }
+}

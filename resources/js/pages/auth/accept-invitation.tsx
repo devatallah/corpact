@@ -1,11 +1,13 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import PasswordInput from '@/components/password-input';
 
 interface Props {
     invitation: {
         token: string;
         email: string;
+        name?: string | null;
+        phone?: string | null;
+        phone_locked?: boolean;
         company_name: string;
     };
 }
@@ -46,9 +48,8 @@ const btnStyle: React.CSSProperties = {
 
 export default function AcceptInvitation({ invitation }: Props) {
     const { data, setData, post, processing, errors } = useForm({
-        name: '',
-        password: '',
-        password_confirmation: '',
+        name: invitation.name ?? '',
+        phone: invitation.phone ?? '',
     });
 
     function submit(e: FormEvent) {
@@ -127,25 +128,24 @@ export default function AcceptInvitation({ invitation }: Props) {
                                 {errors.name && <p style={{ fontSize: 12, color: '#c0392b', marginTop: 4 }}>{errors.name}</p>}
                             </div>
 
-                            <div style={{ marginBottom: 16 }}>
-                                <label style={labelStyle}>كلمة المرور</label>
-                                <PasswordInput
-                                    style={{ ...inputStyle, direction: 'ltr' }}
-                                    autoComplete="new-password"
-                                    value={data.password}
-                                    onChange={(e) => setData('password', e.target.value)}
-                                />
-                                {errors.password && <p style={{ fontSize: 12, color: '#c0392b', marginTop: 4 }}>{errors.password}</p>}
-                            </div>
-
                             <div style={{ marginBottom: 20 }}>
-                                <label style={labelStyle}>تأكيد كلمة المرور</label>
-                                <PasswordInput
-                                    style={{ ...inputStyle, direction: 'ltr' }}
-                                    autoComplete="new-password"
-                                    value={data.password_confirmation}
-                                    onChange={(e) => setData('password_confirmation', e.target.value)}
+                                <label style={labelStyle}>رقم الجوال</label>
+                                <input
+                                    style={{ ...inputStyle, direction: 'ltr', textAlign: 'center', opacity: invitation.phone_locked ? 0.7 : 1 }}
+                                    type="tel"
+                                    inputMode="tel"
+                                    autoComplete="tel"
+                                    placeholder="05xxxxxxxx"
+                                    value={data.phone}
+                                    readOnly={invitation.phone_locked}
+                                    onChange={(e) => setData('phone', e.target.value)}
                                 />
+                                {errors.phone && <p style={{ fontSize: 12, color: '#c0392b', marginTop: 4 }}>{errors.phone}</p>}
+                                <p style={{ fontSize: 11, color: '#8A8A7A', marginTop: 6 }}>
+                                    {invitation.phone_locked
+                                        ? 'هذا الرقم من ملف شركتك وسيكون هوية دخولك — تسجيل الدخول برمز تحقق يصل عبر واتساب.'
+                                        : 'لا كلمة مرور — تسجيل الدخول يتم برقم الجوال ورمز تحقق يصل عبر واتساب.'}
+                                </p>
                             </div>
 
                             <button type="submit" disabled={processing} style={{ ...btnStyle, opacity: processing ? 0.6 : 1 }}>

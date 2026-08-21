@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Employee\StoreCommunityRequestRequest;
+use App\Models\Category;
 use App\Services\CommunityRequestService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -26,7 +27,7 @@ class CommunityRequestController extends Controller
 
         return Inertia::render('employee/community-requests/index', [
             'requests' => $requests,
-            'categories' => \App\Models\Category::whereNull('parent_id')
+            'categories' => Category::whereNull('parent_id')
                 ->with('children:id,parent_id,name,icon')
                 ->select('id', 'parent_id', 'name', 'icon')
                 ->orderBy('name')

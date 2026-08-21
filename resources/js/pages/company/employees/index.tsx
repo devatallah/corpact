@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { useState, useEffect  } from 'react';
 import type {FormEvent} from 'react';
 import toastr from 'toastr';
@@ -80,6 +80,12 @@ return;
                         placeholder="🔍 ابحث..."
                         style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', width: 180, fontFamily: 'inherit' }}
                     />
+                    <Link
+                        href="/company/employees/import"
+                        style={{ background: '#EEF2F9', color: '#3B5BDB', border: '1px solid #E2E8F4', borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+                    >
+                        ⬆ استيراد ملف
+                    </Link>
                     <button
                         onClick={() => setShowInvite(!showInvite)}
                         style={{ background: '#3B5BDB', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}

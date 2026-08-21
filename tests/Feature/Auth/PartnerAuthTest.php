@@ -1,56 +1,48 @@
 <?php
 
-use App\Models\partner;
+use App\Models\Partner;
 
-test('partner login page redirects to landing login modal', function () {
-    $this->get(route('partner.login'))->assertRedirect('/partners?login=1');
+// A3: providers log in by phone + OTP after being invited/approved by the
+// Teamat admin (H §4) — the partner email/password login was removed.
+
+test('partner login page renders the otp login screen', function () {
+    $this->get(route('partner.login'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('auth/otp-login')->where('guard', 'partner'));
 });
 
-test('active partner can login', function () {
-    $partner = partner::factory()->create([
-        'password' => bcrypt('password'),
-        'status' => 'active',
-    ]);
+test('active partner can login with phone and otp', function () {
+    $otp = fakeOtp();
+    $partner = Partner::factory()->create(['contact_phone' => '0507000001', 'status' => 'active']);
 
-    $this->post(route('partner.login'), [
-        'email' => $partner->email,
-        'password' => 'password',
+    $this->post(route('partner.otp.request'), ['phone' => '0507000001'])
+        ->assertSessionHasNoErrors();
+
+    $this->post(route('partner.otp.verify'), [
+        'phone' => '0507000001',
+        'code' => $otp->lastCode(),
     ])->assertRedirect(route('partner.dash'));
 
     $this->assertAuthenticatedAs($partner, 'partner');
 });
 
-test('inactive partner cannot login', function () {
-    $partner = partner::factory()->pending()->create([
-        'password' => bcrypt('password'),
-    ]);
+test('pending partner cannot login', function () {
+    fakeOtp();
+    Partner::factory()->pending()->create(['contact_phone' => '0507000002']);
 
-    $this->post(route('partner.login'), [
-        'email' => $partner->email,
-        'password' => 'password',
-    ])->assertSessionHasErrors('email');
+    $this->post(route('partner.otp.request'), ['phone' => '0507000002'])
+        ->assertSessionHasErrors('phone');
 
     $this->assertGuest('partner');
 });
 
-test('partner cannot login with wrong password', function () {
-    $partner = partner::factory()->create(['password' => bcrypt('password')]);
-
-    $this->post(route('partner.login'), [
-        'email' => $partner->email,
-        'password' => 'wrong-password',
-    ])->assertSessionHasErrors('email');
-
-    $this->assertGuest('partner');
-});
-
-test('partner login validates required fields', function () {
-    $this->post(route('partner.login'), [])
-        ->assertSessionHasErrors(['email', 'password']);
+test('otp request validates required phone', function () {
+    $this->post(route('partner.otp.request'), [])
+        ->assertSessionHasErrors('phone');
 });
 
 test('partner can logout', function () {
-    $partner = partner::factory()->create();
+    $partner = Partner::factory()->create();
 
     $this->actingAs($partner, 'partner')
         ->post(route('partner.logout'))

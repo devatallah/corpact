@@ -28,7 +28,7 @@ class LeagueController extends Controller
 
         $league->load(['departments', 'matches.departmentA', 'matches.departmentB', 'creator']);
 
-        $isLeader = $community->leader_id === $employee->id;
+        $isLeader = $community->isLeader($employee);
 
         $standings = $league->isRoundRobin() ? $this->leagueService->standings($league) : null;
 
@@ -62,7 +62,7 @@ class LeagueController extends Controller
     {
         $employee = auth('employee')->user();
 
-        if ($community->leader_id !== $employee->id) {
+        if (! $community->isLeader($employee)) {
             abort(403);
         }
 
@@ -104,7 +104,7 @@ class LeagueController extends Controller
     {
         $employee = auth('employee')->user();
 
-        if ($community->leader_id !== $employee->id) {
+        if (! $community->isLeader($employee)) {
             abort(403);
         }
 
@@ -151,7 +151,7 @@ class LeagueController extends Controller
     {
         $employee = auth('employee')->user();
 
-        if ($community->leader_id !== $employee->id) {
+        if (! $community->isLeader($employee)) {
             abort(403);
         }
 

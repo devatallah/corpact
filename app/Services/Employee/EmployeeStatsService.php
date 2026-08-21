@@ -31,7 +31,7 @@ class EmployeeStatsService
     {
         // Get all event dates where employee participated
         $eventDates = $employee->events()
-            ->wherePivot('status', 'joined')
+            ->wherePivot('seat_status', 'reserved')
             ->whereIn('events.status', ['confirmed', 'completed'])
             ->pluck('events.event_date')
             ->map(fn ($date) => Carbon::parse($date))
@@ -60,7 +60,7 @@ class EmployeeStatsService
         // If the current week or last week isn't in the list, streak is 0
         $lastWeekStart = Carbon::now()->subWeek()->startOfWeek(Carbon::SATURDAY)->format('Y-m-d');
 
-        if (!in_array($currentWeekStart, $participatedWeeks) && !in_array($lastWeekStart, $participatedWeeks)) {
+        if (! in_array($currentWeekStart, $participatedWeeks) && ! in_array($lastWeekStart, $participatedWeeks)) {
             return 0;
         }
 
@@ -84,7 +84,7 @@ class EmployeeStatsService
     private function totalEvents(Employee $employee): int
     {
         return $employee->events()
-            ->wherePivot('status', 'joined')
+            ->wherePivot('seat_status', 'reserved')
             ->whereIn('events.status', ['confirmed', 'completed'])
             ->count();
     }
@@ -95,7 +95,7 @@ class EmployeeStatsService
     private function eventsThisMonth(Employee $employee): int
     {
         return $employee->events()
-            ->wherePivot('status', 'joined')
+            ->wherePivot('seat_status', 'reserved')
             ->whereIn('events.status', ['confirmed', 'completed'])
             ->whereMonth('events.event_date', now()->month)
             ->whereYear('events.event_date', now()->year)
@@ -111,7 +111,7 @@ class EmployeeStatsService
             ->join('events', 'events.id', '=', 'event_participants.event_id')
             ->join('categories', 'events.category_id', '=', 'categories.id')
             ->where('event_participants.employee_id', $employee->id)
-            ->where('event_participants.status', 'joined')
+            ->where('event_participants.seat_status', 'reserved')
             ->whereIn('events.status', ['confirmed', 'completed'])
             ->selectRaw('categories.name, COUNT(*) as count')
             ->groupBy('categories.name')

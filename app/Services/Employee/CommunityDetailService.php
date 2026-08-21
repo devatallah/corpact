@@ -7,9 +7,9 @@ use App\Models\CommunityAnnouncement;
 use App\Models\CommunityPoll;
 use App\Models\Employee;
 use App\Models\Event;
-use App\Models\Notification;
 use App\Models\PollOption;
 use App\Models\PollVote;
+use App\Support\Notify;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -21,7 +21,10 @@ class CommunityDetailService
      */
     public function getDetail(Community $community): Community
     {
-        return $community->load(['category', 'leader', 'company']);
+        $community->load(['category', 'company']);
+        Community::attachPrimaryLeaders([$community]);
+
+        return $community;
     }
 
     /**
@@ -53,13 +56,12 @@ class CommunityDetailService
     }
 
     /**
-     * Get community members.
+     * Get current (active) community members.
      */
     public function members(Community $community): Collection
     {
         return $community->members()
             ->with('department')
-            ->orderByPivot('role', 'asc')
             ->orderByPivot('joined_at', 'asc')
             ->get();
     }
@@ -82,25 +84,18 @@ class CommunityDetailService
                     ->where('employee_id', $employee->id)
                     ->value('option_id'));
                 $poll->setAttribute('total_votes', $poll->options->sum('votes_count'));
+
                 return $poll;
             });
     }
 
     /**
-     * Create a poll (leader/captain only).
+     * Create a poll (leaders only — via role_assignments).
      */
     public function createPoll(Community $community, Employee $employee, string $question, array $options, ?string $expiresAt): CommunityPoll
     {
-        if ($community->leader_id !== $employee->id) {
-            $pivotRole = $community->members()
-                ->where('employee_id', $employee->id)
-                ->first()
-                ?->pivot
-                ?->role;
-
-            if ($pivotRole !== 'captain') {
-                throw new AuthorizationException('Only community leaders or captains can create polls.');
-            }
+        if (! $community->isLeader($employee)) {
+            throw new AuthorizationException('Only community leaders can create polls.');
         }
 
         $poll = CommunityPoll::create([
@@ -125,14 +120,12 @@ class CommunityDetailService
             if ($member->id === $employee->id) {
                 continue;
             }
-            Notification::create([
-                'notifiable_type' => Employee::class,
-                'notifiable_id' => $member->id,
-                'type' => 'poll',
-                'title' => "تصويت جديد في {$community->name}",
-                'body' => mb_substr($question, 0, 100),
-                'data' => ['community_id' => $community->id, 'poll_id' => $poll->id],
-            ]);
+            Notify::send(
+                'community.poll',
+                $member,
+                ['community' => $community->name, 'question' => mb_substr($question, 0, 100)],
+                ['data' => ['community_id' => $community->id, 'poll_id' => $poll->id]],
+            );
         }
 
         return $poll;
@@ -158,9 +151,9 @@ class CommunityDetailService
             throw new AuthorizationException('هذا التصويت منتهي.');
         }
 
-        // Ensure employee is a member
+        // Ensure employee is an active member
         $isMember = $community->members()->where('employee_id', $employee->id)->exists();
-        if (!$isMember && $community->leader_id !== $employee->id) {
+        if (! $isMember && ! $community->isLeader($employee)) {
             throw new AuthorizationException('يجب أن تكون عضوا في المجتمع للتصويت.');
         }
 
@@ -172,7 +165,7 @@ class CommunityDetailService
 
         // Ensure option belongs to poll
         $optionExists = PollOption::where('id', $optionId)->where('poll_id', $poll->id)->exists();
-        if (!$optionExists) {
+        if (! $optionExists) {
             throw new AuthorizationException('الخيار غير صالح.');
         }
 
@@ -192,59 +185,10 @@ class CommunityDetailService
             throw new AuthorizationException('Poll does not belong to this community.');
         }
 
-        if ($poll->employee_id !== $employee->id && $community->leader_id !== $employee->id) {
-            $pivotRole = $community->members()
-                ->where('employee_id', $employee->id)
-                ->first()
-                ?->pivot
-                ?->role;
-
-            if ($pivotRole !== 'captain') {
-                throw new AuthorizationException('Only the poll creator, community leader, or captains can close polls.');
-            }
+        if ($poll->employee_id !== $employee->id && ! $community->isLeader($employee)) {
+            throw new AuthorizationException('Only the poll creator or community leaders can close polls.');
         }
 
         $poll->update(['status' => 'closed']);
-    }
-
-    /**
-     * Post an announcement (leader/captain only).
-     */
-    public function postAnnouncement(Community $community, Employee $employee, string $body): CommunityAnnouncement
-    {
-        if ($community->leader_id !== $employee->id) {
-            $pivotRole = $community->members()
-                ->where('employee_id', $employee->id)
-                ->first()
-                ?->pivot
-                ?->role;
-
-            if ($pivotRole !== 'captain') {
-                throw new AuthorizationException('Only community leaders or captains can post announcements.');
-            }
-        }
-
-        $announcement = CommunityAnnouncement::create([
-            'community_id' => $community->id,
-            'employee_id' => $employee->id,
-            'body' => $body,
-        ]);
-
-        $community->load('members');
-        foreach ($community->members as $member) {
-            if ($member->id === $employee->id) {
-                continue;
-            }
-            Notification::create([
-                'notifiable_type' => Employee::class,
-                'notifiable_id' => $member->id,
-                'type' => 'announcement',
-                'title' => "إعلان جديد في {$community->name}",
-                'body' => mb_substr($body, 0, 100),
-                'data' => ['community_id' => $community->id],
-            ]);
-        }
-
-        return $announcement;
     }
 }

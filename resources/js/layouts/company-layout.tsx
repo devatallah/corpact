@@ -16,8 +16,13 @@ export default function CompanyLayout({ children }: { children: React.ReactNode 
         { label: 'الفعاليات', href: '/company/events', emoji: '📅' },
         { label: 'البطولات', href: '/company/leagues', emoji: '🏆' },
         { label: 'المحفظة', href: '/company/wallet', emoji: '💳' },
+        // A15 — H §18 (مسؤول الحساب): «المالية: … الفواتير» + H §19: ملخص
+        // سجل التدقيق لشركته. الصفحتان كانتا بلا رابط في الشريط.
+        { label: 'الفواتير', href: '/company/invoices', emoji: '🧾' },
         { label: 'التقارير', href: '/company/reports', emoji: '📈' },
+        { label: 'سجل التدقيق', href: '/company/audit', emoji: '🧭' },
         { label: 'الإشعارات', href: '/company/notifications', emoji: '🔔', badge: unread },
+        { label: 'الإعدادات', href: '/company/settings', emoji: '⚙️' },
         { label: 'الملف الشخصي', href: '/company/profile', emoji: '👤' },
     ];
 
@@ -30,6 +35,8 @@ export default function CompanyLayout({ children }: { children: React.ReactNode 
                 navItems={navItems}
                 logoutUrl="/company/logout"
                 infoStyle="company"
+                // A15 — H §4: مبدّل السياق الصريح للحسابات متعددة الشركات.
+                contextSwitchUrl="/company/context/switch"
             />
             <div className="main">
                 {children}

@@ -22,7 +22,6 @@ interface MonthData {
 interface TopCompany extends Company {
     employees_count: number;
     events_count: number;
-    settlements: { total_spend: number }[];
 }
 
 interface Props {
@@ -41,6 +40,24 @@ interface Props {
     maxRevenue: number;
     recentRequests: RecentRequest[];
     topCompanies: TopCompany[];
+    /**
+     * A12 — H §13: مؤشر الإنذار المبكر لـ«الفعالية الشبح». الحضور تلقائي،
+     * فارتفاع معدل التعديل بعد الاكتمال أو التغيير اليدوي للحالة إشارة إلى
+     * فعاليات لم تُقم فعلاً. A13 يبني التقرير الكامل فوق نفس الأرقام.
+     */
+    ghostEventWatch: GhostEventWatch;
+}
+
+interface GhostEventWatch {
+    completed_events: number;
+    post_completion_edited_events: number;
+    post_completion_edit_rate: number;
+    absence_marks: number;
+    events_created: number;
+    manual_state_change_events: number;
+    manual_state_change_rate: number;
+    locked_without_review: number;
+    locked_without_review_rate: number;
 }
 
 export default function AdminDashboard({
@@ -59,6 +76,7 @@ export default function AdminDashboard({
     maxRevenue,
     recentRequests,
     topCompanies,
+    ghostEventWatch,
 }: Props) {
     return (
         <AdminLayout>
@@ -103,6 +121,39 @@ export default function AdminDashboard({
                     change={`${pendingCompanies} شركة · ${pendingPartners} شريك`}
                     color="#C8A600"
                 />
+            </div>
+
+            {/* A12 — H §13: «يجب مراقبة معدل التعديلات بعد الاكتمال كمؤشر إنذار مبكر» */}
+            <div className="card" style={{ marginBottom: '16px' }}>
+                <div className="card-title">إنذار مبكر — الفعالية الشبح (آخر 30 يوماً)</div>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 12, lineHeight: 1.7 }}>
+                    الحضور تلقائي بالكامل، فالفعالية التي لم تُقم ولم يبلّغ عنها أحد تُحتسب مكتملة وتدخل
+                    الصرف والفوترة. هذه الأرقام هي المؤشر المتفق عليه لكشف ذلك مبكراً.
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+                    <div>
+                        <div style={{ fontSize: 22, fontWeight: 700 }}>{ghostEventWatch.post_completion_edit_rate}%</div>
+                        <div style={{ fontSize: 12, color: '#666' }}>
+                            تعديل حضور بعد الاكتمال ({ghostEventWatch.post_completion_edited_events} من {ghostEventWatch.completed_events})
+                        </div>
+                    </div>
+                    <div>
+                        <div style={{ fontSize: 22, fontWeight: 700 }}>{ghostEventWatch.manual_state_change_rate}%</div>
+                        <div style={{ fontSize: 12, color: '#666' }}>
+                            تغيير حالة يدوي ({ghostEventWatch.manual_state_change_events} فعالية)
+                        </div>
+                    </div>
+                    <div>
+                        <div style={{ fontSize: 22, fontWeight: 700 }}>{ghostEventWatch.locked_without_review}</div>
+                        <div style={{ fontSize: 12, color: '#666' }}>
+                            أُقفلت نافذتها بلا مراجعة واحدة ({ghostEventWatch.locked_without_review_rate}%)
+                        </div>
+                    </div>
+                    <div>
+                        <div style={{ fontSize: 22, fontWeight: 700 }}>{ghostEventWatch.absence_marks}</div>
+                        <div style={{ fontSize: 12, color: '#666' }}>حالات غياب مسجَّلة</div>
+                    </div>
+                </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '16px', marginBottom: '16px' }}>
@@ -187,14 +238,13 @@ export default function AdminDashboard({
                                 <th>الشركة</th>
                                 <th>الموظفون</th>
                                 <th>الفعاليات</th>
-                                <th>الإنفاق</th>
                                 <th>الحالة</th>
                             </tr>
                         </thead>
                         <tbody>
                             {topCompanies.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} style={{ textAlign: 'center', color: '#6B7A99' }}>
+                                    <td colSpan={4} style={{ textAlign: 'center', color: '#6B7A99' }}>
                                         لا توجد بيانات
                                     </td>
                                 </tr>
@@ -204,9 +254,6 @@ export default function AdminDashboard({
                                         <td style={{ fontWeight: 700, color: '#fff' }}>{company.name}</td>
                                         <td>{company.employees_count}</td>
                                         <td style={{ color: '#009E82', fontWeight: 700 }}>{company.events_count}</td>
-                                        <td style={{ color: '#D4820A', fontWeight: 700 }}>
-                                            {(company.settlements?.[0]?.total_spend ?? 0).toLocaleString()} ر
-                                        </td>
                                         <td>
                                             <StatusBadge status="active" />
                                         </td>

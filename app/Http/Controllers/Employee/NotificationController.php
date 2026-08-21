@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
 use App\Models\Notification;
 use App\Services\Employee\EmployeeNotificationService;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +24,7 @@ class NotificationController extends Controller
         $employee = auth('employee')->user();
 
         $notifications = $this->notificationService->list($employee);
-        $unreadCount = Notification::where('notifiable_type', \App\Models\Employee::class)->where('notifiable_id', $employee->id)->whereNull('read_at')->count();
+        $unreadCount = Notification::where('notifiable_type', Employee::class)->where('notifiable_id', $employee->id)->whereNull('read_at')->count();
 
         return Inertia::render('employee/notifications/index', [
             'notifications' => $notifications,

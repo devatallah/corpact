@@ -1,13 +1,15 @@
 <?php
 
-use App\Models\partner;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\partner;
 use App\Models\User;
-use Illuminate\Support\Facades\Notification;
 use App\Notifications\VerifyEmailNotification;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\URL;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->withoutVite();
@@ -33,7 +35,7 @@ test('verified admin is redirected from verification notice', function () {
 test('admin can verify email with valid link', function () {
     $user = User::factory()->unverified()->create();
 
-    $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+    $url = URL::temporarySignedRoute(
         'admin.verification.verify',
         now()->addMinutes(60),
         ['id' => $user->id, 'hash' => sha1($user->email)]
@@ -71,7 +73,7 @@ test('employee can see verification notice when unverified', function () {
 test('employee can verify email with valid link', function () {
     $employee = Employee::factory()->unverified()->create();
 
-    $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+    $url = URL::temporarySignedRoute(
         'employee.verification.verify',
         now()->addMinutes(60),
         ['id' => $employee->id, 'hash' => sha1($employee->email)]
@@ -96,7 +98,7 @@ test('partner can see verification notice when unverified', function () {
 test('partner can verify email with valid link', function () {
     $partner = partner::factory()->unverified()->create();
 
-    $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+    $url = URL::temporarySignedRoute(
         'partner.verification.verify',
         now()->addMinutes(60),
         ['id' => $partner->id, 'hash' => sha1($partner->email)]
@@ -121,7 +123,7 @@ test('company can see verification notice when unverified', function () {
 test('company can verify email with valid link', function () {
     $company = Company::factory()->unverified()->create();
 
-    $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+    $url = URL::temporarySignedRoute(
         'company.verification.verify',
         now()->addMinutes(60),
         ['id' => $company->id, 'hash' => sha1($company->email)]
@@ -137,7 +139,7 @@ test('company can verify email with valid link', function () {
 test('verification fails with invalid hash', function () {
     $user = User::factory()->unverified()->create();
 
-    $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+    $url = URL::temporarySignedRoute(
         'admin.verification.verify',
         now()->addMinutes(60),
         ['id' => $user->id, 'hash' => 'invalid-hash']

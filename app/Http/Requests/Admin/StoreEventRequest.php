@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Event;
 use App\Models\Venue;
 use App\Models\VenuePricing;
-use App\Models\Event;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -70,6 +70,7 @@ class StoreEventRequest extends FormRequest
 
             if ($validVenues !== $venuesCount) {
                 $validator->errors()->add('venue_ids', 'أحد المرافق المختارة لا ينتمي لالشريك أو الفئة المحددة.');
+
                 return;
             }
 

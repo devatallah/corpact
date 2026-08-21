@@ -7,6 +7,7 @@ use App\Models\CommunityMember;
 use App\Models\Employee;
 use App\Models\Event;
 use App\Models\Notification;
+use App\Support\Notify;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -53,7 +54,7 @@ class SendInactivityNudges extends Command
             // Find the most recent event participation (joined + confirmed/completed event)
             $lastEventDate = Event::whereHas('participants', function ($q) use ($employee) {
                 $q->where('employee_id', $employee->id)
-                    ->where('event_participants.status', 'joined');
+                    ->where('event_participants.seat_status', 'reserved');
             })
                 ->whereIn('events.status', ['confirmed', 'completed'])
                 ->max('event_date');
@@ -76,16 +77,12 @@ class SendInactivityNudges extends Command
                 continue;
             }
 
-            Notification::create([
-                'notifiable_type' => Employee::class,
-                'notifiable_id' => $employee->id,
-                'type' => 'nudge_inactive',
-                'title' => 'وحشتنا! 👋',
-                'body' => 'فريقك سوّى فعاليات وأنت غايب، ارجع العب معهم!',
-                'data' => [
-                    'nudge_type' => 'inactive_employee',
-                ],
-            ]);
+            Notify::send(
+                'engagement.nudge.inactive_employee',
+                $employee,
+                [],
+                ['data' => ['nudge_type' => 'inactive_employee']],
+            );
 
             $count++;
         }
@@ -101,12 +98,17 @@ class SendInactivityNudges extends Command
         $fourteenDaysAgo = Carbon::now()->subDays(14);
         $count = 0;
 
-        // Get active communities that have a leader
-        $communities = Community::active()
-            ->whereNotNull('leader_id')
-            ->get();
+        // Active communities — the nudge goes to the PRIMARY leader (H §6:
+        // the primary receives notifications), resolved via role_assignments.
+        $communities = Community::active()->get();
 
         foreach ($communities as $community) {
+            $primaryLeader = $community->primaryLeader();
+
+            if ($primaryLeader === null) {
+                continue; // Leaderless — handled by app:check-dormant-communities.
+            }
+
             // Find the most recent event date for this community
             $lastEventDate = Event::where('community_id', $community->id)
                 ->whereIn('status', ['confirmed', 'completed'])
@@ -119,7 +121,7 @@ class SendInactivityNudges extends Command
 
             // Don't nudge same leader for same community in last 14 days
             $alreadyNudged = Notification::where('notifiable_type', Employee::class)
-                ->where('notifiable_id', $community->leader_id)
+                ->where('notifiable_id', $primaryLeader->id)
                 ->where('type', 'nudge_community')
                 ->where('created_at', '>=', $fourteenDaysAgo)
                 ->whereJsonContains('data->community_id', $community->id)
@@ -129,18 +131,16 @@ class SendInactivityNudges extends Command
                 continue;
             }
 
-            Notification::create([
-                'notifiable_type' => Employee::class,
-                'notifiable_id' => $community->leader_id,
-                'type' => 'nudge_community',
-                'title' => 'مجتمعك يحتاجك! 🏃',
-                'body' => "مجتمع {$community->name} ما لعب من أسبوعين، وش رايك تسوي فعالية؟",
-                'data' => [
+            Notify::send(
+                'engagement.nudge.inactive_community',
+                $primaryLeader,
+                ['community' => $community->name],
+                ['data' => [
                     'nudge_type' => 'inactive_community',
                     'community_id' => $community->id,
                     'community_name' => $community->name,
-                ],
-            ]);
+                ]],
+            );
 
             $count++;
         }
@@ -157,8 +157,9 @@ class SendInactivityNudges extends Command
         $sevenDaysAgo = Carbon::now()->subDays(7);
         $count = 0;
 
-        // Find community members who joined 7+ days ago
+        // Find active community members who joined 7+ days ago
         $memberships = CommunityMember::where('joined_at', '<=', $sevenDaysAgo)
+            ->where('status', CommunityMember::STATUS_ACTIVE)
             ->with(['community', 'employee'])
             ->get();
 
@@ -167,7 +168,7 @@ class SendInactivityNudges extends Command
             $community = $membership->community;
 
             // Skip if employee or community is missing/inactive
-            if (!$employee || !$community || $employee->status !== 'active' || $community->status !== 'active') {
+            if (! $employee || ! $community || $employee->status !== 'active' || $community->status !== 'active') {
                 continue;
             }
 
@@ -176,7 +177,7 @@ class SendInactivityNudges extends Command
                 ->whereIn('status', ['confirmed', 'completed'])
                 ->whereHas('participants', function ($q) use ($employee) {
                     $q->where('employee_id', $employee->id)
-                        ->where('event_participants.status', 'joined');
+                        ->where('event_participants.seat_status', 'reserved');
                 })
                 ->exists();
 
@@ -195,18 +196,16 @@ class SendInactivityNudges extends Command
                 continue;
             }
 
-            Notification::create([
-                'notifiable_type' => Employee::class,
-                'notifiable_id' => $employee->id,
-                'type' => 'nudge_new_member',
-                'title' => 'وقت أول مباراة! 🏸',
-                'body' => "انضميت لـ {$community->name} ولسّا ما لعبت، أول مباراة دايم أحلى!",
-                'data' => [
+            Notify::send(
+                'engagement.nudge.new_member',
+                $employee,
+                ['community' => $community->name],
+                ['data' => [
                     'nudge_type' => 'new_member_no_play',
                     'community_id' => $community->id,
                     'community_name' => $community->name,
-                ],
-            ]);
+                ]],
+            );
 
             $count++;
         }

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PartnerRole;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,14 +14,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\URL;
 
 #[Fillable([
     'name',
+    'trade_name',
+    'cr_number',
+    'vat_number',
     'email',
     'password',
+    'user_id',
     'city',
     'district',
     'contact_phone',
@@ -29,8 +34,16 @@ use Illuminate\Notifications\Notifiable;
     'working_hours',
     'venues_count',
     'rating',
+    'reliability_score',
+    'reliability_samples',
     'total_bookings',
     'commission_rate',
+    'bank_account_holder',
+    'bank_iban',
+    'bank_status',
+    'bank_approved_at',
+    'bank_approved_by',
+    'has_price_contract',
     'notes',
     'status',
     'role',
@@ -39,7 +52,10 @@ use Illuminate\Notifications\Notifiable;
     'activation_token',
     'activation_token_expires_at',
 ])]
-#[Hidden(['password', 'remember_token'])]
+// رقم مؤشر الموثوقية لا يُعرض للمزوّد في الإصدار الأول (H §11) — مخفي من
+// السيريالايز الافتراضي (auth المشترك يمرّر النموذج كاملاً)؛ لوحات الأدمن
+// تكشفه صراحة بـ makeVisible.
+#[Hidden(['password', 'remember_token', 'reliability_score', 'reliability_samples'])]
 class Partner extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
@@ -52,7 +68,7 @@ class Partner extends Authenticatable implements MustVerifyEmail
 
     public function sendEmailVerificationNotification(): void
     {
-        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        $url = URL::temporarySignedRoute(
             'partner.verification.verify',
             now()->addMinutes(60),
             ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())]
@@ -69,12 +85,26 @@ class Partner extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'rating' => 'decimal:1',
+            'reliability_score' => 'integer',
+            'reliability_samples' => 'integer',
             'total_bookings' => 'integer',
             'commission_rate' => 'decimal:2',
+            'bank_approved_at' => 'datetime',
+            'has_price_contract' => 'boolean',
             'role' => PartnerRole::class,
             'approved_at' => 'datetime',
             'activation_token_expires_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The global account behind this provider login.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**
@@ -170,11 +200,54 @@ class Partner extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * @return HasMany<Discount, $this>
+     * فروع المزوّد — التسلسل: مزوّد ← فروع ← وحدات نشاط ← توفر (H §11).
+     *
+     * @return HasMany<ProviderBranch, $this>
      */
-    public function discounts(): HasMany
+    public function branches(): HasMany
     {
-        return $this->hasMany(Discount::class);
+        return $this->hasMany(ProviderBranch::class);
+    }
+
+    /**
+     * @return HasMany<EventProviderRequest, $this>
+     */
+    public function providerRequests(): HasMany
+    {
+        return $this->hasMany(EventProviderRequest::class);
+    }
+
+    /**
+     * @return HasMany<ProviderReliabilityLog, $this>
+     */
+    public function reliabilityLogs(): HasMany
+    {
+        return $this->hasMany(ProviderReliabilityLog::class);
+    }
+
+    /**
+     * الحساب البنكي المعتمد شرط لأي صرف — A11 يستهلك هذا العلم (H §11).
+     */
+    public function payoutsBlocked(): bool
+    {
+        return $this->bank_status !== 'approved';
+    }
+
+    /**
+     * هل تبنّى هذا المزوّد التسلسل الجديد (فروع + وحدات)؟ شركاء الاختبارات
+     * القدامى بلا فروع يتخطون قواعد التوفر حتى يكتمل ترحيلهم.
+     */
+    public function hasHierarchy(): bool
+    {
+        return $this->branches()->exists();
+    }
+
+    /**
+     * المؤشر لا يُعرض لأي مستخدم قبل 10 عينات (H §11).
+     */
+    public function reliabilityVisible(): bool
+    {
+        return $this->reliability_samples >= 10;
     }
 
     /**
@@ -186,11 +259,31 @@ class Partner extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * @return HasMany<Settlement, $this>
+     * كشوف التسوية كل 15 يوماً (H §12.7).
+     *
+     * @return HasMany<SettlementStatement, $this>
      */
-    public function settlements(): HasMany
+    public function settlementStatements(): HasMany
     {
-        return $this->hasMany(Settlement::class);
+        return $this->hasMany(SettlementStatement::class);
+    }
+
+    /**
+     * @return HasMany<SettlementItem, $this>
+     */
+    public function settlementItems(): HasMany
+    {
+        return $this->hasMany(SettlementItem::class);
+    }
+
+    /**
+     * نسب العمولة المجدولة بتاريخ سريان مستقبلي (H §12.10).
+     *
+     * @return HasMany<ProviderCommissionRate, $this>
+     */
+    public function commissionRates(): HasMany
+    {
+        return $this->hasMany(ProviderCommissionRate::class);
     }
 
     /**

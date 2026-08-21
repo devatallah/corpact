@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Partner;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Partner\StoreVenueRequest;
 use App\Http\Requests\Partner\UpdateVenueRequest;
+use App\Models\Category;
 use App\Models\Venue;
 use App\Models\VenuePricing;
 use App\Services\Partner\VenueService;
@@ -30,7 +31,7 @@ class VenueController extends Controller
         return Inertia::render('partner/venues/index', [
             'partner' => $partner,
             'venues' => $this->venueService->listForpartner($partner),
-            'categories' => \App\Models\Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
+            'categories' => Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
         ]);
     }
 
@@ -40,7 +41,7 @@ class VenueController extends Controller
     public function create(): Response
     {
         return Inertia::render('partner/venues/create', [
-            'categories' => \App\Models\Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
+            'categories' => Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
         ]);
     }
 
@@ -68,7 +69,7 @@ class VenueController extends Controller
     {
         return Inertia::render('partner/venues/edit', [
             'venue' => $venue->load(['category.parent', 'pricings']),
-            'categories' => \App\Models\Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
+            'categories' => Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
         ]);
     }
 

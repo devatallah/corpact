@@ -43,7 +43,7 @@ class StoreEmployeeRequest extends FormRequest
             $emailDomain = substr(strrchr($this->input('email'), '@'), 1);
 
             if (strtolower($emailDomain) !== strtolower($company->domain)) {
-                $validator->errors()->add('email', 'البريد الإلكتروني يجب أن يكون من نطاق الشركة (@' . $company->domain . ').');
+                $validator->errors()->add('email', 'البريد الإلكتروني يجب أن يكون من نطاق الشركة (@'.$company->domain.').');
             }
         });
     }

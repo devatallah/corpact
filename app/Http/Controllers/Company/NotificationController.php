@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Company\StoreNotificationRequest;
+use App\Models\Company;
 use App\Models\Notification;
 use App\Services\Company\CompanyNotificationService;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +24,7 @@ class NotificationController extends Controller
     {
         $company = auth('company')->user();
         $notifications = $this->notificationService->list($company);
-        $unreadCount = Notification::where('notifiable_type', \App\Models\Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
+        $unreadCount = Notification::where('notifiable_type', Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
 
         return Inertia::render('company/notifications/index', [
             'company' => $company,
@@ -42,7 +43,7 @@ class NotificationController extends Controller
 
         Notification::create([
             ...$data,
-            'notifiable_type' => \App\Models\Company::class,
+            'notifiable_type' => Company::class,
             'notifiable_id' => auth('company')->id(),
         ]);
 

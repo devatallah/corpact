@@ -23,7 +23,7 @@ class EmployeeFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
-            'phone' => fake()->phoneNumber(),
+            'phone' => '05'.fake()->unique()->numerify('########'),
             'avatar' => null,
             'company_id' => Company::factory(),
             'department_id' => null,

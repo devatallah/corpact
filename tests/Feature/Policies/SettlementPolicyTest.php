@@ -1,63 +1,58 @@
 <?php
 
-use App\Models\partner;
 use App\Models\Company;
-use App\Models\Settlement;
+use App\Models\Partner;
+use App\Models\SettlementStatement;
 use App\Models\User;
 
-test('admin can view any settlement', function () {
+test('admin can view any settlement statement', function () {
     $admin = User::factory()->create();
 
-    expect($admin->can('viewAny', Settlement::class))->toBeTrue();
+    expect($admin->can('viewAny', SettlementStatement::class))->toBeTrue();
 });
 
-test('partner can view any settlement', function () {
-    $partner = partner::factory()->create();
+test('provider can view any settlement statement', function () {
+    $partner = Partner::factory()->create();
 
-    expect($partner->can('viewAny', Settlement::class))->toBeTrue();
+    expect($partner->can('viewAny', SettlementStatement::class))->toBeTrue();
 });
 
-test('company can view any settlement', function () {
+test('a company is not a party to a provider statement', function () {
     $company = Company::factory()->create();
 
-    expect($company->can('viewAny', Settlement::class))->toBeTrue();
+    expect($company->can('viewAny', SettlementStatement::class))->toBeFalse();
 });
 
-test('partner can view own settlements', function () {
-    $partner = partner::factory()->create();
-    $settlement = Settlement::factory()->create(['partner_id' => $partner->id]);
-    $otherSettlement = Settlement::factory()->create();
+test('provider sees own statements only', function () {
+    $partner = Partner::factory()->create();
+    $own = SettlementStatement::factory()->create(['partner_id' => $partner->id]);
+    $other = SettlementStatement::factory()->create();
 
-    expect($partner->can('view', $settlement))->toBeTrue()
-        ->and($partner->can('view', $otherSettlement))->toBeFalse();
+    expect($partner->can('view', $own))->toBeTrue()
+        ->and($partner->can('view', $other))->toBeFalse();
 });
 
-test('company can view own settlements', function () {
-    $company = Company::factory()->create();
-    $settlement = Settlement::factory()->create(['company_id' => $company->id]);
-    $otherSettlement = Settlement::factory()->create();
-
-    expect($company->can('view', $settlement))->toBeTrue()
-        ->and($company->can('view', $otherSettlement))->toBeFalse();
-});
-
-test('only admin can create settlements', function () {
+test('only admins create statements', function () {
     $admin = User::factory()->create();
-    $partner = partner::factory()->create();
-    $company = Company::factory()->create();
+    $partner = Partner::factory()->create();
 
-    expect($admin->can('create', Settlement::class))->toBeTrue()
-        ->and($partner->can('create', Settlement::class))->toBeFalse()
-        ->and($company->can('create', Settlement::class))->toBeFalse();
+    expect($admin->can('create', SettlementStatement::class))->toBeTrue()
+        ->and($partner->can('create', SettlementStatement::class))->toBeFalse();
 });
 
-test('only admin can update and delete settlements', function () {
+test('a paid statement can never be updated — not even by an admin', function () {
     $admin = User::factory()->create();
-    $partner = partner::factory()->create();
-    $settlement = Settlement::factory()->create(['partner_id' => $partner->id]);
+    $draft = SettlementStatement::factory()->create();
+    $paid = SettlementStatement::factory()->create(['status' => SettlementStatement::STATUS_PAID]);
 
-    expect($admin->can('update', $settlement))->toBeTrue()
-        ->and($admin->can('delete', $settlement))->toBeTrue()
-        ->and($partner->can('update', $settlement))->toBeFalse()
-        ->and($partner->can('delete', $settlement))->toBeFalse();
+    expect($admin->can('update', $draft))->toBeTrue()
+        ->and($admin->can('update', $paid))->toBeFalse();
+});
+
+test('no one may delete a settlement statement', function () {
+    $admin = User::factory()->create();
+    $statement = SettlementStatement::factory()->create();
+
+    expect($admin->can('delete', $statement))->toBeFalse()
+        ->and($admin->can('forceDelete', $statement))->toBeFalse();
 });

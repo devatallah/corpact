@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Employee\UpdateProfileRequest;
 use App\Services\Employee\EmployeeStatsService;
 use App\Services\Employee\ProfileService;
+use App\Services\Notifications\PreferenceService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,6 +17,7 @@ class ProfileController extends Controller
     public function __construct(
         private ProfileService $profileService,
         private EmployeeStatsService $employeeStatsService,
+        private PreferenceService $preferences,
     ) {}
 
     /**
@@ -34,6 +37,8 @@ class ProfileController extends Controller
             'events' => $myEvents,
             'communities' => $myCommunities,
             'activityStats' => $this->employeeStatsService->getStats($employee),
+            // A14 — H §14: القوالب الاختيارية وحدها قابلة للإيقاف.
+            'notificationPreferences' => $this->preferences->editable($employee),
         ]);
     }
 
@@ -47,7 +52,15 @@ class ProfileController extends Controller
         $employee = auth('employee')->user();
 
         if ($request->hasFile('avatar')) {
-            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
+            // Private default disk (S3 in production); served via signed URLs.
+            // Raw DB value, not the accessor (which resolves to a signed URL).
+            $oldAvatar = $employee->getRawOriginal('avatar');
+
+            $data['avatar'] = $request->file('avatar')->store('avatars');
+
+            if ($oldAvatar && ! str_starts_with($oldAvatar, '/') && ! str_starts_with($oldAvatar, 'http')) {
+                Storage::delete($oldAvatar);
+            }
         }
 
         $employee->update($data);

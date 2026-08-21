@@ -1,7 +1,7 @@
 import EmployeeLayout from '@/layouts/employee-layout';
 import CategoryIcon from '@/components/category-icon';
 import { Head, useForm } from '@inertiajs/react';
-import type { Partner, Community, Venue, VenuePricing, Discount, Category } from '@/types/models';
+import type { Partner, Community, Venue, VenuePricing, Category } from '@/types/models';
 import { useState, useMemo, useEffect } from 'react';
 import TimePicker from '@/components/time-picker';
 import toastr from 'toastr';
@@ -18,10 +18,9 @@ interface partnerWithvenues extends Partner {
 interface Props {
     communities: CommunityWithCategory[];
     partners: partnerWithvenues[];
-    discounts: Discount[];
 }
 
-export default function EventCreate({ communities, partners, discounts }: Props) {
+export default function EventCreate({ communities, partners }: Props) {
     const searchParams = new URLSearchParams(window.location.search);
     const queryCommunityId = searchParams.get('community_id');
     const queryQuickMatchId = searchParams.get('quick_match_id');
@@ -36,16 +35,13 @@ export default function EventCreate({ communities, partners, discounts }: Props)
         partner_id: '' as string | number,
         venue_ids: [] as number[],
         venue_pricing_id: '' as string | number,
-        discount_id: null as number | null,
         quick_match_id: queryQuickMatchId ? Number(queryQuickMatchId) : null as number | null,
         date: '',
         time: '',
         venues_count: 1,
         capacity: 4,
+        min_participants: 2,
         company_subsidy: 0,
-        recurrence_type: 'none' as 'none' | 'daily' | 'weekly' | 'monthly',
-        recurrence_end_date: '',
-        recurrence_days: [] as number[],
         notes: '',
     });
 
@@ -109,42 +105,6 @@ export default function EventCreate({ communities, partners, discounts }: Props)
         (p) => p.id === Number(data.venue_pricing_id),
     );
 
-    // Find all matching discounts for current selection
-    const matchingDiscounts = useMemo(() => {
-        if (!selectedPartner || !selectedCommunity) return [];
-
-        const communityId = Number(data.community_id);
-        const partnerId = Number(data.partner_id);
-
-        return discounts.filter((d) => {
-            if (d.partner_id !== partnerId || d.community_id !== communityId) return false;
-            if (d.status !== 'active') return false;
-
-            // For date_range, check if current date is within range
-            if (d.usage === 'date_range' && d.starts_at && d.expires_at && data.date) {
-                if (data.date < d.starts_at.slice(0, 10) || data.date > d.expires_at.slice(0, 10)) return false;
-            }
-
-            // Check time restriction
-            if (d.start_time && d.end_time && data.time) {
-                if (data.time < d.start_time.slice(0, 5) || data.time > d.end_time.slice(0, 5)) return false;
-            }
-
-            return true;
-        });
-    }, [discounts, data.partner_id, data.community_id, data.date, data.time, selectedPartner, selectedCommunity]);
-
-    const selectedDiscount = matchingDiscounts.find((d) => d.id === data.discount_id) ?? null;
-
-    // Reset discount selection when matching discounts change
-    useEffect(() => {
-        if (matchingDiscounts.length === 0) {
-            setData('discount_id', null);
-        } else if (data.discount_id && !matchingDiscounts.some((d) => d.id === data.discount_id)) {
-            setData('discount_id', null);
-        }
-    }, [matchingDiscounts]);
-
     // Per-venue prices for the selected duration
     const venuePrices = useMemo(() => {
         if (!selectedPricing || selectedVenues.length === 0) return [];
@@ -156,20 +116,14 @@ export default function EventCreate({ communities, partners, discounts }: Props)
 
     const totalPrice = venuePrices.reduce((sum, c) => sum + c.price, 0);
 
-    // Calculate discount
-    const discountAmount = useMemo(() => {
-        if (!selectedDiscount || totalPrice <= 0) return 0;
-        if (selectedDiscount.type === 'percentage') {
-            return Math.round(totalPrice * Number(selectedDiscount.value) / 100 * 100) / 100;
-        }
-        return Math.min(Number(selectedDiscount.value), totalPrice);
-    }, [selectedDiscount, totalPrice]);
-
-    const afterDiscount = Math.max(0, totalPrice - discountAmount);
+    // H §12.1: لا تخفيضات ولا رموز ترويجية — أُزيلت الميزة كلها (A10).
+    // H §12.2: الحصة القصوى = (الإجمالي − الدعم) ÷ الحد الأدنى — سقف ملزم
+    // يُعرض عند الانضمام ويقل كلما انضم آخرون.
     const communityBalance = Math.max(0, selectedCommunity?.balance ?? 0);
-    const communityContribution = Math.min(afterDiscount, communityBalance);
-    const afterWallet = afterDiscount - communityContribution;
-    const perPlayer = data.capacity > 0 ? Math.ceil(afterWallet / data.capacity) : 0;
+    const communityContribution = Math.min(totalPrice, communityBalance);
+    const afterWallet = totalPrice - communityContribution;
+    const minParticipants = Math.max(1, data.min_participants);
+    const maxShare = Math.floor((afterWallet / minParticipants) * 100) / 100;
 
     function selectCommunity(community: CommunityWithCategory) {
         setData((prev) => ({
@@ -179,12 +133,11 @@ export default function EventCreate({ communities, partners, discounts }: Props)
             partner_id: '',
             venue_ids: [],
             venue_pricing_id: '',
-            discount_id: null,
         }));
     }
 
     function handlepartnerChange(partnerId: string) {
-        setData((prev) => ({ ...prev, partner_id: partnerId, venue_ids: [], venue_pricing_id: '', discount_id: null }));
+        setData((prev) => ({ ...prev, partner_id: partnerId, venue_ids: [], venue_pricing_id: '' }));
     }
 
     function togglevenue(venueId: number) {
@@ -203,25 +156,15 @@ export default function EventCreate({ communities, partners, discounts }: Props)
         });
     }
 
-    const recurrenceLabels: Record<string, string> = { none: 'مرة واحدة', daily: 'يومي', weekly: 'أسبوعي', monthly: 'شهري' };
-    const dayLabels: Record<number, string> = { 0: 'أحد', 1: 'إثنين', 2: 'ثلاثاء', 3: 'أربعاء', 4: 'خميس', 5: 'جمعة', 6: 'سبت' };
-
     const reviewRows = [
         { label: 'المجتمع', value: selectedCommunity?.name ?? '-' },
         { label: 'الشريك', value: selectedPartner?.name ?? '-' },
         { label: 'المرافق', value: selectedVenues.length > 0 ? selectedVenues.map((c) => c.name).join('، ') : '-' },
         { label: 'التاريخ', value: data.date || '-' },
-        { label: 'مدة الحجز', value: selectedPricing ? `${selectedPricing.duration_minutes} دقيقة` : '-' },
+        { label: 'مدة الفعالية', value: selectedPricing ? `${selectedPricing.duration_minutes} دقيقة` : '-' },
         { label: 'عدد المرافق', value: data.venue_ids.length + (data.venue_ids.length === 1 ? ' مرفق' : ' مرافق') },
         { label: 'عدد اللاعبين', value: `${data.capacity} لاعبين` },
-        { label: 'التكرار', value: recurrenceLabels[data.recurrence_type] ?? 'مرة واحدة' },
-        ...(data.recurrence_type !== 'none' && data.recurrence_end_date
-            ? [{ label: 'ينتهي في', value: data.recurrence_end_date }]
-            : []),
-        ...(data.recurrence_type === 'weekly' && data.recurrence_days.length > 0
-            ? [{ label: 'أيام التكرار', value: data.recurrence_days.sort().map((d) => dayLabels[d]).join('، ') }]
-            : []),
-        { label: 'إجمالي الحجز', value: `${totalPrice.toLocaleString()} ريال` },
+        { label: 'إجمالي الفعالية', value: `${totalPrice.toLocaleString()} ريال` },
     ];
 
     return (
@@ -292,7 +235,7 @@ export default function EventCreate({ communities, partners, discounts }: Props)
                 {step === 2 && (
                     <div>
                         <div className="section-head" style={{ marginBottom: 16 }}>
-                            <div className="section-title">الشريك والموعد</div>
+                            <div className="section-title">الشريك والوقت</div>
                         </div>
 
                         {/* Partner select */}
@@ -363,7 +306,7 @@ export default function EventCreate({ communities, partners, discounts }: Props)
 
                         {/* Duration (pricing) with peak/off-peak badges */}
                         <div style={{ marginBottom: 16 }}>
-                            <label style={{ fontSize: 13, color: '#666', fontWeight: 600, marginBottom: 8, display: 'block' }}>مدة الحجز</label>
+                            <label style={{ fontSize: 13, color: '#666', fontWeight: 600, marginBottom: 8, display: 'block' }}>مدة الفعالية</label>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {loadingPricings ? (
                                     <div className="card" style={{ textAlign: 'center', color: '#999', fontSize: 13, marginBottom: 0 }}>جاري تحميل الأسعار...</div>
@@ -439,154 +382,25 @@ export default function EventCreate({ communities, partners, discounts }: Props)
                             </div>
                         </div>
 
-                        {/* Recurrence */}
+                        {/* A8 — التكرار لم يعد هنا: مساره الوحيد قوالب H §8 من صفحة قوالب المجتمع (للقائد/المنسّق/مسؤول الحساب) */}
+
+                        {/* الحد الأدنى للمشاركين — مقام الحصة القصوى (H §12.2) */}
                         <div style={{ marginBottom: 16 }}>
-                            <label style={{ fontSize: 13, color: '#666', fontWeight: 600, marginBottom: 8, display: 'block' }}>التكرار</label>
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                {([
-                                    { value: 'none', label: 'مرة واحدة' },
-                                    { value: 'daily', label: 'يومي' },
-                                    { value: 'weekly', label: 'أسبوعي' },
-                                    { value: 'monthly', label: 'شهري' },
-                                ] as const).map((opt) => {
-                                    const isSelected = data.recurrence_type === opt.value;
-                                    return (
-                                        <button
-                                            key={opt.value}
-                                            type="button"
-                                            onClick={() => setData((prev) => ({
-                                                ...prev,
-                                                recurrence_type: opt.value,
-                                                recurrence_end_date: opt.value === 'none' ? '' : prev.recurrence_end_date,
-                                                recurrence_days: opt.value === 'weekly' ? prev.recurrence_days : [],
-                                            }))}
-                                            className={`pill${isSelected ? ' on' : ''}`}
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    );
-                                })}
+                            <label style={{ fontSize: 13, color: '#666', fontWeight: 600, marginBottom: 8, display: 'block' }}>الحد الأدنى للمشاركين</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <button type="button" onClick={() => setData('min_participants', Math.max(2, data.min_participants - 1))} className="btn btn-outline" style={{ width: 40, height: 40, padding: 0, fontSize: 20 }}>−</button>
+                                <input
+                                    type="number"
+                                    className="input"
+                                    value={data.min_participants}
+                                    min={2}
+                                    max={data.capacity}
+                                    onChange={(e) => setData('min_participants', Math.min(data.capacity, Math.max(2, parseInt(e.target.value) || 2)))}
+                                    style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 700, borderColor: '#18A86B' }}
+                                />
+                                <button type="button" onClick={() => setData('min_participants', Math.min(data.capacity, data.min_participants + 1))} className="btn btn-outline" style={{ width: 40, height: 40, padding: 0, fontSize: 20 }}>+</button>
                             </div>
                         </div>
-
-                        {/* Recurrence end date */}
-                        {data.recurrence_type !== 'none' && (
-                            <div style={{ marginBottom: 16 }}>
-                                <label style={{ fontSize: 13, color: '#666', marginBottom: 6, display: 'block' }}>تاريخ انتهاء التكرار</label>
-                                <input
-                                    type="date"
-                                    value={data.recurrence_end_date}
-                                    min={data.date || undefined}
-                                    onChange={(e) => setData('recurrence_end_date', e.target.value)}
-                                />
-                            </div>
-                        )}
-
-                        {/* Weekly day selection */}
-                        {data.recurrence_type === 'weekly' && (
-                            <div style={{ marginBottom: 16 }}>
-                                <label style={{ fontSize: 13, color: '#666', fontWeight: 600, marginBottom: 8, display: 'block' }}>أيام التكرار</label>
-                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                    {([
-                                        { value: 0, label: 'أحد' },
-                                        { value: 1, label: 'إثنين' },
-                                        { value: 2, label: 'ثلاثاء' },
-                                        { value: 3, label: 'أربعاء' },
-                                        { value: 4, label: 'خميس' },
-                                        { value: 5, label: 'جمعة' },
-                                        { value: 6, label: 'سبت' },
-                                    ] as const).map((day) => {
-                                        const isSelected = data.recurrence_days.includes(day.value);
-                                        return (
-                                            <div
-                                                key={day.value}
-                                                onClick={() => {
-                                                    const days = isSelected
-                                                        ? data.recurrence_days.filter((d) => d !== day.value)
-                                                        : [...data.recurrence_days, day.value];
-                                                    setData('recurrence_days', days);
-                                                }}
-                                                style={{
-                                                    width: 44,
-                                                    height: 44,
-                                                    borderRadius: '50%',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    border: isSelected ? '2px solid #18A86B' : '1px solid #EBEBEB',
-                                                    background: isSelected ? '#18A86B' : '#fff',
-                                                    color: isSelected ? '#fff' : '#666',
-                                                    cursor: 'pointer',
-                                                    fontSize: 11,
-                                                    fontWeight: 600,
-                                                }}
-                                            >
-                                                {day.label}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Recurrence summary */}
-                        {data.recurrence_type !== 'none' && data.recurrence_end_date && (
-                            <div className="card" style={{ background: '#ECFDF3', borderColor: '#18A86B33', fontSize: 13, color: '#0E7C4A' }}>
-                                {data.recurrence_type === 'daily' && `سيتم إنشاء فعالية يومية من ${data.date} حتى ${data.recurrence_end_date}`}
-                                {data.recurrence_type === 'weekly' && `سيتم إنشاء فعالية أسبوعية${data.recurrence_days.length > 0 ? ` في الأيام المختارة` : ''} من ${data.date} حتى ${data.recurrence_end_date}`}
-                                {data.recurrence_type === 'monthly' && `سيتم إنشاء فعالية شهرية من ${data.date} حتى ${data.recurrence_end_date}`}
-                            </div>
-                        )}
-
-                        {/* Discount selection */}
-                        {matchingDiscounts.length > 0 && totalPrice > 0 && (
-                            <div style={{ marginBottom: 16 }}>
-                                <label style={{ fontSize: 13, color: '#666', fontWeight: 600, marginBottom: 8, display: 'block' }}>خصومات متاحة</label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                    {matchingDiscounts.map((d) => {
-                                        const isSelected = data.discount_id === d.id;
-                                        const amt = d.type === 'percentage'
-                                            ? Math.round(totalPrice * Number(d.value) / 100 * 100) / 100
-                                            : Math.min(Number(d.value), totalPrice);
-                                        return (
-                                            <div
-                                                key={d.id}
-                                                onClick={() => setData('discount_id', isSelected ? null : d.id)}
-                                                className="card"
-                                                style={{
-                                                    cursor: 'pointer',
-                                                    marginBottom: 0,
-                                                    borderColor: isSelected ? '#D97706' : undefined,
-                                                    background: isSelected ? '#FEF3C708' : '#fff',
-                                                }}
-                                            >
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                        <div style={{ width: 18, height: 18, borderRadius: '50%', ...(isSelected ? { background: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' } : { border: '2px solid #EBEBEB' }) }}>
-                                                            {isSelected && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} />}
-                                                        </div>
-                                                        <div>
-                                                            <div style={{ fontSize: 13, fontWeight: 600, color: isSelected ? '#D97706' : '#0A0A0A' }}>
-                                                                {d.name || (d.type === 'percentage' ? `${d.value}% خصم` : `${Number(d.value).toLocaleString()} ر.س خصم`)}
-                                                            </div>
-                                                            <div style={{ fontSize: 12, color: '#999', display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
-                                                                <span>{d.type === 'percentage' ? `${d.value}%` : `${Number(d.value).toLocaleString()} ر.س`}</span>
-                                                                <span>{d.usage === 'one_time' ? 'مرة واحدة' : 'فترة زمنية'}</span>
-                                                                {d.start_time && d.end_time && <span>{d.start_time.slice(0, 5)} - {d.end_time.slice(0, 5)}</span>}
-                                                                {d.usage === 'date_range' && d.expires_at && <span>حتى {d.expires_at.slice(0, 10)}</span>}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div style={{ fontSize: 15, fontWeight: 700, color: isSelected ? '#D97706' : '#999' }}>
-                                                        {amt.toLocaleString()} ر.س
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
 
                         {/* Live price summary */}
                         <div className="card" style={{ background: '#ECFDF3', borderColor: '#18A86B33', marginBottom: 20 }}>
@@ -600,7 +414,7 @@ export default function EventCreate({ communities, partners, discounts }: Props)
 
                             {/* Total */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                <span style={{ fontSize: 13, fontWeight: 600 }}>إجمالي الحجز</span>
+                                <span style={{ fontSize: 13, fontWeight: 600 }}>إجمالي الفعالية</span>
                                 <span style={{ fontSize: 14, fontWeight: 700 }}>{totalPrice.toLocaleString()} ريال</span>
                             </div>
 
@@ -612,18 +426,10 @@ export default function EventCreate({ communities, partners, discounts }: Props)
                                 </div>
                             ))}
 
-                            {/* Discount deduction */}
-                            {discountAmount > 0 && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 }}>
-                                    <span style={{ fontSize: 13, color: '#D97706' }}>خصم الشريك</span>
-                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#D97706' }}>-{discountAmount.toLocaleString()} ريال</span>
-                                </div>
-                            )}
-
                             {/* Community wallet deduction */}
                             {communityContribution > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 }}>
-                                    <span style={{ fontSize: 13, color: '#666' }}>خصم من المحفظة</span>
+                                    <span style={{ fontSize: 13, color: '#666' }}>استقطاع من المحفظة</span>
                                     <span style={{ fontSize: 13, fontWeight: 600, color: '#18A86B' }}>{communityContribution.toLocaleString()} ريال</span>
                                 </div>
                             )}
@@ -638,12 +444,17 @@ export default function EventCreate({ communities, partners, discounts }: Props)
 
                             <div style={{ height: 1, background: '#18A86B22', margin: '8px 0' }} />
 
-                            {/* Per player */}
+                            {/* H §12.2: الحصة القصوى — سقف ملزم لا يُتجاوز */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: 14, fontWeight: 600 }}>حصة كل لاعب</span>
-                                <span style={{ fontSize: 22, fontWeight: 700, color: '#18A86B' }}>{perPlayer.toLocaleString()} ريال</span>
+                                <span style={{ fontSize: 14, fontWeight: 600 }}>حصة الفرد بحد أقصى</span>
+                                <span style={{ fontSize: 22, fontWeight: 700, color: '#18A86B' }}>{maxShare.toLocaleString()} ريال</span>
                             </div>
-                            {perPlayer <= 0 && totalPrice > 0 && (
+                            {maxShare > 0 && (
+                                <div style={{ marginTop: 4, fontSize: 12, color: '#666', textAlign: 'left' }}>
+                                    وتقل كلما انضم زملاؤك — لن تدفع أكثر من هذا السقف أبداً
+                                </div>
+                            )}
+                            {maxShare <= 0 && totalPrice > 0 && (
                                 <div style={{ marginTop: 8, background: '#18A86B18', borderRadius: 10, padding: '6px 10px', fontSize: 12, color: '#18A86B', textAlign: 'center' }}>
                                     مغطى بالكامل من رصيد المجتمع
                                 </div>
@@ -671,20 +482,14 @@ export default function EventCreate({ communities, partners, discounts }: Props)
                                     <span style={{ fontSize: 13, fontWeight: 600 }}>{row.value}</span>
                                 </div>
                             ))}
-                            {discountAmount > 0 && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #EBEBEB' }}>
-                                    <span style={{ fontSize: 13, color: '#D97706' }}>خصم الشريك</span>
-                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#D97706' }}>-{discountAmount.toLocaleString()} ريال</span>
-                                </div>
-                            )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
-                                <span style={{ fontSize: 13, color: '#999' }}>حصة كل لاعب</span>
-                                <span style={{ fontSize: 16, fontWeight: 700, color: '#18A86B' }}>{perPlayer.toLocaleString()} ريال</span>
+                                <span style={{ fontSize: 13, color: '#999' }}>حصة الفرد بحد أقصى</span>
+                                <span style={{ fontSize: 16, fontWeight: 700, color: '#18A86B' }}>{maxShare.toLocaleString()} ريال</span>
                             </div>
                         </div>
 
                         <div className="card" style={{ background: '#ECFDF3', borderColor: '#18A86B33', fontSize: 13, color: '#0E7C4A', marginBottom: 20 }}>
-                            سيُرسل طلب الحجز لالشريك بعد اكتمال عدد اللاعبين
+                            سيُرسل طلب الفعالية للشريك بعد اكتمال عدد اللاعبين
                         </div>
 
                         {Object.keys(errors).length > 0 && (

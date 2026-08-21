@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\IndexPartnerRequest;
 use App\Http\Requests\Admin\StorePartnerRequest;
 use App\Http\Requests\Admin\UpdatePartnerRequest;
+use App\Models\Category;
 use App\Models\Partner;
 use App\Services\Admin\PartnerService;
 use Illuminate\Http\RedirectResponse;
@@ -35,7 +36,7 @@ class PartnerController extends Controller
             'partners' => $partners,
             'stats' => $stats,
             'filters' => $filters,
-            'categories' => \App\Models\Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
+            'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
         ]);
     }
 

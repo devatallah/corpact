@@ -6,7 +6,6 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Invitation;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CompanyEmployeeService
@@ -66,12 +65,6 @@ class CompanyEmployeeService
             $inviterId = $hrEmployee?->id ?? Employee::where('company_id', $company->id)->value('id');
         }
 
-        return Invitation::create([
-            'company_id' => $company->id,
-            'invited_by' => $inviterId,
-            'email' => $email,
-            'token' => Str::random(48),
-            'status' => 'pending',
-        ]);
+        return app(InvitationService::class)->invite($company, ['email' => $email], $inviterId);
     }
 }

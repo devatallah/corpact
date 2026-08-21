@@ -12,7 +12,13 @@ interface ToastMessage {
 let toastId = 0;
 
 export default function Toast() {
-    const page = usePage();
+    // Fall back gracefully when rendered outside an Inertia app (tests, design previews).
+    let page: ReturnType<typeof usePage> | null = null;
+    try {
+        page = usePage();
+    } catch {
+        /* no Inertia context */
+    }
     const flash = (page?.props as Record<string, unknown>)?.flash as Record<string, string> | undefined;
     const [toasts, setToasts] = useState<ToastMessage[]>([]);
 

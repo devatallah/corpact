@@ -1,52 +1,50 @@
 <?php
 
 use App\Models\Company;
+use App\Models\User;
 
-test('company login page redirects to landing login modal', function () {
-    $this->get(route('company.login'))->assertRedirect('/companies?login=1');
+// A3: the account manager logs in by phone + OTP (H §4) — the company
+// email/password login was removed.
+
+test('company login page renders the otp login screen', function () {
+    $this->get(route('company.login'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('auth/otp-login')->where('guard', 'company'));
 });
 
-test('active company can login', function () {
-    $company = Company::factory()->create([
-        'password' => bcrypt('password'),
-        'status' => 'active',
-    ]);
+test('account manager can login with phone and otp', function () {
+    $otp = fakeOtp();
+    $company = Company::factory()->create(['contact_phone' => '0508000001']);
 
-    $this->post(route('company.login'), [
-        'email' => $company->email,
-        'password' => 'password',
+    $this->post(route('company.otp.request'), ['phone' => '0508000001'])
+        ->assertSessionHasNoErrors();
+
+    $this->post(route('company.otp.verify'), [
+        'phone' => '0508000001',
+        'code' => $otp->lastCode(),
     ])->assertRedirect(route('company.dash'));
 
     $this->assertAuthenticatedAs($company, 'company');
+
+    // The identity behind the session is the global account manager user.
+    $user = User::where('phone', '966508000001')->first();
+    expect($user)->not->toBeNull()
+        ->and($user->hasRoleInScope('account_manager', 'company', $company->id))->toBeTrue();
 });
 
-test('inactive company cannot login', function () {
-    $company = Company::factory()->pending()->create([
-        'password' => bcrypt('password'),
-    ]);
+test('pending company account manager cannot login', function () {
+    fakeOtp();
+    Company::factory()->pending()->create(['contact_phone' => '0508000002']);
 
-    $this->post(route('company.login'), [
-        'email' => $company->email,
-        'password' => 'password',
-    ])->assertSessionHasErrors('email');
+    $this->post(route('company.otp.request'), ['phone' => '0508000002'])
+        ->assertSessionHasErrors('phone');
 
     $this->assertGuest('company');
 });
 
-test('company cannot login with wrong password', function () {
-    $company = Company::factory()->create(['password' => bcrypt('password')]);
-
-    $this->post(route('company.login'), [
-        'email' => $company->email,
-        'password' => 'wrong-password',
-    ])->assertSessionHasErrors('email');
-
-    $this->assertGuest('company');
-});
-
-test('company login validates required fields', function () {
-    $this->post(route('company.login'), [])
-        ->assertSessionHasErrors(['email', 'password']);
+test('otp request validates required phone', function () {
+    $this->post(route('company.otp.request'), [])
+        ->assertSessionHasErrors('phone');
 });
 
 test('company can logout', function () {

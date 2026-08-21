@@ -77,16 +77,27 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
         ? events
         : events.filter((e) => e.community?.name === filter);
 
+    // آلة حالات H §9 (A7) — الامتلاء عَلَم is_full لا حالة
     const statusMap: Record<string, { label: string; cls: string }> = {
+        pending_approval: { label: 'بانتظار الاعتماد', cls: 'b-pending' },
         open: { label: 'مفتوح', cls: 'b-open' },
+        pending_provider: { label: 'بانتظار المزوّد', cls: 'b-pending' },
+        provider_alternative: { label: 'بديل مقترح', cls: 'b-open' },
+        booked: { label: 'محجوزة — التسجيل مفتوح', cls: 'b-open' },
+        awaiting_payment: { label: 'بانتظار الدفع', cls: 'b-pending' },
         confirmed: { label: 'مؤكد', cls: 'b-confirmed' },
-        waiting_partner: { label: 'معلق', cls: 'b-pending' },
-        full: { label: 'مكتمل', cls: 'b-completed' },
+        in_progress: { label: 'جارية الآن', cls: 'b-confirmed' },
         completed: { label: 'منتهي', cls: 'b-completed' },
-        cancelled: { label: 'ملغي', cls: 'b-cancelled' },
-        rejected: { label: 'مرفوض', cls: 'b-cancelled' },
-        alternative_proposed: { label: 'بديل مقترح', cls: 'b-open' },
+        settled: { label: 'مسوّاة', cls: 'b-completed' },
+        expired: { label: 'منتهية دون اكتمال العدد', cls: 'b-cancelled' },
+        rejected: { label: 'اقتراح مرفوض', cls: 'b-cancelled' },
+        cancelled_min_not_met: { label: 'ملغاة — لم يبلغ الحد الأدنى', cls: 'b-cancelled' },
+        cancelled_provider: { label: 'ملغاة من المزوّد', cls: 'b-cancelled' },
+        cancelled_company: { label: 'ملغاة من الشركة', cls: 'b-cancelled' },
+        cancelled_payment_failed: { label: 'ملغاة — فشل التحصيل', cls: 'b-cancelled' },
     };
+    const joinableStatuses = ['open', 'pending_provider', 'provider_alternative', 'booked'];
+    const deadStatuses = ['completed', 'settled', 'expired', 'rejected', 'cancelled_min_not_met', 'cancelled_provider', 'cancelled_company', 'cancelled_payment_failed'];
 
     return (
         <EmployeeLayout>
@@ -231,7 +242,7 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                         </div>
 
                         <div style={{ marginBottom: 14 }}>
-                            <label style={{ fontSize: 12, color: '#666', fontWeight: 600, display: 'block', marginBottom: 8 }}>خيارات المواعيد</label>
+                            <label style={{ fontSize: 12, color: '#666', fontWeight: 600, display: 'block', marginBottom: 8 }}>خيارات الأوقات</label>
                             {qmOptions.map((opt, idx) => (
                                 <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
                                     <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#18A86B15', color: '#18A86B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
@@ -322,7 +333,7 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         {quickMatches.map((qm) => {
                             const isCreator = qm.created_by === employee.id;
-                            const isLeader = qm.community?.leader_id === employee.id;
+                            const isLeader = Boolean((qm as { viewer_is_leader?: boolean }).viewer_is_leader);
                             const totalVotes = qm.votes_count ?? 0;
                             const canConvert = (isCreator || isLeader) && totalVotes >= 2;
 
@@ -481,12 +492,10 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                                         <div style={{ fontSize: 12, color: '#999', marginTop: 2, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                                             <span>{formatArabicDate(event.event_date)}</span>
                                             <span>{formatArabicTime(event.start_time)}</span>
-                                            {event.recurrence_type && event.recurrence_type !== 'none' && (
-                                                <span style={{ color: '#18A86B' }}>
-                                                    🔄 {event.recurrence_type === 'daily' ? 'يومي' : event.recurrence_type === 'weekly' ? 'أسبوعي' : 'شهري'}
-                                                </span>
+                                            {event.template_id && (
+                                                <span style={{ color: '#18A86B' }} title="مولّدة من قالب تكرار">🔄 قالب</span>
                                             )}
-                                            {event.parent_event_id && !event.recurrence_type && (
+                                            {event.parent_event_id && !event.template_id && (
                                                 <span style={{ color: '#18A86B' }}>🔄</span>
                                             )}
                                         </div>
@@ -507,9 +516,9 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
                                         ) : (
                                             <span style={{ fontSize: 13, fontWeight: 700 }}>{event.cost_per_person?.toLocaleString()} ر.س</span>
                                         )}
-                                        {event.status === 'completed' || event.status === 'cancelled' || event.status === 'rejected' ? null : isJoined ? (
+                                        {deadStatuses.includes(event.status) ? null : isJoined ? (
                                             <span style={{ fontSize: 11, color: '#18A86B', fontWeight: 600 }}>✓ منضم</span>
-                                        ) : event.status === 'open' && event.participants_count < event.capacity ? (
+                                        ) : joinableStatuses.includes(event.status) && event.participants_count < event.capacity ? (
                                             <span style={{ fontSize: 11, color: '#18A86B', fontWeight: 600 }}>انضم</span>
                                         ) : null}
                                     </div>

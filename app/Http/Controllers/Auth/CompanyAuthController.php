@@ -2,52 +2,67 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\Role;
+use App\Http\Controllers\Auth\Concerns\HandlesOtpLogin;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
-use App\Services\Auth\CompanyAuthService;
+use App\Models\RoleAssignment;
+use App\Services\Auth\OtpLoginService;
+use App\Services\Auth\PortalLoginService;
+use App\Services\Identity\IdentityResolver;
+use App\Services\Otp\OtpService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CompanyAuthController extends Controller
 {
-    public function __construct(private CompanyAuthService $authService) {}
+    use HandlesOtpLogin;
 
-    public function showLoginForm(): RedirectResponse
+    public function __construct(
+        protected OtpService $otpService,
+        protected OtpLoginService $otpLogin,
+        protected PortalLoginService $portalLogin,
+    ) {}
+
+    protected function guardName(): string
     {
-        return redirect('/companies?login=1');
+        return 'company';
+    }
+
+    protected function guardLabel(): string
+    {
+        return 'مسؤول الحساب';
+    }
+
+    protected function portalTag(): string
+    {
+        return 'COMPANY';
+    }
+
+    protected function homeRoute(): string
+    {
+        return 'company.dash';
     }
 
     /**
-     * @throws ValidationException
+     * The company guard's profile row is the Company itself; resolve the
+     * acting account manager through the role assignment.
      */
-    public function login(Request $request): RedirectResponse
+    protected function fallbackSessionUserId(): ?int
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
+        $company = auth('company')->user();
 
-        if (! Auth::guard('company')->attempt($credentials, $request->boolean('remember'))) {
-            throw ValidationException::withMessages([
-                'email' => ['البريد الإلكتروني أو كلمة المرور غير صحيحة.'],
-            ]);
+        if ($company === null) {
+            return null;
         }
 
-        if (Auth::guard('company')->user()->status !== 'active') {
-            Auth::guard('company')->logout();
-            throw ValidationException::withMessages([
-                'email' => ['حساب الشركة غير مفعّل.'],
-            ]);
-        }
-
-        $request->session()->regenerate();
-
-        return redirect()->route('company.dash');
+        return RoleAssignment::query()
+            ->where('role', Role::AccountManager->value)
+            ->forScope(RoleAssignment::SCOPE_COMPANY, $company->id)
+            ->value('user_id');
     }
 
     public function register(Request $request): RedirectResponse
@@ -115,8 +130,10 @@ class CompanyAuthController extends Controller
             'email_verified_at' => now(),
         ]);
 
-        Auth::guard('company')->login($company);
-        $request->session()->regenerate();
+        // Ensure the account manager identity exists, then open a stamped
+        // portal session (30-day lifetime, epoch-bound).
+        $user = app(IdentityResolver::class)->linkCompanyAccountManager($company);
+        $this->portalLogin->login($request, 'company', $company, $user);
 
         return Inertia::render('auth/activate-company', [
             'token' => '',
@@ -128,7 +145,7 @@ class CompanyAuthController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
-        $this->authService->logout($request);
+        $this->portalLogin->logout($request, 'company');
 
         return redirect()->route('company.login');
     }

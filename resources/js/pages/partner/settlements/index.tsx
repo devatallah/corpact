@@ -1,113 +1,111 @@
-import PartnerLayout from '@/layouts/partner-layout';
+import Pagination from '@/components/pagination';
 import StatCard from '@/components/stat-card';
 import StatusBadge from '@/components/status-badge';
-import Pagination from '@/components/pagination';
-import type { Partner, Settlement, PaginatedResult } from '@/types/models';
+import PartnerLayout from '@/layouts/partner-layout';
+import type { PaginatedResult, Partner } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+
+interface StatementRow {
+    id: number;
+    period_key: string;
+    period_start: string | null;
+    period_end: string | null;
+    status: string;
+    items_count: number;
+    gross_amount: string;
+    commission_amount: string;
+    net_amount: string;
+    paid_at: string | null;
+}
 
 interface Totals {
-    total_net: number;
-    received: number;
-    pending: number;
-    processing: number;
+    paid_net: string;
+    draft_net: string;
+    approved_net: string;
+    unstated_net: string;
+    payouts_blocked: boolean;
 }
 
 interface Props {
     partner: Partner;
-    settlements: PaginatedResult<Settlement>;
+    statements: PaginatedResult<StatementRow>;
     totals: Totals;
-    filters?: { search?: string; status?: string };
+    filters?: { status?: string };
 }
 
-export default function SettlementsIndex({ partner, settlements, totals, filters }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { status: filters?.status });
-
+export default function SettlementsIndex({ statements, totals }: Props) {
     return (
         <PartnerLayout>
             <Head title="التسويات" />
 
             <div style={{ marginBottom: 24 }}>
-                <div className="page-title">التسويات المالية</div>
-                <div className="page-sub">الإيرادات القادمة من Teamat</div>
+                <div className="page-title">المستحقات والتسويات</div>
+                <div className="page-sub">
+                    بند التسوية يُنشأ عند اكتمال الفعالية — لا قبله. الكشف يُولَّد كل 15 يوماً ويمر بمسودة ← معتمد ←
+                    مدفوع. العمولة تُقتطع من مستحقاتك ولا تُضاف على السعر المعروض.
+                </div>
             </div>
 
-            {/* Totals */}
+            {totals.payouts_blocked && (
+                <div
+                    className="card"
+                    style={{ borderColor: '#C8410A', color: '#C8410A', fontWeight: 700, marginBottom: 16 }}
+                >
+                    حسابك البنكي غير معتمد — لا يمكن صرف أي كشف قبل اعتماده. حدّث بياناتك من صفحة الحساب البنكي.
+                </div>
+            )}
+
             <div className="stat-row">
-                <StatCard
-                    emoji="💰"
-                    label="إجمالي الإيرادات"
-                    value={`${totals.total_net.toLocaleString()} ر`}
-                    color="#B8860A"
-                />
-                <StatCard
-                    emoji="✅"
-                    label="مستلم"
-                    value={`${totals.received.toLocaleString()} ر`}
-                    color="#1A7A4A"
-                />
-                <StatCard
-                    emoji="⏳"
-                    label="في الطريق"
-                    value={`${(totals.pending + totals.processing).toLocaleString()} ر`}
-                    color="#1A5FAB"
-                />
+                <StatCard emoji="✅" label="مصروف إليك (ريال)" value={totals.paid_net} color="#1A7A4A" />
+                <StatCard emoji="🕐" label="معتمد بانتظار الصرف" value={totals.approved_net} color="#1A5FAB" />
+                <StatCard emoji="📝" label="مسودة قيد المراجعة" value={totals.draft_net} color="#B8860A" />
+                <StatCard emoji="⏭️" label="بنود للكشف القادم" value={totals.unstated_net} color="#6B7A99" />
             </div>
 
-            {/* Search */}
-            <div style={{ marginBottom: 16 }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث بالشركة..."
-                    style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #EAE4DC', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
-                />
-            </div>
-
-            {/* Table */}
             <div className="card">
                 <div style={{ overflow: 'auto' }}>
                     <table className="portal-table">
                         <thead>
                             <tr>
-                                <th>الشركة</th>
-                                <th>الحجوزات</th>
-                                <th>المبلغ</th>
+                                <th>الفترة</th>
+                                <th>الفعاليات</th>
+                                <th>الإجمالي</th>
+                                <th>العمولة</th>
+                                <th>الصافي</th>
                                 <th>الحالة</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            {settlements.data.length === 0 ? (
+                            {statements.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} style={{ textAlign: 'center', padding: 30, color: '#8A7868' }}>
-                                        لا توجد تسويات حالياً
+                                    <td colSpan={7} style={{ textAlign: 'center', padding: 20, color: '#6B7A99' }}>
+                                        لا كشوف بعد — أول كشف يُولَّد بعد اكتمال فعالياتك في الفترة.
                                     </td>
                                 </tr>
                             ) : (
-                                settlements.data.map((settlement) => (
-                                    <tr
-                                        key={settlement.id}
-                                        style={{ cursor: 'pointer' }}
-                                        onClick={() =>
-                                            (window.location.href = `/partner/settlements/${settlement.id}`)
-                                        }
-                                    >
-                                        <td>
-                                            <div style={{ fontSize: 13, fontWeight: 700 }}>
-                                                {settlement.company?.name}
-                                            </div>
-                                            <div style={{ fontSize: 11, color: '#8A7868' }}>
-                                                {settlement.period}
-                                            </div>
-                                        </td>
+                                statements.data.map((row) => (
+                                    <tr key={row.id}>
                                         <td style={{ fontWeight: 700 }}>
-                                            {settlement.events_count} حجوزات
+                                            {row.period_key}
+                                            <div style={{ fontSize: 11, color: '#6B7A99' }}>
+                                                {row.period_start} → {row.period_end}
+                                            </div>
                                         </td>
-                                        <td style={{ fontSize: 16, fontWeight: 900, color: '#1A7A4A' }}>
-                                            {settlement.net_amount.toLocaleString()} ريال
+                                        <td>{row.items_count}</td>
+                                        <td>{row.gross_amount} ر</td>
+                                        <td style={{ color: '#C8410A' }}>−{row.commission_amount} ر</td>
+                                        <td style={{ fontWeight: 700 }}>{row.net_amount} ر</td>
+                                        <td>
+                                            <StatusBadge status={row.status} />
                                         </td>
                                         <td>
-                                            <StatusBadge status={settlement.status} />
+                                            <Link
+                                                href={`/partner/settlements/${row.id}`}
+                                                style={{ color: '#1A5FAB', fontWeight: 700 }}
+                                            >
+                                                التفاصيل
+                                            </Link>
                                         </td>
                                     </tr>
                                 ))
@@ -115,22 +113,7 @@ export default function SettlementsIndex({ partner, settlements, totals, filters
                         </tbody>
                     </table>
                 </div>
-            </div>
-
-            <Pagination links={settlements.links} />
-
-            {/* Info Box */}
-            <div style={{ background: '#1A5FAB18', border: '1px solid #1A5FAB33', borderRadius: 14, padding: '14px 18px', display: 'flex', gap: 12 }}>
-                <div style={{ fontSize: 22 }}>ℹ️</div>
-                <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1A5FAB', marginBottom: 4 }}>
-                        كيف تعمل التسويات؟
-                    </div>
-                    <div style={{ fontSize: 12, color: '#4A3828', lineHeight: 1.6 }}>
-                        بعد خصم عمولة المنصة ({partner.commission_rate ?? 10}%)، يُحول الصافي
-                        لحسابك خلال 3 أيام عمل من تاريخ الفعالية.
-                    </div>
-                </div>
+                <Pagination links={statements.links} />
             </div>
         </PartnerLayout>
     );

@@ -4,6 +4,7 @@ use App\Models\Community;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\Community\LeadershipService;
 
 test('admin can view any community', function () {
     $admin = User::factory()->create();
@@ -43,12 +44,13 @@ test('only admin and company can create communities', function () {
 test('community leader can update their community', function () {
     $company = Company::factory()->create();
     $leader = Employee::factory()->create(['company_id' => $company->id]);
-    $community = Community::factory()->create([
-        'company_id' => $company->id,
-        'leader_id' => $leader->id,
-    ]);
+    $community = Community::factory()->create(['company_id' => $company->id]);
 
-    expect($leader->can('update', $community))->toBeTrue();
+    // Leadership lives in role_assignments (A5/H §6) — no leader_id column.
+    app(LeadershipService::class)
+        ->assignLeader($community, $leader->fresh(), asPrimary: true);
+
+    expect($leader->fresh()->can('update', $community))->toBeTrue();
 });
 
 test('non-leader employee cannot update community', function () {
@@ -62,10 +64,10 @@ test('non-leader employee cannot update community', function () {
 test('employee cannot delete communities', function () {
     $company = Company::factory()->create();
     $employee = Employee::factory()->create(['company_id' => $company->id]);
-    $community = Community::factory()->create([
-        'company_id' => $company->id,
-        'leader_id' => $employee->id,
-    ]);
+    $community = Community::factory()->create(['company_id' => $company->id]);
 
-    expect($employee->can('delete', $community))->toBeFalse();
+    app(LeadershipService::class)
+        ->assignLeader($community, $employee->fresh(), asPrimary: true);
+
+    expect($employee->fresh()->can('delete', $community))->toBeFalse();
 });

@@ -4,21 +4,23 @@ namespace App\Http\Controllers\Partner;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Partner\IndexSettlementRequest;
-use App\Models\Settlement;
+use App\Models\SettlementStatement;
 use App\Services\Partner\PartnerSettlementService;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * لوحة المزوّد — المستحقات والتسويات (H §17، G/دليل المزوّد §7): قائمة
+ * الكشوف وصفحة كشف واحد بمطابقة بند ببند مقابل الفعاليات. قراءة فقط:
+ * الاعتماد والصرف عند الأدمن المالي وحده.
+ */
 class SettlementController extends Controller
 {
     public function __construct(
-        private PartnerSettlementService $settlementService,
+        private PartnerSettlementService $settlements,
     ) {}
 
-    /**
-     * List settlements for the authenticated partner.
-     */
     public function index(IndexSettlementRequest $request): Response
     {
         $partner = auth('partner')->user()->resolvedPartner();
@@ -26,21 +28,18 @@ class SettlementController extends Controller
 
         return Inertia::render('partner/settlements/index', [
             'partner' => $partner,
-            'settlements' => $this->settlementService->listForpartner($partner, $filters),
-            'totals' => $this->settlementService->totals($partner),
+            'statements' => $this->settlements->listForPartner($partner, $filters),
+            'totals' => $this->settlements->totals($partner),
             'filters' => $filters,
         ]);
     }
 
-    /**
-     * Show details for a specific settlement.
-     */
-    public function show(Settlement $settlement): Response
+    public function show(SettlementStatement $settlement): Response
     {
         Gate::authorize('view', $settlement);
 
         return Inertia::render('partner/settlements/show', [
-            'settlement' => $settlement,
+            'statement' => $this->settlements->statementDetail($settlement),
         ]);
     }
 }

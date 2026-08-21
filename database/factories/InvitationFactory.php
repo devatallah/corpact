@@ -3,9 +3,9 @@
 namespace Database\Factories;
 
 use App\Models\Company;
-use App\Models\Employee;
 use App\Models\Invitation;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends Factory<Invitation>
@@ -19,9 +19,12 @@ class InvitationFactory extends Factory
     {
         return [
             'company_id' => Company::factory(),
-            'invited_by' => Employee::factory(),
+            // Nullable since A4: account-manager invites have no employee row.
+            'invited_by' => null,
             'email' => fake()->unique()->safeEmail(),
+            'token' => Str::random(48),
             'status' => 'pending',
+            'expires_at' => now()->addDays(Invitation::VALIDITY_DAYS),
             'accepted_at' => null,
         ];
     }

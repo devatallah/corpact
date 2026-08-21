@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Company\IndexEmployeeRequest;
 use App\Http\Requests\Company\StoreEmployeeRequest;
 use App\Http\Requests\Company\UpdateEmployeeRequest;
+use App\Models\Company;
+use App\Models\Department;
 use App\Models\Employee;
+use App\Models\Notification;
 use App\Services\Company\CompanyEmployeeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -27,7 +30,7 @@ class EmployeeController extends Controller
     public function index(IndexEmployeeRequest $request): Response
     {
         $company = auth('company')->user();
-        $unreadNotifications = \App\Models\Notification::where('notifiable_type', \App\Models\Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
+        $unreadNotifications = Notification::where('notifiable_type', Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
 
         $filters = $request->validated();
 
@@ -38,7 +41,7 @@ class EmployeeController extends Controller
         $activeCount = Employee::where('company_id', $company->id)->where('status', 'active')->count();
         $totalCount = Employee::where('company_id', $company->id)->count();
 
-        $departments = \App\Models\Department::where('company_id', $company->id)->orderBy('name')->get(['id', 'name']);
+        $departments = Department::where('company_id', $company->id)->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('company/employees/index', [
             'company' => $company,
@@ -70,7 +73,7 @@ class EmployeeController extends Controller
 
         $data = $request->validated();
 
-        $hrEmployee = \App\Models\Employee::where('email', $company->email)
+        $hrEmployee = Employee::where('email', $company->email)
             ->where('company_id', $company->id)
             ->first();
 
@@ -86,7 +89,7 @@ class EmployeeController extends Controller
     public function edit(Employee $employee): Response
     {
         $company = auth('company')->user();
-        $departments = \App\Models\Department::where('company_id', $company->id)->orderBy('name')->get(['id', 'name']);
+        $departments = Department::where('company_id', $company->id)->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('company/employees/edit', [
             'employee' => $employee->load('department'),
@@ -131,15 +134,20 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Remove the specified employee.
+     * Departure (H §5): deactivate — never delete. The observer cascade
+     * revokes sessions, removes community leaderships (with AM alert) and
+     * cancels unconfirmed participations; historical data stays intact and
+     * the membership keeps its `left_at` stamp for the cycle invoice.
      */
     public function destroy(Employee $employee): RedirectResponse
     {
         Gate::authorize('delete', $employee);
 
-        $employee->delete();
+        if ($employee->status !== 'inactive') {
+            $employee->update(['status' => 'inactive']);
+        }
 
         return redirect()->route('company.employees.index')
-            ->with('success', 'تم إزالة الموظف بنجاح.');
+            ->with('success', 'تم تعطيل حساب الموظف وإنهاء جلساته. بياناته التاريخية باقية.');
     }
 }

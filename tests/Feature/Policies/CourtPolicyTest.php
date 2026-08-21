@@ -1,8 +1,8 @@
 <?php
 
 use App\Models\partner;
-use App\Models\venue;
 use App\Models\User;
+use App\Models\venue;
 
 test('admin can view any venue', function () {
     $admin = User::factory()->create();

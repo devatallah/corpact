@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * @extends Factory<partner>
+ * @extends Factory<Partner>
  */
 class PartnerFactory extends Factory
 {
@@ -19,14 +19,17 @@ class PartnerFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->company() . ' partner',
+            'name' => fake()->company().' partner',
             'email' => fake()->unique()->companyEmail(),
             'password' => static::$password ??= Hash::make('password'),
             'city' => fake()->randomElement(['الرياض', 'جدة', 'الدمام', 'مكة', 'المدينة']),
             'district' => fake()->streetName(),
-            'contact_phone' => fake()->phoneNumber(),
+            'contact_phone' => '05'.fake()->unique()->numerify('########'),
             'working_hours' => '06:00 - 00:00',
             'rating' => fake()->randomFloat(1, 3.0, 5.0),
+            'reliability_score' => 80,
+            'reliability_samples' => 0,
+            'bank_status' => 'missing',
             'total_bookings' => fake()->numberBetween(0, 200),
             'commission_rate' => fake()->randomFloat(2, 8, 15),
             'email_verified_at' => now(),

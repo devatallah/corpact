@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\Department;
+use App\Models\League;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -74,7 +75,7 @@ class DepartmentController extends Controller
         }
 
         // Check if department is in an active league
-        $inActiveLeague = \App\Models\League::where('status', 'active')
+        $inActiveLeague = League::where('status', 'active')
             ->whereHas('departments', fn ($q) => $q->where('departments.id', $department->id))
             ->exists();
 

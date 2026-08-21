@@ -190,7 +190,7 @@ return;
                 <div className="card" style={{ textAlign: 'center', padding: 40, color: '#8A7868' }}>
                     <div style={{ fontSize: 32, marginBottom: 8 }}>👥</div>
                     <div style={{ fontSize: 14 }}>لم تتم إضافة أي موظفين بعد</div>
-                    <div style={{ fontSize: 12, marginTop: 4 }}>أضف موظفي الاستقبال ليتمكنوا من إدارة الحجوزات</div>
+                    <div style={{ fontSize: 12, marginTop: 4 }}>أضف موظفي الاستقبال ليتمكنوا من إدارة الطلبات</div>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

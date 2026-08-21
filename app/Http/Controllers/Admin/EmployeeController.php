@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\IndexEmployeeRequest;
 use App\Http\Requests\Admin\StoreEmployeeRequest;
 use App\Http\Requests\Admin\UpdateEmployeeRequest;
 use App\Models\Company;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Services\Admin\AdminEmployeeService;
 use Illuminate\Http\RedirectResponse;
@@ -32,7 +33,7 @@ class EmployeeController extends Controller
         $totalEmployees = Employee::count();
         $companies = Company::active()->orderBy('name')->get(['id', 'name']);
 
-        $departments = \App\Models\Department::orderBy('name')->get(['id', 'name', 'company_id']);
+        $departments = Department::orderBy('name')->get(['id', 'name', 'company_id']);
 
         return Inertia::render('admin/employees/index', [
             'employees' => $employees,
@@ -77,7 +78,7 @@ class EmployeeController extends Controller
     {
         $companies = Company::active()->orderBy('name')->get(['id', 'name']);
 
-        $departments = \App\Models\Department::orderBy('company_id')->orderBy('name')->get(['id', 'name', 'company_id']);
+        $departments = Department::orderBy('company_id')->orderBy('name')->get(['id', 'name', 'company_id']);
 
         return Inertia::render('admin/employees/edit', [
             'employee' => $employee->load(['company']),

@@ -9,7 +9,13 @@ type Props = {
 };
 
 export function AppShell({ children, variant = 'sidebar' }: Props) {
-    const isOpen = usePage().props.sidebarOpen;
+    // Fall back gracefully when rendered outside an Inertia app (tests, design previews).
+    let isOpen: boolean | undefined = true;
+    try {
+        isOpen = usePage().props.sidebarOpen as boolean | undefined;
+    } catch {
+        /* no Inertia context */
+    }
 
     if (variant === 'header') {
         return (

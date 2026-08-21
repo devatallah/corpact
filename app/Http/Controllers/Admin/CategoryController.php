@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,16 +15,20 @@ class CategoryController extends Controller
 {
     /**
      * Extract dominant color from an image file.
+     *
+     * Works on the uploaded temp file (before it is stored), so it does not
+     * depend on the storage disk being local — uploads live on a private
+     * disk (S3 in production) with no local path.
      */
-    private function extractDominantColor(string $path): ?string
+    private function extractDominantColor(UploadedFile $file): ?string
     {
-        $fullPath = Storage::disk('public')->path($path);
+        $fullPath = $file->getRealPath();
 
-        if (!file_exists($fullPath)) {
+        if (! $fullPath || ! file_exists($fullPath)) {
             return null;
         }
 
-        $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+        $ext = strtolower($file->getClientOriginalExtension() ?: (string) $file->guessExtension());
 
         // For SVGs, parse fill/stroke attributes
         if ($ext === 'svg') {
@@ -39,7 +44,7 @@ class CategoryController extends Controller
             default => null,
         };
 
-        if (!$image) {
+        if (! $image) {
             return null;
         }
 
@@ -59,9 +64,15 @@ class CategoryController extends Controller
             $a = ($rgba >> 24) & 0x7F; // 0=opaque, 127=transparent
 
             // Skip transparent, near-white, near-black pixels
-            if ($a > 64) continue;
-            if ($r > 240 && $g > 240 && $b > 240) continue;
-            if ($r < 15 && $g < 15 && $b < 15) continue;
+            if ($a > 64) {
+                continue;
+            }
+            if ($r > 240 && $g > 240 && $b > 240) {
+                continue;
+            }
+            if ($r < 15 && $g < 15 && $b < 15) {
+                continue;
+            }
 
             // Quantize to reduce color space
             $qr = (int) round($r / 32) * 32;
@@ -94,7 +105,7 @@ class CategoryController extends Controller
     private function extractColorFromSvg(string $path): ?string
     {
         $content = file_get_contents($path);
-        if (!$content) {
+        if (! $content) {
             return null;
         }
 
@@ -108,7 +119,7 @@ class CategoryController extends Controller
         foreach (array_merge($fillMatches[1], $strokeMatches[1]) as $hex) {
             $hex = strtoupper($hex);
             if (strlen($hex) === 4) {
-                $hex = '#' . $hex[1] . $hex[1] . $hex[2] . $hex[2] . $hex[3] . $hex[3];
+                $hex = '#'.$hex[1].$hex[1].$hex[2].$hex[2].$hex[3].$hex[3];
             }
 
             $r = hexdec(substr($hex, 1, 2));
@@ -120,9 +131,15 @@ class CategoryController extends Controller
             $chroma = $max - $min;
 
             // Skip backgrounds (very light), near-black, grays, white, black
-            if ($max > 230 && $min > 200) continue;
-            if ($max < 60) continue;
-            if ($chroma < 30) continue; // skip grays including #333
+            if ($max > 230 && $min > 200) {
+                continue;
+            }
+            if ($max < 60) {
+                continue;
+            }
+            if ($chroma < 30) {
+                continue;
+            } // skip grays including #333
 
             $saturation = $max > 0 ? $chroma / $max : 0;
             $candidates[] = ['hex' => $hex, 'saturation' => $saturation];
@@ -174,9 +191,9 @@ class CategoryController extends Controller
         ]);
 
         if ($request->hasFile('icon')) {
-            $storedPath = $request->file('icon')->store('categories', 'public');
-            $data['icon'] = '/storage/'.$storedPath;
-            $data['color'] = $this->extractDominantColor($storedPath) ?? '#009E82';
+            // Private default disk (S3 in production); served via signed URLs.
+            $data['icon'] = $request->file('icon')->store('categories');
+            $data['color'] = $this->extractDominantColor($request->file('icon')) ?? '#009E82';
         } else {
             unset($data['icon']);
         }
@@ -204,13 +221,23 @@ class CategoryController extends Controller
         ]);
 
         if ($request->hasFile('icon')) {
-            // Delete old icon if it's a stored file
-            if ($category->icon && str_starts_with($category->icon, '/storage/')) {
-                Storage::disk('public')->delete(str_replace('/storage/', '', $category->icon));
+            // Delete the old icon if it was an uploaded file. Use the raw DB
+            // value — the accessor resolves to a signed URL. Never delete the
+            // shared seeded defaults under /storage/sports/.
+            $oldIcon = $category->getRawOriginal('icon');
+            if ($oldIcon) {
+                if (str_starts_with($oldIcon, '/storage/') && ! str_starts_with($oldIcon, '/storage/sports/')) {
+                    // Legacy upload on the old public disk.
+                    Storage::disk('public')->delete(str_replace('/storage/', '', $oldIcon));
+                } elseif (! str_starts_with($oldIcon, '/') && ! str_starts_with($oldIcon, 'http')) {
+                    // Upload on the private default disk.
+                    Storage::delete($oldIcon);
+                }
             }
-            $storedPath = $request->file('icon')->store('categories', 'public');
-            $data['icon'] = '/storage/'.$storedPath;
-            $data['color'] = $this->extractDominantColor($storedPath) ?? '#009E82';
+
+            // Private default disk (S3 in production); served via signed URLs.
+            $data['icon'] = $request->file('icon')->store('categories');
+            $data['color'] = $this->extractDominantColor($request->file('icon')) ?? '#009E82';
         } else {
             unset($data['icon']);
         }

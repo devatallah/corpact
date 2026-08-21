@@ -2,19 +2,22 @@
 
 namespace App\Http\Controllers\Company;
 
+use App\Enums\EventStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Company\IndexEventRequest;
+use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Event;
 use App\Models\Notification;
 use App\Services\Company\CompanyEventService;
-use App\Services\Employee\EventCreationService;
 use App\Services\Employee\ChallengeService;
-use App\Services\RefundService;
+use App\Services\Employee\EventCreationService;
+use App\Services\Events\EventStateMachine;
+use App\Services\Events\ParticipationService;
+use App\Services\Payments\EventRefundService;
+use App\Support\Notify;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,7 +27,9 @@ class EventController extends Controller
         private CompanyEventService $eventService,
         private EventCreationService $eventCreationService,
         private ChallengeService $challengeService,
-        private RefundService $refundService,
+        private EventRefundService $refundService,
+        private ParticipationService $participationService,
+        private EventStateMachine $stateMachine,
     ) {}
 
     /**
@@ -33,7 +38,7 @@ class EventController extends Controller
     public function index(IndexEventRequest $request): Response
     {
         $company = auth('company')->user();
-        $unreadNotifications = \App\Models\Notification::where('notifiable_type', \App\Models\Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
+        $unreadNotifications = Notification::where('notifiable_type', Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
 
         $filters = $request->validated();
 
@@ -41,7 +46,7 @@ class EventController extends Controller
 
         $totalEvents = $events->total();
         $activeEvents = Event::whereHas('community', fn ($q) => $q->where('company_id', $company->id))
-            ->whereIn('status', ['open', 'waiting_partner', 'confirmed'])
+            ->whereIn('status', EventStatus::activeValues())
             ->count();
 
         return Inertia::render('company/events/index', [
@@ -60,7 +65,7 @@ class EventController extends Controller
     public function show(Event $event): Response
     {
         $company = auth('company')->user();
-        $unreadNotifications = \App\Models\Notification::where('notifiable_type', \App\Models\Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
+        $unreadNotifications = Notification::where('notifiable_type', Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
 
         $event->load(['community', 'partner', 'category', 'creator', 'participants', 'alternatives', 'parentEvent']);
 
@@ -71,7 +76,7 @@ class EventController extends Controller
 
         // Get IDs of currently joined participants
         $joinedIds = $event->participants
-            ->filter(fn ($p) => $p->pivot->status === 'joined')
+            ->filter(fn ($p) => $p->pivot->seat_status === 'reserved')
             ->pluck('id')
             ->all();
 
@@ -89,8 +94,14 @@ class EventController extends Controller
                 ->get();
         }
 
-        $canCancel = ! in_array($event->status, ['cancelled', 'completed', 'rejected']);
-        $refundPreview = $canCancel ? $this->refundService->getRefundPreview($event) : null;
+        // H §9: إلغاء الشركة مشروع من booked/confirmed فقط.
+        // مصفوفة A10 (H §12.4): إلغاء الشركة = استرداد كامل دائماً — نسب
+        // 100/50/0 القديمة حُذفت.
+        $canCancel = in_array($event->status, ['booked', 'confirmed'], true);
+        $refundPreview = $canCancel ? [
+            'percentage' => 100,
+            'policy_label' => 'استرداد كامل — إلغاء الشركة يرد كل ما حُصِّل (H §12.4)',
+        ] : null;
 
         return Inertia::render('company/events/show', [
             'company' => $company,
@@ -104,189 +115,94 @@ class EventController extends Controller
     }
 
     /**
-     * Remove the specified event.
+     * الحذف النهائي ممنوع — الفعالية سجل مالي/تاريخي (H §21). الإلغاء عبر
+     * آلة الحالات فقط.
      */
     public function destroy(Event $event): RedirectResponse
     {
-        Gate::authorize('delete', $event);
-
-        $event->delete();
-
-        return redirect()->route('company.events.index')
-            ->with('success', 'تم حذف الفعالية بنجاح.');
+        return back()->with('error', 'حذف الفعاليات نهائياً ممنوع — استخدم الإلغاء (سجل مالي وتاريخي لا يُمحى).');
     }
 
     /**
-     * Cancel the specified event with refund policy applied.
+     * إلغاء من الشركة (cancelled_company) — H §9: مشروع من booked/confirmed
+     * فقط؛ الفعالية المفتوحة التي لم يقبلها المزوّد تنتهي تلقائياً (expired)
+     * ولا يعرف الجدول إلغاءها.
      */
     public function cancel(Request $request, Event $event): RedirectResponse
     {
-        if (! in_array($event->status, ['open', 'waiting_partner', 'alternative_proposed', 'confirmed'])) {
-            return back()->with('error', 'يمكن إلغاء الفعالية فقط إذا كانت مفتوحة أو بانتظار الشريك أو بديل مقترح أو مؤكدة.');
+        if (! $this->stateMachine->canTransition((string) $event->status, 'cancelled_company')) {
+            return back()->with('error', 'لا يمكن إلغاء الفعالية في حالتها الحالية — الإلغاء مشروع بعد قبول المزوّد فقط (محجوزة أو مؤكدة، H §9).');
         }
 
-        // Apply refund via refund service (handles percentage calculation)
-        // Only processes refund if budget was already deducted
-        $refundAmount = $event->budget_deducted_at
-            ? $this->refundService->applyRefund($event)
-            : 0;
+        $this->stateMachine->cancelCompany($event, auth('company')->user(), $request->input('reason'));
+
+        // مصفوفة A10 (H §12.4): إلغاء الشركة = استرداد كامل — فك الحجوزات،
+        // عكس الاستقطاعات، ورد كل حصة مدفوعة لوسيلة الدفع الأصلية.
+        $this->refundService->refundEventCollections($event, 'إلغاء الشركة — استرداد كامل (H §12.4)');
 
         // Notify waitlisted members that the event is cancelled
         $waitlistedIds = $event->waitlistEntries()->pluck('employees.id');
         foreach ($waitlistedIds as $employeeId) {
-            Notification::create([
-                'notifiable_type' => Employee::class,
-                'notifiable_id' => $employeeId,
-                'type' => 'warning',
-                'title' => 'تم إلغاء الفعالية',
-                'body' => 'تم إلغاء الفعالية التي كنت في قائمة انتظارها.',
-                'data' => ['event_id' => $event->id],
-            ]);
+            Notify::sendToId(
+                'event.waitlist.cancelled',
+                Employee::class,
+                (int) $employeeId,
+                [],
+                ['data' => ['event_id' => $event->id]],
+            );
         }
-
-        $event->update(['status' => 'cancelled']);
 
         // Cancel entire series if requested
         if ($request->boolean('cancel_series') && $event->isRecurringSeries()) {
-            $this->eventCreationService->cancelSeries($event);
-            return back()->with('success', 'تم إلغاء سلسلة الفعاليات بالكامل.');
+            $cancelled = $this->eventCreationService->cancelSeries($event);
+
+            return back()->with('success', "تم إلغاء {$cancelled} فعالية من السلسلة (المفتوحة التي لم يقبلها المزوّد تنتهي تلقائياً وفق آلة الحالات).");
         }
 
-        $message = $refundAmount > 0
-            ? "تم إلغاء الفعالية. تم استرداد {$refundAmount} ريال إلى رصيد المجتمع."
-            : 'تم إلغاء الفعالية بنجاح.';
-
-        return back()->with('success', $message);
+        return back()->with('success', 'تم إلغاء الفعالية — كل ما حُصِّل يُرد كاملاً (المحفظة وحصص الموظفين لوسيلة الدفع الأصلية).');
     }
 
     /**
-     * Add an employee to the event.
+     * إضافة موظف للفعالية (مسؤول الحساب) — عبر مسار الانضمام الذري نفسه:
+     * عضوية المجتمع شرط، ولا تحصيل، وقائمة الانتظار عند الامتلاء (H §10).
      */
     public function addMember(Request $request, Event $event): RedirectResponse
     {
-        if (! in_array($event->status, ['open', 'waiting_partner', 'alternative_proposed'])) {
-            return back()->with('error', 'لا يمكن تعديل المشاركين بعد تأكيد الفعالية.');
-        }
-
         $request->validate(['employee_id' => ['required', 'integer', 'exists:employees,id']]);
 
-        $employeeId = $request->input('employee_id');
+        $employee = Employee::withoutGlobalScopes()->findOrFail($request->input('employee_id'));
 
-        $alreadyJoined = $event->participants()
-            ->where('employee_id', $employeeId)
-            ->wherePivot('status', 'joined')
-            ->exists();
-
-        if ($alreadyJoined) {
-            return back()->with('error', 'الموظف منضم بالفعل.');
+        try {
+            $result = $this->participationService->join($event, $employee, auth('company')->user());
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
         }
 
-        if ($event->participants_count >= $event->capacity) {
-            return back()->with('error', 'الفعالية مكتملة العدد.');
-        }
-
-        $event->participants()->syncWithoutDetaching([
-            $employeeId => ['status' => 'joined', 'joined_at' => now()],
-        ]);
-
-        $event->increment('participants_count');
-        $event->refresh();
-
-        // Auto-transition to waiting_partner when capacity is full
-        if ($event->status === 'open' && $event->participants_count >= $event->capacity) {
-            $event->update(['status' => 'waiting_partner']);
-
-            \App\Models\Notification::create([
-                'notifiable_type' => \App\Models\Partner::class,
-                'notifiable_id' => $event->partner_id,
-                'type' => 'info',
-                'title' => 'طلب حجز جديد',
-                'body' => "طلب حجز جديد للفعالية #{$event->id} — {$event->venues_count} ملعب بتاريخ {$event->event_date->format('Y-m-d')}",
-                'data' => ['event_id' => $event->id],
-            ]);
-        }
-
-        return back()->with('success', 'تمت إضافة الموظف للفعالية.');
+        return back()->with('success', $result === 'waitlisted'
+            ? 'الفعالية ممتلئة — أُضيف الموظف لقائمة الانتظار.'
+            : 'تمت إضافة الموظف للفعالية.');
     }
 
     /**
-     * Remove an employee from the event.
+     * إزالة موظف من الفعالية — حالة released لا حذف، والمقعد يُعرض على
+     * قائمة الانتظار (H §10).
      */
     public function removeMember(Request $request, Event $event): RedirectResponse
     {
-        if (! in_array($event->status, ['open', 'waiting_partner', 'alternative_proposed'])) {
-            return back()->with('error', 'لا يمكن تعديل المشاركين بعد تأكيد الفعالية.');
+        if (! in_array($event->status, ['open', 'pending_provider', 'provider_alternative', 'booked'])) {
+            return back()->with('error', 'لا يمكن تعديل المشاركين بعد إغلاق التسجيل أو تأكيد الفعالية.');
         }
 
         $request->validate(['employee_id' => ['required', 'integer', 'exists:employees,id']]);
 
-        $employeeId = $request->input('employee_id');
+        $employee = Employee::withoutGlobalScopes()->findOrFail($request->input('employee_id'));
 
-        $isJoined = $event->participants()
-            ->where('employee_id', $employeeId)
-            ->wherePivot('status', 'joined')
-            ->exists();
-
-        if (! $isJoined) {
-            return back()->with('error', 'الموظف غير منضم.');
+        try {
+            $this->participationService->remove($event, $employee, auth('company')->user(), 'إزالة من بوابة الشركة');
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
         }
-
-        DB::transaction(function () use ($event, $employeeId) {
-            $event = Event::lockForUpdate()->findOrFail($event->id);
-
-            $event->participants()->detach($employeeId);
-            $event->decrement('participants_count');
-
-            // Try to promote from waitlist
-            $promoted = $this->promoteFromWaitlist($event);
-
-            if (! $promoted && $event->status === 'waiting_partner') {
-                $event->update(['status' => 'open']);
-            }
-        });
 
         return back()->with('success', 'تمت إزالة الموظف من الفعالية.');
     }
-
-    /**
-     * Promote the next person from the waiting list to a joined participant.
-     */
-    private function promoteFromWaitlist(Event $event): bool
-    {
-        $next = $event->waitlistEntries()->first();
-
-        if (! $next) {
-            return false;
-        }
-
-        $promotedPosition = $next->pivot->position;
-
-        $event->participants()->updateExistingPivot($next->id, [
-            'status' => 'joined',
-            'joined_at' => now(),
-            'position' => null,
-        ]);
-
-        $event->increment('participants_count');
-
-        DB::table('event_participants')
-            ->where('event_id', $event->id)
-            ->where('status', 'waitlisted')
-            ->where('position', '>', $promotedPosition)
-            ->decrement('position');
-
-        Notification::create([
-            'notifiable_type' => Employee::class,
-            'notifiable_id' => $next->id,
-            'type' => 'success',
-            'title' => 'تم ترقيتك من قائمة الانتظار',
-            'body' => 'تم تأكيد مكانك في الفعالية! أحد اللاعبين غادر وأنت الآن منضم.',
-            'data' => ['event_id' => $event->id],
-        ]);
-
-        $this->challengeService->incrementProgress($next, 'events_count');
-
-        return true;
-    }
-
 }

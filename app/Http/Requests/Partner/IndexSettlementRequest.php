@@ -18,8 +18,8 @@ class IndexSettlementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'search' => ['sometimes', 'string', 'max:255'],
-            'status' => ['sometimes', 'string'],
+            // A11: الكشف لكل مزوّد لا لكل (مزوّد + شركة) — لا بحث بالشركة.
+            'status' => ['sometimes', 'string', 'in:draft,approved,paid'],
             'per_page' => ['sometimes', 'integer', 'min:5', 'max:100'],
         ];
     }
@@ -30,7 +30,6 @@ class IndexSettlementRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'search.max' => 'نص البحث يجب ألا يتجاوز 255 حرف.',
             'per_page.min' => 'عدد العناصر يجب أن يكون 5 على الأقل.',
             'per_page.max' => 'عدد العناصر يجب ألا يتجاوز 100.',
         ];

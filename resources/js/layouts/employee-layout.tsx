@@ -6,6 +6,10 @@ const navLinks = [
     { label: 'الرئيسية', href: '/employee/home' },
     { label: 'استكشاف', href: '/employee/explore' },
     { label: 'مجتمعاتي', href: '/employee/community' },
+    // A15 — H §18 (الموظف): «لوحات الصدارة» صفحة مقررة، وكانت تعمل بلا رابط
+    // في التنقّل (A12 تركتها لأن هذا الملف كان محمياً في موجتها).
+    { label: 'لوحات الصدارة', href: '/employee/leaderboards' },
+    { label: 'مدفوعاتي', href: '/employee/payments' },
     { label: 'تقاريري', href: '/employee/reports' },
 ];
 
@@ -19,7 +23,10 @@ const mobTabs = [
 
 export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
     const { url, props } = usePage();
-    const auth = (props as Record<string, unknown>).auth as { user?: { name?: string } } | undefined;
+    const auth = (props as Record<string, unknown>).auth as
+        | { user?: { name?: string }; memberships?: { id: number; name: string; active?: boolean }[] }
+        | undefined;
+    const memberships = auth?.memberships ?? [];
     const employee = (props as Record<string, unknown>).employee as { name?: string } | undefined;
     const name = employee?.name ?? auth?.user?.name ?? '';
     const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2);
@@ -51,6 +58,36 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
                         </div>
                     </div>
                     <div className="topnav-left">
+                        {memberships.length > 1 && (
+                            // A15 — H §4: مبدّل سياق صريح للشركة (الـ endpoint
+                            // وخاصية auth.memberships جاهزان منذ A3).
+                            <select
+                                aria-label="الشركة الحالية"
+                                value={memberships.find((m) => m.active)?.id ?? ''}
+                                onChange={(e) => {
+                                    const contextId = Number(e.target.value);
+                                    if (contextId) {
+                                        router.post('/employee/context/switch', { context_id: contextId });
+                                    }
+                                }}
+                                style={{
+                                    padding: '6px 10px',
+                                    borderRadius: 8,
+                                    border: '1px solid #EBEBEB',
+                                    background: '#fff',
+                                    fontSize: 12,
+                                    fontFamily: 'inherit',
+                                    color: '#0A0A0A',
+                                    direction: 'rtl',
+                                }}
+                            >
+                                {memberships.map((membership) => (
+                                    <option key={membership.id} value={membership.id}>
+                                        {membership.name}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                         <Link href="/employee/create" className="topnav-new">
                             ➕ فعالية جديدة
                         </Link>

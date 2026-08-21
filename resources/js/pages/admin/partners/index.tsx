@@ -421,7 +421,7 @@ export default function PartnersIndex({ partners, stats, filters, categories }: 
                                 required
                             />
                             <div style={{ fontSize: 11, color: '#6B7A99', marginTop: 4 }}>
-                                النسبة التي تخصمها المنصة من كل حجز لالشريك هذا
+                                النسبة التي تستقطعها المنصة من كل فعالية لهذا الشريك
                             </div>
                         </div>
                         <div className="panel-actions">

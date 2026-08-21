@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Partner;
 use App\Models\Company;
 use App\Models\Employee;
-use App\Models\Settlement;
-use App\Services\Admin\PartnerService;
+use App\Models\Partner;
+use App\Models\SettlementItem;
 use App\Services\Admin\CompanyService;
+use App\Services\Admin\PartnerService;
+use App\Services\Competition\GhostEventMetricService;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,6 +19,7 @@ class DashboardController extends Controller
     public function __construct(
         private CompanyService $companyService,
         private PartnerService $partnerService,
+        private GhostEventMetricService $ghostEvents,
     ) {}
 
     /**
@@ -37,13 +39,9 @@ class DashboardController extends Controller
 
         $totalEmployees = Employee::count();
 
-        $monthlyRevenue = Settlement::whereYear('created_at', $now->year)
-            ->whereMonth('created_at', $now->month)
-            ->sum('commission_amount');
-
-        $lastMonthRevenue = Settlement::whereYear('created_at', $now->copy()->subMonth()->year)
-            ->whereMonth('created_at', $now->copy()->subMonth()->month)
-            ->sum('commission_amount');
+        // A11: الإيراد = العمولة على الفعاليات المكتملة (بنود التسوية بالهللة).
+        $monthlyRevenue = $this->commissionForMonth($now);
+        $lastMonthRevenue = $this->commissionForMonth($now->copy()->subMonth());
 
         $revenueGrowth = $lastMonthRevenue > 0
             ? round((($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100)
@@ -86,7 +84,6 @@ class DashboardController extends Controller
 
         $topCompanies = Company::active()
             ->withCount(['employees', 'events'])
-            ->with(['settlements' => fn ($q) => $q->selectRaw('company_id, SUM(gross_amount) as total_spend')->groupBy('company_id')])
             ->orderByDesc('employee_count')
             ->limit(5)
             ->get();
@@ -94,12 +91,9 @@ class DashboardController extends Controller
         $last6Months = collect();
         for ($i = 5; $i >= 0; $i--) {
             $date = $now->copy()->subMonths($i);
-            $total = Settlement::whereYear('created_at', $date->year)
-                ->whereMonth('created_at', $date->month)
-                ->sum('commission_amount');
             $last6Months->push((object) [
                 'month' => $date->translatedFormat('F'),
-                'total' => (float) $total,
+                'total' => $this->commissionForMonth($date),
             ]);
         }
 
@@ -121,6 +115,23 @@ class DashboardController extends Controller
             'topCompanies' => $topCompanies,
             'last6Months' => $last6Months,
             'maxRevenue' => $maxRevenue,
+            // A12 — H §13: «يجب مراقبة معدل التعديلات بعد الاكتمال كمؤشر
+            // إنذار مبكر» للفعالية الشبح. A13 يبني التقرير الكامل فوقه.
+            'ghostEventWatch' => $this->ghostEvents->stats(),
         ]);
+    }
+
+    /**
+     * عمولة شهر بالريال للعرض — مصدرها بنود التسوية (هللات) التي لا تُنشأ
+     * إلا عند اكتمال الفعالية (H §12.7).
+     */
+    private function commissionForMonth(Carbon $month): float
+    {
+        $halalas = (int) SettlementItem::query()
+            ->whereYear('computed_at', $month->year)
+            ->whereMonth('computed_at', $month->month)
+            ->sum('commission_amount_halalas');
+
+        return $halalas / 100;
     }
 }

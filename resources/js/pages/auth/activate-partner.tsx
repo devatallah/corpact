@@ -210,8 +210,8 @@ export default function Activatepartner({ token, partnerName, email, activated }
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                                         {[
                                             { icon: '🏟️', t: 'إعداد المرافق', d: 'أضف مرافقك وحدد أنواع الفئات' },
-                                            { icon: '⏰', t: 'تحديد المواعيد', d: 'حدد أوقات العمل والأسعار' },
-                                            { icon: '📋', t: 'إدارة الحجوزات', d: 'ستتلقى طلبات الحجز من الشركات' },
+                                            { icon: '⏰', t: 'تحديد الأوقات', d: 'حدد أوقات العمل والأسعار' },
+                                            { icon: '📋', t: 'إدارة الطلبات', d: 'ستتلقى طلبات الفعاليات من الشركات' },
                                             { icon: '💰', t: 'متابعة الإيرادات', d: 'تابع التسويات والمدفوعات' },
                                         ].map((item, i) => (
                                             <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>

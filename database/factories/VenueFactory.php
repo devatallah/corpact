@@ -2,13 +2,13 @@
 
 namespace Database\Factories;
 
+use App\Models\Category;
 use App\Models\Partner;
 use App\Models\Venue;
-use App\Models\Category;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<venue>
+ * @extends Factory<Venue>
  */
 class VenueFactory extends Factory
 {
@@ -20,7 +20,7 @@ class VenueFactory extends Factory
         return [
             'partner_id' => Partner::factory(),
             'category_id' => Category::factory(),
-            'name' => 'ملعب ' . fake()->numberBetween(1, 10),
+            'name' => 'ملعب '.fake()->numberBetween(1, 10),
             'status' => 'active',
         ];
     }
