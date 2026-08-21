@@ -12,6 +12,6 @@ class ImmutableReportSnapshotException extends LogicException
 {
     public static function forColumn(string $column): self
     {
-        return new self("الحقل «{$column}» ثابت في اللقطة الشهرية ولا يقبل التعديل بعد التوليد (H §15).");
+        return new self("الحقل «{$column}» ثابت في اللقطة الشهرية ولا يقبل التعديل بعد التوليد.");
     }
 }

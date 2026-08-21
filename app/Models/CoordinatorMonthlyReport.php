@@ -52,7 +52,7 @@ class CoordinatorMonthlyReport extends Model
 
         static::deleting(function (): never {
             throw new ImmutableReportSnapshotException(
-                'لا يُحذف تقرير شهري — اللقطة الشهرية سجل ثابت (H §15).'
+                'لا يُحذف تقرير شهري — اللقطة الشهرية سجل ثابت.'
             );
         });
     }

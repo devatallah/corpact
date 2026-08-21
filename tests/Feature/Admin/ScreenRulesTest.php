@@ -156,6 +156,34 @@ test('the company cancellation dialog states the refund effect', function () {
         ->and($source)->toContain('refundPreview');
 });
 
+test('no page or shared component falls back to the browser confirm dialog', function () {
+    // A15 left 14 non-financial `window.confirm` sites as later cleanup; the
+    // rule (H §18) is one confirm convention, so none may come back.
+    $roots = [base_path('resources/js/pages'), base_path('resources/js/components')];
+
+    $offenders = [];
+
+    foreach ($roots as $root) {
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
+
+        foreach ($files as $file) {
+            if (! $file->isFile() || ! in_array($file->getExtension(), ['ts', 'tsx'], true)) {
+                continue;
+            }
+
+            $source = (string) file_get_contents($file->getPathname());
+
+            // `confirm(` preceded by `!`, `(`, `window.` or whitespace — but not
+            // our own `confirmSomething(` handlers.
+            if (preg_match('/(?<![A-Za-z0-9_$.])(?:window\.)?confirm\s*\(/', $source)) {
+                $offenders[] = str_replace(base_path().'/', '', $file->getPathname());
+            }
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
 // ── The three mandatory list states ──────────────────────────────────────
 
 test('the shared list-state component carries the mandated Arabic copy', function () {

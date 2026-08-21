@@ -1,5 +1,6 @@
 import CompanyLayout from '@/layouts/company-layout';
 import ConfirmModal from '@/components/confirm-modal';
+import ListStates from '@/components/list-states';
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import toastr from 'toastr';
@@ -76,30 +77,28 @@ export default function DepartmentsIndex({ departments }: Props) {
                         </tr>
                     </thead>
                     <tbody>
-                        {departments.length === 0 ? (
-                            <tr>
-                                <td colSpan={3} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
-                                    لا توجد أقسام بعد
+                        <ListStates
+                            count={departments.length}
+                            columns={3}
+                            emptyTitle="لا توجد أقسام بعد"
+                            emptyHint="أضف أول قسم لتوزيع الموظفين عليه في التقارير والمؤشرات."
+                        />
+                        {departments.map((dept) => (
+                            <tr key={dept.id}>
+                                <td style={{ fontWeight: 700 }}>{dept.name}</td>
+                                <td>{dept.employees_count}</td>
+                                <td>
+                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                        <button
+                                            onClick={() => { setEditingItem(dept); setShowCreate(false); }}
+                                            className="act-btn btn-view"
+                                        >
+                                            تعديل
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
-                        ) : (
-                            departments.map((dept) => (
-                                <tr key={dept.id}>
-                                    <td style={{ fontWeight: 700 }}>{dept.name}</td>
-                                    <td>{dept.employees_count}</td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
-                                            <button
-                                                onClick={() => { setEditingItem(dept); setShowCreate(false); }}
-                                                className="act-btn btn-view"
-                                            >
-                                                تعديل
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>

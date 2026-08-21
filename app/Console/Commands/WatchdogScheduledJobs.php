@@ -58,7 +58,7 @@ class WatchdogScheduledJobs extends Command
                 // وتفتح صفاً في صندوق أدمن تيمات معاً (H §20).
                 app(CriticalAlertService::class)->raise(
                     key: 'jobs.watchdog',
-                    title: "المهمة المجدولة [{$job}] لم تُنفَّذ خلال ضعف دوريتها — الصمت ليس دليل نجاح (H §20).",
+                    title: "المهمة المجدولة [{$job}] لم تُنفَّذ خلال ضعف دوريتها — الصمت ليس دليل نجاح.",
                     body: 'آخر تنفيذ: '.($lastRunAt?->toDateTimeString() ?? 'لا يوجد')." — الدورية {$cadenceMinutes} دقيقة.",
                     context: [
                         'job' => $job,

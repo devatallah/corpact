@@ -61,7 +61,7 @@ it('rejects joining for non-members of the community', function () {
     $stranger = Employee::factory()->create(['company_id' => $event->company_id]);
 
     expect(fn () => app(ParticipationService::class)->join($event, $stranger))
-        ->toThrow(RuntimeException::class, 'الانضمام متاح لأعضاء المجتمع فقط (H §10).');
+        ->toThrow(RuntimeException::class, 'الانضمام متاح لأعضاء المجتمع فقط.');
 });
 
 it('transitions open to pending_provider when the minimum is reached at join', function () {
@@ -103,7 +103,7 @@ it('refuses self-withdrawal after registration close', function () {
     $event->forceFill(['registration_closes_at' => now()->subMinute()])->save();
 
     expect(fn () => $service->withdraw($event->fresh(), $member))
-        ->toThrow(RuntimeException::class, 'أُغلق التسجيل — لا انسحاب بعد الإغلاق (H §10).');
+        ->toThrow(RuntimeException::class, 'أُغلق التسجيل — لا انسحاب بعد الإغلاق.');
 });
 
 it('re-joining after withdrawal reuses the same row', function () {

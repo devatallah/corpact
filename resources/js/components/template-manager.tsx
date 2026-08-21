@@ -1,5 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import ConfirmModal from '@/components/confirm-modal';
 import type { Category, EventTemplate, TemplateOccurrencePreview } from '@/types/models';
 import { fmtDate, fmtTime } from '@/lib/utils';
 import toastr from 'toastr';
@@ -247,6 +248,17 @@ export default function TemplateManager({ templates, partners, categories, manag
     const [showCreate, setShowCreate] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [processing, setProcessing] = useState(false);
+    // H §18: نافذة تأكيد موحّدة بدل نافذة المتصفح — الإيقاف يوقف التوليد فقط.
+    const [pauseTarget, setPauseTarget] = useState<EventTemplate | null>(null);
+
+    function confirmPause() {
+        if (!pauseTarget) return;
+        const id = pauseTarget.id;
+        setPauseTarget(null);
+        router.post(`${manageUrl}/${id}/pause`, {}, {
+            onSuccess: () => toastr.success('أُوقف القالب'),
+        });
+    }
     const pageErrors = (usePage().props as { errors?: Record<string, string> }).errors ?? {};
 
     const emptyForm: TemplateFormData = {
@@ -375,10 +387,13 @@ export default function TemplateManager({ templates, partners, categories, manag
                                 className="btn btn-outline"
                                 style={{ fontSize: 12, color: t.status === 'active' ? '#E03050' : '#0E7C4A', borderColor: t.status === 'active' ? '#E0305044' : '#009E8244' }}
                                 onClick={() => {
-                                    const action = t.status === 'active' ? 'pause' : 'resume';
-                                    if (action === 'pause' && !confirm('إيقاف القالب يوقف التوليد المستقبلي فقط — الفعاليات المولّدة لا تُمس ولا تُلغى. متابعة؟')) return;
-                                    router.post(`${manageUrl}/${t.id}/${action}`, {}, {
-                                        onSuccess: () => toastr.success(action === 'pause' ? 'أُوقف القالب' : 'أُعيد تفعيل القالب'),
+                                    if (t.status === 'active') {
+                                        setPauseTarget(t);
+
+                                        return;
+                                    }
+                                    router.post(`${manageUrl}/${t.id}/resume`, {}, {
+                                        onSuccess: () => toastr.success('أُعيد تفعيل القالب'),
                                     });
                                 }}
                             >
@@ -430,6 +445,19 @@ export default function TemplateManager({ templates, partners, categories, manag
                     )}
                 </div>
             ))}
+
+            <ConfirmModal
+                open={pauseTarget !== null}
+                title="إيقاف قالب التكرار"
+                message={
+                    pauseTarget
+                        ? `يتوقّف توليد فعاليات جديدة من هذا القالب من الآن فصاعداً. الفعاليات المولَّدة سابقاً (${pauseTarget.events_count ?? 0}) لا تُمس ولا تُلغى وتكمل دورتها كالمعتاد. تستطيع إعادة تفعيل القالب في أي وقت.`
+                        : ''
+                }
+                confirmLabel="إيقاف القالب"
+                onConfirm={confirmPause}
+                onCancel={() => setPauseTarget(null)}
+            />
         </div>
     );
 }

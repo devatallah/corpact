@@ -90,11 +90,16 @@ export default function EventShow({
     // H §9 قاعدة 2: التغيير اليدوي — أدمن تيمات وحده بسبب مكتوب، والسجل مقروء أولاً
     const [forceStatus, setForceStatus] = useState('');
     const [forceReason, setForceReason] = useState('');
+    const [forceConfirm, setForceConfirm] = useState(false);
 
     function submitForceStatus(e: React.FormEvent) {
         e.preventDefault();
         if (!forceStatus || forceReason.trim().length < 5) return;
-        if (!confirm(`تغيير الحالة يدوياً إلى ${forceStatus}؟ يُسجَّل بالفاعل والسبب.`)) return;
+        setForceConfirm(true);
+    }
+
+    function confirmForceStatus() {
+        setForceConfirm(false);
         router.post(`/admin/events/${event.id}/force-status`, { status: forceStatus, reason: forceReason }, {
             onSuccess: () => {
                 setForceStatus('');
@@ -197,7 +202,7 @@ export default function EventShow({
                         {seriesEvents.map((se) => {
                             const isCurrent = se.id === event.id;
                             const statusColor = se.status === 'cancelled' ? '#E03050' : se.status === 'completed' ? '#6B7A99' : '#009E82';
-                            const statusLabel = se.status === 'cancelled' ? 'ملغية' : se.status === 'completed' ? 'منتهية' : `${se.participants_count}/${se.capacity}`;
+                            const statusLabel = se.status === 'cancelled' ? 'ملغية' : se.status === 'completed' ? 'مكتملة' : `${se.participants_count}/${se.capacity}`;
                             return (
                                 <Link
                                     key={se.id}
@@ -414,6 +419,15 @@ export default function EventShow({
                 confirmLabel="تسجيل الاستثناء"
                 onConfirm={submitAttendance}
                 onCancel={() => setAttendanceConfirm(false)}
+            />
+
+            <ConfirmModal
+                open={forceConfirm}
+                title="تغيير حالة الفعالية يدوياً"
+                message={`تنتقل الفعالية من «${event.status}» إلى «${forceStatus}» خارج آلة الحالات. التغيير اليدوي استثناء لا إجراء روتيني: يُسجَّل في سجل التدقيق بالفاعل والقيمة قبل وبعد والسبب المكتوب، ولا يُحذف. تحقّق من سجل الحالات أعلاه قبل التأكيد.`}
+                confirmLabel="تغيير الحالة"
+                onConfirm={confirmForceStatus}
+                onCancel={() => setForceConfirm(false)}
             />
         </AdminLayout>
     );

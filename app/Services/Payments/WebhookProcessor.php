@@ -234,7 +234,7 @@ class WebhookProcessor
                 'gateway_reference' => $event->gatewayReference,
             ])->save();
 
-            $this->refunds->refundIntent($intent, 'دفعة متأخرة بعد منح المقعد لغيره — استرداد تلقائي (H §12.3)');
+            $this->refunds->refundIntent($intent, 'دفعة متأخرة بعد منح المقعد لغيره — استرداد تلقائي');
         }
     }
 

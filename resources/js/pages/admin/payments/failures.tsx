@@ -59,7 +59,7 @@ export default function PaymentFailures({ failedRefunds, expiredIntents, failedW
                 <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>قائمة فشل المدفوعات والاستردادات</h1>
                 <p style={{ fontSize: 13, color: '#7A8BA8', marginTop: 6 }}>
                     كل استرداد يعود إلى وسيلة الدفع الأصلية عبر البوابة. إعادة المحاولة آلية كل 15 دقيقة —
-                    وما استنفد محاولاته يبقى هنا حتى تعالجه يدوياً. لا يُترك فشل صامتاً (H §12.4).
+                    وما استنفد محاولاته يبقى هنا حتى تعالجه يدوياً. لا يُترك فشل صامتاً.
                 </p>
             </div>
 

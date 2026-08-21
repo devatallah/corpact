@@ -59,7 +59,7 @@ class RescheduleService
             // إبلاغ المزوّد فوراً وفك حجز الوحدة إن كان قد قبل (H §8).
             $this->cancelActiveProviderRequest(
                 $fresh,
-                'لم يبلغ العدد الحد الأدنى عند إغلاق التسجيل — أُلغي الحجز وأعيدت جدولة الفعالية (H §8)',
+                'لم يبلغ العدد الحد الأدنى عند إغلاق التسجيل — أُلغي الحجز وأعيدت جدولة الفعالية',
             );
 
             $old = $fresh->startsAt();
@@ -160,7 +160,7 @@ class RescheduleService
 
             if ($fresh->registration_extended_at !== null) {
                 throw ValidationException::withMessages([
-                    'registration' => ['مُدد تسجيل هذه الفعالية مرة من قبل — التمديد مرة واحدة فقط (H §24).'],
+                    'registration' => ['مُدد تسجيل هذه الفعالية مرة من قبل — التمديد مرة واحدة فقط.'],
                 ]);
             }
 
@@ -193,7 +193,7 @@ class RescheduleService
                 $fresh->company_id,
                 $fresh,
                 'event_registration_extended',
-                "مُدد تسجيل الفعالية #{$fresh->id} 24 ساعة (مرة واحدة) حتى {$newClosesAt->format('Y-m-d H:i')} — بديل فتحها على مجتمعات أخرى (H §24)",
+                "مُدد تسجيل الفعالية #{$fresh->id} 24 ساعة (مرة واحدة) حتى {$newClosesAt->format('Y-m-d H:i')} — بديل فتحها على مجتمعات أخرى",
             );
 
             $this->notifyExtension($fresh);

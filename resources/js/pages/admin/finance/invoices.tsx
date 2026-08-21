@@ -86,7 +86,7 @@ export default function FinanceInvoices({ invoices, filters, cycle, realInvoices
                 >
                     الفواتير تصدر بوضع <strong>مبدئي</strong>: الأرقام تُحسب وتُخزَّن ولا تُقدَّم مستنداً ضريبياً
                     نهائياً. إصدار فاتورة حقيقية موقوف بعلم <code>billing.real_invoices_enabled</code> بانتظار مراجعة
-                    محاسب قانوني للصفة الضريبية (H §12.9).
+                    محاسب قانوني للصفة الضريبية.
                 </div>
             )}
 

@@ -144,7 +144,7 @@ class FinancialTermsService
     private function assertFutureDate(DateTimeInterface $effectiveFrom): void
     {
         if (Carbon::parse($effectiveFrom)->startOfDay()->lte(Carbon::now()->startOfDay())) {
-            throw new InvalidArgumentException('تاريخ السريان يجب أن يكون مستقبلياً — لا تغيير بأثر رجعي (H §12.10).');
+            throw new InvalidArgumentException('تاريخ السريان يجب أن يكون مستقبلياً — لا تغيير بأثر رجعي.');
         }
     }
 }

@@ -60,7 +60,7 @@ class ProviderEventTransitions
 
             app(EventRefundService::class)->refundEventCollections(
                 $event,
-                'إلغاء المزوّد بعد القبول — استرداد كامل (H §12.4)',
+                'إلغاء المزوّد بعد القبول — استرداد كامل',
             );
 
             ActivityLogService::log(

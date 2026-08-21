@@ -1,3 +1,4 @@
+import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import StatCard from '@/components/stat-card';
 import StatusBadge from '@/components/status-badge';
@@ -77,39 +78,37 @@ export default function SettlementsIndex({ statements, totals }: Props) {
                             </tr>
                         </thead>
                         <tbody>
-                            {statements.data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} style={{ textAlign: 'center', padding: 20, color: '#6B7A99' }}>
-                                        لا كشوف بعد — أول كشف يُولَّد بعد اكتمال فعالياتك في الفترة.
+                            <ListStates
+                                count={statements.data.length}
+                                columns={7}
+                                emptyTitle="لا كشوف بعد"
+                                emptyHint="أول كشف تسوية يُولَّد بعد اكتمال فعالياتك في الفترة."
+                            />
+                            {statements.data.map((row) => (
+                                <tr key={row.id}>
+                                    <td style={{ fontWeight: 700 }}>
+                                        {row.period_key}
+                                        <div style={{ fontSize: 11, color: '#6B7A99' }}>
+                                            {row.period_start} → {row.period_end}
+                                        </div>
+                                    </td>
+                                    <td>{row.items_count}</td>
+                                    <td>{row.gross_amount} ر</td>
+                                    <td style={{ color: '#C8410A' }}>−{row.commission_amount} ر</td>
+                                    <td style={{ fontWeight: 700 }}>{row.net_amount} ر</td>
+                                    <td>
+                                        <StatusBadge status={row.status} />
+                                    </td>
+                                    <td>
+                                        <Link
+                                            href={`/partner/settlements/${row.id}`}
+                                            style={{ color: '#1A5FAB', fontWeight: 700 }}
+                                        >
+                                            التفاصيل
+                                        </Link>
                                     </td>
                                 </tr>
-                            ) : (
-                                statements.data.map((row) => (
-                                    <tr key={row.id}>
-                                        <td style={{ fontWeight: 700 }}>
-                                            {row.period_key}
-                                            <div style={{ fontSize: 11, color: '#6B7A99' }}>
-                                                {row.period_start} → {row.period_end}
-                                            </div>
-                                        </td>
-                                        <td>{row.items_count}</td>
-                                        <td>{row.gross_amount} ر</td>
-                                        <td style={{ color: '#C8410A' }}>−{row.commission_amount} ر</td>
-                                        <td style={{ fontWeight: 700 }}>{row.net_amount} ر</td>
-                                        <td>
-                                            <StatusBadge status={row.status} />
-                                        </td>
-                                        <td>
-                                            <Link
-                                                href={`/partner/settlements/${row.id}`}
-                                                style={{ color: '#1A5FAB', fontWeight: 700 }}
-                                            >
-                                                التفاصيل
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
+                            ))}
                         </tbody>
                     </table>
                 </div>

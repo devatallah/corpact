@@ -1,5 +1,6 @@
 import AdminLayout from '@/layouts/admin-layout';
 import CategoryIcon from '@/components/category-icon';
+import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import type { Category, PaginatedResult } from '@/types/models';
 import { Head, useForm, router } from '@inertiajs/react';
@@ -149,61 +150,59 @@ export default function SportsIndex({ categories, parentCategories, totalSports,
                         </tr>
                     </thead>
                     <tbody>
-                        {categories.data.length === 0 ? (
-                            <tr>
-                                <td colSpan={8} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
-                                    لا توجد فئات
+                        <ListStates
+                            count={categories.data.length}
+                            columns={8}
+                            emptyTitle="لا توجد فئات"
+                            emptyHint="لا فئة مطابقة للبحث الحالي."
+                        />
+                        {categories.data.map((cat) => (
+                            <tr key={cat.id}>
+                                <td>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <CategoryIcon icon={cat.icon} size={32} />
+                                        <div>
+                                            <span style={{ fontWeight: 700, color: '#fff' }}>{cat.name}</span>
+                                            {cat.parent && (
+                                                <div style={{ fontSize: 11, color: '#6B7A99', marginTop: 2 }}>
+                                                    {cat.parent.name}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td style={{ color: '#6B7A99' }}>{cat.name_en || '—'}</td>
+                                <td>
+                                    <span style={{
+                                        fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
+                                        background: cat.parent_id ? '#3B82F618' : '#F59E0B18',
+                                        color: cat.parent_id ? '#3B82F6' : '#F59E0B',
+                                    }}>
+                                        {cat.parent_id ? 'فرعية' : 'رئيسية'}
+                                    </span>
+                                </td>
+                                <td>{cat.communities_count}</td>
+                                <td>{cat.venues_count}</td>
+                                <td>{cat.events_count}</td>
+                                <td>
+                                    <span style={{
+                                        fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
+                                        background: cat.deleted_at ? '#E0305018' : '#0CA67818',
+                                        color: cat.deleted_at ? '#E03050' : '#0CA678',
+                                    }}>
+                                        {cat.deleted_at ? 'معطّلة' : 'مفعّلة'}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button
+                                        onClick={() => { setEditingItem(cat); setShowCreate(false); }}
+                                        className="act-btn btn-view"
+                                    >
+                                        تعديل
+                                    </button>
                                 </td>
                             </tr>
-                        ) : (
-                            categories.data.map((cat) => (
-                                <tr key={cat.id}>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <CategoryIcon icon={cat.icon} size={32} />
-                                            <div>
-                                                <span style={{ fontWeight: 700, color: '#fff' }}>{cat.name}</span>
-                                                {cat.parent && (
-                                                    <div style={{ fontSize: 11, color: '#6B7A99', marginTop: 2 }}>
-                                                        {cat.parent.name}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td style={{ color: '#6B7A99' }}>{cat.name_en || '—'}</td>
-                                    <td>
-                                        <span style={{
-                                            fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
-                                            background: cat.parent_id ? '#3B82F618' : '#F59E0B18',
-                                            color: cat.parent_id ? '#3B82F6' : '#F59E0B',
-                                        }}>
-                                            {cat.parent_id ? 'فرعية' : 'رئيسية'}
-                                        </span>
-                                    </td>
-                                    <td>{cat.communities_count}</td>
-                                    <td>{cat.venues_count}</td>
-                                    <td>{cat.events_count}</td>
-                                    <td>
-                                        <span style={{
-                                            fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
-                                            background: cat.deleted_at ? '#E0305018' : '#0CA67818',
-                                            color: cat.deleted_at ? '#E03050' : '#0CA678',
-                                        }}>
-                                            {cat.deleted_at ? 'معطّلة' : 'مفعّلة'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button
-                                            onClick={() => { setEditingItem(cat); setShowCreate(false); }}
-                                            className="act-btn btn-view"
-                                        >
-                                            تعديل
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>

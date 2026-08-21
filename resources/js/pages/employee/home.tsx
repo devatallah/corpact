@@ -87,7 +87,7 @@ export default function EmployeeHome({ employee, communities, events, joinedEven
         awaiting_payment: { label: 'بانتظار الدفع', cls: 'b-pending' },
         confirmed: { label: 'مؤكد', cls: 'b-confirmed' },
         in_progress: { label: 'جارية الآن', cls: 'b-confirmed' },
-        completed: { label: 'منتهي', cls: 'b-completed' },
+        completed: { label: 'مكتمل', cls: 'b-completed' },
         settled: { label: 'مسوّاة', cls: 'b-completed' },
         expired: { label: 'منتهية دون اكتمال العدد', cls: 'b-cancelled' },
         rejected: { label: 'اقتراح مرفوض', cls: 'b-cancelled' },

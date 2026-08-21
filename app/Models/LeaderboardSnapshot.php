@@ -43,11 +43,11 @@ class LeaderboardSnapshot extends Model
     protected static function booted(): void
     {
         static::updating(function (): void {
-            throw new RuntimeException('أرشيف لوحة الموسم نسخة نهائية ثابتة — لا يُعدَّل (H §13).');
+            throw new RuntimeException('أرشيف لوحة الموسم نسخة نهائية ثابتة — لا يُعدَّل.');
         });
 
         static::deleting(function (): void {
-            throw new RuntimeException('أرشيف لوحة الموسم لا يُحذف — لا تُحذف أي نتيجة (H §13).');
+            throw new RuntimeException('أرشيف لوحة الموسم لا يُحذف — لا تُحذف أي نتيجة.');
         });
     }
 

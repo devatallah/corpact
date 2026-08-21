@@ -1,3 +1,4 @@
+import ListStates from '@/components/list-states';
 import StatusBadge from '@/components/status-badge';
 import PartnerLayout from '@/layouts/partner-layout';
 import { fmtDateTime } from '@/lib/utils';
@@ -117,38 +118,36 @@ export default function SettlementShow({ statement }: Props) {
                             </tr>
                         </thead>
                         <tbody>
-                            {statement.items.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} style={{ textAlign: 'center', padding: 20, color: '#6B7A99' }}>
-                                        لا بنود.
+                            <ListStates
+                                count={statement.items.length}
+                                columns={7}
+                                emptyTitle="لا بنود في هذا الكشف"
+                                emptyHint="يُضاف بند لكل فعالية مكتملة ضمن فترة الكشف."
+                            />
+                            {statement.items.map((item) => (
+                                <tr key={item.id}>
+                                    <td style={{ fontWeight: 700 }}>
+                                        {item.event_title ?? `#${item.event_id}`}
+                                        {item.reason && (
+                                            <div style={{ fontSize: 11, color: '#C8410A' }}>
+                                                سبب التصحيح: {item.reason}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td>{item.event_date ?? '—'}</td>
+                                    <td>{item.gross_amount} ر</td>
+                                    <td>{item.commission_rate_percent ?? '—'}%</td>
+                                    <td style={{ color: '#C8410A' }}>{item.commission_amount} ر</td>
+                                    <td style={{ fontWeight: 700 }}>{item.net_amount} ر</td>
+                                    <td>
+                                        {item.type === 'correction' ? (
+                                            <span style={{ color: '#C8410A', fontWeight: 700 }}>بند تصحيحي</span>
+                                        ) : (
+                                            'فعالية'
+                                        )}
                                     </td>
                                 </tr>
-                            ) : (
-                                statement.items.map((item) => (
-                                    <tr key={item.id}>
-                                        <td style={{ fontWeight: 700 }}>
-                                            {item.event_title ?? `#${item.event_id}`}
-                                            {item.reason && (
-                                                <div style={{ fontSize: 11, color: '#C8410A' }}>
-                                                    سبب التصحيح: {item.reason}
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td>{item.event_date ?? '—'}</td>
-                                        <td>{item.gross_amount} ر</td>
-                                        <td>{item.commission_rate_percent ?? '—'}%</td>
-                                        <td style={{ color: '#C8410A' }}>{item.commission_amount} ر</td>
-                                        <td style={{ fontWeight: 700 }}>{item.net_amount} ر</td>
-                                        <td>
-                                            {item.type === 'correction' ? (
-                                                <span style={{ color: '#C8410A', fontWeight: 700 }}>بند تصحيحي</span>
-                                            ) : (
-                                                'فعالية'
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
+                            ))}
                         </tbody>
                     </table>
                 </div>

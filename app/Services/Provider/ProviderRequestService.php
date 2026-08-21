@@ -256,7 +256,7 @@ class ProviderRequestService
                     : ProviderReliabilityLog::REASON_CANCEL_AFTER_ACCEPT,
                 request: $locked,
                 note: $staleAvailability
-                    ? 'تعارض ناتج عن عدم تحديث التوفر — يتحمل المزوّد الإلغاء وتُطبَّق سياسة إلغاء المزوّد (H §11).'
+                    ? 'تعارض ناتج عن عدم تحديث التوفر — يتحمل المزوّد الإلغاء وتُطبَّق سياسة إلغاء المزوّد.'
                     : 'إلغاء بعد القبول — تُطبَّق سياسة إلغاء المزوّد.',
             );
 

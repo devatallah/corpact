@@ -1,5 +1,6 @@
 import AdminLayout from '@/layouts/admin-layout';
 import CategoryIcon from '@/components/category-icon';
+import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import { fmtDate } from '@/lib/utils';
 import type { Community, Company, Category, PaginatedResult } from '@/types/models';
@@ -98,44 +99,42 @@ export default function CommunitiesIndex({ communities, totalCommunities, compan
                         </tr>
                     </thead>
                     <tbody>
-                        {communities.data.length === 0 ? (
-                            <tr>
-                                <td colSpan={8} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
-                                    لا توجد مجتمعات
+                        <ListStates
+                            count={communities.data.length}
+                            columns={8}
+                            emptyTitle="لا توجد مجتمعات"
+                            emptyHint="لا مجتمع مطابق للبحث والفلاتر الحالية — جرّب توسيع نطاق البحث أو إزالة الفلاتر."
+                        />
+                        {communities.data.map((community) => (
+                            <tr key={community.id}>
+                                <td>
+                                    <div style={{ fontWeight: 700, color: '#fff' }}>{community.name}</div>
+                                </td>
+                                <td style={{ color: '#C8D0E0' }}>{community.company?.name ?? '-'}</td>
+                                <td>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                        <CategoryIcon icon={community.category?.icon} size={16} />
+                                        <span style={{ fontSize: 12 }}>{community.category?.name ?? '-'}</span>
+                                    </span>
+                                </td>
+                                <td style={{ fontSize: 12, color: '#C8D0E0' }}>{community.leader?.name ?? '-'}</td>
+                                <td>{community.members_count ?? 0}</td>
+                                <td>{community.events_count ?? 0}</td>
+                                <td>
+                                    <span style={{ color: Number(community.balance) > 0 ? '#009E82' : '#6B7A99', fontWeight: 700 }}>
+                                        {Number(community.balance).toLocaleString()} ريال
+                                    </span>
+                                </td>
+                                <td>
+                                    <button
+                                        onClick={() => setDetail(community)}
+                                        className="act-btn btn-view"
+                                    >
+                                        عرض
+                                    </button>
                                 </td>
                             </tr>
-                        ) : (
-                            communities.data.map((community) => (
-                                <tr key={community.id}>
-                                    <td>
-                                        <div style={{ fontWeight: 700, color: '#fff' }}>{community.name}</div>
-                                    </td>
-                                    <td style={{ color: '#C8D0E0' }}>{community.company?.name ?? '-'}</td>
-                                    <td>
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                            <CategoryIcon icon={community.category?.icon} size={16} />
-                                            <span style={{ fontSize: 12 }}>{community.category?.name ?? '-'}</span>
-                                        </span>
-                                    </td>
-                                    <td style={{ fontSize: 12, color: '#C8D0E0' }}>{community.leader?.name ?? '-'}</td>
-                                    <td>{community.members_count ?? 0}</td>
-                                    <td>{community.events_count ?? 0}</td>
-                                    <td>
-                                        <span style={{ color: Number(community.balance) > 0 ? '#009E82' : '#6B7A99', fontWeight: 700 }}>
-                                            {Number(community.balance).toLocaleString()} ريال
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button
-                                            onClick={() => setDetail(community)}
-                                            className="act-btn btn-view"
-                                        >
-                                            عرض
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>

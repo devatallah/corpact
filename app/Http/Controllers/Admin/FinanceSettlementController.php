@@ -154,7 +154,7 @@ class FinanceSettlementController extends Controller
             'corrected_rate_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'reason' => ['required', 'string', 'max:1000'],
         ], [
-            'reason.required' => 'سبب التصحيح إلزامي ويُسجَّل في سجل التدقيق (H §12.7).',
+            'reason.required' => 'سبب التصحيح إلزامي ويُسجَّل في سجل التدقيق.',
         ]);
 
         try {

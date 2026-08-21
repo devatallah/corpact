@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
+import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
@@ -169,37 +170,35 @@ export default function NotificationLogsIndex({ logs, statuses, channels, stats,
                             </tr>
                         </thead>
                         <tbody>
-                            {logs.data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} style={{ textAlign: 'center', color: '#6B7A99', padding: 20 }}>
-                                        لا توجد سجلات مطابقة
+                            <ListStates
+                                count={logs.data.length}
+                                columns={7}
+                                emptyTitle="لا توجد سجلات مطابقة"
+                                emptyHint="لا سجل إرسال مطابق للبحث والفلاتر الحالية."
+                            />
+                            {logs.data.map((log) => (
+                                <tr key={log.id}>
+                                    <td style={{ direction: 'ltr', textAlign: 'right', fontSize: 13, color: '#C8D0E0' }}>
+                                        {log.recipient_phone ?? '—'}
+                                    </td>
+                                    <td style={{ direction: 'ltr', textAlign: 'right', fontSize: 12, color: '#6B7A99' }}>
+                                        {log.template_key ?? '—'}
+                                    </td>
+                                    <td style={{ fontSize: 13, color: '#C8D0E0' }}>
+                                        {CHANNEL_LABELS[log.channel] ?? log.channel}
+                                    </td>
+                                    <td style={{ fontSize: 13, color: '#C8D0E0' }}>{log.attempt}</td>
+                                    <td>
+                                        <StatusBadge status={log.status} label={statusLabel(log.status)} />
+                                    </td>
+                                    <td style={{ fontSize: 12, color: '#6B7A99' }}>{fmtDate(log.created_at)}</td>
+                                    <td>
+                                        <button onClick={() => setDetail(log)} className="act-btn btn-view">
+                                            عرض
+                                        </button>
                                     </td>
                                 </tr>
-                            ) : (
-                                logs.data.map((log) => (
-                                    <tr key={log.id}>
-                                        <td style={{ direction: 'ltr', textAlign: 'right', fontSize: 13, color: '#C8D0E0' }}>
-                                            {log.recipient_phone ?? '—'}
-                                        </td>
-                                        <td style={{ direction: 'ltr', textAlign: 'right', fontSize: 12, color: '#6B7A99' }}>
-                                            {log.template_key ?? '—'}
-                                        </td>
-                                        <td style={{ fontSize: 13, color: '#C8D0E0' }}>
-                                            {CHANNEL_LABELS[log.channel] ?? log.channel}
-                                        </td>
-                                        <td style={{ fontSize: 13, color: '#C8D0E0' }}>{log.attempt}</td>
-                                        <td>
-                                            <StatusBadge status={log.status} label={statusLabel(log.status)} />
-                                        </td>
-                                        <td style={{ fontSize: 12, color: '#6B7A99' }}>{fmtDate(log.created_at)}</td>
-                                        <td>
-                                            <button onClick={() => setDetail(log)} className="act-btn btn-view">
-                                                عرض
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
+                            ))}
                         </tbody>
                     </table>
                 </div>

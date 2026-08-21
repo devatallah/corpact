@@ -1,6 +1,7 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 import toastr from 'toastr';
+import ConfirmModal from '@/components/confirm-modal';
 import PasswordInput from '@/components/password-input';
 import PartnerLayout from '@/layouts/partner-layout';
 import type { Partner } from '@/types/models';
@@ -28,6 +29,8 @@ interface Props {
 export default function StaffIndex({ partner, staff, roles }: Props) {
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    // H §18: نافذة تأكيد موحّدة بدل نافذة المتصفح، والنص يصف أثر الحذف.
+    const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
 
     const createForm = useForm({
         name: '',
@@ -81,11 +84,14 @@ return;
         });
     }
 
-    function handleDelete(id: number) {
-        if (!confirm('هل أنت متأكد من حذف هذا الموظف؟')) {
-return;
-}
+    function handleDelete(member: StaffMember) {
+        setDeleteTarget(member);
+    }
 
+    function confirmDelete() {
+        if (!deleteTarget) return;
+        const id = deleteTarget.id;
+        setDeleteTarget(null);
         router.delete(`/partner/staff/${id}`, {
             onSuccess: () => toastr.success('تم حذف الموظف.'),
         });
@@ -309,7 +315,7 @@ return;
                                             تعديل
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(member.id)}
+                                            onClick={() => handleDelete(member)}
                                             style={{ ...actionBtnStyle, background: '#FEE2E2', color: '#991B1B' }}
                                         >
                                             حذف
@@ -321,6 +327,19 @@ return;
                     ))}
                 </div>
             )}
+
+            <ConfirmModal
+                open={deleteTarget !== null}
+                title="حذف موظف المزوّد"
+                message={
+                    deleteTarget
+                        ? `يفقد «${deleteTarget.name}» (${roleLabelAr(deleteTarget.role)}) وصوله إلى لوحة المزوّد فوراً، ولا يعود يستقبل طلبات الحجز ولا يردّ عليها. القرارات التي سجّلها سابقاً تبقى في سجلها كما هي.`
+                        : ''
+                }
+                confirmLabel="حذف الموظف"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteTarget(null)}
+            />
         </PartnerLayout>
     );
 }

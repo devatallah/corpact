@@ -1,3 +1,4 @@
+import ListStates from '@/components/list-states';
 import StatCard from '@/components/stat-card';
 import AdminLayout from '@/layouts/admin-layout';
 import { Head, router } from '@inertiajs/react';
@@ -174,23 +175,21 @@ export default function GhostEventMonitor({ weeks, latest, baseline, companyId, 
                         </tr>
                     </thead>
                     <tbody>
-                        {recentManualChanges.length === 0 ? (
-                            <tr>
-                                <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', padding: 24, opacity: 0.7 }}>
-                                    لا تدخلات يدوية مسجّلة — وهذه هي الحالة الصحية.
-                                </td>
+                        <ListStates
+                            count={recentManualChanges.length}
+                            columns={5}
+                            emptyTitle="لا تدخلات يدوية مسجّلة"
+                            emptyHint="وهذه هي الحالة الصحية — كل انتقال حالة تم بآلة الحالات لا بتدخل يدوي."
+                        />
+                        {recentManualChanges.map((change) => (
+                            <tr key={change.id}>
+                                <td style={tdStyle}>{change.event_title}</td>
+                                <td style={tdStyle}>{change.company_name}</td>
+                                <td style={tdStyle}>{change.from_status ?? '—'} ← {change.to_status}</td>
+                                <td style={tdStyle}>{change.reason ?? '—'}</td>
+                                <td style={tdStyle}>{new Date(change.created_at).toLocaleString('ar-SA')}</td>
                             </tr>
-                        ) : (
-                            recentManualChanges.map((change) => (
-                                <tr key={change.id}>
-                                    <td style={tdStyle}>{change.event_title}</td>
-                                    <td style={tdStyle}>{change.company_name}</td>
-                                    <td style={tdStyle}>{change.from_status ?? '—'} ← {change.to_status}</td>
-                                    <td style={tdStyle}>{change.reason ?? '—'}</td>
-                                    <td style={tdStyle}>{new Date(change.created_at).toLocaleString('ar-SA')}</td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>

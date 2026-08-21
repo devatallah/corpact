@@ -1,6 +1,7 @@
 import EmployeeLayout from '@/layouts/employee-layout';
 import StatusBadge from '@/components/status-badge';
 import AttendancePanel, { type AttendancePanelData } from '@/components/attendance-panel';
+import ConfirmModal from '@/components/confirm-modal';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { fmtDate, fmtTime } from '@/lib/utils';
@@ -112,6 +113,26 @@ export default function EventShow({ event, payment, myIntent = null, isJoined, i
     const [cancelProcessing, setCancelProcessing] = useState(false);
     // canCancel يأتي من الخادم: صلاحية event.cancel + حالة booked/confirmed (H §9)
 
+    // H §18: «كل إجراء مالي أو إلغائي يمر بنافذة تأكيد تعرض المبلغ والأثر
+    // صراحة» — نافذة واحدة مشتركة بدل نوافذ المتصفح.
+    const [confirmAction, setConfirmAction] = useState<{
+        title: string;
+        message: string;
+        confirmLabel: string;
+        run: () => void;
+    } | null>(null);
+
+    function runConfirmAction() {
+        const pending = confirmAction;
+        setConfirmAction(null);
+        pending?.run();
+    }
+
+    /** سياسة الاسترداد المعروضة في نافذة الإلغاء — نفس مصدر نافذة الإلغاء المفردة. */
+    const refundClause = refundPreview
+        ? ` نسبة الاسترداد ${refundPreview.percentage}% — ${refundPreview.policy_label}.`
+        : '';
+
     function confirmRemove() {
         if (!removeTarget) return;
         router.post(`/employee/detail/${event.id}/remove/${removeTarget.id}`, {}, {
@@ -150,10 +171,15 @@ export default function EventShow({ event, payment, myIntent = null, isJoined, i
     }
 
     function deleteComment(commentId: number) {
-        if (!confirm('حذف التعليق؟ (متاح خلال 15 دقيقة من نشره)')) return;
-        router.delete(`/employee/comments/${commentId}`, {
-            preserveScroll: true,
-            onSuccess: () => toastr.success('تم حذف التعليق'),
+        setConfirmAction({
+            title: 'حذف التعليق',
+            message: 'يُحذف تعليقك من صفحة الفعالية ولا يظهر للمشاركين بعد ذلك. الحذف متاح خلال 15 دقيقة من نشره فقط، ولا يمكن التراجع عنه.',
+            confirmLabel: 'حذف التعليق',
+            run: () =>
+                router.delete(`/employee/comments/${commentId}`, {
+                    preserveScroll: true,
+                    onSuccess: () => toastr.success('تم حذف التعليق'),
+                }),
         });
     }
 
@@ -350,7 +376,7 @@ export default function EventShow({ event, payment, myIntent = null, isJoined, i
                         {seriesEvents.map((se) => {
                             const isCurrent = se.id === event.id;
                             const statusColor = se.status.startsWith('cancelled') || se.status === 'expired' ? '#EF4444' : se.status === 'completed' ? '#999' : '#18A86B';
-                            const statusLabel = se.status.startsWith('cancelled') || se.status === 'expired' ? 'ملغية' : se.status === 'completed' ? 'منتهية' : `${se.participants_count}/${se.capacity}`;
+                            const statusLabel = se.status.startsWith('cancelled') || se.status === 'expired' ? 'ملغية' : se.status === 'completed' ? 'مكتملة' : `${se.participants_count}/${se.capacity}`;
                             return (
                                 <div
                                     key={se.id}
@@ -527,7 +553,7 @@ export default function EventShow({ event, payment, myIntent = null, isJoined, i
                 )}
                 {!event.budget_deducted_at && Number(payment.subsidy) > 0 && !payment.share_locked && (
                     <div style={{ marginTop: 8, background: '#FEF3C7', borderRadius: 10, padding: '6px 10px', fontSize: 12, color: '#92400E', textAlign: 'center' }}>
-                        يُحجز دعم المجتمع من المحفظة عند إغلاق التسجيل (H §12.3)
+                        يُحجز دعم المجتمع من المحفظة عند إغلاق التسجيل
                     </div>
                 )}
             </div>
@@ -633,7 +659,7 @@ export default function EventShow({ event, payment, myIntent = null, isJoined, i
                     )}
                     {!registrationOpen && !deadStatuses.includes(event.status) && (
                         <div style={{ fontSize: 12, color: '#999', textAlign: 'center', marginBottom: 12 }}>
-                            أُغلق التسجيل — لا انسحاب باسترداد بعد الإغلاق (H §10)
+                            أُغلق التسجيل — لا انسحاب باسترداد بعد الإغلاق
                         </div>
                     )}
                 </>
@@ -695,13 +721,17 @@ export default function EventShow({ event, payment, myIntent = null, isJoined, i
                     <button
                         className="btn btn-outline"
                         style={{ borderColor: '#D97706', color: '#B45309' }}
-                        onClick={() => {
-                            if (confirm('تمديد التسجيل 24 ساعة؟ التمديد متاح مرة واحدة فقط.')) {
-                                router.post(`/employee/detail/${event.id}/extend-registration`, {}, {
-                                    onSuccess: () => toastr.success('مُدد التسجيل 24 ساعة'),
-                                });
-                            }
-                        }}
+                        onClick={() =>
+                            setConfirmAction({
+                                title: 'تمديد التسجيل 24 ساعة',
+                                message: 'يُمدَّد باب التسجيل 24 ساعة إضافية لبلوغ الحد الأدنى، والتمديد متاح مرة واحدة فقط لهذه الفعالية. إن أُغلق التسجيل بعدها دون اكتمال العدد تُعاد الجدولة تلقائياً +7 أيام مرة واحدة ثم تُلغى الفعالية.',
+                                confirmLabel: 'تمديد 24 ساعة',
+                                run: () =>
+                                    router.post(`/employee/detail/${event.id}/extend-registration`, {}, {
+                                        onSuccess: () => toastr.success('مُدد التسجيل 24 ساعة'),
+                                    }),
+                            })
+                        }
                     >
                         تمديد التسجيل 24 ساعة
                     </button>
@@ -712,26 +742,34 @@ export default function EventShow({ event, payment, myIntent = null, isJoined, i
             {isCreator && !event.parent_event_id && seriesEvents.length > 0 && !event.template_id && !['cancelled', 'completed'].includes(event.status) && (
                 <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
                     <button
-                        onClick={() => {
-                            if (confirm('هل تريد إلغاء هذه الفعالية فقط؟')) {
-                                router.delete(`/employee/detail/${event.id}`, {
-                                    onSuccess: () => toastr.success('تم إلغاء الفعالية'),
-                                });
-                            }
-                        }}
+                        onClick={() =>
+                            setConfirmAction({
+                                title: 'إلغاء هذه الفعالية',
+                                message: `تُلغى هذه الفعالية وحدها وتبقى بقية فعاليات السلسلة كما هي. يُفكّ حجز المزوّد وتُعاد حصص المشاركين وفق سياسة الاسترداد.${refundClause} لا يمكن التراجع عن الإلغاء.`,
+                                confirmLabel: 'إلغاء الفعالية',
+                                run: () =>
+                                    router.delete(`/employee/detail/${event.id}`, {
+                                        onSuccess: () => toastr.success('تم إلغاء الفعالية'),
+                                    }),
+                            })
+                        }
                         className="btn btn-outline"
                         style={{ flex: 1 }}
                     >
                         إلغاء هذه الفعالية
                     </button>
                     <button
-                        onClick={() => {
-                            if (confirm('هل تريد إلغاء كل الفعاليات المستقبلية في السلسلة؟')) {
-                                router.delete(`/employee/detail/${event.id}?cancel_series=1`, {
-                                    onSuccess: () => toastr.success('تم إلغاء سلسلة الفعاليات'),
-                                });
-                            }
-                        }}
+                        onClick={() =>
+                            setConfirmAction({
+                                title: 'إلغاء كل السلسلة',
+                                message: `تُلغى هذه الفعالية وكل فعاليات السلسلة القادمة دفعة واحدة. يُفكّ حجز المزوّد في كلٍّ منها وتُعاد حصص المشاركين وفق سياسة الاسترداد.${refundClause} الفعاليات المكتملة لا تُمس. لا يمكن التراجع عن الإلغاء.`,
+                                confirmLabel: 'إلغاء كل السلسلة',
+                                run: () =>
+                                    router.delete(`/employee/detail/${event.id}?cancel_series=1`, {
+                                        onSuccess: () => toastr.success('تم إلغاء سلسلة الفعاليات'),
+                                    }),
+                            })
+                        }
                         className="btn btn-danger"
                         style={{ flex: 1 }}
                     >
@@ -908,6 +946,15 @@ export default function EventShow({ event, payment, myIntent = null, isJoined, i
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                open={confirmAction !== null}
+                title={confirmAction?.title ?? ''}
+                message={confirmAction?.message ?? ''}
+                confirmLabel={confirmAction?.confirmLabel ?? 'تأكيد'}
+                onConfirm={runConfirmAction}
+                onCancel={() => setConfirmAction(null)}
+            />
         </EmployeeLayout>
     );
 }

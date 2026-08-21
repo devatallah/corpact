@@ -44,7 +44,7 @@ class SettlementCorrectionService
         User $actor,
     ): SettlementItem {
         if (trim($reason) === '') {
-            throw new InvalidArgumentException('التصحيح يتطلب سبباً مكتوباً إلزامياً (H §12.7).');
+            throw new InvalidArgumentException('التصحيح يتطلب سبباً مكتوباً إلزامياً.');
         }
 
         if ($correctedGrossHalalas < 0) {
@@ -161,7 +161,8 @@ class SettlementCorrectionService
     private function notifyProvider(SettlementItem $original, SettlementItem $correction, string $reason): void
     {
         $deltaNet = Money::format(abs((int) $correction->net_amount_halalas));
-        $direction = (int) $correction->net_amount_halalas >= 0 ? 'إضافة' : 'خصم';
+        // H §2: «خصم» ممنوعة في كل نص ظاهر — نقص المبلغ يُعبَّر عنه بـ«استقطاع».
+        $direction = (int) $correction->net_amount_halalas >= 0 ? 'إضافة' : 'استقطاع';
 
         Notify::sendToId('settlement.item_corrected', Partner::class, (int) $original->partner_id, [
             'event' => (int) $original->event_id,

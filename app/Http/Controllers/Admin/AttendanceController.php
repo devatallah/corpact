@@ -27,7 +27,7 @@ class AttendanceController extends Controller
             'reason' => ['required', 'string', 'min:3', 'max:500'],
         ], [
             'attendance_status.required' => 'حالة الحضور مطلوبة.',
-            'reason.required' => 'السبب الموثَّق إلزامي — تعديل الحضور بعد النافذة استثناء لا إجراء روتيني (H §13).',
+            'reason.required' => 'السبب الموثَّق إلزامي — تعديل الحضور بعد النافذة استثناء لا إجراء روتيني.',
             'reason.min' => 'اكتب سبباً مفهوماً.',
         ]);
 

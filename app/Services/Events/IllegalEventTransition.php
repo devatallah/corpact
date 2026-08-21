@@ -13,6 +13,6 @@ class IllegalEventTransition extends RuntimeException
         public readonly string $from,
         public readonly string $to,
     ) {
-        parent::__construct("انتقال غير مشروع في آلة حالات الفعالية: {$from} ← {$to} (H §9).");
+        parent::__construct("انتقال غير مشروع في آلة حالات الفعالية: {$from} ← {$to}.");
     }
 }

@@ -124,7 +124,7 @@ class ParticipationService
             }
 
             if (! $this->withdrawalOpen($locked)) {
-                throw new RuntimeException('أُغلق التسجيل — لا انسحاب بعد الإغلاق (H §10).');
+                throw new RuntimeException('أُغلق التسجيل — لا انسحاب بعد الإغلاق.');
             }
 
             $this->releaseReservedSeat($locked, $row, 'cancelled', $employee, $reason ?? 'انسحاب ذاتي قبل إغلاق التسجيل');
@@ -583,7 +583,7 @@ class ParticipationService
                 || $community->isLeader($employee));
 
         if (! $isMember) {
-            throw new RuntimeException('الانضمام متاح لأعضاء المجتمع فقط (H §10).');
+            throw new RuntimeException('الانضمام متاح لأعضاء المجتمع فقط.');
         }
     }
 

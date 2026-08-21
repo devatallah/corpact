@@ -3,6 +3,7 @@ import { useState, useEffect  } from 'react';
 import type {FormEvent} from 'react';
 import toastr from 'toastr';
 import CategoryIcon from '@/components/category-icon';
+import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import PasswordInput from '@/components/password-input';
 import StatusBadge from '@/components/status-badge';
@@ -137,61 +138,59 @@ return;
                         </tr>
                     </thead>
                     <tbody>
-                        {employees.data.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} style={{ textAlign: 'center', padding: 24, color: '#7A8BA8', fontSize: 13 }}>
-                                    لا يوجد موظفون بعد
+                        <ListStates
+                            count={employees.data.length}
+                            columns={6}
+                            emptyTitle="لا يوجد موظفون بعد"
+                            emptyHint="ارفع ملف الدعوات أو أضف موظفاً لبدء التفعيل."
+                        />
+                        {employees.data.map((employee) => (
+                            <tr key={employee.id}>
+                                <td>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#3B5BDB18', color: '#3B5BDB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
+                                            {employee.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 600 }}>{employee.name}</div>
+                                            <div style={{ fontSize: 11, color: '#7A8BA8' }} dir="ltr">{employee.email}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td style={{ color: '#7A8BA8', fontSize: 12 }}>
+                                    {employee.department?.name ?? '\u2014'}
+                                </td>
+                                <td>
+                                    {employee.communities && employee.communities.length > 0 ? (
+                                        employee.communities.map((c) => (
+                                            <span
+                                                key={c.id}
+                                                className="badge"
+                                                style={{ background: '#0CA67818', color: '#0CA678', marginLeft: 4 }}
+                                            >
+                                                <CategoryIcon icon={c.category?.icon} size={14} /> {c.name}
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <span style={{ color: '#7A8BA8', fontSize: 12 }}>{'\u2014'}</span>
+                                    )}
+                                </td>
+                                <td style={{ fontWeight: 700, ...(employee.events_count === 0 ? { color: '#7A8BA8' } : {}) }}>
+                                    {employee.events_count ?? 0}
+                                </td>
+                                <td>
+                                    <StatusBadge status={employee.status} />
+                                </td>
+                                <td>
+                                    <button
+                                        onClick={() => setEditingItem(employee)}
+                                        style={{ background: '#3B5BDB18', color: '#3B5BDB', border: '1px solid #3B5BDB33', borderRadius: 8, padding: '5px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                                    >
+                                        تعديل
+                                    </button>
                                 </td>
                             </tr>
-                        ) : (
-                            employees.data.map((employee) => (
-                                <tr key={employee.id}>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#3B5BDB18', color: '#3B5BDB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
-                                                {employee.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <div style={{ fontSize: 13, fontWeight: 600 }}>{employee.name}</div>
-                                                <div style={{ fontSize: 11, color: '#7A8BA8' }} dir="ltr">{employee.email}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td style={{ color: '#7A8BA8', fontSize: 12 }}>
-                                        {employee.department?.name ?? '\u2014'}
-                                    </td>
-                                    <td>
-                                        {employee.communities && employee.communities.length > 0 ? (
-                                            employee.communities.map((c) => (
-                                                <span
-                                                    key={c.id}
-                                                    className="badge"
-                                                    style={{ background: '#0CA67818', color: '#0CA678', marginLeft: 4 }}
-                                                >
-                                                    <CategoryIcon icon={c.category?.icon} size={14} /> {c.name}
-                                                </span>
-                                            ))
-                                        ) : (
-                                            <span style={{ color: '#7A8BA8', fontSize: 12 }}>{'\u2014'}</span>
-                                        )}
-                                    </td>
-                                    <td style={{ fontWeight: 700, ...(employee.events_count === 0 ? { color: '#7A8BA8' } : {}) }}>
-                                        {employee.events_count ?? 0}
-                                    </td>
-                                    <td>
-                                        <StatusBadge status={employee.status} />
-                                    </td>
-                                    <td>
-                                        <button
-                                            onClick={() => setEditingItem(employee)}
-                                            style={{ background: '#3B5BDB18', color: '#3B5BDB', border: '1px solid #3B5BDB33', borderRadius: 8, padding: '5px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-                                        >
-                                            تعديل
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>

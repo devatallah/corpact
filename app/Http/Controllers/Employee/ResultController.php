@@ -60,7 +60,7 @@ class ResultController extends Controller
             'reason' => ['required', 'string', 'min:3', 'max:500'],
         ], [
             'value.required' => 'القيمة المصحَّحة مطلوبة.',
-            'reason.required' => 'سبب التصحيح إلزامي ويُسجَّل في سجل التدقيق (H §13).',
+            'reason.required' => 'سبب التصحيح إلزامي ويُسجَّل في سجل التدقيق.',
             'reason.min' => 'اكتب سبباً مفهوماً للتصحيح.',
         ]);
 

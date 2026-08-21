@@ -100,7 +100,7 @@ export default function PermissionReview({ assignments, filters, roles, currentP
 
             <div className="page-title">مراجعة الصلاحيات الربع سنوية</div>
             <div className="page-sub">
-                ضابط أمني إلزامي (H §19) — الفترة الحالية {currentPeriod}
+                ضابط أمني إلزامي — الفترة الحالية {currentPeriod}
                 {stats.reviewed_this_period ? ' · مُراجَعة ✅' : ' · لم تُراجَع بعد ⚠️'}
             </div>
 
@@ -253,7 +253,7 @@ export default function PermissionReview({ assignments, filters, roles, currentP
             <ConfirmModal
                 open={confirming}
                 title={`تسجيل مراجعة الفترة ${currentPeriod}`}
-                message={`ستُسجَّل مراجعة ${stats.total} إسناداً باسمك في سجل التدقيق، ولا يمكن تعديلها أو حذفها بعد الحفظ (H §19).`}
+                message={`ستُسجَّل مراجعة ${stats.total} إسناداً باسمك في سجل التدقيق، ولا يمكن تعديلها أو حذفها بعد الحفظ.`}
                 confirmLabel="تسجيل"
                 onConfirm={submitReview}
                 onCancel={() => setConfirming(false)}

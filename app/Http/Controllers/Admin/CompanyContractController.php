@@ -81,7 +81,7 @@ class CompanyContractController extends Controller
             entity: $company,
             before: $before,
             after: $company->only($tracked),
-            reason: 'تحديث بيانات عقد الشركة من لوحة الأدمن (H §16)',
+            reason: 'تحديث بيانات عقد الشركة من لوحة الأدمن',
             companyId: $company->id,
         );
 

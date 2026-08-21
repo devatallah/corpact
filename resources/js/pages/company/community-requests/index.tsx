@@ -1,4 +1,5 @@
 import CompanyLayout from '@/layouts/company-layout';
+import ConfirmModal from '@/components/confirm-modal';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import type { CommunityRequest } from '@/types/models';
@@ -26,6 +27,8 @@ export default function CommunityRequestsIndex({ requests }: Props) {
     const [rejectingId, setRejectingId] = useState<number | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
     const [processing, setProcessing] = useState<number | null>(null);
+    // H §18: نافذة تأكيد موحّدة بدل نافذة المتصفح، والنص يصف أثر الموافقة.
+    const [approveTarget, setApproveTarget] = useState<CommunityRequest | null>(null);
 
     const filteredRequests = activeFilter === 'all'
         ? requests
@@ -33,8 +36,14 @@ export default function CommunityRequestsIndex({ requests }: Props) {
 
     const pendingCount = requests.filter((r) => r.status === 'pending').length;
 
-    function handleApprove(id: number) {
-        if (!confirm('هل تريد الموافقة على هذا الطلب وإنشاء المجتمع؟')) return;
+    function handleApprove(request: CommunityRequest) {
+        setApproveTarget(request);
+    }
+
+    function confirmApprove() {
+        if (!approveTarget) return;
+        const id = approveTarget.id;
+        setApproveTarget(null);
         setProcessing(id);
         router.post(`/company/community-requests/${id}/approve`, {}, {
             preserveScroll: true,
@@ -234,7 +243,7 @@ export default function CommunityRequestsIndex({ requests }: Props) {
                                             ) : (
                                                 <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
                                                     <button
-                                                        onClick={() => handleApprove(req.id)}
+                                                        onClick={() => handleApprove(req)}
                                                         disabled={processing === req.id}
                                                         style={{
                                                             flex: 1, padding: '10px 0', borderRadius: 10, border: 'none',
@@ -280,6 +289,19 @@ export default function CommunityRequestsIndex({ requests }: Props) {
                     })}
                 </div>
             )}
+
+            <ConfirmModal
+                open={approveTarget !== null}
+                title="الموافقة على طلب إنشاء مجتمع"
+                message={
+                    approveTarget
+                        ? `يُنشأ مجتمع «${approveTarget.name}» في الشركة فوراً بمحفظة رصيدها صفر، ويصبح مُقدِّم الطلب قائده الأساسي. تخصيص رصيد المحفظة خطوة منفصلة من شاشة المالية — لا تُنشأ فعالية ولا يُستقطع أي مبلغ الآن.`
+                        : ''
+                }
+                confirmLabel="موافقة وإنشاء المجتمع"
+                onConfirm={confirmApprove}
+                onCancel={() => setApproveTarget(null)}
+            />
         </CompanyLayout>
     );
 }

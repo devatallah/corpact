@@ -101,7 +101,7 @@ class FinanceTermsController extends Controller
             'effective_from' => ['required', 'date', 'after:today'],
             'reason' => ['nullable', 'string', 'max:500'],
         ], [
-            'effective_from.after' => 'تاريخ السريان يجب أن يكون مستقبلياً — لا تغيير بأثر رجعي (H §12.10).',
+            'effective_from.after' => 'تاريخ السريان يجب أن يكون مستقبلياً — لا تغيير بأثر رجعي.',
         ]);
 
         $partner = Partner::findOrFail($validated['partner_id']);
@@ -140,7 +140,7 @@ class FinanceTermsController extends Controller
             'effective_from' => ['required', 'date', 'after:today'],
             'reason' => ['nullable', 'string', 'max:500'],
         ], [
-            'effective_from.after' => 'تاريخ السريان يجب أن يكون مستقبلياً — لا تغيير بأثر رجعي (H §12.10).',
+            'effective_from.after' => 'تاريخ السريان يجب أن يكون مستقبلياً — لا تغيير بأثر رجعي.',
         ]);
 
         $company = Company::withoutGlobalScopes()->findOrFail($validated['company_id']);

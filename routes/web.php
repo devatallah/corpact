@@ -76,7 +76,6 @@ use App\Http\Controllers\Employee\ResultController as EmployeeResultController;
 use App\Http\Controllers\Employee\TemplateController as EmployeeTemplateController;
 use App\Http\Controllers\Partner\AvailabilityController as PartnerAvailabilityController;
 use App\Http\Controllers\Partner\BankAccountController as PartnerBankAccountController;
-use App\Http\Controllers\Partner\BookingController as PartnerBookingController;
 use App\Http\Controllers\Partner\BranchController as PartnerBranchController;
 use App\Http\Controllers\Partner\DashboardController as PartnerDashboardController;
 use App\Http\Controllers\Partner\ProfileController as PartnerProfileController;
@@ -500,11 +499,6 @@ Route::prefix('partner')
     ->middleware('auth:partner')
     ->group(function () {
         Route::get('/dash', [PartnerDashboardController::class, 'index'])->name('dash');
-
-        Route::get('/requests', [PartnerBookingController::class, 'index'])->name('bookings.index');
-        Route::post('/requests/{event}/approve', [PartnerBookingController::class, 'approve'])->middleware('partner.permission:bookings.approve')->name('bookings.approve');
-        Route::post('/requests/{event}/reject', [PartnerBookingController::class, 'reject'])->middleware('partner.permission:bookings.reject')->name('bookings.reject');
-        Route::post('/requests/{event}/propose-alternative', [PartnerBookingController::class, 'proposeAlternative'])->middleware('partner.permission:bookings.propose-alternative')->name('bookings.propose-alternative');
 
         // A9 — قناة قرار المزوّد (H §11): القائمة، صفحة القرار، الرابط
         // الموقّع أحادي الاستخدام، والقرارات (اللوحة هي القناة الوحيدة).

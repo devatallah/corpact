@@ -67,7 +67,7 @@ class SecurityEvent extends Model
 
     protected static function appendOnlyMessage(): string
     {
-        return 'سجل الأحداث الأمنية للكتابة فقط — لا تعديل ولا حذف (H §19).';
+        return 'سجل الأحداث الأمنية للكتابة فقط — لا تعديل ولا حذف.';
     }
 
     /**

@@ -62,7 +62,7 @@ class RetentionService
             AuditLogService::record(
                 action: AuditAction::RETENTION_APPLIED,
                 after: $report,
-                reason: 'تنفيذ جدول الاحتفاظ المجدول (H §19)',
+                reason: 'تنفيذ جدول الاحتفاظ المجدول',
             );
         }
 

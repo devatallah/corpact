@@ -79,7 +79,7 @@ class CompleteEvent implements ShouldQueue
 
                     $participation = app(ParticipationService::class);
                     foreach ($marked as $employeeId) {
-                        $participation->logChange($event, (int) $employeeId, 'attendance_status', null, 'attended', null, 'حضور تلقائي عند اكتمال الفعالية (H §13)');
+                        $participation->logChange($event, (int) $employeeId, 'attendance_status', null, 'attended', null, 'حضور تلقائي عند اكتمال الفعالية');
                     }
                 });
 

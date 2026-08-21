@@ -91,7 +91,7 @@ class CollectionService
                 $this->machine->collectionFailed(
                     $locked,
                     sprintf(
-                        'رصيد المحفظة لا يكفي الدعم والحصة المعادة (%s) تتجاوز السقف المعلن (%s) — أُلغيت بلا أي استقطاع (H §12.3)',
+                        'رصيد المحفظة لا يكفي الدعم والحصة المعادة (%s) تتجاوز السقف المعلن (%s) — أُلغيت بلا أي استقطاع',
                         Money::format($split['share']),
                         Money::format((int) $locked->max_share_halalas),
                     ),
@@ -110,7 +110,7 @@ class CollectionService
                     "event:{$locked->id}:subsidy-hold",
                     $locked,
                     null,
-                    'حجز دعم المجتمع عند إغلاق التسجيل (H §12.3)',
+                    'حجز دعم المجتمع عند إغلاق التسجيل',
                 );
             }
 
@@ -556,7 +556,7 @@ class CollectionService
             "event:{$locked->id}:shortfall-cover",
             $locked,
             null,
-            'تغطية عجز تحصيل من محفظة المجتمع — الحصص المقفلة لا تتغير (H §12.3)',
+            'تغطية عجز تحصيل من محفظة المجتمع — الحصص المقفلة لا تتغير',
         );
         $this->ledger->captureHold($hold, null, null, 'استقطاع تغطية عجز التحصيل');
 
@@ -576,7 +576,7 @@ class CollectionService
             ->first();
 
         if ($hold !== null && $hold->status === WalletHold::STATUS_ACTIVE) {
-            $this->ledger->captureHold($hold, null, null, 'استقطاع دعم المجتمع عند اكتمال التحصيل (H §12.3)');
+            $this->ledger->captureHold($hold, null, null, 'استقطاع دعم المجتمع عند اكتمال التحصيل');
         }
 
         $locked->forceFill([
@@ -596,7 +596,7 @@ class CollectionService
         $this->machine->collectionFailed($locked, $reason);
         $locked->forceFill(['funding_status' => 'collection_failed'])->save();
 
-        $this->refunds->refundEventCollections($locked, 'فشل تحصيل جماعي — استرداد كامل (H §12.4)');
+        $this->refunds->refundEventCollections($locked, 'فشل تحصيل جماعي — استرداد كامل');
 
         if ($locked->partner_id !== null) {
             Notify::sendToId(

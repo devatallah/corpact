@@ -53,7 +53,7 @@ class ResultService
         $this->assertCanEnter($event, $user);
 
         if ($measurementType === CompetitionResult::TYPE_CONSISTENCY) {
-            throw new RuntimeException('المواظبة تُحتسب آلياً من الحضور — لا تُدخل كنتيجة يدوية (H §13).');
+            throw new RuntimeException('المواظبة تُحتسب آلياً من الحضور — لا تُدخل كنتيجة يدوية.');
         }
 
         if ($measurementType !== CompetitionResult::TYPE_INDIVIDUAL_VALUE) {
@@ -159,7 +159,7 @@ class ResultService
         $reason = trim($reason);
 
         if ($reason === '') {
-            throw new RuntimeException('سبب التصحيح إلزامي (H §13).');
+            throw new RuntimeException('سبب التصحيح إلزامي.');
         }
 
         $this->assertCanCorrect($result, $user);
@@ -278,7 +278,7 @@ class ResultService
             RoleAssignment::SCOPE_COMMUNITY,
             $event->community_id,
         )) {
-            throw new RuntimeException('إدخال النتائج لقائد المجتمع أو المنسّق فقط (H §13).');
+            throw new RuntimeException('إدخال النتائج لقائد المجتمع أو المنسّق فقط.');
         }
     }
 
@@ -290,7 +290,7 @@ class ResultService
             RoleAssignment::SCOPE_COMMUNITY,
             $result->community_id,
         )) {
-            throw new RuntimeException('تصحيح النتيجة يحتاج صلاحية `results.correct` (H §13).');
+            throw new RuntimeException('تصحيح النتيجة يحتاج صلاحية `results.correct`.');
         }
     }
 }

@@ -22,7 +22,7 @@
 </head>
 <body>
 <div class="card">
-    <span class="badge">بوابة تجريبية — للتطوير والاختبار فقط (H §12.6)</span>
+    <span class="badge">بوابة تجريبية — للتطوير والاختبار فقط</span>
 
     @if (session('status'))
         <div class="status">{{ session('status') }}</div>

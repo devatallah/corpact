@@ -1,5 +1,6 @@
 import EmployeeLayout from '@/layouts/employee-layout';
 import CategoryIcon from '@/components/category-icon';
+import ConfirmModal from '@/components/confirm-modal';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { fmtDate, fmtTime, fmtDateTime } from '@/lib/utils';
 import StatusBadge from '@/components/status-badge';
@@ -33,6 +34,21 @@ export default function CommunityShow({ community, events, announcements, member
     const initialTab = (new URLSearchParams(window.location.search).get('tab') as Tab) || 'events';
     const [activeTab, setActiveTab] = useState<Tab>(initialTab);
     const color = community.category?.color ?? community.color ?? '#18A86B';
+
+    // H §18: «كل إجراء … إلغائي يمر بنافذة تأكيد» — نافذة واحدة مشتركة بدل
+    // نوافذ المتصفح، والنص يصف الأثر الفعلي لكل إجراء لا «هل أنت متأكد؟».
+    const [confirmAction, setConfirmAction] = useState<{
+        title: string;
+        message: string;
+        confirmLabel: string;
+        run: () => void;
+    } | null>(null);
+
+    function runConfirmAction() {
+        const pending = confirmAction;
+        setConfirmAction(null);
+        pending?.run();
+    }
 
     const announcementForm = useForm({ body: '', link_url: '' });
     const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null);
@@ -68,10 +84,15 @@ export default function CommunityShow({ community, events, announcements, member
     }
 
     function deleteAnnouncement(announcementId: number) {
-        if (!confirm('حذف هذا الإعلان؟ (متاح خلال 15 دقيقة من نشره)')) return;
-        router.delete(`/employee/community/${community.id}/announcement/${announcementId}`, {
-            preserveScroll: true,
-            onSuccess: () => toastr.success('تم حذف الإعلان'),
+        setConfirmAction({
+            title: 'حذف الإعلان',
+            message: 'يُحذف الإعلان من صفحة المجتمع ولا يظهر لأعضائه بعد ذلك. الحذف متاح خلال 15 دقيقة من نشره فقط، ولا يمكن التراجع عنه.',
+            confirmLabel: 'حذف الإعلان',
+            run: () =>
+                router.delete(`/employee/community/${community.id}/announcement/${announcementId}`, {
+                    preserveScroll: true,
+                    onSuccess: () => toastr.success('تم حذف الإعلان'),
+                }),
         });
     }
 
@@ -103,18 +124,28 @@ export default function CommunityShow({ community, events, announcements, member
     function transferLeadership(e: React.FormEvent) {
         e.preventDefault();
         if (!transferEmployeeId) return;
-        if (!confirm('نقل القيادة الأساسية؟ ستفقد دور القائد الأساسي.')) return;
-        router.post(`/employee/community/${community.id}/transfer-leadership`, { employee_id: transferEmployeeId }, {
-            preserveScroll: true,
-            onSuccess: () => toastr.success('تم نقل القيادة'),
+        setConfirmAction({
+            title: 'نقل القيادة الأساسية',
+            message: 'تنتقل القيادة الأساسية لهذا المجتمع إلى العضو المختار فوراً، وتفقد أنت دور القائد الأساسي وصلاحياته. لا يمكنك استرجاعها إلا بنقلها إليك من القائد الجديد.',
+            confirmLabel: 'نقل القيادة',
+            run: () =>
+                router.post(`/employee/community/${community.id}/transfer-leadership`, { employee_id: transferEmployeeId }, {
+                    preserveScroll: true,
+                    onSuccess: () => toastr.success('تم نقل القيادة'),
+                }),
         });
     }
 
     function stepDown() {
-        if (!confirm('التنحّي عن القيادة؟ مجتمع بلا قائد 14 يوماً يولّد تنبيهاً لمسؤول الحساب، وبعد 30 يوماً يصبح خاملاً. يُفضَّل نقل القيادة بدل التنحّي.')) return;
-        router.post(`/employee/community/${community.id}/step-down`, {}, {
-            preserveScroll: true,
-            onSuccess: () => toastr.success('تم التنحّي عن القيادة'),
+        setConfirmAction({
+            title: 'التنحّي عن القيادة',
+            message: 'تفقد دور القائد وصلاحياته في هذا المجتمع فوراً. مجتمع بلا قائد 14 يوماً يولّد تنبيهاً لمسؤول الحساب، وبعد 30 يوماً يصبح خاملاً — يُفضَّل نقل القيادة إلى عضو آخر بدل التنحّي.',
+            confirmLabel: 'تنحٍّ عن القيادة',
+            run: () =>
+                router.post(`/employee/community/${community.id}/step-down`, {}, {
+                    preserveScroll: true,
+                    onSuccess: () => toastr.success('تم التنحّي عن القيادة'),
+                }),
         });
     }
 
@@ -179,15 +210,20 @@ export default function CommunityShow({ community, events, announcements, member
     }
 
     function closePoll(pollId: number) {
-        if (!confirm('هل تريد إغلاق هذا التصويت؟')) return;
-        router.post(
-            `/employee/community/${community.id}/polls/${pollId}/close`,
-            {},
-            {
-                preserveScroll: true,
-                onSuccess: () => toastr.success('تم إغلاق التصويت'),
-            },
-        );
+        setConfirmAction({
+            title: 'إغلاق التصويت',
+            message: 'يتوقف استقبال أصوات جديدة وتُعرض النتيجة النهائية لأعضاء المجتمع. لا يمكن إعادة فتح التصويت بعد إغلاقه.',
+            confirmLabel: 'إغلاق التصويت',
+            run: () =>
+                router.post(
+                    `/employee/community/${community.id}/polls/${pollId}/close`,
+                    {},
+                    {
+                        preserveScroll: true,
+                        onSuccess: () => toastr.success('تم إغلاق التصويت'),
+                    },
+                ),
+        });
     }
 
     function timeAgo(dateStr: string): string {
@@ -746,6 +782,15 @@ export default function CommunityShow({ community, events, announcements, member
                     )}
                 </div>
             )}
+
+            <ConfirmModal
+                open={confirmAction !== null}
+                title={confirmAction?.title ?? ''}
+                message={confirmAction?.message ?? ''}
+                confirmLabel={confirmAction?.confirmLabel ?? 'تأكيد'}
+                onConfirm={runConfirmAction}
+                onCancel={() => setConfirmAction(null)}
+            />
         </EmployeeLayout>
     );
 }

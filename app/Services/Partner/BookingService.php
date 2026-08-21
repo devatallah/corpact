@@ -13,29 +13,11 @@ use App\Services\Events\EventStateMachine;
 use App\Support\Notify;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class BookingService
 {
-    /**
-     * List events (booking requests) for a partner with optional filters.
-     *
-     * @param  array{status?: string, date_from?: string, date_to?: string, per_page?: int}  $filters
-     */
-    public function listForpartner(Partner $partner, array $filters = []): LengthAwarePaginator
-    {
-        return Event::query()
-            ->with(['company', 'community', 'category', 'venues', 'creator', 'alternatives'])
-            ->where('partner_id', $partner->id)
-            ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
-            ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('event_date', '>=', $filters['date_from']))
-            ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('event_date', '<=', $filters['date_to']))
-            ->latest()
-            ->paginate($filters['per_page'] ?? 15);
-    }
-
     /**
      * قبول المزوّد للطلب → booked عبر آلة الحالات (A7 — H §9): الوحدة محجوزة
      * والتسجيل ما زال مفتوحاً حتى registration_closes_at، **ولا أثر مالي هنا**

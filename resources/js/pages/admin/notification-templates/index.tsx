@@ -1,6 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import toastr from 'toastr';
+import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
@@ -157,35 +158,33 @@ export default function NotificationTemplatesIndex({ templates, groups, stats, f
                             </tr>
                         </thead>
                         <tbody>
-                            {templates.data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} style={{ textAlign: 'center', color: '#6B7A99', padding: 20 }}>
-                                        لا توجد قوالب مطابقة
+                            <ListStates
+                                count={templates.data.length}
+                                columns={7}
+                                emptyTitle="لا توجد قوالب مطابقة"
+                                emptyHint="لا قالب إشعار مطابق للبحث والفلاتر الحالية."
+                            />
+                            {templates.data.map((template) => (
+                                <tr key={template.id}>
+                                    <td style={{ direction: 'ltr', textAlign: 'right', fontSize: 12, color: '#6B7A99' }}>
+                                        {template.key}
+                                    </td>
+                                    <td style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>{template.title_ar}</td>
+                                    <td style={{ color: '#C8D0E0', fontSize: 13 }}>{template.audience ?? '—'}</td>
+                                    <td>
+                                        <ClassBadge value={template.class} />
+                                    </td>
+                                    <td style={{ fontSize: 12, color: '#6B7A99' }}>{(template.channels ?? []).join(' ← ')}</td>
+                                    <td style={{ fontSize: 12, color: template.active ? '#009E82' : '#E03050' }}>
+                                        {template.active ? 'مفعَّل' : 'معطَّل'}
+                                    </td>
+                                    <td>
+                                        <button onClick={() => openEditor(template)} className="act-btn btn-view">
+                                            تحرير
+                                        </button>
                                     </td>
                                 </tr>
-                            ) : (
-                                templates.data.map((template) => (
-                                    <tr key={template.id}>
-                                        <td style={{ direction: 'ltr', textAlign: 'right', fontSize: 12, color: '#6B7A99' }}>
-                                            {template.key}
-                                        </td>
-                                        <td style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>{template.title_ar}</td>
-                                        <td style={{ color: '#C8D0E0', fontSize: 13 }}>{template.audience ?? '—'}</td>
-                                        <td>
-                                            <ClassBadge value={template.class} />
-                                        </td>
-                                        <td style={{ fontSize: 12, color: '#6B7A99' }}>{(template.channels ?? []).join(' ← ')}</td>
-                                        <td style={{ fontSize: 12, color: template.active ? '#009E82' : '#E03050' }}>
-                                            {template.active ? 'مفعَّل' : 'معطَّل'}
-                                        </td>
-                                        <td>
-                                            <button onClick={() => openEditor(template)} className="act-btn btn-view">
-                                                تحرير
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
+                            ))}
                         </tbody>
                     </table>
                 </div>

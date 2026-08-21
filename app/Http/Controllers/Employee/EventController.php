@@ -251,7 +251,7 @@ class EventController extends Controller
         // مصفوفة A10 (H §12.4): إلغاء الشركة/الإداري = استرداد كامل دائماً.
         $refundPreview = $canCancel ? [
             'percentage' => 100,
-            'policy_label' => 'استرداد كامل — الإلغاء يرد كل ما حُصِّل (H §12.4)',
+            'policy_label' => 'استرداد كامل — الإلغاء يرد كل ما حُصِّل',
         ] : null;
 
         $canApproveProposal = $event->status === 'pending_approval'
@@ -569,12 +569,12 @@ class EventController extends Controller
     public function refundPreview(Event $event): JsonResponse
     {
         if (! in_array($event->status, ['booked', 'confirmed'], true)) {
-            return response()->json(['error' => 'لا إلغاء إلا لفعالية محجوزة أو مؤكدة (H §9).'], 422);
+            return response()->json(['error' => 'لا إلغاء إلا لفعالية محجوزة أو مؤكدة.'], 422);
         }
 
         return response()->json([
             'percentage' => 100,
-            'policy_label' => 'استرداد كامل — الإلغاء يرد كل ما حُصِّل (H §12.4)',
+            'policy_label' => 'استرداد كامل — الإلغاء يرد كل ما حُصِّل',
         ]);
     }
 
@@ -596,7 +596,7 @@ class EventController extends Controller
 
         if (! $this->stateMachine->canTransition((string) $event->status, 'cancelled_company')
             && ! ($cancelSeries && $event->isRecurringSeries())) {
-            return back()->with('error', 'لا يمكن إلغاء الفعالية في حالتها الحالية — جدول الحالات (H §9) لا يجيز الإلغاء إلا بعد قبول المزوّد (محجوزة أو مؤكدة).');
+            return back()->with('error', 'لا يمكن إلغاء الفعالية في حالتها الحالية — جدول الحالات لا يجيز الإلغاء إلا بعد قبول المزوّد (محجوزة أو مؤكدة).');
         }
 
         $cancelled = false;
@@ -605,7 +605,7 @@ class EventController extends Controller
             $this->stateMachine->cancelCompany($event, $employee, $request->input('reason'));
 
             // مصفوفة A10 (H §12.4): استرداد كامل — لا نسب متدرجة.
-            $this->refundService->refundEventCollections($event, 'إلغاء الشركة — استرداد كامل (H §12.4)');
+            $this->refundService->refundEventCollections($event, 'إلغاء الشركة — استرداد كامل');
             $cancelled = true;
         }
 

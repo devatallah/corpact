@@ -284,7 +284,7 @@ export default function CompaniesEdit({ company, contract, contractFiles }: Prop
                     {contractFiles.length > 0 && (
                         <div style={{ marginTop: 12 }}>
                             <div style={{ fontSize: 12, color: '#6B7A99', marginBottom: 6 }}>
-                                نسخ العقد المحفوظة — الاستبدال ينشئ نسخة جديدة وتبقى القديمة، ولا حذف نهائي (H §19)
+                                نسخ العقد المحفوظة — الاستبدال ينشئ نسخة جديدة وتبقى القديمة، ولا حذف نهائي
                             </div>
                             <table className="portal-table">
                                 <thead>

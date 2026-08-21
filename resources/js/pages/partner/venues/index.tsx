@@ -1,5 +1,6 @@
 import PartnerLayout from '@/layouts/partner-layout';
 import CategoryIcon from '@/components/category-icon';
+import ConfirmModal from '@/components/confirm-modal';
 import StatusBadge from '@/components/status-badge';
 import TimePicker from '@/components/time-picker';
 import type { Partner, Venue, VenuePricing, Category } from '@/types/models';
@@ -134,6 +135,8 @@ export default function VenuesIndex({ partner, venues, categories }: Props) {
     const [editingPricing, setEditingPricing] = useState<VenuePricing | null>(null);
     const [pricingForm, setPricingForm] = useState<PricingFormData>(emptyPricingForm());
     const [pricingProcessing, setPricingProcessing] = useState(false);
+    // H §18: نافذة تأكيد موحّدة بدل نافذة المتصفح، والنص يصف أثر الحذف.
+    const [deletePricingTarget, setDeletePricingTarget] = useState<{ venueId: number; pricing: VenuePricing } | null>(null);
 
     useEffect(() => {
         if (editingItem) {
@@ -213,9 +216,15 @@ export default function VenuesIndex({ partner, venues, categories }: Props) {
         });
     }
 
-    function deletePricing(venueId: number, pricingId: number) {
-        if (!confirm('هل أنت متأكد من حذف هذا السعر؟')) return;
-        router.delete(`/partner/venues/${venueId}/pricings/${pricingId}`, {
+    function deletePricing(venueId: number, pricing: VenuePricing) {
+        setDeletePricingTarget({ venueId, pricing });
+    }
+
+    function confirmDeletePricing() {
+        if (!deletePricingTarget) return;
+        const { venueId, pricing } = deletePricingTarget;
+        setDeletePricingTarget(null);
+        router.delete(`/partner/venues/${venueId}/pricings/${pricing.id}`, {
             preserveScroll: true,
             onSuccess: () => toastr.success('تم حذف السعر بنجاح'),
         });
@@ -297,7 +306,7 @@ export default function VenuesIndex({ partner, venues, categories }: Props) {
                                                         {pricing.status === 'active' ? 'تعطيل' : 'تفعيل'}
                                                     </button>
                                                     <button onClick={() => startEditPricing(pricing)} style={{ background: 'none', border: '1px solid #EAE4DC', borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: '#8A7868' }}>تعديل</button>
-                                                    <button onClick={() => deletePricing(venue.id, pricing.id)} style={{ background: 'none', border: '1px solid #E0305033', borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: '#E03050' }}>حذف</button>
+                                                    <button onClick={() => deletePricing(venue.id, pricing)} style={{ background: 'none', border: '1px solid #E0305033', borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: '#E03050' }}>حذف</button>
                                                 </div>
                                             </div>
 
@@ -413,6 +422,19 @@ export default function VenuesIndex({ partner, venues, categories }: Props) {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                open={deletePricingTarget !== null}
+                title="حذف السعر"
+                message={
+                    deletePricingTarget
+                        ? `يُحذف سعر ${Number(deletePricingTarget.pricing.price).toLocaleString()} ريال لمدة ${deletePricingTarget.pricing.duration_minutes} دقيقة من هذا المرفق، فلا يظهر ضمن خيارات التسعير في الفعاليات الجديدة. الفعاليات المؤكدة لا تتأثر — شروطها المالية مجمّدة في لقطتها. لا يمكن التراجع عن الحذف.`
+                        : ''
+                }
+                confirmLabel="حذف السعر"
+                onConfirm={confirmDeletePricing}
+                onCancel={() => setDeletePricingTarget(null)}
+            />
         </PartnerLayout>
     );
 }

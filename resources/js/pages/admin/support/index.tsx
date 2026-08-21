@@ -1,5 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
+import ConfirmModal from '@/components/confirm-modal';
+import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
@@ -42,6 +44,8 @@ function StatusBadge({ status }: { status: SupportMessage['status'] }) {
 export default function SupportIndex({ messages, stats, filters }: Props) {
     const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { status: filters?.status });
     const [detail, setDetail] = useState<SupportMessage | null>(null);
+    // H §18: نافذة تأكيد موحّدة بدل نافذة المتصفح، والنص يصف أثر الحذف.
+    const [deleteTarget, setDeleteTarget] = useState<SupportMessage | null>(null);
 
     function handleStatusFilter(value: string) {
         router.get('/admin/support', {
@@ -58,8 +62,14 @@ export default function SupportIndex({ messages, stats, filters }: Props) {
     }
 
     function remove(message: SupportMessage) {
-        if (!confirm('هل أنت متأكد من حذف هذه الرسالة؟')) return;
-        router.delete(`/admin/support/${message.id}`, {
+        setDeleteTarget(message);
+    }
+
+    function confirmRemove() {
+        if (!deleteTarget) return;
+        const id = deleteTarget.id;
+        setDeleteTarget(null);
+        router.delete(`/admin/support/${id}`, {
             preserveScroll: true,
             onSuccess: () => setDetail(null),
         });
@@ -110,31 +120,29 @@ export default function SupportIndex({ messages, stats, filters }: Props) {
                         </tr>
                     </thead>
                     <tbody>
-                        {messages.data.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
-                                    لا توجد رسائل
+                        <ListStates
+                            count={messages.data.length}
+                            columns={6}
+                            emptyTitle="لا توجد رسائل"
+                            emptyHint="لا رسالة دعم مطابقة للبحث والفلتر الحالي."
+                        />
+                        {messages.data.map((message) => (
+                            <tr key={message.id}>
+                                <td>
+                                    <div style={{ fontWeight: 700, color: '#fff' }}>{message.name}</div>
+                                    <div style={{ fontSize: 12, color: '#6B7A99', direction: 'ltr', textAlign: 'right' }}>{message.email}</div>
+                                </td>
+                                <td style={{ color: '#C8D0E0', fontSize: 13 }}>{message.subject ?? '—'}</td>
+                                <td style={{ color: '#C8D0E0', fontSize: 13, maxWidth: 280 }}>
+                                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{message.message}</div>
+                                </td>
+                                <td><StatusBadge status={message.status} /></td>
+                                <td style={{ fontSize: 12, color: '#6B7A99' }}>{fmtDate(message.created_at)}</td>
+                                <td>
+                                    <button onClick={() => setDetail(message)} className="act-btn btn-view">عرض</button>
                                 </td>
                             </tr>
-                        ) : (
-                            messages.data.map((message) => (
-                                <tr key={message.id}>
-                                    <td>
-                                        <div style={{ fontWeight: 700, color: '#fff' }}>{message.name}</div>
-                                        <div style={{ fontSize: 12, color: '#6B7A99', direction: 'ltr', textAlign: 'right' }}>{message.email}</div>
-                                    </td>
-                                    <td style={{ color: '#C8D0E0', fontSize: 13 }}>{message.subject ?? '—'}</td>
-                                    <td style={{ color: '#C8D0E0', fontSize: 13, maxWidth: 280 }}>
-                                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{message.message}</div>
-                                    </td>
-                                    <td><StatusBadge status={message.status} /></td>
-                                    <td style={{ fontSize: 12, color: '#6B7A99' }}>{fmtDate(message.created_at)}</td>
-                                    <td>
-                                        <button onClick={() => setDetail(message)} className="act-btn btn-view">عرض</button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>
@@ -177,6 +185,19 @@ export default function SupportIndex({ messages, stats, filters }: Props) {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                open={deleteTarget !== null}
+                title="حذف رسالة الدعم"
+                message={
+                    deleteTarget
+                        ? `تُحذف رسالة «${deleteTarget.name}» نهائياً من صندوق الدعم ولا يمكن استرجاعها. إن كان البلاغ ما زال مفتوحاً فوثّقه قبل الحذف — الحذف لا يرسل أي إشعار للمرسل.`
+                        : ''
+                }
+                confirmLabel="حذف الرسالة"
+                onConfirm={confirmRemove}
+                onCancel={() => setDeleteTarget(null)}
+            />
         </AdminLayout>
     );
 }

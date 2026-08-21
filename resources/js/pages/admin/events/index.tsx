@@ -3,6 +3,7 @@ import FilterTabs from '@/components/filter-tabs';
 import CategoryIcon from '@/components/category-icon';
 import StatusBadge from '@/components/status-badge';
 import Pagination from '@/components/pagination';
+import ListStates from '@/components/list-states';
 import { fmtDate, fmtTime } from '@/lib/utils';
 import type { Event, PaginatedResult } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
@@ -18,7 +19,7 @@ const filterOptions = [
     { label: 'الكل', value: '' },
     { label: 'مفتوحة', value: 'open' },
     { label: 'مؤكدة', value: 'confirmed' },
-    { label: 'منتهية', value: 'completed' },
+    { label: 'مكتملة', value: 'completed' },
     { label: 'ملغية', value: 'cancelled' },
 ];
 
@@ -64,56 +65,54 @@ export default function EventsIndex({ events, totalEvents, filters }: Props) {
                         </tr>
                     </thead>
                     <tbody>
-                        {events.data.length === 0 ? (
-                            <tr>
-                                <td colSpan={8} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
-                                    لا توجد فعاليات
+                        <ListStates
+                            count={events.data.length}
+                            columns={8}
+                            emptyTitle="لا توجد فعاليات"
+                            emptyHint="لا فعالية مطابقة للبحث والفلاتر الحالية."
+                        />
+                        {events.data.map((event) => (
+                            <tr key={event.id}>
+                                <td>
+                                    <span style={{ fontWeight: 600, color: '#fff' }}>
+                                        <CategoryIcon icon={event.category?.icon} size={14} /> {event.category?.name ?? '-'}
+                                    </span>
+                                </td>
+                                <td style={{ color: '#C8D0E0' }}>
+                                    {event.company?.name ?? '-'}
+                                </td>
+                                <td style={{ color: '#C8D0E0' }}>{event.partner?.name ?? '-'}</td>
+                                <td style={{ fontSize: '12px', color: '#6B7A99' }}>
+                                    {fmtDate(event.event_date)} · {fmtTime(event.start_time)}
+                                    {event.template_id && (
+                                        <span style={{ marginRight: 6, fontSize: 10, background: '#1A5FAB30', color: '#8AB4F8', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }} title="مولّدة من قالب تكرار">
+                                            قالب
+                                        </span>
+                                    )}
+                                    {event.parent_event_id && (
+                                        <span style={{ marginRight: 4, fontSize: 10, color: '#8AB4F8' }} title="جزء من سلسلة متكررة">🔄</span>
+                                    )}
+                                </td>
+                                <td>{event.participants_count}/{event.capacity}</td>
+                                <td style={{
+                                    color: event.status === 'completed' ? '#009E82' : '#D4820A',
+                                    fontWeight: 700,
+                                }}>
+                                    {event.total_amount.toLocaleString()} ر
+                                </td>
+                                <td>
+                                    <StatusBadge status={event.status} />
+                                </td>
+                                <td>
+                                    <Link
+                                        href={`/admin/events/${event.id}`}
+                                        className="act-btn btn-view"
+                                    >
+                                        عرض
+                                    </Link>
                                 </td>
                             </tr>
-                        ) : (
-                            events.data.map((event) => (
-                                <tr key={event.id}>
-                                    <td>
-                                        <span style={{ fontWeight: 600, color: '#fff' }}>
-                                            <CategoryIcon icon={event.category?.icon} size={14} /> {event.category?.name ?? '-'}
-                                        </span>
-                                    </td>
-                                    <td style={{ color: '#C8D0E0' }}>
-                                        {event.company?.name ?? '-'}
-                                    </td>
-                                    <td style={{ color: '#C8D0E0' }}>{event.partner?.name ?? '-'}</td>
-                                    <td style={{ fontSize: '12px', color: '#6B7A99' }}>
-                                        {fmtDate(event.event_date)} · {fmtTime(event.start_time)}
-                                        {event.template_id && (
-                                            <span style={{ marginRight: 6, fontSize: 10, background: '#1A5FAB30', color: '#8AB4F8', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }} title="مولّدة من قالب تكرار">
-                                                قالب
-                                            </span>
-                                        )}
-                                        {event.parent_event_id && (
-                                            <span style={{ marginRight: 4, fontSize: 10, color: '#8AB4F8' }} title="جزء من سلسلة متكررة">🔄</span>
-                                        )}
-                                    </td>
-                                    <td>{event.participants_count}/{event.capacity}</td>
-                                    <td style={{
-                                        color: event.status === 'completed' ? '#009E82' : '#D4820A',
-                                        fontWeight: 700,
-                                    }}>
-                                        {event.total_amount.toLocaleString()} ر
-                                    </td>
-                                    <td>
-                                        <StatusBadge status={event.status} />
-                                    </td>
-                                    <td>
-                                        <Link
-                                            href={`/admin/events/${event.id}`}
-                                            className="act-btn btn-view"
-                                        >
-                                            عرض
-                                        </Link>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>

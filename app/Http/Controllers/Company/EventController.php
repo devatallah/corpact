@@ -100,7 +100,7 @@ class EventController extends Controller
         $canCancel = in_array($event->status, ['booked', 'confirmed'], true);
         $refundPreview = $canCancel ? [
             'percentage' => 100,
-            'policy_label' => 'استرداد كامل — إلغاء الشركة يرد كل ما حُصِّل (H §12.4)',
+            'policy_label' => 'استرداد كامل — إلغاء الشركة يرد كل ما حُصِّل',
         ] : null;
 
         return Inertia::render('company/events/show', [
@@ -138,7 +138,7 @@ class EventController extends Controller
 
         // مصفوفة A10 (H §12.4): إلغاء الشركة = استرداد كامل — فك الحجوزات،
         // عكس الاستقطاعات، ورد كل حصة مدفوعة لوسيلة الدفع الأصلية.
-        $this->refundService->refundEventCollections($event, 'إلغاء الشركة — استرداد كامل (H §12.4)');
+        $this->refundService->refundEventCollections($event, 'إلغاء الشركة — استرداد كامل');
 
         // Notify waitlisted members that the event is cancelled
         $waitlistedIds = $event->waitlistEntries()->pluck('employees.id');

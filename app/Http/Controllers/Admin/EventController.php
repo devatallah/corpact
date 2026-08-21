@@ -124,7 +124,7 @@ class EventController extends Controller
         ]);
 
         if (! $this->stateMachine->canTransition((string) $event->status, 'cancelled_company')) {
-            return back()->with('error', 'لا يمكن إلغاء الفعالية في حالتها الحالية — الإلغاء مشروع من محجوزة أو مؤكدة فقط (H §9)؛ للتصحيح خارج الجدول استخدم التغيير اليدوي المسبَّب.');
+            return back()->with('error', 'لا يمكن إلغاء الفعالية في حالتها الحالية — الإلغاء مشروع من محجوزة أو مؤكدة فقط؛ للتصحيح خارج الجدول استخدم التغيير اليدوي المسبَّب.');
         }
 
         $from = (string) $event->status;
@@ -141,7 +141,7 @@ class EventController extends Controller
         );
 
         // مصفوفة A10 (H §12.4): الإلغاء الإداري = استرداد كامل دائماً.
-        $this->refundService->refundEventCollections($event, 'إلغاء إداري من تيمات — استرداد كامل (H §12.4)');
+        $this->refundService->refundEventCollections($event, 'إلغاء إداري من تيمات — استرداد كامل');
 
         // Cancel entire series if requested
         if (($data['cancel_series'] ?? false) && $event->isRecurringSeries()) {
@@ -168,7 +168,7 @@ class EventController extends Controller
             'status' => ['required', 'string', Rule::in(EventStatus::values())],
             'reason' => ['required', 'string', 'min:5', 'max:1000'],
         ], [
-            'reason.required' => 'التغيير اليدوي للحالة يتطلب سبباً مكتوباً (H §9).',
+            'reason.required' => 'التغيير اليدوي للحالة يتطلب سبباً مكتوباً.',
             'reason.min' => 'اكتب سبباً حقيقياً للتغيير اليدوي.',
         ]);
 

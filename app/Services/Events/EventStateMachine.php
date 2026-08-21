@@ -112,7 +112,7 @@ class EventStateMachine
     public function force(Event $event, EventStatus $to, Model $actor, string $reason): Event
     {
         if (trim($reason) === '') {
-            throw new \InvalidArgumentException('التغيير اليدوي للحالة يتطلب سبباً مكتوباً (H §9).');
+            throw new \InvalidArgumentException('التغيير اليدوي للحالة يتطلب سبباً مكتوباً.');
         }
 
         return DB::transaction(function () use ($event, $to, $actor, $reason) {
@@ -220,7 +220,7 @@ class EventStateMachine
      */
     public function rescheduleMinNotMet(Event $event, ?string $reason = null, array $metadata = []): Event
     {
-        $reason ??= 'لم يبلغ العدد الحد الأدنى عند إغلاق التسجيل — أُعيدت الجدولة مرة واحدة (H §8)';
+        $reason ??= 'لم يبلغ العدد الحد الأدنى عند إغلاق التسجيل — أُعيدت الجدولة مرة واحدة';
 
         if ((string) $event->status === EventStatus::Booked->value) {
             return $this->transition($event, EventStatus::Open, null, $reason, $metadata);

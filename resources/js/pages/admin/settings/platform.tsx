@@ -66,7 +66,7 @@ export default function PlatformSettings({ fields }: Props) {
 
             <div className="page-title">إعدادات المنصة — العتبات والمهل</div>
             <div className="page-sub">
-                تسري على كل الشركات والمجتمعات فوراً. كل تعديل يُسجَّل في سجل التدقيق بقيمته قبل وبعد (H §19).
+                تسري على كل الشركات والمجتمعات فوراً. كل تعديل يُسجَّل في سجل التدقيق بقيمته قبل وبعد.
             </div>
 
             {Object.keys(form.errors).length > 0 && (

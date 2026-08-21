@@ -3,6 +3,7 @@ import FilterTabs from '@/components/filter-tabs';
 import CategoryIcon from '@/components/category-icon';
 import StatusBadge from '@/components/status-badge';
 import Pagination from '@/components/pagination';
+import ListStates from '@/components/list-states';
 import { fmtDate } from '@/lib/utils';
 import type { Partner, Category, PaginatedResult } from '@/types/models';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -139,82 +140,80 @@ export default function PartnersIndex({ partners, stats, filters, categories }: 
                         </tr>
                     </thead>
                     <tbody>
-                        {partners.data.length === 0 ? (
-                            <tr>
-                                <td colSpan={8} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
-                                    لا يوجد شركاء
+                        <ListStates
+                            count={partners.data.length}
+                            columns={9}
+                            emptyTitle="لا يوجد شركاء"
+                            emptyHint="لا مزوّد خدمة مطابق للبحث والفلاتر الحالية."
+                        />
+                        {partners.data.map((partner) => (
+                            <tr key={partner.id}>
+                                <td>
+                                    <div style={{ fontWeight: 700, color: '#fff' }}>{partner.name}</div>
+                                    <div style={{ fontSize: '10px', color: '#6B7A99' }}>
+                                        {partner.status === 'active' ? partner.district : fmtDate(partner.created_at)}
+                                    </div>
+                                </td>
+                                <td style={{ color: '#C8D0E0' }}>{partner.city}</td>
+                                <td>
+                                    <span style={{ fontSize: '12px' }}>
+                                        {partner.categories && partner.categories.length > 0
+                                            ? partner.categories.map((s, i) => (
+                                                <span key={s.id ?? i} style={{ whiteSpace: 'nowrap' }}>
+                                                    {i > 0 && ' · '}
+                                                    <CategoryIcon icon={s.icon} size={14} /> {s.name}
+                                                </span>
+                                            ))
+                                            : '-'}
+                                    </span>
+                                </td>
+                                <td>{partner.venues_count ?? 0}</td>
+                                <td style={{ fontWeight: 700, color: '#F5A623' }}>{partner.commission_rate ?? 10}%</td>
+                                <td>{(partner as Partner & { staff_count?: number }).staff_count ?? 0}</td>
+                                <td>
+                                    <div style={{ fontSize: '12px' }}>{partner.email ?? '-'}</div>
+                                    <div style={{ fontSize: '10px', color: '#6B7A99' }}>{partner.contact_phone ?? '-'}</div>
+                                </td>
+                                <td>
+                                    <StatusBadge status={partner.status} />
+                                </td>
+                                <td>
+                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                        {partner.status === 'pending' && (
+                                            <>
+                                                <button
+                                                    className="act-btn btn-approve"
+                                                    onClick={() => { setApproveTarget({ id: partner.id, name: partner.name, commission_rate: String(partner.commission_rate ?? 10) }); setApproveCommission(String(partner.commission_rate ?? 10)); }}
+                                                >
+                                                    قبول
+                                                </button>
+                                                <button
+                                                    className="act-btn btn-reject"
+                                                    onClick={() => reject(partner.id)}
+                                                >
+                                                    رفض
+                                                </button>
+                                            </>
+                                        )}
+                                        <button
+                                            onClick={() => setEditingItem(partner)}
+                                            className="act-btn btn-view"
+                                        >
+                                            تعديل
+                                        </button>
+                                        {partner.status === 'active' && (
+                                            <button
+                                                className="act-btn"
+                                                style={{ background: '#2A1F3D', color: '#A78BFA', borderColor: '#3B2D5A' }}
+                                                onClick={() => setResetTarget({ id: partner.id, email: partner.email })}
+                                            >
+                                                إعادة كلمة المرور
+                                            </button>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
-                        ) : (
-                            partners.data.map((partner) => (
-                                <tr key={partner.id}>
-                                    <td>
-                                        <div style={{ fontWeight: 700, color: '#fff' }}>{partner.name}</div>
-                                        <div style={{ fontSize: '10px', color: '#6B7A99' }}>
-                                            {partner.status === 'active' ? partner.district : fmtDate(partner.created_at)}
-                                        </div>
-                                    </td>
-                                    <td style={{ color: '#C8D0E0' }}>{partner.city}</td>
-                                    <td>
-                                        <span style={{ fontSize: '12px' }}>
-                                            {partner.categories && partner.categories.length > 0
-                                                ? partner.categories.map((s, i) => (
-                                                    <span key={s.id ?? i} style={{ whiteSpace: 'nowrap' }}>
-                                                        {i > 0 && ' · '}
-                                                        <CategoryIcon icon={s.icon} size={14} /> {s.name}
-                                                    </span>
-                                                ))
-                                                : '-'}
-                                        </span>
-                                    </td>
-                                    <td>{partner.venues_count ?? 0}</td>
-                                    <td style={{ fontWeight: 700, color: '#F5A623' }}>{partner.commission_rate ?? 10}%</td>
-                                    <td>{(partner as Partner & { staff_count?: number }).staff_count ?? 0}</td>
-                                    <td>
-                                        <div style={{ fontSize: '12px' }}>{partner.email ?? '-'}</div>
-                                        <div style={{ fontSize: '10px', color: '#6B7A99' }}>{partner.contact_phone ?? '-'}</div>
-                                    </td>
-                                    <td>
-                                        <StatusBadge status={partner.status} />
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
-                                            {partner.status === 'pending' && (
-                                                <>
-                                                    <button
-                                                        className="act-btn btn-approve"
-                                                        onClick={() => { setApproveTarget({ id: partner.id, name: partner.name, commission_rate: String(partner.commission_rate ?? 10) }); setApproveCommission(String(partner.commission_rate ?? 10)); }}
-                                                    >
-                                                        قبول
-                                                    </button>
-                                                    <button
-                                                        className="act-btn btn-reject"
-                                                        onClick={() => reject(partner.id)}
-                                                    >
-                                                        رفض
-                                                    </button>
-                                                </>
-                                            )}
-                                            <button
-                                                onClick={() => setEditingItem(partner)}
-                                                className="act-btn btn-view"
-                                            >
-                                                تعديل
-                                            </button>
-                                            {partner.status === 'active' && (
-                                                <button
-                                                    className="act-btn"
-                                                    style={{ background: '#2A1F3D', color: '#A78BFA', borderColor: '#3B2D5A' }}
-                                                    onClick={() => setResetTarget({ id: partner.id, email: partner.email })}
-                                                >
-                                                    إعادة كلمة المرور
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>

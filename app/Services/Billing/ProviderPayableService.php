@@ -60,7 +60,7 @@ class ProviderPayableService
             "provider-payable:event:{$eventId}:accrual",
             [
                 'reference' => $item,
-                'note' => "استحقاق الفعالية #{$eventId} عند الاكتمال (H §12.7)",
+                'note' => "استحقاق الفعالية #{$eventId} عند الاكتمال",
             ],
         );
 

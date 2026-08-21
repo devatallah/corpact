@@ -155,7 +155,7 @@ class LeaderboardController extends Controller
     private function assertCanManageSeasons(int $communityId): void
     {
         if (! $this->canManageSeasons($communityId)) {
-            abort(403, 'إنشاء المواسم وإغلاقها لقائد المجتمع أو أدمن تيمات (H §13).');
+            abort(403, 'إنشاء المواسم وإغلاقها لقائد المجتمع أو أدمن تيمات.');
         }
     }
 }

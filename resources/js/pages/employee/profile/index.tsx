@@ -16,7 +16,7 @@ const statusMap: Record<string, { label: string; color: string }> = {
     awaiting_payment: { label: 'بانتظار الدفع', color: '#D97706' },
     confirmed: { label: 'مؤكد', color: '#2563EB' },
     in_progress: { label: 'جارية الآن', color: '#2563EB' },
-    completed: { label: 'منتهي', color: '#666' },
+    completed: { label: 'مكتمل', color: '#666' },
     settled: { label: 'مسوّاة', color: '#666' },
     expired: { label: 'منتهية دون اكتمال العدد', color: '#EF4444' },
     rejected: { label: 'اقتراح مرفوض', color: '#EF4444' },

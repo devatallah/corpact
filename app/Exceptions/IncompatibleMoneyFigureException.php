@@ -15,7 +15,7 @@ class IncompatibleMoneyFigureException extends LogicException
     public static function forKinds(MoneyFigureKind $left, MoneyFigureKind $right): self
     {
         return new self(
-            "لا يجوز جمع «{$left->label()}» مع «{$right->label()}» — نوعان مختلفان من المبالغ (H §15)."
+            "لا يجوز جمع «{$left->label()}» مع «{$right->label()}» — نوعان مختلفان من المبالغ."
         );
     }
 }

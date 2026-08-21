@@ -83,7 +83,7 @@ class ReconcileBalances extends Command
                     if ($cached < 0 || $ledger < 0) {
                         app(CriticalAlertService::class)->raise(
                             key: 'wallet.negative_balance',
-                            title: 'مطابقة المحافظ: رصيد سالب — لا يجوز أن يبقى ساعة (H §12.5).',
+                            title: 'مطابقة المحافظ: رصيد سالب — لا يجوز أن يبقى ساعة.',
                             context: [
                                 'wallet_id' => $wallet->id,
                                 'owner_type' => $wallet->owner_type,
@@ -116,7 +116,7 @@ class ReconcileBalances extends Command
             // لكن السجل يصرخ كل ساعة حتى يُعالج السالب (H §12.5).
             app(CriticalAlertService::class)->raise(
                 key: 'wallet.negative_balance',
-                title: 'فحص الساعة: رصيد محفظة سالب — لا يجوز أن يبقى ساعة (H §12.5).',
+                title: 'فحص الساعة: رصيد محفظة سالب — لا يجوز أن يبقى ساعة.',
                 context: [
                     'wallet_id' => $wallet->id,
                     'owner_type' => $wallet->owner_type,

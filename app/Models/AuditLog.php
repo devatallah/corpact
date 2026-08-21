@@ -44,7 +44,7 @@ class AuditLog extends Model
 
     protected static function appendOnlyMessage(): string
     {
-        return 'سجل التدقيق للكتابة فقط — لا تعديل ولا حذف (H §19).';
+        return 'سجل التدقيق للكتابة فقط — لا تعديل ولا حذف.';
     }
 
     /**

@@ -132,7 +132,7 @@ class CloseRegistration extends Command
 
         $providerNotified = $this->reschedule->cancelActiveProviderRequest(
             $event,
-            'لم يبلغ العدد الحد الأدنى عند إغلاق التسجيل — فشلت المحاولة الثانية وأُلغيت الفعالية نهائياً (H §8)',
+            'لم يبلغ العدد الحد الأدنى عند إغلاق التسجيل — فشلت المحاولة الثانية وأُلغيت الفعالية نهائياً',
         );
 
         $this->machine->cancelMinNotMet(

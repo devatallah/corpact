@@ -1,3 +1,4 @@
+import ListStates from '@/components/list-states';
 import AdminLayout from '@/layouts/admin-layout';
 import { Head, Link } from '@inertiajs/react';
 
@@ -59,30 +60,28 @@ export default function CoordinatorReportsIndex({ reports, isPlatformAdmin }: Pr
                         </tr>
                     </thead>
                     <tbody>
-                        {reports.length === 0 ? (
-                            <tr>
-                                <td colSpan={8} style={{ ...tdStyle, textAlign: 'center', padding: 24, opacity: 0.7 }}>
-                                    لم يُولَّد تقرير بعد — أول تقرير يصدر في اليوم الثاني من الشهر القادم.
+                        <ListStates
+                            count={reports.length}
+                            columns={8}
+                            emptyTitle="لم يُولَّد تقرير بعد"
+                            emptyHint="أول تقرير يصدر في اليوم الثاني من الشهر القادم."
+                        />
+                        {reports.map((report) => (
+                            <tr key={report.id}>
+                                <td style={tdStyle}>{report.company_name}</td>
+                                <td style={tdStyle}>{report.period_key}</td>
+                                <td style={tdStyle}>{report.activation_rate}%</td>
+                                <td style={tdStyle}>{report.completed_events}</td>
+                                <td style={tdStyle}>{report.dormant_communities}</td>
+                                <td style={tdStyle}>{report.recommendations_count}</td>
+                                <td style={tdStyle}>{STATUS_LABEL[report.status] ?? report.status}</td>
+                                <td style={tdStyle}>
+                                    <Link href={`/coordinator/reports/${report.id}`} style={{ color: '#E03050', fontSize: 12 }}>
+                                        فتح
+                                    </Link>
                                 </td>
                             </tr>
-                        ) : (
-                            reports.map((report) => (
-                                <tr key={report.id}>
-                                    <td style={tdStyle}>{report.company_name}</td>
-                                    <td style={tdStyle}>{report.period_key}</td>
-                                    <td style={tdStyle}>{report.activation_rate}%</td>
-                                    <td style={tdStyle}>{report.completed_events}</td>
-                                    <td style={tdStyle}>{report.dormant_communities}</td>
-                                    <td style={tdStyle}>{report.recommendations_count}</td>
-                                    <td style={tdStyle}>{STATUS_LABEL[report.status] ?? report.status}</td>
-                                    <td style={tdStyle}>
-                                        <Link href={`/coordinator/reports/${report.id}`} style={{ color: '#E03050', fontSize: 12 }}>
-                                            فتح
-                                        </Link>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>

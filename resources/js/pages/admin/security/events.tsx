@@ -84,7 +84,7 @@ export default function SecurityEvents({ events, filters, eventTypes, stats }: P
 
             <div className="page-title">الأحداث الأمنية</div>
             <div className="page-sub">
-                سجل منفصل عن سجل التدقيق (H §19) — للكتابة فقط: دخول فاشل · تغيير صلاحية · تغيير بيانات بنكية.
+                سجل منفصل عن سجل التدقيق — للكتابة فقط: دخول فاشل · تغيير صلاحية · تغيير بيانات بنكية.
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12, margin: '16px 0' }}>

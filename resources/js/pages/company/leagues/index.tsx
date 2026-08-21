@@ -1,4 +1,5 @@
 import CompanyLayout from '@/layouts/company-layout';
+import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import { Head, Link } from '@inertiajs/react';
 import type { League, PaginatedResult } from '@/types/models';
@@ -31,38 +32,38 @@ export default function LeaguesIndex({ leagues }: Props) {
                         </tr>
                     </thead>
                     <tbody>
-                        {leagues.data.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', padding: 24, color: '#7A8BA8', fontSize: 13 }}>لا توجد بطولات</td>
-                            </tr>
-                        ) : (
-                            leagues.data.map((league) => {
-                                const formatLabel = league.format === 'knockout' ? 'خروج المغلوب'
-                                    : league.format === 'double_round_robin' ? 'ذهاب وإياب' : 'دور واحد';
-                                return (
-                                    <tr key={league.id}>
-                                        <td style={{ fontWeight: 600 }}>{league.name}</td>
-                                        <td style={{ color: '#7A8BA8', fontSize: 12 }}>{league.community?.name ?? '—'}</td>
-                                        <td style={{ fontSize: 12 }}>{formatLabel}</td>
-                                        <td>{league.departments?.length ?? 0}</td>
-                                        <td>{league.matches_count ?? 0}</td>
-                                        <td>
-                                            <span className="badge" style={league.status === 'active' ? { background: '#009E8218', color: '#009E82' } : { background: '#6B7A9918', color: '#6B7A99' }}>
-                                                {league.status === 'active' ? 'جارية' : 'منتهية'}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <Link
-                                                href={`/company/leagues/${league.id}`}
-                                                style={{ background: '#3B5BDB18', color: '#3B5BDB', border: '1px solid #3B5BDB33', borderRadius: 8, padding: '5px 14px', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
-                                            >
-                                                عرض
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        )}
+                        <ListStates
+                            count={leagues.data.length}
+                            columns={7}
+                            emptyTitle="لا توجد بطولات"
+                            emptyHint="لم تُنشأ أي بطولة في هذه الشركة بعد."
+                        />
+                        {leagues.data.map((league) => {
+                            const formatLabel = league.format === 'knockout' ? 'خروج المغلوب'
+                                : league.format === 'double_round_robin' ? 'ذهاب وإياب' : 'دور واحد';
+                            return (
+                                <tr key={league.id}>
+                                    <td style={{ fontWeight: 600 }}>{league.name}</td>
+                                    <td style={{ color: '#7A8BA8', fontSize: 12 }}>{league.community?.name ?? '—'}</td>
+                                    <td style={{ fontSize: 12 }}>{formatLabel}</td>
+                                    <td>{league.departments?.length ?? 0}</td>
+                                    <td>{league.matches_count ?? 0}</td>
+                                    <td>
+                                        <span className="badge" style={league.status === 'active' ? { background: '#009E8218', color: '#009E82' } : { background: '#6B7A9918', color: '#6B7A99' }}>
+                                            {league.status === 'active' ? 'جارية' : 'منتهية'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <Link
+                                            href={`/company/leagues/${league.id}`}
+                                            style={{ background: '#3B5BDB18', color: '#3B5BDB', border: '1px solid #3B5BDB33', borderRadius: 8, padding: '5px 14px', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
+                                        >
+                                            عرض
+                                        </Link>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

@@ -105,7 +105,7 @@ export default function AuditIndex({ logs, filters, actions, groups, companies, 
 
             <div className="page-title">سجل التدقيق</div>
             <div className="page-sub">
-                {total.toLocaleString()} حدثاً مسجَّلاً · السجل للكتابة فقط — لا يُعدَّل ولا يُحذف (H §19)
+                {total.toLocaleString()} حدثاً مسجَّلاً · السجل للكتابة فقط — لا يُعدَّل ولا يُحذف
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12, margin: '16px 0' }}>

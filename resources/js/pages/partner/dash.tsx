@@ -71,7 +71,7 @@ export default function PartnerDashboard({ partner, stats, pendingEvents }: Prop
             <div className="card">
                 <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14, display: 'flex', justifyContent: 'space-between' }}>
                     طلبات تحتاج ردك
-                    <Link href="/partner/requests" style={{ background: '#C8410A18', color: '#C8410A', border: 'none', borderRadius: 10, padding: '6px 14px', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>عرض الكل</Link>
+                    <Link href="/partner/requests-queue" style={{ background: '#C8410A18', color: '#C8410A', border: 'none', borderRadius: 10, padding: '6px 14px', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>عرض الكل</Link>
                 </div>
                 {pendingEvents.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: 20, color: '#8A7868', fontSize: 13 }}>لا توجد طلبات معلقة حالياً</div>
@@ -79,7 +79,7 @@ export default function PartnerDashboard({ partner, stats, pendingEvents }: Prop
                     pendingEvents.map((event, index) => (
                         <Link
                             key={event.id}
-                            href="/partner/requests"
+                            href="/partner/requests-queue"
                             style={{
                                 display: 'block',
                                 background: '#F7F4F0',

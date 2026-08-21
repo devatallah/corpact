@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import AdminLayout from '@/layouts/admin-layout';
 import { fmtDate } from '@/lib/utils';
@@ -61,41 +62,39 @@ export default function AdminAlertsIndex({ alerts, stats, filters }: Props) {
                             </tr>
                         </thead>
                         <tbody>
-                            {alerts.data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} style={{ textAlign: 'center', color: '#6B7A99', padding: 20 }}>
-                                        لا توجد تنبيهات
+                            <ListStates
+                                count={alerts.data.length}
+                                columns={6}
+                                emptyTitle="لا توجد تنبيهات"
+                                emptyHint="لا تنبيه مطابق للفلتر الحالي — وهي الحالة الطبيعية حين لا يوجد ما يستدعي تدخّلاً."
+                            />
+                            {alerts.data.map((alert) => (
+                                <tr key={alert.id}>
+                                    <td>
+                                        <div style={{ fontWeight: 700, color: alert.level === 'critical' ? '#E03050' : '#E0B040' }}>
+                                            {alert.title}
+                                        </div>
+                                        <div style={{ fontSize: 12, color: '#6B7A99' }}>{KEY_LABELS[alert.key] ?? alert.key}</div>
+                                    </td>
+                                    <td style={{ color: '#C8D0E0', fontSize: 13, maxWidth: 380 }}>{alert.body ?? '—'}</td>
+                                    <td style={{ fontSize: 13, color: '#C8D0E0' }}>{alert.occurrences}×</td>
+                                    <td style={{ fontSize: 12, color: '#6B7A99' }}>
+                                        {alert.last_seen_at ? fmtDate(alert.last_seen_at) : fmtDate(alert.created_at)}
+                                    </td>
+                                    <td style={{ fontSize: 12, color: alert.acknowledged_at ? '#009E82' : '#E03050' }}>
+                                        {alert.acknowledged_at
+                                            ? `أُقر — ${alert.acknowledged_by?.name ?? 'أدمن'}`
+                                            : 'مفتوح'}
+                                    </td>
+                                    <td>
+                                        {!alert.acknowledged_at && (
+                                            <button onClick={() => acknowledge(alert)} className="act-btn btn-approve">
+                                                إقرار
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
-                            ) : (
-                                alerts.data.map((alert) => (
-                                    <tr key={alert.id}>
-                                        <td>
-                                            <div style={{ fontWeight: 700, color: alert.level === 'critical' ? '#E03050' : '#E0B040' }}>
-                                                {alert.title}
-                                            </div>
-                                            <div style={{ fontSize: 12, color: '#6B7A99' }}>{KEY_LABELS[alert.key] ?? alert.key}</div>
-                                        </td>
-                                        <td style={{ color: '#C8D0E0', fontSize: 13, maxWidth: 380 }}>{alert.body ?? '—'}</td>
-                                        <td style={{ fontSize: 13, color: '#C8D0E0' }}>{alert.occurrences}×</td>
-                                        <td style={{ fontSize: 12, color: '#6B7A99' }}>
-                                            {alert.last_seen_at ? fmtDate(alert.last_seen_at) : fmtDate(alert.created_at)}
-                                        </td>
-                                        <td style={{ fontSize: 12, color: alert.acknowledged_at ? '#009E82' : '#E03050' }}>
-                                            {alert.acknowledged_at
-                                                ? `أُقر — ${alert.acknowledged_by?.name ?? 'أدمن'}`
-                                                : 'مفتوح'}
-                                        </td>
-                                        <td>
-                                            {!alert.acknowledged_at && (
-                                                <button onClick={() => acknowledge(alert)} className="act-btn btn-approve">
-                                                    إقرار
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
+                            ))}
                         </tbody>
                     </table>
                 </div>

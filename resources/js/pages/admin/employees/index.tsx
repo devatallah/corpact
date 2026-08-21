@@ -1,6 +1,7 @@
 import AdminLayout from '@/layouts/admin-layout';
 import StatusBadge from '@/components/status-badge';
 import Pagination from '@/components/pagination';
+import ListStates from '@/components/list-states';
 import { fmtDateTime } from '@/lib/utils';
 import type { Employee, Company, PaginatedResult } from '@/types/models';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -133,51 +134,49 @@ export default function EmployeesIndex({ employees, companies, departments, tota
                         </tr>
                     </thead>
                     <tbody>
-                        {employees.data.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
-                                    لا يوجد موظفون
+                        <ListStates
+                            count={employees.data.length}
+                            columns={7}
+                            emptyTitle="لا يوجد موظفون"
+                            emptyHint="لا موظف مطابق للبحث والفلاتر الحالية."
+                        />
+                        {employees.data.map((emp) => (
+                            <tr key={emp.id}>
+                                <td>
+                                    <div style={{ fontWeight: 700, color: '#fff' }}>{emp.name ?? '-'}</div>
+                                    <div style={{ fontSize: '10px', color: '#6B7A99' }}>{emp.email ?? '-'}</div>
+                                </td>
+                                <td style={{ color: '#C8D0E0' }}>{emp.company?.name ?? '-'}</td>
+                                <td>{emp.communities_count ?? 0}</td>
+                                <td style={{
+                                    color: (emp.events_count ?? 0) > 0 ? '#009E82' : '#6B7A99',
+                                    fontWeight: 700,
+                                }}>
+                                    {emp.events_count ?? 0}
+                                </td>
+                                <td style={{ fontSize: '12px', color: '#6B7A99' }}>{fmtDateTime(emp.created_at)}</td>
+                                <td>
+                                    <StatusBadge status={emp.status} />
+                                </td>
+                                <td>
+                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                        <button
+                                            onClick={() => setEditingItem(emp)}
+                                            className="act-btn btn-view"
+                                        >
+                                            تعديل
+                                        </button>
+                                        <button
+                                            className="act-btn"
+                                            style={{ background: '#2A1F3D', color: '#A78BFA', borderColor: '#3B2D5A' }}
+                                            onClick={() => setResetTarget({ id: emp.id, email: emp.email })}
+                                        >
+                                            إعادة كلمة المرور
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
-                        ) : (
-                            employees.data.map((emp) => (
-                                <tr key={emp.id}>
-                                    <td>
-                                        <div style={{ fontWeight: 700, color: '#fff' }}>{emp.name ?? '-'}</div>
-                                        <div style={{ fontSize: '10px', color: '#6B7A99' }}>{emp.email ?? '-'}</div>
-                                    </td>
-                                    <td style={{ color: '#C8D0E0' }}>{emp.company?.name ?? '-'}</td>
-                                    <td>{emp.communities_count ?? 0}</td>
-                                    <td style={{
-                                        color: (emp.events_count ?? 0) > 0 ? '#009E82' : '#6B7A99',
-                                        fontWeight: 700,
-                                    }}>
-                                        {emp.events_count ?? 0}
-                                    </td>
-                                    <td style={{ fontSize: '12px', color: '#6B7A99' }}>{fmtDateTime(emp.created_at)}</td>
-                                    <td>
-                                        <StatusBadge status={emp.status} />
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                            <button
-                                                onClick={() => setEditingItem(emp)}
-                                                className="act-btn btn-view"
-                                            >
-                                                تعديل
-                                            </button>
-                                            <button
-                                                className="act-btn"
-                                                style={{ background: '#2A1F3D', color: '#A78BFA', borderColor: '#3B2D5A' }}
-                                                onClick={() => setResetTarget({ id: emp.id, email: emp.email })}
-                                            >
-                                                إعادة كلمة المرور
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>

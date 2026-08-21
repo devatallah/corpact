@@ -21,7 +21,7 @@ class LocalTestGateway implements PaymentGatewayInterface
     public function createPayment(int $amountHalalas, string $currency, string $reference, string $idempotencyKey, array $metadata = []): GatewayPayment
     {
         if ($currency !== 'SAR') {
-            throw new InvalidArgumentException('العملة المدعومة الريال السعودي فقط (H §12.1).');
+            throw new InvalidArgumentException('العملة المدعومة الريال السعودي فقط.');
         }
 
         // نفس مفتاح التفرّد ⇒ نفس الدفعة — لا إنشاء مزدوج عند إعادة المحاولة.

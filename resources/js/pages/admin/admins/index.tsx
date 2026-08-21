@@ -2,6 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import toastr from 'toastr';
 import ConfirmModal from '@/components/confirm-modal';
+import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import PasswordInput from '@/components/password-input';
 import StatusBadge from '@/components/status-badge';
@@ -139,62 +140,60 @@ return;
                         </tr>
                     </thead>
                     <tbody>
-                        {admins.data.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
-                                    لا يوجد مشرفون
+                        <ListStates
+                            count={admins.data.length}
+                            columns={6}
+                            emptyTitle="لا يوجد مشرفون"
+                            emptyHint="لا حساب مشرف مطابق للبحث الحالي."
+                        />
+                        {admins.data.map((admin) => (
+                            <tr key={admin.id}>
+                                <td>
+                                    <div style={{ fontWeight: 700, color: '#fff' }}>{admin.name ?? '-'}</div>
+                                    <div style={{ fontSize: '10px', color: '#6B7A99' }}>{admin.email ?? '-'}</div>
+                                </td>
+                                <td>
+                                    <span style={{
+                                        padding: '3px 10px',
+                                        borderRadius: '6px',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        background: admin.role === 'platform_admin' ? 'rgba(224,48,80,.15)' : admin.role === 'finance_admin' ? 'rgba(91,126,255,.15)' : 'rgba(0,158,130,.15)',
+                                        color: admin.role === 'platform_admin' ? '#E03050' : admin.role === 'finance_admin' ? '#5B7EFF' : '#009E82',
+                                    }}>
+                                        {roleLabels[admin.role] ?? admin.role}
+                                    </span>
+                                </td>
+                                <td style={{ color: '#C8D0E0', direction: 'ltr', textAlign: 'right' }}>{admin.phone ?? '-'}</td>
+                                <td style={{ fontSize: '12px', color: '#6B7A99' }}>{fmtDateTime(admin.created_at)}</td>
+                                <td>
+                                    <StatusBadge status={admin.status} />
+                                </td>
+                                <td>
+                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                        <button
+                                            onClick={() => setEditingItem(admin)}
+                                            className="act-btn btn-view"
+                                        >
+                                            تعديل
+                                        </button>
+                                        <button
+                                            className="act-btn"
+                                            style={{ background: '#2A1F3D', color: '#A78BFA', borderColor: '#3B2D5A' }}
+                                            onClick={() => setResetTarget({ id: admin.id, email: admin.email })}
+                                        >
+                                            إعادة كلمة المرور
+                                        </button>
+                                        <button
+                                            className="act-btn btn-reject"
+                                            onClick={() => setDeleteTarget({ id: admin.id, name: admin.name })}
+                                        >
+                                            حذف
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
-                        ) : (
-                            admins.data.map((admin) => (
-                                <tr key={admin.id}>
-                                    <td>
-                                        <div style={{ fontWeight: 700, color: '#fff' }}>{admin.name ?? '-'}</div>
-                                        <div style={{ fontSize: '10px', color: '#6B7A99' }}>{admin.email ?? '-'}</div>
-                                    </td>
-                                    <td>
-                                        <span style={{
-                                            padding: '3px 10px',
-                                            borderRadius: '6px',
-                                            fontSize: '11px',
-                                            fontWeight: 600,
-                                            background: admin.role === 'platform_admin' ? 'rgba(224,48,80,.15)' : admin.role === 'finance_admin' ? 'rgba(91,126,255,.15)' : 'rgba(0,158,130,.15)',
-                                            color: admin.role === 'platform_admin' ? '#E03050' : admin.role === 'finance_admin' ? '#5B7EFF' : '#009E82',
-                                        }}>
-                                            {roleLabels[admin.role] ?? admin.role}
-                                        </span>
-                                    </td>
-                                    <td style={{ color: '#C8D0E0', direction: 'ltr', textAlign: 'right' }}>{admin.phone ?? '-'}</td>
-                                    <td style={{ fontSize: '12px', color: '#6B7A99' }}>{fmtDateTime(admin.created_at)}</td>
-                                    <td>
-                                        <StatusBadge status={admin.status} />
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                            <button
-                                                onClick={() => setEditingItem(admin)}
-                                                className="act-btn btn-view"
-                                            >
-                                                تعديل
-                                            </button>
-                                            <button
-                                                className="act-btn"
-                                                style={{ background: '#2A1F3D', color: '#A78BFA', borderColor: '#3B2D5A' }}
-                                                onClick={() => setResetTarget({ id: admin.id, email: admin.email })}
-                                            >
-                                                إعادة كلمة المرور
-                                            </button>
-                                            <button
-                                                className="act-btn btn-reject"
-                                                onClick={() => setDeleteTarget({ id: admin.id, name: admin.name })}
-                                            >
-                                                حذف
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>

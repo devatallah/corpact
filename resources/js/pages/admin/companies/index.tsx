@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import toastr from 'toastr';
 import ConfirmModal from '@/components/confirm-modal';
 import FilterTabs from '@/components/filter-tabs';
+import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import PasswordInput from '@/components/password-input';
 import StatusBadge from '@/components/status-badge';
@@ -138,71 +139,69 @@ return;
                         </tr>
                     </thead>
                     <tbody>
-                        {companies.data.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', color: '#6B7A99', padding: '20px' }}>
-                                    لا توجد شركات
+                        <ListStates
+                            count={companies.data.length}
+                            columns={7}
+                            emptyTitle="لا توجد شركات"
+                            emptyHint="لا شركة مطابقة للبحث والفلاتر الحالية."
+                        />
+                        {companies.data.map((company) => (
+                            <tr key={company.id}>
+                                <td>
+                                    <div style={{ fontWeight: 700, color: '#fff' }}>{company.name}</div>
+                                    <div style={{ fontSize: '10px', color: '#6B7A99' }}>{company.domain}</div>
+                                </td>
+                                <td style={{ color: '#C8D0E0' }}>{company.sector}</td>
+                                <td>{company.employee_count}</td>
+                                <td>
+                                    <div style={{ fontSize: '12px' }}>{company.contact_name ?? '-'}</div>
+                                    <div style={{ fontSize: '10px', color: '#6B7A99' }}>{company.email ?? '-'}</div>
+                                </td>
+                                <td style={{ fontSize: '12px', color: '#6B7A99' }}>
+                                    {company.status === 'active'
+                                        ? fmtDate(company.approved_at)
+                                        : fmtDate(company.created_at)}
+                                </td>
+                                <td>
+                                    <StatusBadge status={company.status} />
+                                </td>
+                                <td>
+                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                        {['pending', 'review'].includes(company.status) && (
+                                            <>
+                                                <button
+                                                    className="act-btn btn-approve"
+                                                    onClick={() => approve(company.id)}
+                                                >
+                                                    قبول
+                                                </button>
+                                                <button
+                                                    className="act-btn btn-reject"
+                                                    onClick={() => reject(company.id)}
+                                                >
+                                                    رفض
+                                                </button>
+                                            </>
+                                        )}
+                                        <button
+                                            onClick={() => setEditingItem(company)}
+                                            className="act-btn btn-view"
+                                        >
+                                            تعديل
+                                        </button>
+                                        {company.status === 'active' && (
+                                            <button
+                                                className="act-btn"
+                                                style={{ background: '#2A1F3D', color: '#A78BFA', borderColor: '#3B2D5A' }}
+                                                onClick={() => setResetTarget({ id: company.id, email: company.email })}
+                                            >
+                                                إعادة كلمة المرور
+                                            </button>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
-                        ) : (
-                            companies.data.map((company) => (
-                                <tr key={company.id}>
-                                    <td>
-                                        <div style={{ fontWeight: 700, color: '#fff' }}>{company.name}</div>
-                                        <div style={{ fontSize: '10px', color: '#6B7A99' }}>{company.domain}</div>
-                                    </td>
-                                    <td style={{ color: '#C8D0E0' }}>{company.sector}</td>
-                                    <td>{company.employee_count}</td>
-                                    <td>
-                                        <div style={{ fontSize: '12px' }}>{company.contact_name ?? '-'}</div>
-                                        <div style={{ fontSize: '10px', color: '#6B7A99' }}>{company.email ?? '-'}</div>
-                                    </td>
-                                    <td style={{ fontSize: '12px', color: '#6B7A99' }}>
-                                        {company.status === 'active'
-                                            ? fmtDate(company.approved_at)
-                                            : fmtDate(company.created_at)}
-                                    </td>
-                                    <td>
-                                        <StatusBadge status={company.status} />
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                            {['pending', 'review'].includes(company.status) && (
-                                                <>
-                                                    <button
-                                                        className="act-btn btn-approve"
-                                                        onClick={() => approve(company.id)}
-                                                    >
-                                                        قبول
-                                                    </button>
-                                                    <button
-                                                        className="act-btn btn-reject"
-                                                        onClick={() => reject(company.id)}
-                                                    >
-                                                        رفض
-                                                    </button>
-                                                </>
-                                            )}
-                                            <button
-                                                onClick={() => setEditingItem(company)}
-                                                className="act-btn btn-view"
-                                            >
-                                                تعديل
-                                            </button>
-                                            {company.status === 'active' && (
-                                                <button
-                                                    className="act-btn"
-                                                    style={{ background: '#2A1F3D', color: '#A78BFA', borderColor: '#3B2D5A' }}
-                                                    onClick={() => setResetTarget({ id: company.id, email: company.email })}
-                                                >
-                                                    إعادة كلمة المرور
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>

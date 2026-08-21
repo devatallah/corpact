@@ -175,7 +175,7 @@ export default function EventShow({ event, communityMembers, joinedIds, seriesEv
                         {seriesEvents.map((se) => {
                             const isCurrent = se.id === event.id;
                             const statusColor = se.status === 'cancelled' ? '#E03050' : se.status === 'completed' ? '#7A8BA8' : '#009E82';
-                            const statusLabel = se.status === 'cancelled' ? 'ملغية' : se.status === 'completed' ? 'منتهية' : `${se.participants_count}/${se.capacity}`;
+                            const statusLabel = se.status === 'cancelled' ? 'ملغية' : se.status === 'completed' ? 'مكتملة' : `${se.participants_count}/${se.capacity}`;
                             return (
                                 <Link
                                     key={se.id}

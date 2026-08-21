@@ -74,7 +74,7 @@ export default function CompanyAudit({ company, logs, filters, actions }: Props)
 
             <div className="page-title">سجل التدقيق</div>
             <div className="page-sub">
-                ملخص الأحداث المسجَّلة على حساب «{company.name}» — سجل تيمات الكامل لدى أدمن المنصة (H §19).
+                ملخص الأحداث المسجَّلة على حساب «{company.name}» — سجل تيمات الكامل لدى أدمن المنصة.
             </div>
 
             <div style={{ display: 'flex', gap: '10px', margin: '16px 0', flexWrap: 'wrap' }}>

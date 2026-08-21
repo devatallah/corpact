@@ -391,6 +391,6 @@ class EventCreationService
         $this->machine->cancelCompany($occurrence, $actor, 'إلغاء تكرار من سلسلة');
 
         app(EventRefundService::class)
-            ->refundEventCollections($occurrence, 'إلغاء الشركة لتكرار من سلسلة — استرداد كامل (H §12.4)');
+            ->refundEventCollections($occurrence, 'إلغاء الشركة لتكرار من سلسلة — استرداد كامل');
     }
 }

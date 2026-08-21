@@ -1,3 +1,4 @@
+import ListStates from '@/components/list-states';
 import StatCard from '@/components/stat-card';
 import CompanyLayout from '@/layouts/company-layout';
 import type { Company } from '@/types/models';
@@ -5,7 +6,7 @@ import { Head, Link, router } from '@inertiajs/react';
 
 /* A13 — H §15: كل رقم على هذه الصفحة يأتي من قاموس المؤشرات في الخادم.
    لا معادلة تُحسب في الواجهة، و«معدل التفعيل» هو المؤشر الأول لا عدد
-   المسجلين (G/الشركة §6). حجم التداول والإنفاق حقلان منفصلان لا يُجمعان. */
+   المسجلين. حجم التداول والإنفاق حقلان منفصلان لا يُجمعان. */
 
 interface Metric {
     key: string;
@@ -355,28 +356,26 @@ export default function ReportsIndex({ company, period, periodOptions, kpi, expo
                         </tr>
                     </thead>
                     <tbody>
-                        {monthlyReports.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', color: '#888', padding: 24 }}>
-                                    لم يصل تقرير شهري بعد — أول تقرير يصل في اليوم الثاني من الشهر القادم.
+                        <ListStates
+                            count={monthlyReports.length}
+                            columns={6}
+                            emptyTitle="لم يصل تقرير شهري بعد"
+                            emptyHint="أول تقرير يصل في اليوم الثاني من الشهر القادم."
+                        />
+                        {monthlyReports.map((report) => (
+                            <tr key={report.id}>
+                                <td style={tdStyle}>{report.period_key}</td>
+                                <td style={tdStyle}>{report.activation_rate}%</td>
+                                <td style={tdStyle}>{report.completed_events}</td>
+                                <td style={tdStyle}>{report.recommendations_count}</td>
+                                <td style={tdStyle}>{fmtDate(report.delivered_at)}</td>
+                                <td style={tdStyle}>
+                                    <Link href={`/company/reports/monthly/${report.id}`} style={{ color: '#1A56DB', fontSize: 12 }}>
+                                        عرض التقرير
+                                    </Link>
                                 </td>
                             </tr>
-                        ) : (
-                            monthlyReports.map((report) => (
-                                <tr key={report.id}>
-                                    <td style={tdStyle}>{report.period_key}</td>
-                                    <td style={tdStyle}>{report.activation_rate}%</td>
-                                    <td style={tdStyle}>{report.completed_events}</td>
-                                    <td style={tdStyle}>{report.recommendations_count}</td>
-                                    <td style={tdStyle}>{fmtDate(report.delivered_at)}</td>
-                                    <td style={tdStyle}>
-                                        <Link href={`/company/reports/monthly/${report.id}`} style={{ color: '#1A56DB', fontSize: 12 }}>
-                                            عرض التقرير
-                                        </Link>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>
