@@ -27,3 +27,13 @@ yarn-error.log
 /.vscode
 /.zed
 .claude/worktrees/
+
+# Design-system sync: tooling deps and generated bundle output
+/.ds-sync
+/ds-bundle
+/.design-sync/.cache
+
+# Scratch reference material (scraped pages, static drafts, mockups)
+/scraped-site
+/teamatland
+/mockups
