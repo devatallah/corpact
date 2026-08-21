@@ -5,31 +5,53 @@ namespace App\Services\Employee;
 use App\Models\Community;
 use App\Models\Employee;
 use App\Services\Community\MembershipService;
-use Illuminate\Database\Eloquent\Collection;
+use App\Support\Lists\ListSort;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class ExploreService
 {
     public function __construct(private MembershipService $membership) {}
 
     /**
-     * List available communities that the employee can join within their company.
+     * الأعمدة المسموح الترتيب بها — الاسم وعدد الأعضاء وتاريخ الإنشاء، وكلها
+     * معروضة على بطاقة المجتمع في شاشة الاستكشاف أصلاً (H §18).
      */
-    public function availableCommunities(Employee $employee): Collection
+    public static function sort(): ListSort
     {
-        $communities = Community::query()
+        return ListSort::make([
+            'name' => 'name',
+            'members_count' => 'members_count',
+            'created_at' => 'created_at',
+        ], 'name', ListSort::ASC, 'id');
+    }
+
+    /**
+     * List available communities that the employee can join within their company.
+     *
+     * @param  array{search?: string, sort?: string, dir?: string, per_page?: int}  $filters
+     */
+    public function availableCommunities(Employee $employee, array $filters = []): LengthAwarePaginator
+    {
+        $query = Community::query()
             ->with(['category'])
             ->where('company_id', $employee->company_id)
             ->withCount('members')
-            ->orderBy('name')
-            ->get();
+            ->when(filled($filters['search'] ?? null), fn ($q) => $q->where('name', 'like', '%'.$filters['search'].'%'));
 
-        Community::attachPrimaryLeaders($communities);
+        $communities = self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
+
+        Community::attachPrimaryLeaders($communities->getCollection());
 
         $memberCommunityIds = $employee->communities()->pluck('communities.id')->all();
 
-        return $communities->each(function (Community $community) use ($memberCommunityIds) {
+        $communities->getCollection()->each(function (Community $community) use ($memberCommunityIds) {
             $community->setAttribute('is_member', in_array($community->id, $memberCommunityIds, true));
         });
+
+        return $communities;
     }
 
     /**

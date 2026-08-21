@@ -265,3 +265,52 @@ test('the audit list honours its search, action, company and date filters', func
         $this->actingAs($admin, 'admin')->get('/admin/audit'.$query)->assertOk();
     }
 });
+
+// ── الترتيب صار عموداً لا اتجاهاً (H §18) ────────────────────────────────
+//
+// هذه الشاشات الخمس كانت تقرأ `?sort=asc|desc` اتجاهاً. بعد الانتقال إلى
+// `ListSort` صار `sort` مفتاح عمود و`dir` اتجاهه — والرابط المحفوظ القديم
+// يجب أن يبقى عاملاً كما كان.
+
+test('the migrated admin lists still read the legacy ?sort=asc link as a direction', function (string $uri) {
+    $admin = User::factory()->create();
+    $admin->assignRole(Role::PlatformAdmin, RoleAssignment::SCOPE_PLATFORM);
+
+    $this->actingAs($admin->fresh(), 'admin')
+        ->get($uri.'?sort=asc')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('sort.direction', 'asc'));
+})->with([
+    'سجل التدقيق' => '/admin/audit',
+    'الأحداث الأمنية' => '/admin/security/events',
+    'مراجعة الصلاحيات' => '/admin/security/permission-review',
+]);
+
+test('the migrated company lists still read the legacy ?sort=asc link as a direction', function (string $uri) {
+    $company = Company::factory()->create();
+
+    $this->actingAs($company, 'company')
+        ->get($uri.'?sort=asc')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('sort.direction', 'asc'));
+})->with([
+    'سجل التدقيق' => '/company/audit',
+    'الفواتير' => '/company/invoices',
+]);
+
+test('a whitelisted column key becomes the active sort, and anything else falls back', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole(Role::PlatformAdmin, RoleAssignment::SCOPE_PLATFORM);
+    $admin = $admin->fresh();
+
+    $this->actingAs($admin, 'admin')
+        ->get('/admin/audit?sort=action&dir=asc')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('sort.key', 'action')->where('sort.direction', 'asc'));
+
+    // مفتاح غير مسجَّل (عمود لا يراه أحد) ⟵ الافتراضي بلا خطأ وبلا تسريب.
+    $this->actingAs($admin, 'admin')
+        ->get('/admin/audit?sort=user_agent&dir=nope')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('sort.key', 'created_at')->where('sort.direction', 'desc'));
+});

@@ -1,7 +1,9 @@
 import ListStates from '@/components/list-states';
+import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import StatCard from '@/components/stat-card';
 import CompanyLayout from '@/layouts/company-layout';
-import type { Company } from '@/types/models';
+import type { Company, PaginatedResult } from '@/types/models';
 import { Head, Link, router } from '@inertiajs/react';
 
 /* A13 — H §15: كل رقم على هذه الصفحة يأتي من قاموس المؤشرات في الخادم.
@@ -72,7 +74,8 @@ interface Props {
     periodOptions: { key: string; label: string }[];
     kpi: Kpi;
     exports: { key: string; title: string }[];
-    monthlyReports: MonthlyReportRow[];
+    monthlyReports: PaginatedResult<MonthlyReportRow>;
+    monthlySort: SortState;
 }
 
 const CANCELLATION_LABELS: Record<string, string> = {
@@ -99,7 +102,7 @@ function fmtDate(value: string | null) {
     return value ? new Date(value).toLocaleDateString('ar-SA') : '—';
 }
 
-export default function ReportsIndex({ company, period, periodOptions, kpi, exports, monthlyReports }: Props) {
+export default function ReportsIndex({ company, period, periodOptions, kpi, exports, monthlyReports, monthlySort }: Props) {
     const cancellations = Object.entries(kpi.cancellation_reasons);
     const totalCancelled = cancellations.reduce((sum, [, count]) => sum + count, 0);
 
@@ -347,22 +350,22 @@ export default function ReportsIndex({ company, period, periodOptions, kpi, expo
                 <table className="portal-table">
                     <thead>
                         <tr>
-                            <th style={thStyle}>الدورة</th>
+                            <SortableHeader label="الدورة" sortKey="period_key" sort={monthlySort} initialDirection="desc" style={thStyle} />
                             <th style={thStyle}>معدل التفعيل</th>
                             <th style={thStyle}>فعاليات مكتملة</th>
                             <th style={thStyle}>توصيات</th>
-                            <th style={thStyle}>وصل في</th>
+                            <SortableHeader label="وصل في" sortKey="delivered_at" sort={monthlySort} initialDirection="desc" style={thStyle} />
                             <th style={thStyle} />
                         </tr>
                     </thead>
                     <tbody>
                         <ListStates
-                            count={monthlyReports.length}
+                            count={monthlyReports.data.length}
                             columns={6}
                             emptyTitle="لم يصل تقرير شهري بعد"
                             emptyHint="أول تقرير يصل في اليوم الثاني من الشهر القادم."
                         />
-                        {monthlyReports.map((report) => (
+                        {monthlyReports.data.map((report) => (
                             <tr key={report.id}>
                                 <td style={tdStyle}>{report.period_key}</td>
                                 <td style={tdStyle}>{report.activation_rate}%</td>
@@ -378,6 +381,7 @@ export default function ReportsIndex({ company, period, periodOptions, kpi, expo
                         ))}
                     </tbody>
                 </table>
+                <Pagination links={monthlyReports.links} />
             </div>
         </CompanyLayout>
     );

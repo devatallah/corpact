@@ -1,10 +1,12 @@
 import EmployeeLayout from '@/layouts/employee-layout';
 import CategoryIcon from '@/components/category-icon';
 import ConfirmModal from '@/components/confirm-modal';
+import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { fmtDate, fmtTime, fmtDateTime } from '@/lib/utils';
 import StatusBadge from '@/components/status-badge';
-import type { Community, Employee, Event, CommunityAnnouncement, CommunityPoll, PollOption, Partner, Category, League } from '@/types/models';
+import type { Community, Employee, Event, CommunityAnnouncement, CommunityPoll, PollOption, Partner, Category, League, PaginatedResult } from '@/types/models';
 import { useState } from 'react';
 import toastr from 'toastr';
 
@@ -14,7 +16,8 @@ interface Props {
         member_count: number;
         events_count?: number;
     };
-    events: (Event & { partner: Partner; category?: Category })[];
+    events: PaginatedResult<Event & { partner: Partner; category?: Category }>;
+    eventsSort?: SortState;
     announcements: (CommunityAnnouncement & { employee: Employee; link_url?: string | null; edited_at?: string | null; can_modify?: boolean })[];
     members: Employee[];
     leagues: League[];
@@ -30,7 +33,14 @@ interface Props {
 
 type Tab = 'events' | 'announcements' | 'members' | 'leagues' | 'polls';
 
-export default function CommunityShow({ community, events, announcements, members, leagues, polls, canAnnounce, canInvite, isLeader, isPrimaryLeader, leaderIds = [], primaryLeaderId, invitableEmployees = [] }: Props) {
+const eventSortOptions = [
+    { key: 'event_date', label: 'التاريخ', initialDirection: 'desc' as const },
+    { key: 'start_time', label: 'الوقت', initialDirection: 'asc' as const },
+    { key: 'participants_count', label: 'المشاركون', initialDirection: 'desc' as const },
+];
+
+export default function CommunityShow({ community, events, eventsSort, announcements, members, leagues, polls, canAnnounce, canInvite, isLeader, isPrimaryLeader, leaderIds = [], primaryLeaderId, invitableEmployees = [] }: Props) {
+    const eventItems = events?.data ?? [];
     const initialTab = (new URLSearchParams(window.location.search).get('tab') as Tab) || 'events';
     const [activeTab, setActiveTab] = useState<Tab>(initialTab);
     const color = community.category?.color ?? community.color ?? '#18A86B';
@@ -346,8 +356,13 @@ export default function CommunityShow({ community, events, announcements, member
                             ))}
                         </div>
                     )}
-                    {events.length > 0 ? (
-                        events.map((event) => {
+                    {/* H §18: ترتيب ظاهر لقائمة الفعاليات */}
+                    <div style={{ marginBottom: 12 }}>
+                        <SortBar sort={eventsSort} options={eventSortOptions} />
+                    </div>
+
+                    {eventItems.length > 0 ? (
+                        eventItems.map((event) => {
                             const pct = event.capacity > 0
                                 ? Math.round((event.participants_count / event.capacity) * 100)
                                 : 0;
@@ -377,6 +392,8 @@ export default function CommunityShow({ community, events, announcements, member
                             <div className="txt">لا توجد فعاليات حاليا</div>
                         </div>
                     )}
+
+                    {events?.links && <Pagination links={events.links} />}
                 </div>
             )}
 

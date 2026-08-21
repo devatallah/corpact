@@ -53,6 +53,7 @@ class EventController extends Controller
             'company' => $company,
             'events' => $events,
             'filters' => $filters,
+            'sort' => CompanyEventService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'totalEvents' => $totalEvents,
             'activeEvents' => $activeEvents,
             'unreadNotifications' => $unreadNotifications,

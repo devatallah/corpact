@@ -9,8 +9,9 @@ use App\Models\Employee;
 use App\Models\Wallet;
 use App\Services\ActivityLogService;
 use App\Services\Community\LeadershipService;
-use Illuminate\Database\Eloquent\Collection;
+use App\Support\Lists\ListSort;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -19,19 +20,41 @@ class CommunityService
     public function __construct(private LeadershipService $leadership) {}
 
     /**
+     * الحقول المسموح الترتيب بها في بطاقات مجتمعات الشركة — الاسم وعدد
+     * الأعضاء، وكلاهما معروض على البطاقة (H §18). `members_count` اسم تجميع
+     * من `withCount('members')` القائم أصلاً.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'name' => 'name',
+            'members_count' => 'members_count',
+        ], 'name', ListSort::ASC, 'id');
+    }
+
+    /**
      * List all communities for a company, with the primary leader attached
      * as a `leader` {id, name} attribute (resolved from role_assignments).
+     *
+     * H §18: ترقيم صفحات بعشرين عنصراً + بحث بالاسم + ترتيب.
+     *
+     * @param  array{search?: string, sort?: string, dir?: string, per_page?: int}  $filters
      */
-    public function listForCompany(Company $company): Collection
+    public function listForCompany(Company $company, array $filters = []): LengthAwarePaginator
     {
-        $communities = Community::query()
+        $query = Community::query()
             ->with(['category'])
             ->where('company_id', $company->id)
             ->withCount('members')
-            ->orderBy('name')
-            ->get();
+            ->when(filled($filters['search'] ?? null), fn ($inner) => $inner
+                ->where('name', 'like', '%'.$filters['search'].'%'));
 
-        Community::attachPrimaryLeaders($communities);
+        $communities = self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
+
+        Community::attachPrimaryLeaders($communities->getCollection());
 
         return $communities;
     }

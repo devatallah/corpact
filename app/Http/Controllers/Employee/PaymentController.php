@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use App\Models\PaymentIntent;
 use App\Services\Payments\Gateway\PaymentGatewayManager;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,18 +26,42 @@ class PaymentController extends Controller
 {
     public function __construct(private PaymentGatewayManager $gateways) {}
 
-    public function index(): Response
+    /**
+     * الأعمدة المسموح الترتيب بها — المبلغ والحالة وتاريخ المطالبة، وكلها
+     * ظاهرة في سجل المدفوعات أصلاً فالترتيب لا يكشف شيئاً جديداً (H §18).
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'created_at' => 'created_at',
+            'amount' => 'amount_halalas',
+            'status' => 'status',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
+    public function index(Request $request): Response
     {
         $employee = auth('employee')->user();
 
-        $intents = PaymentIntent::query()
+        // H §18 — الترتيب. القيمة مفتاح من قائمة بيضاء في `ListSort` لا اسم
+        // عمود؛ التحقق هنا يمنع الحشو فقط.
+        $filters = $request->validate([
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
+        $query = PaymentIntent::query()
             ->where('employee_id', $employee->id)
-            ->with(['event:id,title,event_date,start_time,community_id', 'event.community:id,name'])
-            ->latest()
-            ->get();
+            ->with(['event:id,title,event_date,start_time,community_id', 'event.community:id,name']);
+
+        $intents = self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate(20)
+            ->withQueryString();
 
         return Inertia::render('employee/payments/index', [
             'intents' => $intents,
+            'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }
 

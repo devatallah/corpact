@@ -5,27 +5,47 @@ namespace App\Services\Company;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Invitation;
+use App\Support\Lists\ListSort;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
 class CompanyEmployeeService
 {
     /**
+     * الأعمدة المسموح الترتيب بها في جدول موظفي الشركة (H §18).
+     *
+     * `phone` غائب عمداً: الجدول لا يعرض عموداً للجوال، والقائمة البيضاء لا
+     * تتجاوز ما هو معروض فعلاً على الشاشة (A13). القسم والمجتمعات وعدد
+     * الفعاليات تأتي من علاقات، ولا تُضاف وصلات لأجل الترتيب.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'name' => 'name',
+            'status' => 'status',
+            'created_at' => 'created_at',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
+    /**
      * List employees for a company with optional filters.
      *
-     * @param  array{status?: string, department?: string, search?: string, per_page?: int}  $filters
+     * @param  array{status?: string, department?: string, search?: string, sort?: string, dir?: string, per_page?: int}  $filters
      */
     public function list(Company $company, array $filters = []): LengthAwarePaginator
     {
-        return Employee::query()
+        $query = Employee::query()
             ->where('company_id', $company->id)
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->when(isset($filters['department_id']), fn ($query) => $query->where('department_id', $filters['department_id']))
             ->when(isset($filters['search']), fn ($query) => $query->where(fn ($q) => $q->where('name', 'like', '%'.$filters['search'].'%')
                 ->orWhere('email', 'like', '%'.$filters['search'].'%')
-            ))
-            ->latest()
-            ->paginate($filters['per_page'] ?? 15);
+            ));
+
+        return self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
     }
 
     /**

@@ -45,6 +45,7 @@ class EventController extends Controller
             'events' => $events,
             'totalEvents' => $totalEvents,
             'filters' => $filters,
+            'sort' => AdminEventService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }
 

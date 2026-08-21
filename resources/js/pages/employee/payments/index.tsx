@@ -1,10 +1,13 @@
 import EmployeeLayout from '@/layouts/employee-layout';
+import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
 import { Head, Link } from '@inertiajs/react';
 import { fmtDate } from '@/lib/utils';
-import type { PaymentIntent, Event, Community } from '@/types/models';
+import type { PaymentIntent, Event, Community, PaginatedResult } from '@/types/models';
 
 interface Props {
-    intents: (PaymentIntent & { event?: Event & { community?: Community } })[];
+    intents: PaginatedResult<PaymentIntent & { event?: Event & { community?: Community } }>;
+    sort?: SortState;
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -15,11 +18,19 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     refunded: { label: 'مُردّة', color: '#2563EB' },
 };
 
+const sortOptions = [
+    { key: 'created_at', label: 'الأحدث', initialDirection: 'desc' as const },
+    { key: 'amount', label: 'المبلغ', initialDirection: 'desc' as const },
+    { key: 'status', label: 'الحالة', initialDirection: 'asc' as const },
+];
+
 /**
  * سجل مدفوعات الموظف (A10 — H §12.3): كل مطالبة بحصتها وحالتها — لا محفظة
  * نقدية داخل المنصة، وكل استرداد يعود لوسيلة الدفع الأصلية.
  */
-export default function PaymentsIndex({ intents }: Props) {
+export default function PaymentsIndex({ intents, sort }: Props) {
+    const items = intents?.data ?? [];
+
     return (
         <EmployeeLayout>
             <Head title="مدفوعاتي" />
@@ -28,12 +39,17 @@ export default function PaymentsIndex({ intents }: Props) {
                 <div className="section-title">مدفوعاتي</div>
             </div>
 
-            {intents.length === 0 ? (
+            {/* H §18: ترتيب ظاهر لكل قائمة */}
+            <div style={{ marginBottom: 14 }}>
+                <SortBar sort={sort} options={sortOptions} />
+            </div>
+
+            {items.length === 0 ? (
                 <div className="card" style={{ textAlign: 'center', color: '#999', fontSize: 14 }}>
                     لا مدفوعات بعد — تصلك مطالبة الدفع عند إغلاق تسجيل فعالية انضممت إليها.
                 </div>
             ) : (
-                intents.map((intent) => {
+                items.map((intent) => {
                     const status = STATUS_LABELS[intent.status] ?? STATUS_LABELS.pending;
 
                     return (
@@ -57,6 +73,8 @@ export default function PaymentsIndex({ intents }: Props) {
                     );
                 })
             )}
+
+            {intents?.links && <Pagination links={intents.links} />}
         </EmployeeLayout>
     );
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Partner\IndexSettlementRequest;
 use App\Models\SettlementStatement;
 use App\Services\Partner\PartnerSettlementService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -31,15 +32,30 @@ class SettlementController extends Controller
             'statements' => $this->settlements->listForPartner($partner, $filters),
             'totals' => $this->settlements->totals($partner),
             'filters' => $filters,
+            'sort' => PartnerSettlementService::statementSort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }
 
-    public function show(SettlementStatement $settlement): Response
+    public function show(Request $request, SettlementStatement $settlement): Response
     {
         Gate::authorize('view', $settlement);
 
+        $sort = $request->query('sort');
+        $dir = $request->query('dir');
+
         return Inertia::render('partner/settlements/show', [
-            'statement' => $this->settlements->statementDetail($settlement),
+            // البنود صارت حمولة مرقّمة مستقلة (20/صفحة — H §18) بدل مصفوفة
+            // بلا حدّ داخل الكشف؛ بقية الكشف كما هي.
+            'statement' => $this->settlements->presentStatement($settlement),
+            'items' => $this->settlements->statementItems(
+                $settlement,
+                is_string($sort) ? $sort : null,
+                is_string($dir) ? $dir : null,
+            ),
+            'sort' => PartnerSettlementService::itemSort()->state(
+                is_string($sort) ? $sort : null,
+                is_string($dir) ? $dir : null,
+            ),
         ]);
     }
 }

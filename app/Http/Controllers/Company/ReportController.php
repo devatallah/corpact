@@ -12,6 +12,7 @@ use App\Services\Reporting\Export\ExportFormat;
 use App\Services\Reporting\Export\ExportService;
 use App\Services\Reporting\KpiDictionary;
 use App\Services\Reporting\ReportPeriod;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
@@ -47,21 +48,27 @@ class ReportController extends Controller
             ->whereNull('read_at')
             ->count();
 
-        $monthlyReports = CoordinatorMonthlyReport::query()
-            ->where('company_id', $company->id)
-            ->whereNotNull('delivered_at')
-            ->orderByDesc('period_key')
-            ->limit(12)
-            ->get()
-            ->map(fn (CoordinatorMonthlyReport $report) => [
+        // كانت `limit(12)` بلا ترقيم، فتقرير السنة الثانية يختفي. صارت
+        // 20/صفحة مع ترتيب معلن (H §18). النطاق (`company_id` + `delivered_at`)
+        // كما هو حرفياً — الترتيب لا يوسّع ما تراه الشركة.
+        $monthlyReports = self::monthlySort()
+            ->apply(
+                CoordinatorMonthlyReport::query()
+                    ->where('company_id', $company->id)
+                    ->whereNotNull('delivered_at'),
+                $request->query('sort'),
+                $request->query('dir'),
+            )
+            ->paginate(20)
+            ->withQueryString()
+            ->through(fn (CoordinatorMonthlyReport $report) => [
                 'id' => (int) $report->id,
                 'period_key' => $report->period_key,
                 'delivered_at' => $report->delivered_at?->toIso8601String(),
                 'activation_rate' => (float) $report->metric('activation_rate.rate', 0),
                 'completed_events' => (int) $report->metric('completed_events', 0),
                 'recommendations_count' => $report->recommendations()->count(),
-            ])
-            ->all();
+            ]);
 
         return Inertia::render('company/reports/index', [
             'company' => $company,
@@ -70,8 +77,21 @@ class ReportController extends Controller
             'kpi' => $this->kpi->companySnapshot($company, $period),
             'exports' => $this->exports->availableFor(ExportAudience::AccountManager),
             'monthlyReports' => $monthlyReports,
+            'monthlySort' => self::monthlySort()->state($request->query('sort'), $request->query('dir')),
             'unreadNotifications' => $unreadNotifications,
         ]);
+    }
+
+    /**
+     * H §18 — ترتيب التقارير الشهرية المُسلَّمة. العمودان أعمدة حقيقية؛
+     * مؤشرات اللقطة تعيش داخل JSON فلا تُرتَّب في SQL.
+     */
+    public static function monthlySort(): ListSort
+    {
+        return ListSort::make([
+            'period_key' => 'period_key',
+            'delivered_at' => 'delivered_at',
+        ], 'period_key', ListSort::DESC, 'id');
     }
 
     /**

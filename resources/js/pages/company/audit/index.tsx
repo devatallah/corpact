@@ -1,5 +1,6 @@
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import CompanyLayout from '@/layouts/company-layout';
 import { fmtDateTime } from '@/lib/utils';
@@ -29,8 +30,9 @@ interface AuditRow {
 interface Props {
     company: { id: number; name: string };
     logs: PaginatedResult<AuditRow>;
-    filters: { search?: string; action?: string; from?: string; to?: string; sort?: string };
+    filters: { search?: string; action?: string; from?: string; to?: string; sort?: string; dir?: string };
     actions: { value: string; label: string }[];
+    sort: SortState;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -45,12 +47,13 @@ const inputStyle: React.CSSProperties = {
     fontFamily: 'inherit',
 };
 
-export default function CompanyAudit({ company, logs, filters, actions }: Props) {
+export default function CompanyAudit({ company, logs, filters, actions, sort }: Props) {
     const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
         action: filters?.action,
         from: filters?.from,
         to: filters?.to,
         sort: filters?.sort,
+        dir: filters?.dir,
     });
 
     function apply(patch: Record<string, string | undefined>) {
@@ -62,6 +65,7 @@ export default function CompanyAudit({ company, logs, filters, actions }: Props)
                 from: filters?.from || undefined,
                 to: filters?.to || undefined,
                 sort: filters?.sort || undefined,
+                dir: filters?.dir || undefined,
                 ...patch,
             },
             { preserveState: true, replace: true },
@@ -92,9 +96,6 @@ export default function CompanyAudit({ company, logs, filters, actions }: Props)
                 </select>
                 <input type="date" value={filters?.from ?? ''} onChange={(e) => apply({ from: e.target.value || undefined })} style={inputStyle} />
                 <input type="date" value={filters?.to ?? ''} onChange={(e) => apply({ to: e.target.value || undefined })} style={inputStyle} />
-                <button className="fbtn" onClick={() => apply({ sort: filters?.sort === 'asc' ? 'desc' : 'asc' })}>
-                    الترتيب: {filters?.sort === 'asc' ? 'الأقدم أولاً' : 'الأحدث أولاً'}
-                </button>
             </div>
 
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -102,10 +103,10 @@ export default function CompanyAudit({ company, logs, filters, actions }: Props)
                     <table className="portal-table">
                         <thead>
                             <tr>
-                                <th>الوقت</th>
-                                <th>الإجراء</th>
-                                <th>الفاعل</th>
-                                <th>الكيان</th>
+                                <SortableHeader label="الوقت" sortKey="created_at" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الإجراء" sortKey="action" sort={sort} />
+                                <SortableHeader label="الفاعل" sortKey="actor_name" sort={sort} />
+                                <SortableHeader label="الكيان" sortKey="entity_type" sort={sort} />
                                 <th>السبب</th>
                             </tr>
                         </thead>

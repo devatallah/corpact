@@ -1,9 +1,12 @@
 import PartnerLayout from '@/layouts/partner-layout';
 import CategoryIcon from '@/components/category-icon';
 import ConfirmModal from '@/components/confirm-modal';
+import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
 import StatusBadge from '@/components/status-badge';
 import TimePicker from '@/components/time-picker';
-import type { Partner, Venue, VenuePricing, Category } from '@/types/models';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import type { Partner, Venue, VenuePricing, Category, PaginatedResult } from '@/types/models';
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState, useEffect, useMemo } from 'react';
 import toastr from 'toastr';
@@ -20,9 +23,17 @@ interface PricingFormData {
 
 interface Props {
     partner: Partner;
-    venues: Venue[];
+    venues: PaginatedResult<Venue>;
     categories: Category[];
+    filters?: { search?: string; sort?: string; dir?: string };
+    sort?: SortState;
 }
+
+const sortOptions = [
+    { key: 'name', label: 'الاسم', initialDirection: 'asc' as const },
+    { key: 'status', label: 'الحالة', initialDirection: 'asc' as const },
+    { key: 'created_at', label: 'الأحدث', initialDirection: 'desc' as const },
+];
 
 const DURATIONS = [60, 90, 120];
 const DAY_LABELS = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
@@ -123,9 +134,14 @@ function PricingForm({ data, onChange, onSubmit, onCancel, processing, submitLab
 }
 
 /* ── Main Component ── */
-export default function VenuesIndex({ partner, venues, categories }: Props) {
+export default function VenuesIndex({ partner, venues, categories, filters, sort }: Props) {
+    const items = venues?.data ?? [];
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<Venue | null>(null);
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
 
     // Venue form (name, category, status only)
     const venueForm = useForm({ name: '', category_id: '', parent_category_id: '', status: 'active' });
@@ -248,15 +264,26 @@ export default function VenuesIndex({ partner, venues, categories }: Props) {
                 </button>
             </div>
 
+            {/* H §18: بحث + ترتيب + ترقيم صفحات */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث باسم المرفق..."
+                    style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #EAE4DC', fontSize: 13, background: '#fff', color: '#1C1410', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 220 }}
+                />
+                <SortBar sort={sort} options={sortOptions} />
+            </div>
+
             <div>
-                {venues.length === 0 ? (
+                {items.length === 0 ? (
                     <div className="card" style={{ textAlign: 'center', padding: 40, color: '#8A7868' }}>
                         <div style={{ fontSize: 40, marginBottom: 12 }}>🏟️</div>
-                        <div style={{ fontSize: 15, fontWeight: 700 }}>لا توجد مرافق مسجلة</div>
+                        <div style={{ fontSize: 15, fontWeight: 700 }}>{search ? 'لا مرفق مطابق لبحثك' : 'لا توجد مرافق مسجلة'}</div>
                         <div style={{ fontSize: 12, marginTop: 4 }}>أضف مرفقك الأول من الزر أعلاه</div>
                     </div>
                 ) : (
-                    venues.map((venue) => (
+                    items.map((venue) => (
                         <div className="card" style={{ marginBottom: 14 }} key={venue.id}>
                             {/* Venue header */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -351,6 +378,8 @@ export default function VenuesIndex({ partner, venues, categories }: Props) {
                     ))
                 )}
             </div>
+
+            {venues?.links && <Pagination links={venues.links} />}
 
             {/* Venue Create/Edit Panel (name, category, status only) */}
             {(showCreate || editingItem) && (

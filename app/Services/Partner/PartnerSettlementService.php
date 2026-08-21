@@ -5,6 +5,7 @@ namespace App\Services\Partner;
 use App\Models\Partner;
 use App\Models\SettlementItem;
 use App\Models\SettlementStatement;
+use App\Support\Lists\ListSort;
 use App\Support\Money;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -15,18 +16,72 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class PartnerSettlementService
 {
     /**
-     * @param  array{status?: string, per_page?: int}  $filters
+     * H §18 — أعمدة ترتيب الكشوف. كلها معروضة في الجدول، والنطاق
+     * (`partner_id`) خارج أي تأثير للترتيب أو البحث.
+     */
+    public static function statementSort(): ListSort
+    {
+        return ListSort::make([
+            'period_end' => 'period_end',
+            'items_count' => 'items_count',
+            'gross_amount' => 'gross_amount_halalas',
+            'commission_amount' => 'commission_amount_halalas',
+            'net_amount' => 'net_amount_halalas',
+            'status' => 'status',
+        ], 'period_end', ListSort::DESC, 'id');
+    }
+
+    /**
+     * أعمدة ترتيب بنود الكشف — بند لكل فعالية مكتملة في الفترة.
+     */
+    public static function itemSort(): ListSort
+    {
+        return ListSort::make([
+            'gross_amount' => 'gross_amount_halalas',
+            'commission_amount' => 'commission_amount_halalas',
+            'net_amount' => 'net_amount_halalas',
+            'computed_at' => 'computed_at',
+            'type' => 'type',
+        ], 'computed_at', ListSort::ASC, 'id');
+    }
+
+    /**
+     * @param  array{status?: string, search?: string, sort?: string, dir?: string, per_page?: int}  $filters
      * @return LengthAwarePaginator<int, SettlementStatement>
      */
     public function listForPartner(Partner $partner, array $filters = []): LengthAwarePaginator
     {
-        return SettlementStatement::query()
+        $query = SettlementStatement::query()
             ->where('partner_id', $partner->id)
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
-            ->orderByDesc('period_end')
-            ->orderByDesc('id')
-            ->paginate($filters['per_page'] ?? 15)
+            // بحث المزوّد داخل كشوفه هو: أي فترة، وأي مرجع تحويل — لا يوسّع
+            // النطاق قيد أنملة، فالمزوّد يقرأ كشوفه وحدها أصلاً.
+            ->when(filled($filters['search'] ?? null), fn ($query) => $query->where(fn ($inner) => $inner
+                ->where('period_key', 'like', '%'.$filters['search'].'%')
+                ->orWhere('payout_reference', 'like', '%'.$filters['search'].'%')));
+
+        return self::statementSort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString()
             ->through(fn (SettlementStatement $statement) => $this->presentStatement($statement));
+    }
+
+    /**
+     * بنود كشف واحد، مرقّمة 20 لكل صفحة (H §18) — الكشف الطويل كان يعود
+     * كاملاً بلا حدّ.
+     *
+     * @return LengthAwarePaginator<int, SettlementItem>
+     */
+    public function statementItems(SettlementStatement $statement, ?string $sort = null, ?string $dir = null): LengthAwarePaginator
+    {
+        $query = $statement->items()->with('event:id,title,event_date,status');
+
+        return self::itemSort()
+            ->apply($query, $sort, $dir)
+            ->paginate(20)
+            ->withQueryString()
+            ->through(fn (SettlementItem $item) => $this->presentItem($item));
     }
 
     /**

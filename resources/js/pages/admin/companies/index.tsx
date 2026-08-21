@@ -6,6 +6,7 @@ import FilterTabs from '@/components/filter-tabs';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import PasswordInput from '@/components/password-input';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import StatusBadge from '@/components/status-badge';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
@@ -15,7 +16,8 @@ import type { Company, PaginatedResult } from '@/types/models';
 interface Props {
     companies: PaginatedResult<Company>;
     stats: { active: number; pending: number; review: number };
-    filters: { status?: string; search?: string };
+    filters: { status?: string; search?: string; sort?: string; dir?: string };
+    sort: SortState;
 }
 
 const filterOptions = [
@@ -25,8 +27,12 @@ const filterOptions = [
     { label: 'مرفوض', value: 'rejected' },
 ];
 
-export default function CompaniesIndex({ companies, stats, filters }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { status: filters?.status });
+export default function CompaniesIndex({ companies, stats, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        status: filters?.status,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<Company | null>(null);
 
@@ -129,12 +135,12 @@ return;
                 <table className="portal-table">
                     <thead>
                         <tr>
-                            <th>الشركة</th>
-                            <th>القطاع</th>
+                            <SortableHeader label="الشركة" sortKey="name" sort={sort} />
+                            <SortableHeader label="القطاع" sortKey="sector" sort={sort} />
                             <th>الموظفون</th>
                             <th>المسؤول</th>
-                            <th>تاريخ الطلب</th>
-                            <th>الحالة</th>
+                            <SortableHeader label="تاريخ الطلب" sortKey="created_at" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
                             <th>إجراء</th>
                         </tr>
                     </thead>

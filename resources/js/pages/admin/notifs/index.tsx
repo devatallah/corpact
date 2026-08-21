@@ -1,5 +1,8 @@
 import AdminLayout from '@/layouts/admin-layout';
+import FilterTabs from '@/components/filter-tabs';
 import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import { fmtDateTime } from '@/lib/utils';
 import type { Notification, PaginatedResult } from '@/types/models';
 import { Head, router } from '@inertiajs/react';
@@ -7,6 +10,8 @@ import { Head, router } from '@inertiajs/react';
 interface Props {
     notifications: PaginatedResult<Notification>;
     unreadCount: number;
+    filters: { search?: string; state?: string; sort?: string; dir?: string };
+    sort: SortState;
 }
 
 const typeEmojiMap: Record<string, string> = {
@@ -16,10 +21,26 @@ const typeEmojiMap: Record<string, string> = {
     settlement: '💰',
 };
 
-export default function NotifsIndex({ notifications, unreadCount }: Props) {
-    function handleAction(id: string, action: 'accept' | 'reject') {
-        router.post(`/admin/notifs/${id}/${action}`, {}, { preserveScroll: true });
-    }
+const STATE_FILTERS = [
+    { label: 'الكل', value: '' },
+    { label: 'غير مقروءة', value: 'unread' },
+    { label: 'مقروءة', value: 'read' },
+];
+
+// H §18 — «كل قائمة: بحث + فلترة + ترتيب + ترقيم صفحات».
+const SORT_OPTIONS = [
+    { key: 'created_at', label: 'الوقت', initialDirection: 'desc' as const },
+    { key: 'read_at', label: 'القراءة', initialDirection: 'desc' as const },
+    { key: 'title', label: 'العنوان' },
+    { key: 'type', label: 'النوع' },
+];
+
+export default function NotifsIndex({ notifications, unreadCount, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        state: filters?.state,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
 
     return (
         <AdminLayout>
@@ -28,10 +49,21 @@ export default function NotifsIndex({ notifications, unreadCount }: Props) {
             <div className="page-title">الإشعارات</div>
             <div className="page-sub">{unreadCount} إشعارات تحتاج تدخلاً</div>
 
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث في العنوان أو النص..."
+                    style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 220 }}
+                />
+                <FilterTabs options={STATE_FILTERS} current={filters?.state ?? ''} paramName="state" />
+                <SortBar sort={sort} options={SORT_OPTIONS} />
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {notifications.data.length === 0 ? (
                     <div className="card" style={{ display: 'flex', gap: '14px', alignItems: 'center', justifyContent: 'center', padding: '30px' }}>
-                        <div style={{ fontSize: '14px', color: '#6B7A99' }}>لا توجد إشعارات</div>
+                        <div style={{ fontSize: '14px', color: '#6B7A99' }}>لا إشعار مطابق للبحث والفلاتر الحالية.</div>
                     </div>
                 ) : (
                     notifications.data.map((notif) => {

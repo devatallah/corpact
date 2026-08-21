@@ -1,5 +1,8 @@
 import { Head, router } from '@inertiajs/react';
+import FilterTabs from '@/components/filter-tabs';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
 import { fmtDateTime } from '@/lib/utils';
 import type { PaginatedResult } from '@/types/models';
@@ -40,13 +43,26 @@ interface Props {
     failedRefunds: PaginatedResult<FailedRefundRow>;
     expiredIntents: ExpiredIntentRow[];
     failedWebhooks: FailedWebhookRow[];
+    filters: { search?: string; state?: string; sort?: string; dir?: string };
+    sort: SortState;
 }
+
+const STATE_FILTERS = [
+    { label: 'الكل', value: '' },
+    { label: 'استنفد محاولاته', value: 'manual' },
+];
 
 /**
  * قائمة فشل المدفوعات والاستردادات — مسؤولية الأدمن المالي اليومية
  * (A10 — H §12.4): إعادة المحاولة آلية، ولا يُترك فشل بلا معالجة.
  */
-export default function PaymentFailures({ failedRefunds, expiredIntents, failedWebhooks }: Props) {
+export default function PaymentFailures({ failedRefunds, expiredIntents, failedWebhooks, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        state: filters?.state,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
+
     function retry(id: number) {
         router.post(`/admin/payments/refunds/${id}/retry`);
     }
@@ -66,8 +82,32 @@ export default function PaymentFailures({ failedRefunds, expiredIntents, failedW
             {/* الاستردادات الفاشلة */}
             <div className="card" style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>استردادات فاشلة ({failedRefunds.total})</div>
+
+                <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="🔍 ابحث باسم الفعالية أو الموظف..."
+                        style={{
+                            padding: '9px 14px',
+                            borderRadius: 10,
+                            border: '1px solid #E2E8F4',
+                            fontSize: 13,
+                            outline: 'none',
+                            direction: 'rtl',
+                            fontFamily: 'inherit',
+                            minWidth: 240,
+                        }}
+                    />
+                    <FilterTabs options={STATE_FILTERS} current={filters?.state ?? ''} paramName="state" />
+                </div>
+
                 {failedRefunds.data.length === 0 ? (
-                    <div style={{ fontSize: 13, color: '#7A8BA8', textAlign: 'center', padding: 20 }}>لا استردادات فاشلة — القائمة نظيفة.</div>
+                    <div style={{ fontSize: 13, color: '#7A8BA8', textAlign: 'center', padding: 20 }}>
+                        {filters?.search || filters?.state
+                            ? 'لا استرداد مطابق للبحث والفلاتر الحالية.'
+                            : 'لا استردادات فاشلة — القائمة نظيفة.'}
+                    </div>
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -75,10 +115,11 @@ export default function PaymentFailures({ failedRefunds, expiredIntents, failedW
                                 <tr style={{ textAlign: 'right', color: '#7A8BA8' }}>
                                     <th style={{ padding: 8 }}>الفعالية</th>
                                     <th style={{ padding: 8 }}>الموظف</th>
-                                    <th style={{ padding: 8 }}>المبلغ</th>
+                                    <SortableHeader label="المبلغ" sortKey="amount" sort={sort} initialDirection="desc" style={{ padding: 8 }} />
                                     <th style={{ padding: 8 }}>السبب</th>
-                                    <th style={{ padding: 8 }}>المحاولات</th>
+                                    <SortableHeader label="المحاولات" sortKey="refund_attempts" sort={sort} initialDirection="desc" style={{ padding: 8 }} />
                                     <th style={{ padding: 8 }}>آخر خطأ</th>
+                                    <SortableHeader label="آخر تحديث" sortKey="updated_at" sort={sort} initialDirection="desc" style={{ padding: 8 }} />
                                     <th style={{ padding: 8 }}></th>
                                 </tr>
                             </thead>
@@ -99,6 +140,7 @@ export default function PaymentFailures({ failedRefunds, expiredIntents, failedW
                                             )}
                                         </td>
                                         <td style={{ padding: 8, maxWidth: 220, color: '#E03050', fontSize: 12 }}>{row.refund_last_error ?? '—'}</td>
+                                        <td style={{ padding: 8, fontSize: 12, color: '#7A8BA8', whiteSpace: 'nowrap' }}>{fmtDateTime(row.updated_at)}</td>
                                         <td style={{ padding: 8 }}>
                                             <button className="btn btn-outline" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => retry(row.id)}>
                                                 أعد المحاولة

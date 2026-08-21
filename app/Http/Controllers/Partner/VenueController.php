@@ -23,14 +23,26 @@ class VenueController extends Controller
 
     /**
      * List venues for the authenticated partner.
+     *
+     * H §18 — بحث + ترتيب + ترقيم 20. الاستعلام يبقى في الخدمة كبقية
+     * البوابة؛ قيمة `sort` مفتاح من قائمة بيضاء في `ListSort` لا اسم عمود،
+     * والتحقق هنا يمنع الحشو فقط.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $partner = auth('partner')->user()->resolvedPartner();
 
+        $filters = $request->validate([
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
         return Inertia::render('partner/venues/index', [
             'partner' => $partner,
-            'venues' => $this->venueService->listForpartner($partner),
+            'venues' => $this->venueService->listForpartner($partner, $filters),
+            'filters' => $filters,
+            'sort' => VenueService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'categories' => Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
         ]);
     }

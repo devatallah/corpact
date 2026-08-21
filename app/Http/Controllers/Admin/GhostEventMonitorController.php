@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Services\Competition\GhostEventMetricService;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -35,10 +37,30 @@ class GhostEventMonitorController extends Controller
         private GhostEventMetricService $metrics,
     ) {}
 
+    /**
+     * H §18 — ترتيب سجلّ التدخلات اليدوية. الاستعلام مربوط بجدولين، فكل
+     * تعبير هنا مؤهَّل باسم جدوله — ولا واحد منها يأتي من الطلب.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'created_at' => 'event_status_history.created_at',
+            'event_title' => 'events.title',
+            'company_name' => 'companies.name',
+            'to_status' => 'event_status_history.to_status',
+        ], 'created_at', ListSort::DESC, 'event_status_history.id');
+    }
+
     public function index(Request $request): Response
     {
         $companyId = $request->integer('company_id') ?: null;
         $now = Carbon::now();
+
+        $filters = $request->validate([
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
 
         $weeks = [];
 
@@ -84,7 +106,9 @@ class GhostEventMonitorController extends Controller
                 ->get(['id', 'name'])
                 ->map(fn ($company) => ['id' => (int) $company->id, 'name' => (string) $company->name])
                 ->all(),
-            'recentManualChanges' => $this->recentManualChanges($companyId),
+            'recentManualChanges' => $this->recentManualChanges($companyId, $filters),
+            'filters' => $filters,
+            'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }
 
@@ -97,20 +121,29 @@ class GhostEventMonitorController extends Controller
     }
 
     /**
-     * آخر التدخلات اليدوية بأسبابها — «سجل الحالات يُقرأ قبل التدخل» (H §16).
+     * التدخلات اليدوية بأسبابها — «سجل الحالات يُقرأ قبل التدخل» (H §16).
      *
-     * @return list<array<string, mixed>>
+     * كانت `limit(20)` بلا ترقيم، فالتدخل الحادي والعشرون كان يختفي من شاشة
+     * إنذار مبكر — وهو بالضبط ما تبحث عنه الشاشة. صارت 20/صفحة (H §18)
+     * ببحث في العنوان والشركة والسبب.
+     *
+     * @param  array{search?: string|null, sort?: string|null, dir?: string|null}  $filters
+     * @return LengthAwarePaginator<int, array<string, mixed>>
      */
-    private function recentManualChanges(?int $companyId): array
+    private function recentManualChanges(?int $companyId, array $filters): LengthAwarePaginator
     {
-        return DB::table('event_status_history')
+        $search = $filters['search'] ?? null;
+
+        $query = DB::table('event_status_history')
             ->join('events', 'events.id', '=', 'event_status_history.event_id')
             ->leftJoin('companies', 'companies.id', '=', 'events.company_id')
             ->where('event_status_history.is_manual', true)
             ->when($companyId !== null, fn ($q) => $q->where('events.company_id', $companyId))
-            ->orderByDesc('event_status_history.created_at')
-            ->limit(20)
-            ->get([
+            ->when(filled($search), fn ($q) => $q->where(fn ($inner) => $inner
+                ->where('events.title', 'like', '%'.$search.'%')
+                ->orWhere('companies.name', 'like', '%'.$search.'%')
+                ->orWhere('event_status_history.reason', 'like', '%'.$search.'%')))
+            ->select([
                 'event_status_history.id',
                 'event_status_history.event_id',
                 'event_status_history.from_status',
@@ -119,8 +152,13 @@ class GhostEventMonitorController extends Controller
                 'event_status_history.created_at',
                 'events.title as event_title',
                 'companies.name as company_name',
-            ])
-            ->map(fn ($row) => [
+            ]);
+
+        return self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate(20)
+            ->withQueryString()
+            ->through(fn ($row) => [
                 'id' => (int) $row->id,
                 'event_id' => (int) $row->event_id,
                 'event_title' => (string) $row->event_title,
@@ -129,7 +167,6 @@ class GhostEventMonitorController extends Controller
                 'to_status' => $row->to_status,
                 'reason' => $row->reason,
                 'created_at' => $row->created_at,
-            ])
-            ->all();
+            ]);
     }
 }

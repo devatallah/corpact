@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\EventProviderRequest;
 use App\Models\Partner;
 use App\Services\Provider\ProviderRequestService;
+use App\Support\Lists\ListSort;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,22 +22,59 @@ class ProviderRequestController extends Controller
 {
     public function __construct(private ProviderRequestService $requests) {}
 
+    /**
+     * الأعمدة المسموح الترتيب بها — الإرسال والموعد والمهلة والحالة والإجمالي،
+     * وكلها ظاهرة على بطاقة الطلب. لا عمود عن المشاركين هنا: المزوّد لا يزداد
+     * علمه بهم بترتيب (H §11 · H §18).
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'sent_at' => 'sent_at',
+            'requested_date' => 'requested_date',
+            'deadline_at' => 'deadline_at',
+            'status' => 'status',
+            // `total_amount` سمة محسوبة معروضة؛ العمود الحقيقي بالهللات.
+            'total_amount' => 'total_amount_halalas',
+        ], 'sent_at', ListSort::DESC, 'id');
+    }
+
     public function queue(Request $request): Response
     {
         $partner = $this->provider();
 
-        $items = EventProviderRequest::query()
+        $sort = self::sort();
+        $requestedSort = $request->query('sort');
+        $requestedDir = $request->query('dir');
+
+        $query = EventProviderRequest::query()
             ->where('partner_id', $partner->id)
             ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
-            ->with(['event.community', 'event.company', 'unit'])
-            ->orderByRaw("case when status = 'pending' then 0 else 1 end")
-            ->orderByDesc('sent_at')
+            ->with(['event.community', 'event.company', 'unit']);
+
+        // الافتراضي يبقى كما كان: المعلّق أولاً ثم الأحدث إرسالاً. أما حين
+        // يختار المزوّد عموداً بنفسه فلا يُثبَّت شيء فوق اختياره.
+        if (! $sort->allows(is_string($requestedSort) ? $requestedSort : null)) {
+            $query->orderByRaw("case when status = 'pending' then 0 else 1 end");
+        }
+
+        $items = $sort
+            ->apply($query, is_string($requestedSort) ? $requestedSort : null, is_string($requestedDir) ? $requestedDir : null)
             ->paginate(20)
+            ->withQueryString()
             ->through(fn (EventProviderRequest $item) => $this->presentForProvider($item));
 
         return Inertia::render('partner/requests/queue', [
             'requests' => $items,
-            'filters' => ['status' => $request->query('status')],
+            'filters' => [
+                'status' => $request->query('status'),
+                'sort' => $requestedSort,
+                'dir' => $requestedDir,
+            ],
+            'sort' => $sort->state(
+                is_string($requestedSort) ? $requestedSort : null,
+                is_string($requestedDir) ? $requestedDir : null,
+            ),
             'pendingCount' => EventProviderRequest::query()
                 ->where('partner_id', $partner->id)
                 ->pending()

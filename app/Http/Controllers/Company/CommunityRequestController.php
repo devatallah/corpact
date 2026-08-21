@@ -19,11 +19,24 @@ class CommunityRequestController extends Controller
     /**
      * List all community requests for the company.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $company = auth('company')->user();
 
-        $requests = $this->communityRequestService->listForCompany($company);
+        // H §18 — بحث + فلترة + ترتيب + ترقيم. الفلترة انتقلت إلى الخادم لأن
+        // تصفية الصفحة الحالية وحدها بعد الترقيم تعطي نتيجة كاذبة. قيمة
+        // `sort` مفتاح من قائمة بيضاء في `ListSort` لا اسم عمود.
+        $filters = $request->validate([
+            'status' => ['sometimes', 'nullable', 'string', 'in:pending,approved,rejected'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ], [
+            'status.in' => 'حالة الطلب غير صالحة.',
+            'search.max' => 'نص البحث يجب ألا يتجاوز 255 حرفاً.',
+        ]);
+
+        $requests = $this->communityRequestService->listForCompany($company, $filters);
 
         $pendingCount = CommunityRequest::where('company_id', $company->id)
             ->where('status', 'pending')
@@ -31,6 +44,8 @@ class CommunityRequestController extends Controller
 
         return Inertia::render('company/community-requests/index', [
             'requests' => $requests,
+            'filters' => $filters,
+            'sort' => CommunityRequestService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'pendingCommunityRequests' => $pendingCount,
         ]);
     }

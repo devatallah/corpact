@@ -56,12 +56,19 @@ class CommunityController extends Controller
     /**
      * Show community details.
      */
-    public function show(Community $community): Response
+    public function show(Request $request, Community $community): Response
     {
         $employee = auth('employee')->user();
 
+        // H §18 — ترتيب قائمة الفعاليات. القيمة مفتاح من قائمة بيضاء في
+        // `ListSort` لا اسم عمود؛ التحقق هنا يمنع الحشو فقط.
+        $eventFilters = $request->validate([
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
         $community = $this->communityDetailService->getDetail($community);
-        $events = $this->communityDetailService->events($community);
+        $events = $this->communityDetailService->events($community, $eventFilters);
         $members = $this->communityDetailService->members($community);
         $polls = $this->communityDetailService->polls($community, $employee);
 
@@ -100,6 +107,7 @@ class CommunityController extends Controller
         return Inertia::render('employee/community/show', [
             'community' => $community,
             'events' => $events,
+            'eventsSort' => CommunityDetailService::eventsSort()->state($eventFilters['sort'] ?? null, $eventFilters['dir'] ?? null),
             'announcements' => $announcements,
             'members' => $members,
             'leagues' => $leagues,

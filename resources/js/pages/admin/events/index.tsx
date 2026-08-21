@@ -4,6 +4,7 @@ import CategoryIcon from '@/components/category-icon';
 import StatusBadge from '@/components/status-badge';
 import Pagination from '@/components/pagination';
 import ListStates from '@/components/list-states';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import { fmtDate, fmtTime } from '@/lib/utils';
 import type { Event, PaginatedResult } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
@@ -12,7 +13,8 @@ import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 interface Props {
     events: PaginatedResult<Event>;
     totalEvents: number;
-    filters: { status?: string; search?: string };
+    filters: { status?: string; search?: string; sort?: string; dir?: string };
+    sort: SortState;
 }
 
 const filterOptions = [
@@ -23,8 +25,12 @@ const filterOptions = [
     { label: 'ملغية', value: 'cancelled' },
 ];
 
-export default function EventsIndex({ events, totalEvents, filters }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { status: filters?.status });
+export default function EventsIndex({ events, totalEvents, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        status: filters?.status,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
 
     return (
         <AdminLayout>
@@ -57,10 +63,10 @@ export default function EventsIndex({ events, totalEvents, filters }: Props) {
                             <th>الفعالية</th>
                             <th>الشركة</th>
                             <th>الشريك</th>
-                            <th>التاريخ</th>
-                            <th>اللاعبون</th>
-                            <th>المبلغ</th>
-                            <th>الحالة</th>
+                            <SortableHeader label="التاريخ" sortKey="event_date" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="اللاعبون" sortKey="participants_count" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="المبلغ" sortKey="total_amount" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
                             <th>إجراء</th>
                         </tr>
                     </thead>

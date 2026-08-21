@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Partner;
 use App\Models\ProviderBranch;
 use App\Models\UnitPriceChange;
+use App\Support\Lists\ListSort;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,15 +21,43 @@ use Inertia\Response;
  */
 class BranchController extends Controller
 {
-    public function index(): Response
+    /**
+     * الأعمدة المسموح الترتيب بها — الاسم والمدينة والحالة وتاريخ الإضافة،
+     * وكلها معروضة على بطاقة الفرع أصلاً (H §18).
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'name' => 'name',
+            'city' => 'city',
+            'status' => 'status',
+            'created_at' => 'created_at',
+        ], 'created_at', ListSort::ASC, 'id');
+    }
+
+    public function index(Request $request): Response
     {
         $partner = $this->provider();
 
-        $branches = ProviderBranch::query()
+        // H §18 — بحث + ترتيب + ترقيم. قيمة `sort` مفتاح من قائمة بيضاء في
+        // `ListSort` لا اسم عمود؛ التحقق هنا يمنع الحشو فقط.
+        $filters = $request->validate([
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
+        $query = ProviderBranch::query()
             ->where('partner_id', $partner->id)
             ->with(['units.category', 'units.priceChanges' => fn ($q) => $q->where('status', 'pending')])
-            ->orderBy('id')
-            ->get();
+            ->when(filled($filters['search'] ?? null), fn ($q) => $q->where(fn ($inner) => $inner
+                ->where('name', 'like', '%'.$filters['search'].'%')
+                ->orWhere('city', 'like', '%'.$filters['search'].'%')));
+
+        $branches = self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate(20)
+            ->withQueryString();
 
         return Inertia::render('partner/branches/index', [
             'partner' => [
@@ -38,6 +67,8 @@ class BranchController extends Controller
                 'has_price_contract' => (bool) $partner->has_price_contract,
             ],
             'branches' => $branches,
+            'filters' => $filters,
+            'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'categories' => Category::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }

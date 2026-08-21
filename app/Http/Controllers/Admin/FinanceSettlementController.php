@@ -8,6 +8,7 @@ use App\Models\SettlementStatement;
 use App\Services\Billing\SettlementCorrectionService;
 use App\Services\Billing\SettlementStatementService;
 use App\Services\Partner\PartnerSettlementService;
+use App\Support\Lists\ListSort;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,16 +33,48 @@ class FinanceSettlementController extends Controller
         private PartnerSettlementService $presenter,
     ) {}
 
+    /**
+     * H §18 — الأعمدة المسموح الترتيب بها. كلها معروضة في سطر الكشف أصلاً
+     * (الفترة · الحالة · عدد البنود · الإجمالي والعمولة والصافي)، فالترتيب لا
+     * يكشف مبلغاً لا يراه الأدمن المالي. الافتراضي هو ترتيب الشاشة السابق
+     * نفسه: أحدث فترة أولاً ثم المعرّف.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'period_end' => 'period_end',
+            'status' => 'status',
+            'items_count' => 'items_count',
+            'gross_amount' => 'gross_amount_halalas',
+            'commission_amount' => 'commission_amount_halalas',
+            'net_amount' => 'net_amount_halalas',
+        ], 'period_end', ListSort::DESC, 'id');
+    }
+
     public function index(Request $request): Response
     {
-        $status = $request->string('status')->toString();
+        $request->validate([
+            'status' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            // H §18 — الترتيب: مفتاح من قائمة بيضاء لا اسم عمود.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
 
-        $statements = SettlementStatement::query()
+        $status = $request->string('status')->toString();
+        $search = trim((string) $request->query('search', ''));
+
+        $query = SettlementStatement::query()
             ->with(['partner:id,name,bank_status', 'generatedBy:id,name', 'approvedBy:id,name', 'paidBy:id,name'])
             ->when($status !== '', fn ($query) => $query->where('status', $status))
-            ->orderByDesc('period_end')
-            ->orderByDesc('id')
+            ->when($search !== '', fn ($query) => $query->where(fn ($inner) => $inner
+                ->where('period_key', 'like', '%'.$search.'%')
+                ->orWhereHas('partner', fn ($partner) => $partner->where('name', 'like', '%'.$search.'%'))));
+
+        $statements = self::sort()
+            ->apply($query, $request->query('sort'), $request->query('dir'))
             ->paginate(20)
+            ->withQueryString()
             ->through(fn (SettlementStatement $statement) => [
                 ...$this->presenter->presentStatement($statement),
                 'partner' => $statement->partner?->only(['id', 'name']),
@@ -70,7 +103,13 @@ class FinanceSettlementController extends Controller
 
         return Inertia::render('admin/finance/settlements', [
             'statements' => $statements,
-            'filters' => ['status' => $status],
+            'filters' => [
+                'status' => $status,
+                'search' => $search,
+                'sort' => $request->query('sort'),
+                'dir' => $request->query('dir'),
+            ],
+            'sort' => self::sort()->state($request->query('sort'), $request->query('dir')),
             'nextPeriod' => [
                 'key' => $period['key'],
                 'start' => $period['start']->toDateString(),

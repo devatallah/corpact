@@ -2,6 +2,7 @@ import AdminLayout from '@/layouts/admin-layout';
 import StatusBadge from '@/components/status-badge';
 import Pagination from '@/components/pagination';
 import ListStates from '@/components/list-states';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import { fmtDateTime } from '@/lib/utils';
 import type { Employee, Company, PaginatedResult } from '@/types/models';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -24,11 +25,18 @@ interface Props {
     filters: {
         search?: string;
         company_id?: string;
+        sort?: string;
+        dir?: string;
     };
+    sort: SortState;
 }
 
-export default function EmployeesIndex({ employees, companies, departments, totalEmployees, filters }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { company_id: filters?.company_id });
+export default function EmployeesIndex({ employees, companies, departments, totalEmployees, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        company_id: filters?.company_id,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<Employee | null>(null);
 
@@ -84,6 +92,8 @@ export default function EmployeesIndex({ employees, companies, departments, tota
         router.get('/admin/employees', {
             search: filters?.search || undefined,
             company_id: value || undefined,
+            sort: filters?.sort || undefined,
+            dir: filters?.dir || undefined,
         }, { preserveState: true, replace: true });
     }
 
@@ -124,12 +134,12 @@ export default function EmployeesIndex({ employees, companies, departments, tota
                 <table className="portal-table">
                     <thead>
                         <tr>
-                            <th>الموظف</th>
+                            <SortableHeader label="الموظف" sortKey="name" sort={sort} />
                             <th>الشركة</th>
-                            <th>المجتمعات</th>
-                            <th>الفعاليات</th>
-                            <th>تاريخ التسجيل</th>
-                            <th>الحالة</th>
+                            <SortableHeader label="المجتمعات" sortKey="communities_count" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="الفعاليات" sortKey="events_count" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="تاريخ التسجيل" sortKey="created_at" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
                             <th>إجراء</th>
                         </tr>
                     </thead>

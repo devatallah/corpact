@@ -1,14 +1,24 @@
 import CompanyLayout from '@/layouts/company-layout';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import { fmtDate } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/react';
 import type { League, PaginatedResult } from '@/types/models';
 
 interface Props {
     leagues: PaginatedResult<League>;
+    filters: { search?: string; sort?: string; dir?: string };
+    sort: SortState;
 }
 
-export default function LeaguesIndex({ leagues }: Props) {
+export default function LeaguesIndex({ leagues, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
+
     return (
         <CompanyLayout>
             <Head title="البطولات" />
@@ -18,25 +28,35 @@ export default function LeaguesIndex({ leagues }: Props) {
                 <div className="page-sub">{leagues.total} بطولة في مجتمعات الشركة</div>
             </div>
 
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث باسم البطولة أو المجتمع..."
+                    style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 220 }}
+                />
+            </div>
+
             <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, overflow: 'auto' }}>
                 <table className="portal-table">
                     <thead>
                         <tr>
-                            <th>البطولة</th>
+                            <SortableHeader label="البطولة" sortKey="name" sort={sort} />
                             <th>المجتمع</th>
-                            <th>النظام</th>
+                            <SortableHeader label="النظام" sortKey="format" sort={sort} />
                             <th>الأقسام</th>
-                            <th>المباريات</th>
-                            <th>الحالة</th>
+                            <SortableHeader label="المباريات" sortKey="matches_count" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="أُنشئت في" sortKey="created_at" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         <ListStates
                             count={leagues.data.length}
-                            columns={7}
+                            columns={8}
                             emptyTitle="لا توجد بطولات"
-                            emptyHint="لم تُنشأ أي بطولة في هذه الشركة بعد."
+                            emptyHint="لا بطولة مطابقة للبحث الحالي — أو لم تُنشأ أي بطولة في هذه الشركة بعد."
                         />
                         {leagues.data.map((league) => {
                             const formatLabel = league.format === 'knockout' ? 'خروج المغلوب'
@@ -48,6 +68,7 @@ export default function LeaguesIndex({ leagues }: Props) {
                                     <td style={{ fontSize: 12 }}>{formatLabel}</td>
                                     <td>{league.departments?.length ?? 0}</td>
                                     <td>{league.matches_count ?? 0}</td>
+                                    <td style={{ color: '#7A8BA8', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(league.created_at)}</td>
                                     <td>
                                         <span className="badge" style={league.status === 'active' ? { background: '#009E8218', color: '#009E82' } : { background: '#6B7A9918', color: '#6B7A99' }}>
                                             {league.status === 'active' ? 'جارية' : 'منتهية'}

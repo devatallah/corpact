@@ -1,15 +1,27 @@
 import PartnerLayout from '@/layouts/partner-layout';
 import ConfirmModal from '@/components/confirm-modal';
-import type { Category, ProviderBranch, ActivityUnit } from '@/types/models';
+import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import type { Category, ProviderBranch, ActivityUnit, PaginatedResult } from '@/types/models';
 import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import toastr from 'toastr';
 
 interface Props {
     partner: { id: number; name: string; trade_name: string | null; has_price_contract: boolean };
-    branches: ProviderBranch[];
+    branches: PaginatedResult<ProviderBranch>;
     categories: Category[];
+    filters?: { search?: string; sort?: string; dir?: string };
+    sort?: SortState;
 }
+
+const sortOptions = [
+    { key: 'name', label: 'الاسم', initialDirection: 'asc' as const },
+    { key: 'city', label: 'المدينة', initialDirection: 'asc' as const },
+    { key: 'status', label: 'الحالة', initialDirection: 'asc' as const },
+    { key: 'created_at', label: 'تاريخ الإضافة', initialDirection: 'asc' as const },
+];
 
 const pricingLabels: Record<string, string> = {
     unit_hour: 'بالوحدة / بالساعة',
@@ -180,8 +192,13 @@ function AddUnitForm({ branchId, categories }: { branchId: number; categories: C
     );
 }
 
-export default function BranchesIndex({ partner, branches, categories }: Props) {
+export default function BranchesIndex({ partner, branches, categories, filters, sort }: Props) {
+    const items = branches?.data ?? [];
     const [showCreate, setShowCreate] = useState(false);
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const createForm = useForm(emptyBranch);
 
     return (
@@ -199,6 +216,17 @@ export default function BranchesIndex({ partner, branches, categories }: Props) 
                 واحداً، ولها نشاط وطاقة دنيا وقصوى ونوع تسعير وسعر ومدة افتراضية.
             </div>
 
+            {/* H §18: بحث + ترتيب + ترقيم صفحات */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث باسم الفرع أو المدينة..."
+                    style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #EAE4DC', fontSize: 13, background: '#fff', color: '#1C1410', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 220 }}
+                />
+                <SortBar sort={sort} options={sortOptions} />
+            </div>
+
             {showCreate && (
                 <div className="card" style={{ marginBottom: 16 }}>
                     <div style={{ fontWeight: 800, marginBottom: 4 }}>فرع جديد</div>
@@ -214,11 +242,13 @@ export default function BranchesIndex({ partner, branches, categories }: Props) 
                 </div>
             )}
 
-            {branches.length === 0 && (
-                <div className="card" style={{ textAlign: 'center', color: '#8A7868', padding: 40 }}>لا فروع بعد — أضف فرعك الأول ثم وحدات النشاط تحته.</div>
+            {items.length === 0 && (
+                <div className="card" style={{ textAlign: 'center', color: '#8A7868', padding: 40 }}>
+                    {search ? 'لا فرع مطابق لبحثك.' : 'لا فروع بعد — أضف فرعك الأول ثم وحدات النشاط تحته.'}
+                </div>
             )}
 
-            {branches.map((branch) => (
+            {items.map((branch) => (
                 <div key={branch.id} className="card" style={{ marginBottom: 16 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                         <div>
@@ -237,6 +267,8 @@ export default function BranchesIndex({ partner, branches, categories }: Props) 
                     <AddUnitForm branchId={branch.id} categories={categories} />
                 </div>
             ))}
+
+            {branches?.links && <Pagination links={branches.links} />}
         </PartnerLayout>
     );
 }

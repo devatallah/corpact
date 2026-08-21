@@ -1,5 +1,6 @@
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import StatCard from '@/components/stat-card';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
@@ -30,9 +31,10 @@ interface SecurityRow {
 
 interface Props {
     events: PaginatedResult<SecurityRow>;
-    filters: { search?: string; event?: string; severity?: string; from?: string; to?: string; sort?: string };
+    filters: { search?: string; event?: string; severity?: string; from?: string; to?: string; sort?: string; dir?: string };
     eventTypes: { value: string; label: string }[];
     stats: { total: number; critical_24h: number; failed_logins_24h: number; permission_changes_24h: number };
+    sort: SortState;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -53,13 +55,14 @@ const SEVERITY: Record<string, { label: string; color: string; bg: string }> = {
     critical: { label: 'حرِج', color: '#E03050', bg: 'rgba(224,48,80,.14)' },
 };
 
-export default function SecurityEvents({ events, filters, eventTypes, stats }: Props) {
+export default function SecurityEvents({ events, filters, eventTypes, stats, sort }: Props) {
     const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
         event: filters?.event,
         severity: filters?.severity,
         from: filters?.from,
         to: filters?.to,
         sort: filters?.sort,
+        dir: filters?.dir,
     });
 
     function apply(patch: Record<string, string | undefined>) {
@@ -72,6 +75,7 @@ export default function SecurityEvents({ events, filters, eventTypes, stats }: P
                 from: filters?.from || undefined,
                 to: filters?.to || undefined,
                 sort: filters?.sort || undefined,
+                dir: filters?.dir || undefined,
                 ...patch,
             },
             { preserveState: true, replace: true },
@@ -115,9 +119,6 @@ export default function SecurityEvents({ events, filters, eventTypes, stats }: P
                 </select>
                 <input type="date" value={filters?.from ?? ''} onChange={(e) => apply({ from: e.target.value || undefined })} style={inputStyle} />
                 <input type="date" value={filters?.to ?? ''} onChange={(e) => apply({ to: e.target.value || undefined })} style={inputStyle} />
-                <button className="fbtn" onClick={() => apply({ sort: filters?.sort === 'asc' ? 'desc' : 'asc' })}>
-                    الترتيب: {filters?.sort === 'asc' ? 'الأقدم أولاً' : 'الأحدث أولاً'}
-                </button>
             </div>
 
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -125,13 +126,13 @@ export default function SecurityEvents({ events, filters, eventTypes, stats }: P
                     <table className="portal-table">
                         <thead>
                             <tr>
-                                <th>الوقت</th>
-                                <th>الحدث</th>
-                                <th>الدرجة</th>
-                                <th>الفاعل / المعرّف</th>
-                                <th>البوابة</th>
+                                <SortableHeader label="الوقت" sortKey="created_at" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الحدث" sortKey="event" sort={sort} />
+                                <SortableHeader label="الدرجة" sortKey="severity" sort={sort} />
+                                <SortableHeader label="الفاعل / المعرّف" sortKey="actor_name" sort={sort} />
+                                <SortableHeader label="البوابة" sortKey="guard" sort={sort} />
                                 <th>الكيان</th>
-                                <th>IP</th>
+                                <SortableHeader label="IP" sortKey="ip_address" sort={sort} />
                             </tr>
                         </thead>
                         <tbody>

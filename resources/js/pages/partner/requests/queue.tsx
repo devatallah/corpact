@@ -1,6 +1,7 @@
 import PartnerLayout from '@/layouts/partner-layout';
 import FilterTabs from '@/components/filter-tabs';
 import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
 import type { PaginatedResult } from '@/types/models';
 import type { ProviderRequest } from '@/types/models';
 import { fmtDate, fmtTime, fmtDateTime } from '@/lib/utils';
@@ -8,9 +9,18 @@ import { Head, Link } from '@inertiajs/react';
 
 interface Props {
     requests: PaginatedResult<ProviderRequest>;
-    filters: { status?: string };
+    filters: { status?: string; sort?: string; dir?: string };
+    sort?: SortState;
     pendingCount: number;
 }
+
+const sortOptions = [
+    { key: 'sent_at', label: 'تاريخ الإرسال', initialDirection: 'desc' as const },
+    { key: 'requested_date', label: 'موعد الحجز', initialDirection: 'asc' as const },
+    { key: 'deadline_at', label: 'المهلة', initialDirection: 'asc' as const },
+    { key: 'total_amount', label: 'الإجمالي', initialDirection: 'desc' as const },
+    { key: 'status', label: 'الحالة', initialDirection: 'asc' as const },
+];
 
 const statusFilters = [
     { label: 'الكل', value: '' },
@@ -40,7 +50,7 @@ function deadlineText(request: ProviderRequest): string {
     return `المتبقي للرد: ${hours} س ${minutes} د`;
 }
 
-export default function ProviderRequestsQueue({ requests, filters, pendingCount }: Props) {
+export default function ProviderRequestsQueue({ requests, filters, sort, pendingCount }: Props) {
     return (
         <PartnerLayout>
             <Head title="طلبات الحجز" />
@@ -54,6 +64,11 @@ export default function ProviderRequestsQueue({ requests, filters, pendingCount 
             </div>
 
             <FilterTabs options={statusFilters} current={filters.status ?? ''} />
+
+            {/* H §18: ترتيب ظاهر — الافتراضي «المعلّق أولاً ثم الأحدث إرسالاً» */}
+            <div style={{ marginBottom: 14 }}>
+                <SortBar sort={sort} options={sortOptions} />
+            </div>
 
             {requests.data.length === 0 && (
                 <div className="card" style={{ textAlign: 'center', color: '#8A7868', padding: 40 }}>لا توجد طلبات.</div>

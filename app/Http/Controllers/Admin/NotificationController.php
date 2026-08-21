@@ -6,23 +6,61 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreNotificationRequest;
 use App\Models\Notification;
 use App\Models\User;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class NotificationController extends Controller
 {
     /**
+     * H §18 — الأعمدة المسموح الترتيب بها في صندوق إشعارات المشرف. كلها
+     * معروضة في البطاقة أصلاً (العنوان · النوع · وقت الوصول · مقروء أو لا)،
+     * والقائمة محصورة أصلاً في إشعارات المشرف نفسه. الافتراضي هو ترتيب الشاشة
+     * السابق نفسه: الأحدث أولاً.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'created_at' => 'created_at',
+            'read_at' => 'read_at',
+            'title' => 'title',
+            'type' => 'type',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
+    /**
      * List admin notifications.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $notifications = Notification::query()
+        $request->validate([
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'state' => ['sometimes', 'nullable', 'string', 'max:20'],
+            // H §18 — الترتيب: مفتاح من قائمة بيضاء لا اسم عمود.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
+        $search = trim((string) $request->query('search', ''));
+        $state = (string) $request->query('state', '');
+
+        $query = Notification::query()
             ->where('notifiable_type', User::class)
             ->where('notifiable_id', auth('admin')->id())
-            ->latest()
-            ->paginate(20);
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+                ->where('title', 'like', '%'.$search.'%')
+                ->orWhere('body', 'like', '%'.$search.'%')))
+            ->when($state === 'unread', fn ($q) => $q->unread())
+            ->when($state === 'read', fn ($q) => $q->read());
 
+        $notifications = self::sort()
+            ->apply($query, $request->query('sort'), $request->query('dir'))
+            ->paginate(20)
+            ->withQueryString();
+
+        // العدّاد يبقى على الصندوق كله — لا يتبع البحث ولا الفلتر.
         $unreadCount = Notification::query()
             ->where('notifiable_type', User::class)
             ->where('notifiable_id', auth('admin')->id())
@@ -32,6 +70,13 @@ class NotificationController extends Controller
         return Inertia::render('admin/notifs/index', [
             'notifications' => $notifications,
             'unreadCount' => $unreadCount,
+            'filters' => [
+                'search' => $search,
+                'state' => $state,
+                'sort' => $request->query('sort'),
+                'dir' => $request->query('dir'),
+            ],
+            'sort' => self::sort()->state($request->query('sort'), $request->query('dir')),
         ]);
     }
 

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
 import { fmtDate } from '@/lib/utils';
@@ -20,7 +21,10 @@ interface Props {
         template_key?: string;
         recipient_type?: string;
         recipient_id?: string;
+        sort?: string;
+        dir?: string;
     };
+    sort: SortState;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -75,11 +79,13 @@ function StatusBadge({ status, label }: { status: string; label: string }) {
     );
 }
 
-export default function NotificationLogsIndex({ logs, statuses, channels, stats, filters }: Props) {
+export default function NotificationLogsIndex({ logs, statuses, channels, stats, filters, sort }: Props) {
     const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
         status: filters?.status,
         channel: filters?.channel,
         template_key: filters?.template_key,
+        sort: filters?.sort,
+        dir: filters?.dir,
     });
     const [detail, setDetail] = useState<NotificationLog | null>(null);
     const [resendPhone, setResendPhone] = useState<string | null>(null);
@@ -101,6 +107,9 @@ export default function NotificationLogsIndex({ logs, statuses, channels, stats,
                 status: key === 'status' ? value || undefined : filters?.status || undefined,
                 channel: key === 'channel' ? value || undefined : filters?.channel || undefined,
                 template_key: filters?.template_key || undefined,
+                // الترتيب النشط لا يسقط بتغيير الفلتر.
+                sort: filters?.sort || undefined,
+                dir: filters?.dir || undefined,
             },
             { preserveState: true, replace: true },
         );
@@ -161,11 +170,11 @@ export default function NotificationLogsIndex({ logs, statuses, channels, stats,
                         <thead>
                             <tr>
                                 <th>المستلم</th>
-                                <th>القالب</th>
-                                <th>القناة</th>
-                                <th>المحاولة</th>
-                                <th>الحالة</th>
-                                <th>الوقت</th>
+                                <SortableHeader label="القالب" sortKey="template_key" sort={sort} />
+                                <SortableHeader label="القناة" sortKey="channel" sort={sort} />
+                                <SortableHeader label="المحاولة" sortKey="attempt" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الحالة" sortKey="status" sort={sort} />
+                                <SortableHeader label="الوقت" sortKey="created_at" sort={sort} initialDirection="desc" />
                                 <th>إجراء</th>
                             </tr>
                         </thead>

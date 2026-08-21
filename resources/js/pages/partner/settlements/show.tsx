@@ -1,7 +1,10 @@
 import ListStates from '@/components/list-states';
+import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import StatusBadge from '@/components/status-badge';
 import PartnerLayout from '@/layouts/partner-layout';
 import { fmtDateTime } from '@/lib/utils';
+import type { PaginatedResult } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
 
 interface ItemRow {
@@ -35,14 +38,16 @@ interface Statement {
     paid_at: string | null;
     transferred_at: string | null;
     payout_reference: string | null;
-    items: ItemRow[];
 }
 
 interface Props {
     statement: Statement;
+    /** بنود الكشف — حمولة مرقّمة 20/صفحة (H §18)، لا مصفوفة بلا حدّ. */
+    items: PaginatedResult<ItemRow>;
+    sort: SortState;
 }
 
-export default function SettlementShow({ statement }: Props) {
+export default function SettlementShow({ statement, items, sort }: Props) {
     return (
         <PartnerLayout>
             <Head title={`كشف ${statement.period_key}`} />
@@ -109,22 +114,22 @@ export default function SettlementShow({ statement }: Props) {
                         <thead>
                             <tr>
                                 <th>الفعالية</th>
-                                <th>التاريخ</th>
-                                <th>الإجمالي</th>
+                                <SortableHeader label="التاريخ" sortKey="computed_at" sort={sort} />
+                                <SortableHeader label="الإجمالي" sortKey="gross_amount" sort={sort} initialDirection="desc" />
                                 <th>النسبة</th>
-                                <th>العمولة</th>
-                                <th>الصافي</th>
-                                <th>النوع</th>
+                                <SortableHeader label="العمولة" sortKey="commission_amount" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الصافي" sortKey="net_amount" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="النوع" sortKey="type" sort={sort} />
                             </tr>
                         </thead>
                         <tbody>
                             <ListStates
-                                count={statement.items.length}
+                                count={items.data.length}
                                 columns={7}
                                 emptyTitle="لا بنود في هذا الكشف"
                                 emptyHint="يُضاف بند لكل فعالية مكتملة ضمن فترة الكشف."
                             />
-                            {statement.items.map((item) => (
+                            {items.data.map((item) => (
                                 <tr key={item.id}>
                                     <td style={{ fontWeight: 700 }}>
                                         {item.event_title ?? `#${item.event_id}`}
@@ -151,6 +156,7 @@ export default function SettlementShow({ statement }: Props) {
                         </tbody>
                     </table>
                 </div>
+                <Pagination links={items.links} />
             </div>
         </PartnerLayout>
     );

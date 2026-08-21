@@ -11,6 +11,7 @@ use App\Models\RoleAssignment;
 use App\Services\Audit\AuditLogService;
 use App\Support\Audit\AuditAction;
 use App\Support\Identity\CurrentActor;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -26,26 +27,43 @@ use Inertia\Response;
  */
 class PermissionReviewController extends Controller
 {
+    /**
+     * الأعمدة المسموح الترتيب بها — أعمدة جدول الإسنادات نفسها المعروضة على
+     * الشاشة (H §18). اسم المستخدم وحالته يأتيان من علاقة، ولا تُضاف وصلات
+     * لأجل الترتيب.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'created_at' => 'created_at',
+            'role' => 'role',
+            'scope_type' => 'scope_type',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
     public function index(Request $request): Response
     {
         $filters = $request->validate([
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'role' => ['sometimes', 'nullable', 'string', 'max:60'],
             'scope_type' => ['sometimes', 'nullable', 'string', 'max:32'],
-            'sort' => ['sometimes', 'nullable', 'string'],
+            // H §18 — مفتاح ترتيب من القائمة البيضاء + اتجاهه؛ `?sort=asc`
+            // القديم يبقى عاملاً عبر توافق `ListSort`.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
         ]);
 
-        $direction = ($filters['sort'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
-
-        $assignments = RoleAssignment::query()
+        $query = RoleAssignment::query()
             ->with('user:id,name,email,status')
             ->whereIn('role', self::reviewableRoles())
             ->when(filled($filters['role'] ?? null), fn ($query) => $query->where('role', $filters['role']))
             ->when(filled($filters['scope_type'] ?? null), fn ($query) => $query->where('scope_type', $filters['scope_type']))
             ->when(filled($filters['search'] ?? null), fn ($query) => $query->whereHas('user', fn ($inner) => $inner
                 ->where('name', 'like', '%'.$filters['search'].'%')
-                ->orWhere('email', 'like', '%'.$filters['search'].'%')))
-            ->orderBy('created_at', $direction)
+                ->orWhere('email', 'like', '%'.$filters['search'].'%')));
+
+        $assignments = self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
             ->paginate(20)
             ->withQueryString();
 
@@ -74,6 +92,7 @@ class PermissionReviewController extends Controller
         return Inertia::render('admin/security/permission-review', [
             'assignments' => $assignments,
             'filters' => $filters,
+            'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'roles' => collect(self::reviewableRoles())
                 ->map(fn (string $role) => ['value' => $role, 'label' => Role::from($role)->label()])
                 ->values()

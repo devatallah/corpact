@@ -1,5 +1,8 @@
 import ConfirmModal from '@/components/confirm-modal';
+import FilterTabs from '@/components/filter-tabs';
 import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
 import type { PaginatedResult } from '@/types/models';
 import { Head, Link, router } from '@inertiajs/react';
@@ -31,9 +34,10 @@ interface PendingRow {
 
 interface Props {
     statements: PaginatedResult<StatementRow>;
-    filters: { status: string };
+    filters: { status?: string; search?: string; sort?: string; dir?: string };
     nextPeriod: { key: string; start: string; end: string };
     pendingByPartner: PendingRow[];
+    sort: SortState;
 }
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
@@ -42,7 +46,29 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
     paid: { label: 'مدفوع', color: '#009E82' },
 };
 
-export default function FinanceSettlements({ statements, filters, nextPeriod, pendingByPartner }: Props) {
+const STATUS_FILTERS = [
+    { label: 'الكل', value: '' },
+    { label: STATUS_META.draft.label, value: 'draft' },
+    { label: STATUS_META.approved.label, value: 'approved' },
+    { label: STATUS_META.paid.label, value: 'paid' },
+];
+
+// H §18 — «كل قائمة: بحث + فلترة + ترتيب + ترقيم صفحات».
+const SORT_OPTIONS = [
+    { key: 'period_end', label: 'الفترة', initialDirection: 'desc' as const },
+    { key: 'net_amount', label: 'الصافي', initialDirection: 'desc' as const },
+    { key: 'gross_amount', label: 'الإجمالي', initialDirection: 'desc' as const },
+    { key: 'commission_amount', label: 'العمولة', initialDirection: 'desc' as const },
+    { key: 'items_count', label: 'البنود', initialDirection: 'desc' as const },
+    { key: 'status', label: 'الحالة' },
+];
+
+export default function FinanceSettlements({ statements, filters, nextPeriod, pendingByPartner, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        status: filters?.status,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const [payFor, setPayFor] = useState<number | null>(null);
     const [reference, setReference] = useState('');
     // H §18: «كل إجراء مالي … يمر بنافذة تأكيد تعرض المبلغ والأثر صراحة».
@@ -122,22 +148,29 @@ export default function FinanceSettlements({ statements, filters, nextPeriod, pe
                 </button>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                {['', 'draft', 'approved', 'paid'].map((status) => (
-                    <Link
-                        key={status || 'all'}
-                        href={`/admin/finance/settlements${status ? `?status=${status}` : ''}`}
-                        className="fbtn"
-                        style={{ opacity: filters.status === status ? 1 : 0.6 }}
-                    >
-                        {status === '' ? 'الكل' : STATUS_META[status].label}
-                    </Link>
-                ))}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث باسم المزوّد أو الفترة..."
+                    style={{
+                        padding: '9px 14px',
+                        borderRadius: 10,
+                        border: '1px solid #E2E8F4',
+                        fontSize: 13,
+                        outline: 'none',
+                        direction: 'rtl',
+                        fontFamily: 'inherit',
+                        minWidth: 260,
+                    }}
+                />
+                <FilterTabs options={STATUS_FILTERS} current={filters?.status ?? ''} />
+                <SortBar sort={sort} options={SORT_OPTIONS} />
             </div>
 
             <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 22 }}>
                 {statements.data.length === 0 ? (
-                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا كشوف.</div>
+                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا كشف مطابق للبحث والفلاتر الحالية.</div>
                 ) : (
                     statements.data.map((row, index) => {
                         const meta = STATUS_META[row.status];

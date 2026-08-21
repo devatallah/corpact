@@ -6,6 +6,7 @@ use App\Enums\DeliveryStatus;
 use App\Http\Controllers\Controller;
 use App\Models\NotificationLog;
 use App\Support\Identity\PhoneNumber;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,8 +24,31 @@ use Inertia\Response;
  */
 class NotificationLogController extends Controller
 {
+    /**
+     * H §18 — الأعمدة المسموح الترتيب بها. كلها أعمدة معروضة في الجدول
+     * (القالب · القناة · المحاولة · الحالة · الوقت). رقم الجوال **ليس** مفتاح
+     * ترتيب: البحث به كافٍ للدعم، والترتيب به لا يخدم شيئاً ويجمّع الأرقام.
+     * الافتراضي هو ترتيب الشاشة السابق نفسه: الأحدث أولاً.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'created_at' => ['created_at', 'id'],
+            'template_key' => 'template_key',
+            'channel' => 'channel',
+            'attempt' => 'attempt',
+            'status' => 'status',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
     public function index(Request $request): Response
     {
+        $request->validate([
+            // H §18 — الترتيب: مفتاح من قائمة بيضاء لا اسم عمود.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
         $search = trim((string) $request->query('search', ''));
         $status = (string) $request->query('status', '');
         $channel = (string) $request->query('channel', '');
@@ -32,7 +56,7 @@ class NotificationLogController extends Controller
 
         $normalizedPhone = PhoneNumber::normalize($search);
 
-        $logs = NotificationLog::query()
+        $query = NotificationLog::query()
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
                 ->where('recipient_phone', 'like', '%'.($normalizedPhone ?? $search).'%')
                 ->orWhere('template_key', 'like', "%{$search}%")
@@ -42,8 +66,10 @@ class NotificationLogController extends Controller
             ->when($templateKey !== '', fn ($q) => $q->where('template_key', $templateKey))
             ->when($request->filled('recipient_type') && $request->filled('recipient_id'), fn ($q) => $q
                 ->where('recipient_type', $request->query('recipient_type'))
-                ->where('recipient_id', (int) $request->query('recipient_id')))
-            ->latest('id')
+                ->where('recipient_id', (int) $request->query('recipient_id')));
+
+        $logs = self::sort()
+            ->apply($query, $request->query('sort'), $request->query('dir'))
             ->paginate(20)
             ->withQueryString();
 
@@ -66,7 +92,10 @@ class NotificationLogController extends Controller
                 'template_key' => $templateKey,
                 'recipient_type' => $request->query('recipient_type'),
                 'recipient_id' => $request->query('recipient_id'),
+                'sort' => $request->query('sort'),
+                'dir' => $request->query('dir'),
             ],
+            'sort' => self::sort()->state($request->query('sort'), $request->query('dir')),
         ]);
     }
 }

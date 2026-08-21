@@ -2,9 +2,11 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import toastr from 'toastr';
 import ConfirmModal from '@/components/confirm-modal';
+import FilterTabs from '@/components/filter-tabs';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import PasswordInput from '@/components/password-input';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import StatusBadge from '@/components/status-badge';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
@@ -32,11 +34,28 @@ interface Props {
     filters: {
         search?: string;
         status?: string;
+        sort?: string;
+        dir?: string;
     };
+    sort: SortState;
 }
 
-export default function AdminsIndex({ admins, totalAdmins, filters }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { status: filters?.status });
+/**
+ * الخادم يقبل `status` منذ البداية، لكن الشاشة لم تكن تعرض ضابطاً له — فلترة
+ * بلا واجهة. هذه هي الواجهة (H §18: بحث + **فلترة** + ترتيب + ترقيم).
+ */
+const statusOptions = [
+    { label: 'الكل', value: '' },
+    { label: 'نشط', value: 'active' },
+    { label: 'معطَّل', value: 'inactive' },
+];
+
+export default function AdminsIndex({ admins, totalAdmins, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        status: filters?.status,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<Admin | null>(null);
 
@@ -118,24 +137,25 @@ return;
                 {totalAdmins.toLocaleString()} مشرف مسجّل على المنصة
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="🔍 ابحث باسم المشرف أو البريد..."
                     style={{ flex: 1, minWidth: '200px', padding: '10px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: '10px', fontSize: '13px', color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
                 />
+                <FilterTabs options={statusOptions} current={filters?.status ?? ''} />
             </div>
 
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                 <table className="portal-table">
                     <thead>
                         <tr>
-                            <th>المشرف</th>
+                            <SortableHeader label="المشرف" sortKey="name" sort={sort} />
                             <th>الدور</th>
                             <th>رقم الجوال</th>
-                            <th>تاريخ التسجيل</th>
-                            <th>الحالة</th>
+                            <SortableHeader label="تاريخ التسجيل" sortKey="created_at" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
                             <th>إجراء</th>
                         </tr>
                     </thead>

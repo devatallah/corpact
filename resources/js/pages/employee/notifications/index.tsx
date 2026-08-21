@@ -1,4 +1,5 @@
 import EmployeeLayout from '@/layouts/employee-layout';
+import { SortBar, type SortState } from '@/components/sortable-header';
 import { Head, router } from '@inertiajs/react';
 import { fmtDateTime } from '@/lib/utils';
 import type { Notification, PaginatedResult } from '@/types/models';
@@ -6,9 +7,16 @@ import type { Notification, PaginatedResult } from '@/types/models';
 interface Props {
     notifications: PaginatedResult<Notification> | Notification[];
     unreadCount: number;
+    sort?: SortState;
 }
 
-export default function NotificationsIndex({ notifications, unreadCount }: Props) {
+const sortOptions = [
+    { key: 'created_at', label: 'الأحدث', initialDirection: 'desc' as const },
+    { key: 'read_at', label: 'غير المقروءة', initialDirection: 'asc' as const },
+    { key: 'title', label: 'العنوان', initialDirection: 'asc' as const },
+];
+
+export default function NotificationsIndex({ notifications, unreadCount, sort }: Props) {
     const items = Array.isArray(notifications)
         ? notifications
         : notifications.data;
@@ -83,6 +91,11 @@ export default function NotificationsIndex({ notifications, unreadCount }: Props
                         تحديد الكل
                     </button>
                 )}
+            </div>
+
+            {/* Sort — H §18: كل قائمة لها ترتيب ظاهر */}
+            <div style={{ marginBottom: 14 }}>
+                <SortBar sort={sort} options={sortOptions} />
             </div>
 
             {/* Notification list */}

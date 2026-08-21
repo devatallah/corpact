@@ -43,6 +43,13 @@ body{background:#FAFAFA;color:#0A0A0A;font-family:'Readex Pro',Tahoma,Arial,sans
 .pill:hover{border-color:#CCC;}
 .pill.on{background:#0A0A0A;color:#fff;border-color:#0A0A0A;}
 
+/* H §18 — ضوابط القوائم المشتركة (شريط الترتيب وترقيم الصفحات) تستعمل
+   `.fbtn`، والبوابات الثلاث الأخرى تلوّنها في `app.css`. بوابة الموظف
+   تصمَّم بالـ`.pill`، فتأخذ `.fbtn` مظهرها نفسه بدل زرّ المتصفح الافتراضي. */
+.portal-employee .fbtn{display:inline-block;padding:6px 14px;border-radius:99px;border:1px solid #EBEBEB;background:#fff;color:#666;font-weight:500;font-size:13px;text-decoration:none;transition:all .15s;}
+.portal-employee .fbtn:hover{border-color:#CCC;}
+.portal-employee .fbtn.on{background:#0A0A0A;color:#fff;border-color:#0A0A0A;}
+
 /* ─── Bar ─── */
 .bar-wrap{height:6px;background:#EBEBEB;border-radius:6px;overflow:hidden;}
 .bar-fill{height:100%;border-radius:6px;background:#18A86B;}

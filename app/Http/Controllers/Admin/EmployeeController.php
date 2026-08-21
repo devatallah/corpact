@@ -41,6 +41,7 @@ class EmployeeController extends Controller
             'companies' => $companies,
             'departments' => $departments,
             'filters' => $filters,
+            'sort' => AdminEmployeeService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }
 

@@ -16,6 +16,7 @@ use App\Services\Reporting\Export\ExportContext;
 use App\Services\Reporting\Export\ExportFormat;
 use App\Services\Reporting\Export\ExportService;
 use App\Services\Reporting\ReportPeriod;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -42,19 +43,47 @@ class MonthlyReportController extends Controller
         private ExportService $exports,
     ) {}
 
+    /**
+     * H §18 — أعمدة ترتيب التقارير. الأعمدة الحقيقية وحدها؛ مؤشرات اللقطة
+     * (`activation_rate` وأخواتها) تعيش داخل JSON فلا تُرتَّب في SQL.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'period_key' => 'period_key',
+            'status' => 'status',
+        ], 'period_key', ListSort::DESC, 'company_id');
+    }
+
     public function index(Request $request): Response
     {
         $user = $this->actor();
         $companyIds = $this->scopeCompanyIds($user);
 
-        $reports = CoordinatorMonthlyReport::query()
+        $filters = $request->validate([
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'status' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
+        $query = CoordinatorMonthlyReport::query()
             ->with('company:id,name')
+            // النطاق أولاً ودائماً: شركة غير مسندة إليه غير موجودة بالنسبة له،
+            // ولا بحث ولا ترتيب يوسّع ذلك (H §4).
             ->when($companyIds !== null, fn ($q) => $q->whereIn('company_id', $companyIds))
-            ->orderByDesc('period_key')
-            ->orderBy('company_id')
-            ->limit(60)
-            ->get()
-            ->map(fn (CoordinatorMonthlyReport $report) => [
+            ->when(filled($filters['search'] ?? null), fn ($q) => $q->where(fn ($inner) => $inner
+                ->where('period_key', 'like', '%'.$filters['search'].'%')
+                ->orWhereHas('company', fn ($company) => $company->where('name', 'like', '%'.$filters['search'].'%'))))
+            ->when(filled($filters['status'] ?? null), fn ($q) => $q->where('status', $filters['status']));
+
+        $reports = self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            // كان `limit(60)` بلا ترقيم — تقرير الشهر الحادي عشر لشركة تاسعة
+            // كان يسقط بلا أثر. صار 20/صفحة (H §18).
+            ->paginate(20)
+            ->withQueryString()
+            ->through(fn (CoordinatorMonthlyReport $report) => [
                 'id' => (int) $report->id,
                 'company_id' => (int) $report->company_id,
                 'company_name' => (string) ($report->company->name ?? ''),
@@ -66,12 +95,13 @@ class MonthlyReportController extends Controller
                 'completed_events' => (int) $report->metric('completed_events', 0),
                 'dormant_communities' => count((array) $report->metric('communities.dormant', [])),
                 'recommendations_count' => $report->recommendations()->count(),
-            ])
-            ->all();
+            ]);
 
         return Inertia::render('coordinator/reports/index', [
             'reports' => $reports,
             'isPlatformAdmin' => $companyIds === null,
+            'filters' => $filters,
+            'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }
 

@@ -3,6 +3,7 @@
 namespace App\Services\Employee;
 
 use App\Models\Notification;
+use App\Support\Lists\ListSort;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -10,18 +11,34 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class EmployeeNotificationService
 {
     /**
+     * الأعمدة المسموح الترتيب بها — العنوان وتاريخ الوصول وحالة القراءة، وكلها
+     * ظاهرة في بطاقة الإشعار أصلاً فالترتيب لا يكشف شيئاً جديداً (H §18).
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'created_at' => 'created_at',
+            'read_at' => 'read_at',
+            'title' => 'title',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
+    /**
      * List notifications for an employee.
      *
-     * @param  array{unread_only?: bool, per_page?: int}  $filters
+     * @param  array{unread_only?: bool, sort?: string, dir?: string, per_page?: int}  $filters
      */
     public function list(Authenticatable $user, array $filters = []): LengthAwarePaginator
     {
-        return Notification::query()
+        $query = Notification::query()
             ->where('notifiable_type', $user::class)
             ->where('notifiable_id', $user->getAuthIdentifier())
-            ->when(! empty($filters['unread_only']), fn ($query) => $query->whereNull('read_at'))
-            ->latest()
-            ->paginate($filters['per_page'] ?? 15);
+            ->when(! empty($filters['unread_only']), fn ($query) => $query->whereNull('read_at'));
+
+        return self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
     }
 
     /**

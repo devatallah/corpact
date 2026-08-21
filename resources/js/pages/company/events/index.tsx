@@ -2,6 +2,7 @@ import CompanyLayout from '@/layouts/company-layout';
 import FilterTabs from '@/components/filter-tabs';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import StatusBadge from '@/components/status-badge';
 import CategoryIcon from '@/components/category-icon';
 import { fmtDate, fmtTime } from '@/lib/utils';
@@ -32,13 +33,18 @@ const STATUS_OPTIONS = [
 
 interface Props {
     events: PaginatedResult<Event>;
-    filters: { status?: string; search?: string };
+    filters: { status?: string; search?: string; sort?: string; dir?: string };
     totalEvents: number;
     activeEvents: number;
+    sort: SortState;
 }
 
-export default function EventsIndex({ events, filters, totalEvents, activeEvents }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { status: filters?.status });
+export default function EventsIndex({ events, filters, totalEvents, activeEvents, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        status: filters?.status,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
 
     return (
         <CompanyLayout>
@@ -70,10 +76,10 @@ export default function EventsIndex({ events, filters, totalEvents, activeEvents
                         <tr>
                             <th>المجتمع</th>
                             <th>الشريك</th>
-                            <th>التاريخ</th>
-                            <th>اللاعبون</th>
+                            <SortableHeader label="التاريخ" sortKey="event_date" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="اللاعبون" sortKey="participants_count" sort={sort} initialDirection="desc" />
                             <th>المنشئ</th>
-                            <th>الحالة</th>
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
                             <th></th>
                         </tr>
                     </thead>

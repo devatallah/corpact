@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SupportMessage;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -11,8 +12,29 @@ use Inertia\Response;
 
 class SupportMessageController extends Controller
 {
+    /**
+     * H §18 — الأعمدة المسموح الترتيب بها. كلها معروضة في الجدول أصلاً
+     * (المرسل · الموضوع · الحالة · التاريخ). الافتراضي هو ترتيب الشاشة السابق
+     * نفسه: الأحدث أولاً.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'created_at' => 'created_at',
+            'name' => 'name',
+            'subject' => 'subject',
+            'status' => 'status',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
     public function index(Request $request): Response
     {
+        $request->validate([
+            // H §18 — الترتيب: مفتاح من قائمة بيضاء لا اسم عمود.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
         $query = SupportMessage::query();
 
         if ($search = $request->input('search')) {
@@ -27,7 +49,10 @@ class SupportMessageController extends Controller
             $query->where('status', $status);
         }
 
-        $messages = $query->orderByDesc('created_at')->paginate(20)->withQueryString();
+        $messages = self::sort()
+            ->apply($query, $request->query('sort'), $request->query('dir'))
+            ->paginate(20)
+            ->withQueryString();
 
         return Inertia::render('admin/support/index', [
             'messages' => $messages,
@@ -37,7 +62,8 @@ class SupportMessageController extends Controller
                 'in_progress' => SupportMessage::where('status', 'in_progress')->count(),
                 'resolved' => SupportMessage::where('status', 'resolved')->count(),
             ],
-            'filters' => $request->only('search', 'status'),
+            'filters' => $request->only('search', 'status', 'sort', 'dir'),
+            'sort' => self::sort()->state($request->query('sort'), $request->query('dir')),
         ]);
     }
 

@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\Notification;
 use App\Services\Company\CompanyNotificationService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,15 +21,25 @@ class NotificationController extends Controller
     /**
      * List notifications for the authenticated company user.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $company = auth('company')->user();
-        $notifications = $this->notificationService->list($company);
+
+        $filters = $request->validate([
+            // H §18 — الترتيب. القيمة مفتاح من قائمة بيضاء في `ListSort`، لا
+            // اسم عمود؛ التحقق هنا يمنع الحشو فقط.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
+        $notifications = $this->notificationService->list($company, $filters);
         $unreadCount = Notification::where('notifiable_type', Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
 
         return Inertia::render('company/notifications/index', [
             'company' => $company,
             'notifications' => $notifications,
+            'filters' => $filters,
+            'sort' => CompanyNotificationService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'unreadCount' => $unreadCount,
             'unreadNotifications' => $unreadCount,
         ]);

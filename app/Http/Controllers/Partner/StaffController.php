@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Partner;
 use App\Enums\PartnerRole;
 use App\Http\Controllers\Controller;
 use App\Models\Partner;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -15,19 +16,50 @@ use Inertia\Response;
 class StaffController extends Controller
 {
     /**
+     * الأعمدة المسموح الترتيب بها — الاسم والبريد والدور والحالة وتاريخ
+     * الإضافة، وكلها معروضة على بطاقة الموظف أصلاً (H §18).
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'name' => 'name',
+            'email' => 'email',
+            'role' => 'role',
+            'status' => 'status',
+            'created_at' => 'created_at',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
+    /**
      * List staff members for the authenticated partner.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $partner = auth('partner')->user();
 
-        $staff = Partner::where('parent_id', $partner->id)
-            ->orderByDesc('created_at')
-            ->get();
+        // H §18 — بحث + ترتيب + ترقيم. قيمة `sort` مفتاح من قائمة بيضاء في
+        // `ListSort` لا اسم عمود؛ التحقق هنا يمنع الحشو فقط.
+        $filters = $request->validate([
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
+        $query = Partner::where('parent_id', $partner->id)
+            ->when(filled($filters['search'] ?? null), fn ($q) => $q->where(fn ($inner) => $inner
+                ->where('name', 'like', '%'.$filters['search'].'%')
+                ->orWhere('email', 'like', '%'.$filters['search'].'%')));
+
+        $staff = self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate(20)
+            ->withQueryString();
 
         return Inertia::render('partner/staff/index', [
             'partner' => $partner,
             'staff' => $staff,
+            'filters' => $filters,
+            'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'roles' => collect(PartnerRole::cases())
                 ->filter(fn ($role) => $role !== PartnerRole::Owner)
                 ->map(fn ($role) => [

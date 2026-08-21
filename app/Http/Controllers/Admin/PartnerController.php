@@ -36,6 +36,7 @@ class PartnerController extends Controller
             'partners' => $partners,
             'stats' => $stats,
             'filters' => $filters,
+            'sort' => PartnerService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
         ]);
     }

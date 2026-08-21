@@ -1,5 +1,6 @@
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import StatCard from '@/components/stat-card';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import CompanyLayout from '@/layouts/company-layout';
@@ -28,13 +29,14 @@ interface InvoiceRow {
 interface Props {
     company: { id: number; name: string };
     invoices: PaginatedResult<InvoiceRow>;
-    filters: { search?: string; status?: string; sort?: string };
+    filters: { search?: string; status?: string; sort?: string; dir?: string };
     summary: {
         outstanding: string;
         overdue_count: number;
         event_creation_blocked: boolean;
         block_reason: string | null;
     };
+    sort: SortState;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -55,10 +57,11 @@ const STATUS_LABELS: Record<string, string> = {
     void: 'ملغاة',
 };
 
-export default function CompanyInvoices({ company, invoices, filters, summary }: Props) {
+export default function CompanyInvoices({ company, invoices, filters, summary, sort }: Props) {
     const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
         status: filters?.status,
         sort: filters?.sort,
+        dir: filters?.dir,
     });
 
     function apply(patch: Record<string, string | undefined>) {
@@ -68,6 +71,7 @@ export default function CompanyInvoices({ company, invoices, filters, summary }:
                 search: filters?.search || undefined,
                 status: filters?.status || undefined,
                 sort: filters?.sort || undefined,
+                dir: filters?.dir || undefined,
                 ...patch,
             },
             { preserveState: true, replace: true },
@@ -124,9 +128,6 @@ export default function CompanyInvoices({ company, invoices, filters, summary }:
                     <option value="paid">مسدَّدة</option>
                     <option value="void">ملغاة</option>
                 </select>
-                <button className="fbtn" onClick={() => apply({ sort: filters?.sort === 'asc' ? 'desc' : 'asc' })}>
-                    الترتيب: {filters?.sort === 'asc' ? 'الأقدم أولاً' : 'الأحدث أولاً'}
-                </button>
             </div>
 
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -134,12 +135,12 @@ export default function CompanyInvoices({ company, invoices, filters, summary }:
                     <table className="portal-table">
                         <thead>
                             <tr>
-                                <th>رقم الفاتورة</th>
-                                <th>الدورة</th>
-                                <th>الموظفون المفعّلون</th>
-                                <th>الإجمالي (ريال)</th>
-                                <th>الاستحقاق</th>
-                                <th>الحالة</th>
+                                <SortableHeader label="رقم الفاتورة" sortKey="serial" sort={sort} />
+                                <SortableHeader label="الدورة" sortKey="period_start" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الموظفون المفعّلون" sortKey="activated_employees_count" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الإجمالي (ريال)" sortKey="total_amount" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الاستحقاق" sortKey="due_at" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الحالة" sortKey="status" sort={sort} />
                                 <th></th>
                             </tr>
                         </thead>

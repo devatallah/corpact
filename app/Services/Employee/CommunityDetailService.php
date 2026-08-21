@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\Event;
 use App\Models\PollOption;
 use App\Models\PollVote;
+use App\Support\Lists\ListSort;
 use App\Support\Notify;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
@@ -28,18 +29,35 @@ class CommunityDetailService
     }
 
     /**
+     * الأعمدة المسموح الترتيب بها في قائمة فعاليات المجتمع — التاريخ والوقت
+     * وعدد المشاركين، وكلها معروضة على بطاقة الفعالية أصلاً (H §18).
+     */
+    public static function eventsSort(): ListSort
+    {
+        return ListSort::make([
+            'event_date' => 'event_date',
+            'start_time' => 'start_time',
+            'participants_count' => 'participants_count',
+            'created_at' => 'created_at',
+        ], 'event_date', ListSort::DESC, 'id');
+    }
+
+    /**
      * Get community events with optional status filter.
      *
-     * @param  array{status?: string, per_page?: int}  $filters
+     * @param  array{status?: string, sort?: string, dir?: string, per_page?: int}  $filters
      */
     public function events(Community $community, array $filters = []): LengthAwarePaginator
     {
-        return Event::query()
+        $query = Event::query()
             ->with(['partner', 'category', 'creator'])
             ->where('community_id', $community->id)
-            ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
-            ->latest('event_date')
-            ->paginate($filters['per_page'] ?? 15);
+            ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']));
+
+        return self::eventsSort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
     }
 
     /**

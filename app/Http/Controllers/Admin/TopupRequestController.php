@@ -9,6 +9,7 @@ use App\Services\Audit\AuditLogService;
 use App\Services\Audit\SecurityEventService;
 use App\Services\Wallet\TopupRequestService;
 use App\Support\FileUrl;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,35 +24,77 @@ class TopupRequestController extends Controller
 {
     public function __construct(private TopupRequestService $topupService) {}
 
-    public function index(): Response
+    /**
+     * H §18 — الأعمدة المسموح الترتيب بها. كلها معروضة في سطر الطلب أصلاً
+     * (المبلغ · تاريخ التحويل · المرجع · الحالة · وقت التقديم)، فالترتيب لا
+     * يكشف بياناً بنكياً جديداً. الافتراضي هو ترتيب الشاشة السابق نفسه:
+     * الأحدث تقديماً أولاً.
+     */
+    public static function sort(): ListSort
     {
-        $requests = WalletTopupRequest::query()
+        return ListSort::make([
+            'created_at' => 'created_at',
+            'amount' => 'amount_halalas',
+            'transfer_date' => 'transfer_date',
+            'bank_reference' => 'bank_reference',
+            'status' => 'status',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
+    public function index(Request $request): Response
+    {
+        $request->validate([
+            'status' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            // H §18 — الترتيب: مفتاح من قائمة بيضاء لا اسم عمود.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
+        $status = $request->string('status')->toString();
+        $search = trim((string) $request->query('search', ''));
+
+        $query = WalletTopupRequest::query()
             ->with(['company:id,name', 'creator:id,name', 'reviewer:id,name'])
-            ->latest()
+            ->when($status !== '', fn ($query) => $query->where('status', $status))
+            ->when($search !== '', fn ($query) => $query->where(fn ($inner) => $inner
+                ->where('bank_reference', 'like', '%'.$search.'%')
+                ->orWhereHas('company', fn ($company) => $company->where('name', 'like', '%'.$search.'%'))));
+
+        $requests = self::sort()
+            ->apply($query, $request->query('sort'), $request->query('dir'))
             ->paginate(20)
-            ->through(fn (WalletTopupRequest $request) => [
-                'id' => $request->id,
-                'company' => $request->company?->only(['id', 'name']),
-                'amount' => $request->amount,
-                'transfer_date' => $request->transfer_date?->toDateString(),
-                'sender_account_last4' => $request->sender_account_last4,
-                'bank_reference' => $request->bank_reference,
-                'status' => $request->status->value,
-                'status_label' => $request->status->label(),
-                'creator' => $request->creator?->only(['id', 'name']),
-                'reviewer' => $request->reviewer?->only(['id', 'name']),
-                'reviewed_at' => $request->reviewed_at?->toIso8601String(),
-                'rejection_reason' => $request->rejection_reason,
-                'unapproval_reason' => $request->unapproval_reason,
+            ->withQueryString()
+            ->through(fn (WalletTopupRequest $topup) => [
+                'id' => $topup->id,
+                'company' => $topup->company?->only(['id', 'name']),
+                'amount' => $topup->amount,
+                'transfer_date' => $topup->transfer_date?->toDateString(),
+                'sender_account_last4' => $topup->sender_account_last4,
+                'bank_reference' => $topup->bank_reference,
+                'status' => $topup->status->value,
+                'status_label' => $topup->status->label(),
+                'creator' => $topup->creator?->only(['id', 'name']),
+                'reviewer' => $topup->reviewer?->only(['id', 'name']),
+                'reviewed_at' => $topup->reviewed_at?->toIso8601String(),
+                'rejection_reason' => $topup->rejection_reason,
+                'unapproval_reason' => $topup->unapproval_reason,
                 // A15 — القرص خاص، والرابط الموقّع (15 دقيقة) يُصدر عند الطلب
                 // من مسار مدقَّق لا في حمولة الصفحة: كل تنزيل لملف مالي حدث
                 // تدقيق + حدث أمني (H §19).
-                'receipt_url' => route('admin.finance.topups.receipt', $request->id),
-                'created_at' => $request->created_at?->toIso8601String(),
+                'receipt_url' => route('admin.finance.topups.receipt', $topup->id),
+                'created_at' => $topup->created_at?->toIso8601String(),
             ]);
 
         return Inertia::render('admin/finance/topups', [
             'requests' => $requests,
+            'filters' => [
+                'status' => $status,
+                'search' => $search,
+                'sort' => $request->query('sort'),
+                'dir' => $request->query('dir'),
+            ],
+            'sort' => self::sort()->state($request->query('sort'), $request->query('dir')),
         ]);
     }
 

@@ -2,6 +2,7 @@ import AdminLayout from '@/layouts/admin-layout';
 import CategoryIcon from '@/components/category-icon';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import { fmtDate } from '@/lib/utils';
 import type { Community, Company, Category, PaginatedResult } from '@/types/models';
 import { Head, router } from '@inertiajs/react';
@@ -19,11 +20,17 @@ interface Props {
     totalCommunities: number;
     companies: { id: number; name: string }[];
     categories: Category[];
-    filters: { search?: string; company_id?: string; category_id?: string };
+    filters: { search?: string; company_id?: string; category_id?: string; sort?: string; dir?: string };
+    sort: SortState;
 }
 
-export default function CommunitiesIndex({ communities, totalCommunities, companies, categories, filters }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { company_id: filters?.company_id, category_id: filters?.category_id });
+export default function CommunitiesIndex({ communities, totalCommunities, companies, categories, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        company_id: filters?.company_id,
+        category_id: filters?.category_id,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const [detail, setDetail] = useState<CommunityRow | null>(null);
 
     function handleFilter(key: string, value: string) {
@@ -31,6 +38,8 @@ export default function CommunitiesIndex({ communities, totalCommunities, compan
             search: filters?.search || undefined,
             company_id: key === 'company_id' ? (value || undefined) : (filters?.company_id || undefined),
             category_id: key === 'category_id' ? (value || undefined) : (filters?.category_id || undefined),
+            sort: filters?.sort || undefined,
+            dir: filters?.dir || undefined,
         }, { preserveState: true, replace: true });
     }
 
@@ -88,12 +97,12 @@ export default function CommunitiesIndex({ communities, totalCommunities, compan
                 <table className="portal-table">
                     <thead>
                         <tr>
-                            <th>المجتمع</th>
+                            <SortableHeader label="المجتمع" sortKey="name" sort={sort} />
                             <th>الشركة</th>
                             <th>الفئة</th>
                             <th>القائد</th>
-                            <th>الأعضاء</th>
-                            <th>الفعاليات</th>
+                            <SortableHeader label="الأعضاء" sortKey="members_count" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="الفعاليات" sortKey="events_count" sort={sort} initialDirection="desc" />
                             <th>الرصيد</th>
                             <th>إجراء</th>
                         </tr>

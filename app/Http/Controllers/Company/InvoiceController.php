@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Company;
 use App\Http\Controllers\Controller;
 use App\Models\InvoiceItem;
 use App\Models\PlatformFeeInvoice;
+use App\Support\Lists\ListSort;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,6 +20,22 @@ use Inertia\Response;
  */
 class InvoiceController extends Controller
 {
+    /**
+     * الأعمدة المسموح الترتيب بها — كلها أعمدة الجدول المعروضة (H §18).
+     * الإجمالي يُرتَّب بالهللات الصحيحة لا بالنص المنسَّق (A10).
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'period_start' => 'period_start',
+            'serial' => 'serial',
+            'activated_employees_count' => 'activated_employees_count',
+            'total_amount' => 'total_amount_halalas',
+            'due_at' => 'due_at',
+            'status' => 'status',
+        ], 'period_start', ListSort::DESC, 'id');
+    }
+
     public function index(Request $request): Response
     {
         $company = auth('company')->user();
@@ -26,12 +43,13 @@ class InvoiceController extends Controller
         $filters = $request->validate([
             'search' => ['sometimes', 'nullable', 'string', 'max:64'],
             'status' => ['sometimes', 'nullable', 'string', 'max:16'],
-            'sort' => ['sometimes', 'nullable', 'string'],
+            // H §18 — مفتاح ترتيب من القائمة البيضاء + اتجاهه؛ `?sort=asc`
+            // القديم يبقى عاملاً عبر توافق `ListSort`.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
         ]);
 
-        $direction = ($filters['sort'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
-
-        $invoices = PlatformFeeInvoice::query()
+        $query = PlatformFeeInvoice::query()
             ->where('company_id', $company->id)
             ->whereIn('status', [
                 PlatformFeeInvoice::STATUS_ISSUED,
@@ -39,8 +57,10 @@ class InvoiceController extends Controller
                 PlatformFeeInvoice::STATUS_VOID,
             ])
             ->when(filled($filters['search'] ?? null), fn ($query) => $query->where('serial', 'like', '%'.$filters['search'].'%'))
-            ->when(filled($filters['status'] ?? null), fn ($query) => $query->where('status', $filters['status']))
-            ->orderBy('period_start', $direction)
+            ->when(filled($filters['status'] ?? null), fn ($query) => $query->where('status', $filters['status']));
+
+        $invoices = self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
             ->paginate(20)
             ->withQueryString()
             ->through(fn (PlatformFeeInvoice $invoice) => $this->present($invoice));
@@ -61,6 +81,7 @@ class InvoiceController extends Controller
             'company' => $company,
             'invoices' => $invoices,
             'filters' => $filters,
+            'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'summary' => [
                 'outstanding' => Money::format((int) $outstanding),
                 'overdue_count' => $overdue,

@@ -1,8 +1,10 @@
 import EmployeeLayout from '@/layouts/employee-layout';
+import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
 import { Head, useForm } from '@inertiajs/react';
 import { useState, useMemo } from 'react';
 import type { FormEvent } from 'react';
-import type { CommunityRequest, Category } from '@/types/models';
+import type { CommunityRequest, Category, PaginatedResult } from '@/types/models';
 import toastr from 'toastr';
 
 interface CategoryItem {
@@ -14,9 +16,17 @@ interface CategoryItem {
 }
 
 interface Props {
-    requests: CommunityRequest[];
+    requests: PaginatedResult<CommunityRequest>;
     categories: CategoryItem[];
+    pendingCount?: number;
+    sort?: SortState;
 }
+
+const sortOptions = [
+    { key: 'created_at', label: 'الأحدث', initialDirection: 'desc' as const },
+    { key: 'name', label: 'الاسم', initialDirection: 'asc' as const },
+    { key: 'status', label: 'الحالة', initialDirection: 'asc' as const },
+];
 
 function statusLabel(status: string): { text: string; badgeClass: string } {
     switch (status) {
@@ -31,7 +41,8 @@ function statusLabel(status: string): { text: string; badgeClass: string } {
     }
 }
 
-export default function CommunityRequestsIndex({ requests, categories }: Props) {
+export default function CommunityRequestsIndex({ requests, categories, pendingCount = 0, sort }: Props) {
+    const items = requests?.data ?? [];
     const [showForm, setShowForm] = useState(false);
 
     const form = useForm({
@@ -59,8 +70,6 @@ export default function CommunityRequestsIndex({ requests, categories }: Props) 
             },
         });
     }
-
-    const pendingCount = requests.filter((r) => r.status === 'pending').length;
 
     return (
         <EmployeeLayout>
@@ -195,9 +204,16 @@ export default function CommunityRequestsIndex({ requests, categories }: Props) 
                 </div>
             )}
 
+            {/* H §18: ترتيب ظاهر لقائمة الطلبات */}
+            {items.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                    <SortBar sort={sort} options={sortOptions} />
+                </div>
+            )}
+
             {/* Requests list */}
-            {requests.length > 0 ? (
-                requests.map((req) => {
+            {items.length > 0 ? (
+                items.map((req) => {
                     const s = statusLabel(req.status);
                     return (
                         <div key={req.id} className="card">
@@ -256,6 +272,8 @@ export default function CommunityRequestsIndex({ requests, categories }: Props) 
                     </div>
                 )
             )}
+
+            {requests?.links && <Pagination links={requests.links} />}
         </EmployeeLayout>
     );
 }

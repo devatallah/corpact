@@ -7,8 +7,9 @@ use App\Models\CommunityRequest;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Services\Company\CommunityService;
+use App\Support\Lists\ListSort;
 use App\Support\Notify;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -61,27 +62,52 @@ class CommunityRequestService
     }
 
     /**
-     * List community requests for an employee.
+     * الأعمدة المسموح الترتيب بها في الشاشتين — اسم المجتمع المقترح وحالة
+     * الطلب وتاريخه، وكلها معروضة على البطاقة أصلاً (H §18).
      */
-    public function listForEmployee(Employee $employee): Collection
+    public static function sort(): ListSort
     {
-        return CommunityRequest::query()
+        return ListSort::make([
+            'created_at' => 'created_at',
+            'name' => 'name',
+            'status' => 'status',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
+    /**
+     * List community requests for an employee.
+     *
+     * @param  array{sort?: string, dir?: string, per_page?: int}  $filters
+     */
+    public function listForEmployee(Employee $employee, array $filters = []): LengthAwarePaginator
+    {
+        $query = CommunityRequest::query()
             ->with(['category', 'community'])
-            ->where('employee_id', $employee->id)
-            ->latest()
-            ->get();
+            ->where('employee_id', $employee->id);
+
+        return self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
     }
 
     /**
      * List community requests for a company.
+     *
+     * @param  array{status?: string, search?: string, sort?: string, dir?: string, per_page?: int}  $filters
      */
-    public function listForCompany(Company $company): Collection
+    public function listForCompany(Company $company, array $filters = []): LengthAwarePaginator
     {
-        return CommunityRequest::query()
+        $query = CommunityRequest::query()
             ->with(['employee', 'category', 'community'])
             ->where('company_id', $company->id)
-            ->latest()
-            ->get();
+            ->when(filled($filters['status'] ?? null), fn ($q) => $q->where('status', $filters['status']))
+            ->when(filled($filters['search'] ?? null), fn ($q) => $q->where('name', 'like', '%'.$filters['search'].'%'));
+
+        return self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
     }
 
     /**

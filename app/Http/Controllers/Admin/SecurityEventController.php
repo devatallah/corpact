@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SecurityEvent;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,6 +15,22 @@ use Inertia\Response;
  */
 class SecurityEventController extends Controller
 {
+    /**
+     * الأعمدة المسموح الترتيب بها — كلها أعمدة معروضة في الجدول (H §18).
+     * السجل للكتابة فقط، فلا يتغير هنا سوى `ORDER BY`.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'created_at' => 'created_at',
+            'event' => 'event',
+            'severity' => 'severity',
+            'actor_name' => 'actor_name',
+            'guard' => 'guard',
+            'ip_address' => 'ip_address',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
     public function index(Request $request): Response
     {
         $filters = $request->validate([
@@ -22,12 +39,13 @@ class SecurityEventController extends Controller
             'severity' => ['sometimes', 'nullable', 'string', 'max:16'],
             'from' => ['sometimes', 'nullable', 'date'],
             'to' => ['sometimes', 'nullable', 'date'],
-            'sort' => ['sometimes', 'nullable', 'string'],
+            // H §18 — مفتاح ترتيب من القائمة البيضاء + اتجاهه؛ `?sort=asc`
+            // القديم يبقى عاملاً عبر توافق `ListSort`.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
         ]);
 
-        $direction = ($filters['sort'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
-
-        $events = SecurityEvent::query()
+        $query = SecurityEvent::query()
             ->with(['actor:id,name', 'company:id,name'])
             ->when(filled($filters['search'] ?? null), fn ($query) => $query->where(fn ($inner) => $inner
                 ->where('actor_name', 'like', '%'.$filters['search'].'%')
@@ -36,9 +54,10 @@ class SecurityEventController extends Controller
             ->when(filled($filters['event'] ?? null), fn ($query) => $query->where('event', $filters['event']))
             ->when(filled($filters['severity'] ?? null), fn ($query) => $query->where('severity', $filters['severity']))
             ->when(filled($filters['from'] ?? null), fn ($query) => $query->whereDate('created_at', '>=', $filters['from']))
-            ->when(filled($filters['to'] ?? null), fn ($query) => $query->whereDate('created_at', '<=', $filters['to']))
-            ->orderBy('created_at', $direction)
-            ->orderBy('id', $direction)
+            ->when(filled($filters['to'] ?? null), fn ($query) => $query->whereDate('created_at', '<=', $filters['to']));
+
+        $events = self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
             ->paginate(20)
             ->withQueryString()
             ->through(fn (SecurityEvent $event) => [
@@ -63,6 +82,7 @@ class SecurityEventController extends Controller
         return Inertia::render('admin/security/events', [
             'events' => $events,
             'filters' => $filters,
+            'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'eventTypes' => collect(SecurityEvent::labels())
                 ->map(fn (string $label, string $key) => ['value' => $key, 'label' => $label])
                 ->values()

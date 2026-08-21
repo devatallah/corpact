@@ -8,6 +8,7 @@ use App\Models\InvoiceItem;
 use App\Models\PlatformFeeInvoice;
 use App\Services\Billing\InvoiceArrearsService;
 use App\Services\Billing\InvoiceService;
+use App\Support\Lists\ListSort;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,16 +31,48 @@ class FinanceInvoiceController extends Controller
         private InvoiceArrearsService $arrears,
     ) {}
 
+    /**
+     * H §18 — الأعمدة المسموح الترتيب بها. كلها معروضة في سطر الفاتورة أصلاً
+     * (الدورة · الحالة · الإجمالي · عدد المفعّلين · الاستحقاق)، فالترتيب لا
+     * يكشف رقماً لا يراه الأدمن المالي. الافتراضي هو ترتيب الشاشة السابق نفسه:
+     * أحدث دورة أولاً ثم المعرّف.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'period_key' => 'period_key',
+            'status' => 'status',
+            'total_amount' => 'total_amount_halalas',
+            'activated_employees_count' => 'activated_employees_count',
+            'due_at' => 'due_at',
+        ], 'period_key', ListSort::DESC, 'id');
+    }
+
     public function index(Request $request): Response
     {
-        $status = $request->string('status')->toString();
+        $request->validate([
+            'status' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            // H §18 — الترتيب. القيمة مفتاح من قائمة بيضاء في `ListSort`، لا
+            // اسم عمود؛ التحقق هنا يمنع الحشو فقط.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
 
-        $invoices = PlatformFeeInvoice::query()
+        $status = $request->string('status')->toString();
+        $search = trim((string) $request->query('search', ''));
+
+        $query = PlatformFeeInvoice::query()
             ->with('company:id,name')
             ->when($status !== '', fn ($query) => $query->where('status', $status))
-            ->orderByDesc('period_key')
-            ->orderByDesc('id')
+            ->when($search !== '', fn ($query) => $query->where(fn ($inner) => $inner
+                ->where('serial', 'like', '%'.$search.'%')
+                ->orWhereHas('company', fn ($company) => $company->where('name', 'like', '%'.$search.'%'))));
+
+        $invoices = self::sort()
+            ->apply($query, $request->query('sort'), $request->query('dir'))
             ->paginate(20)
+            ->withQueryString()
             ->through(fn (PlatformFeeInvoice $invoice) => $this->present($invoice));
 
         $cycle = $this->invoices->cycleFor();
@@ -55,7 +88,13 @@ class FinanceInvoiceController extends Controller
 
         return Inertia::render('admin/finance/invoices', [
             'invoices' => $invoices,
-            'filters' => ['status' => $status],
+            'filters' => [
+                'status' => $status,
+                'search' => $search,
+                'sort' => $request->query('sort'),
+                'dir' => $request->query('dir'),
+            ],
+            'sort' => self::sort()->state($request->query('sort'), $request->query('dir')),
             'cycle' => [
                 'key' => $cycle['key'],
                 'start' => $cycle['start']->toDateString(),

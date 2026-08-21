@@ -1,13 +1,19 @@
 import AdminLayout from '@/layouts/admin-layout';
 import ConfirmModal from '@/components/confirm-modal';
+import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import type { BlackoutDate } from '@/types/models';
+import type { BlackoutDate, PaginatedResult } from '@/types/models';
 import { fmtDate } from '@/lib/utils';
 import toastr from 'toastr';
 
 interface Props {
-    blackouts: BlackoutDate[];
+    blackouts: PaginatedResult<BlackoutDate>;
+    totalBlackouts: number;
+    filters: { search?: string | null; sort?: string | null; dir?: string | null };
+    sort: SortState;
 }
 
 /**
@@ -15,8 +21,12 @@ interface Props {
  * من قالب والواقعة في نطاق حظر تُتخطى افتراضياً أو تُزاح أسبوعاً حسب إعداد
  * القالب. تسري على التوليد القادم فقط — لا تمس فعاليات مولّدة. CRUD أدنى (A15 يوسّعه).
  */
-export default function BlackoutsIndex({ blackouts }: Props) {
+export default function BlackoutsIndex({ blackouts, totalBlackouts, filters, sort }: Props) {
     const [deleting, setDeleting] = useState<BlackoutDate | null>(null);
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        sort: filters?.sort ?? undefined,
+        dir: filters?.dir ?? undefined,
+    });
     const form = useForm({ name: '', starts_on: '', ends_on: '' });
 
     return (
@@ -57,9 +67,31 @@ export default function BlackoutsIndex({ blackouts }: Props) {
             </div>
 
             <div className="card">
-                <div style={{ fontWeight: 800, marginBottom: 10 }}>النطاقات ({blackouts.length})</div>
-                {blackouts.length === 0 && <div style={{ color: '#8A7868', fontSize: 13 }}>لا نطاقات حظر بعد.</div>}
-                {blackouts.map((b) => (
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 800 }}>النطاقات ({totalBlackouts})</div>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <input
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="🔍 ابحث بالاسم..."
+                            style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(0,0,0,.12)', fontSize: 13, outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 180 }}
+                        />
+                        <SortBar
+                            sort={sort}
+                            options={[
+                                { key: 'starts_on', label: 'من تاريخ', initialDirection: 'desc' },
+                                { key: 'ends_on', label: 'إلى تاريخ', initialDirection: 'desc' },
+                                { key: 'name', label: 'الاسم' },
+                            ]}
+                        />
+                    </div>
+                </div>
+                {blackouts.data.length === 0 && (
+                    <div style={{ color: '#8A7868', fontSize: 13 }}>
+                        {filters?.search ? 'لا نطاق حظر مطابق للبحث الحالي.' : 'لا نطاقات حظر بعد.'}
+                    </div>
+                )}
+                {blackouts.data.map((b) => (
                     <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(0,0,0,.08)', borderRadius: 10, padding: '10px 14px', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
                         <div>
                             <b>{b.name}</b>
@@ -73,6 +105,8 @@ export default function BlackoutsIndex({ blackouts }: Props) {
                     </div>
                 ))}
             </div>
+
+            <Pagination links={blackouts.links} />
 
             <ConfirmModal
                 open={deleting !== null}

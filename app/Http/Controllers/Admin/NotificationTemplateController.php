@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\NotificationTemplate;
 use App\Services\ActivityLogService;
 use App\Services\Notifications\TemplateRenderer;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -26,21 +27,46 @@ class NotificationTemplateController extends Controller
 {
     public function __construct(private TemplateRenderer $renderer) {}
 
+    /**
+     * H §18 — الأعمدة المسموح الترتيب بها. كلها معروضة في الجدول أو في فلاتره
+     * (المجموعة · المفتاح · العنوان · المستلم · التصنيف · التفعيل). الافتراضي
+     * هو ترتيب الشاشة السابق نفسه: المجموعة ثم المفتاح تصاعدياً — فالكتالوج
+     * يُقرأ مجموعةً مجموعة.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'group' => ['group', 'key'],
+            'key' => 'key',
+            'title_ar' => 'title_ar',
+            'audience' => 'audience',
+            'class' => 'class',
+            'active' => 'active',
+        ], 'group', ListSort::ASC, 'id');
+    }
+
     public function index(Request $request): Response
     {
+        $request->validate([
+            // H §18 — الترتيب: مفتاح من قائمة بيضاء لا اسم عمود.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
         $search = trim((string) $request->query('search', ''));
         $group = (string) $request->query('group', '');
         $class = (string) $request->query('class', '');
 
-        $templates = NotificationTemplate::query()
+        $query = NotificationTemplate::query()
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
                 ->where('key', 'like', "%{$search}%")
                 ->orWhere('title_ar', 'like', "%{$search}%")
                 ->orWhere('body_ar', 'like', "%{$search}%")))
             ->when($group !== '', fn ($q) => $q->where('group', $group))
-            ->when($class !== '', fn ($q) => $q->where('class', $class))
-            ->orderBy('group')
-            ->orderBy('key')
+            ->when($class !== '', fn ($q) => $q->where('class', $class));
+
+        $templates = self::sort()
+            ->apply($query, $request->query('sort'), $request->query('dir'))
             ->paginate(20)
             ->withQueryString();
 
@@ -53,7 +79,14 @@ class NotificationTemplateController extends Controller
                 'optional' => NotificationTemplate::query()->where('class', NotificationClass::Optional->value)->count(),
                 'inactive' => NotificationTemplate::query()->where('active', false)->count(),
             ],
-            'filters' => ['search' => $search, 'group' => $group, 'class' => $class],
+            'filters' => [
+                'search' => $search,
+                'group' => $group,
+                'class' => $class,
+                'sort' => $request->query('sort'),
+                'dir' => $request->query('dir'),
+            ],
+            'sort' => self::sort()->state($request->query('sort'), $request->query('dir')),
         ]);
     }
 

@@ -5,6 +5,7 @@ namespace App\Services\Admin;
 use App\Models\Company;
 use App\Notifications\CompanyApprovedNotification;
 use App\Services\ActivityLogService;
+use App\Support\Lists\ListSort;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -13,18 +14,35 @@ use Illuminate\Support\Str;
 class CompanyService
 {
     /**
+     * الأعمدة المسموح الترتيب بها — كلها معروضة في الجدول أصلاً، فالترتيب لا
+     * يكشف شيئاً جديداً (H §18).
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'name' => 'name',
+            'sector' => 'sector',
+            'status' => 'status',
+            'created_at' => 'created_at',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
+    /**
      * List companies with optional filters.
      *
-     * @param  array{status?: string, search?: string, per_page?: int}  $filters
+     * @param  array{status?: string, search?: string, sort?: string, dir?: string, per_page?: int}  $filters
      */
     public function list(array $filters = []): LengthAwarePaginator
     {
-        return Company::query()
+        $query = Company::query()
             ->with('employees')
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
-            ->when(isset($filters['search']), fn ($query) => $query->where('name', 'like', '%'.$filters['search'].'%'))
-            ->latest()
-            ->paginate($filters['per_page'] ?? 15);
+            ->when(isset($filters['search']), fn ($query) => $query->where('name', 'like', '%'.$filters['search'].'%'));
+
+        return self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
     }
 
     /**

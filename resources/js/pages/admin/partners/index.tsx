@@ -4,6 +4,7 @@ import CategoryIcon from '@/components/category-icon';
 import StatusBadge from '@/components/status-badge';
 import Pagination from '@/components/pagination';
 import ListStates from '@/components/list-states';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import { fmtDate } from '@/lib/utils';
 import type { Partner, Category, PaginatedResult } from '@/types/models';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -15,7 +16,8 @@ import toastr from 'toastr';
 interface Props {
     partners: PaginatedResult<Partner>;
     stats: { active: number; pending: number };
-    filters: { status?: string; search?: string };
+    filters: { status?: string; search?: string; sort?: string; dir?: string };
+    sort: SortState;
     categories?: Category[];
 }
 
@@ -26,8 +28,12 @@ const filterOptions = [
     { label: 'مرفوض', value: 'rejected' },
 ];
 
-export default function PartnersIndex({ partners, stats, filters, categories }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { status: filters?.status });
+export default function PartnersIndex({ partners, stats, filters, sort, categories }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        status: filters?.status,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<Partner | null>(null);
 
@@ -128,14 +134,14 @@ export default function PartnersIndex({ partners, stats, filters, categories }: 
                 <table className="portal-table">
                     <thead>
                         <tr>
-                            <th>الشريك</th>
-                            <th>المدينة</th>
+                            <SortableHeader label="الشريك" sortKey="name" sort={sort} />
+                            <SortableHeader label="المدينة" sortKey="city" sort={sort} />
                             <th>الفئات</th>
-                            <th>المرافق</th>
-                            <th>العمولة</th>
-                            <th>الموظفون</th>
+                            <SortableHeader label="المرافق" sortKey="venues_count" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="العمولة" sortKey="commission_rate" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="الموظفون" sortKey="staff_count" sort={sort} initialDirection="desc" />
                             <th>مسؤول الشريك</th>
-                            <th>الحالة</th>
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
                             <th>إجراء</th>
                         </tr>
                     </thead>

@@ -9,6 +9,7 @@ use App\Models\EventAlternative;
 use App\Services\ActivityLogService;
 use App\Services\Events\EventStateMachine;
 use App\Services\Payments\FundingService;
+use App\Support\Lists\ListSort;
 use App\Support\Money;
 use App\Support\Notify;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -18,13 +19,28 @@ use Illuminate\Validation\ValidationException;
 class CompanyEventService
 {
     /**
+     * الأعمدة المسموح الترتيب بها في جدول فعاليات الشركة (H §18).
+     *
+     * المجتمع والشريك والمنشئ أعمدة علاقات، ولا تُضاف وصلات لأجل الترتيب —
+     * فتبقى القائمة البيضاء على أعمدة `events` المعروضة وحدها.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'event_date' => ['event_date', 'start_time'],
+            'participants_count' => 'participants_count',
+            'status' => 'status',
+        ], 'event_date', ListSort::DESC, 'id');
+    }
+
+    /**
      * List events for a company with optional filters.
      *
-     * @param  array{status?: string, community_id?: int, partner_id?: int, date_from?: string, date_to?: string, per_page?: int}  $filters
+     * @param  array{status?: string, community_id?: int, partner_id?: int, date_from?: string, date_to?: string, sort?: string, dir?: string, per_page?: int}  $filters
      */
     public function listForCompany(Company $company, array $filters = []): LengthAwarePaginator
     {
-        return Event::query()
+        $query = Event::query()
             ->with(['community', 'partner', 'category', 'creator', 'alternatives', 'venuePricing', 'venues'])
             ->whereHas('community', fn ($query) => $query->where('company_id', $company->id))
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
@@ -35,9 +51,12 @@ class CompanyEventService
             ->when(isset($filters['search']), fn ($query) => $query->where(function ($q) use ($filters) {
                 $q->whereHas('partner', fn ($c) => $c->where('name', 'like', "%{$filters['search']}%"))
                     ->orWhereHas('category', fn ($s) => $s->where('name', 'like', "%{$filters['search']}%"));
-            }))
-            ->latest('event_date')
-            ->paginate($filters['per_page'] ?? 15);
+            }));
+
+        return self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
     }
 
     /**

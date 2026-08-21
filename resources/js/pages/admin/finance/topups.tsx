@@ -1,8 +1,11 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
+import FilterTabs from '@/components/filter-tabs';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
 import { fmtDateTime } from '@/lib/utils';
 import type { PaginatedResult, TopupRequestStatus } from '@/types/models';
@@ -27,6 +30,8 @@ interface TopupRow {
 
 interface Props {
     requests: PaginatedResult<TopupRow>;
+    filters: { status?: string; search?: string; sort?: string; dir?: string };
+    sort: SortState;
 }
 
 const STATUS_META: Record<TopupRequestStatus, { color: string; bg: string }> = {
@@ -36,7 +41,29 @@ const STATUS_META: Record<TopupRequestStatus, { color: string; bg: string }> = {
     rejected: { color: '#E03050', bg: 'rgba(224,48,80,0.12)' },
 };
 
-export default function FinanceTopups({ requests }: Props) {
+const STATUS_FILTERS = [
+    { label: 'الكل', value: '' },
+    { label: 'مُقدَّم', value: 'submitted' },
+    { label: 'قيد المراجعة', value: 'under_review' },
+    { label: 'معتمد', value: 'approved' },
+    { label: 'مرفوض', value: 'rejected' },
+];
+
+// H §18 — «كل قائمة: بحث + فلترة + ترتيب + ترقيم صفحات».
+const SORT_OPTIONS = [
+    { key: 'created_at', label: 'وقت التقديم', initialDirection: 'desc' as const },
+    { key: 'amount', label: 'المبلغ', initialDirection: 'desc' as const },
+    { key: 'transfer_date', label: 'تاريخ التحويل', initialDirection: 'desc' as const },
+    { key: 'bank_reference', label: 'المرجع' },
+    { key: 'status', label: 'الحالة' },
+];
+
+export default function FinanceTopups({ requests, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        status: filters?.status,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const [reasonFor, setReasonFor] = useState<{ id: number; action: 'reject' | 'unapprove' } | null>(null);
     const [reason, setReason] = useState('');
     // H §18: «كل إجراء مالي أو إلغائي يمر بنافذة تأكيد تعرض المبلغ والأثر صراحة».
@@ -76,6 +103,26 @@ export default function FinanceTopups({ requests }: Props) {
                 لا يعتمد أحد طلباً أنشأه بنفسه · قيد فريد على (المرجع + المبلغ) يمنع اعتماد التحويل مرتين · إلغاء اعتماد سابق حركة عكسية بسبب مسجَّل.
             </div>
 
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث بمرجع التحويل أو اسم الشركة..."
+                    style={{
+                        padding: '9px 14px',
+                        borderRadius: 10,
+                        border: '1px solid #E2E8F4',
+                        fontSize: 13,
+                        outline: 'none',
+                        direction: 'rtl',
+                        fontFamily: 'inherit',
+                        minWidth: 260,
+                    }}
+                />
+                <FilterTabs options={STATUS_FILTERS} current={filters?.status ?? ''} />
+                <SortBar sort={sort} options={SORT_OPTIONS} />
+            </div>
+
             <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 22 }}>
                 {requests.data.length === 0 ? (
                     <table style={{ width: '100%' }}>
@@ -84,7 +131,7 @@ export default function FinanceTopups({ requests }: Props) {
                                 count={0}
                                 columns={1}
                                 emptyTitle="لا توجد طلبات شحن"
-                                emptyHint="يرفع مسؤول الحساب الطلب من بوابة الشركة: المبلغ وتاريخ التحويل وآخر أربعة أرقام والمرجع وصورة الإشعار."
+                                emptyHint="لا طلب مطابق للبحث والفلاتر الحالية. يرفع مسؤول الحساب الطلب من بوابة الشركة: المبلغ وتاريخ التحويل وآخر أربعة أرقام والمرجع وصورة الإشعار."
                             />
                         </tbody>
                     </table>

@@ -31,16 +31,26 @@ class CommunityController extends Controller
     /**
      * List communities for the authenticated company.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $company = auth('company')->user();
         $unreadNotifications = Notification::where('notifiable_type', Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
 
-        $communities = $this->communityService->listForCompany($company);
+        $filters = $request->validate([
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            // H §18 — الترتيب. القيمة مفتاح من قائمة بيضاء في `ListSort`، لا
+            // اسم عمود؛ التحقق هنا يمنع الحشو فقط.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
+        ]);
+
+        $communities = $this->communityService->listForCompany($company, $filters);
 
         return Inertia::render('company/communities/index', [
             'company' => $company,
             'communities' => $communities,
+            'filters' => $filters,
+            'sort' => CommunityService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
             'unreadNotifications' => $unreadNotifications,
         ]);

@@ -11,6 +11,7 @@ use App\Services\Audit\AuditLogService;
 use App\Services\Audit\SecurityEventService;
 use App\Support\Audit\AuditAction;
 use App\Support\Identity\PhoneNumber;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -32,23 +33,41 @@ class AdminController extends Controller
      */
     private const ROLES = ['platform_admin', 'finance_admin', 'support_agent'];
 
+    /**
+     * H §18 — الترتيب عبر قائمة بيضاء. الأعمدة الثلاثة معروضة في الجدول
+     * أصلاً، فالترتيب لا يكشف عموداً لا يراه أدمن المنصة.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'name' => 'name',
+            'status' => 'status',
+            'created_at' => 'created_at',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
     public function index(Request $request): Response
     {
         $filters = $request->validate([
             'search' => ['sometimes', 'string', 'max:255'],
             'status' => ['sometimes', 'string'],
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
         ]);
 
-        $admins = User::query()
+        $query = User::query()
             ->whereHas('roleAssignments', fn ($q) => $q->where('scope_type', RoleAssignment::SCOPE_PLATFORM))
             ->with('roleAssignments')
             ->when(isset($filters['search']), fn ($q) => $q->where(fn ($q2) => $q2
                 ->where('name', 'like', '%'.$filters['search'].'%')
                 ->orWhere('email', 'like', '%'.$filters['search'].'%')
             ))
-            ->when(isset($filters['status']), fn ($q) => $q->where('status', $filters['status']))
-            ->latest()
-            ->paginate(15)
+            ->when(isset($filters['status']), fn ($q) => $q->where('status', $filters['status']));
+
+        $admins = self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate(20)
+            ->withQueryString()
             ->through(fn (User $user) => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -66,6 +85,7 @@ class AdminController extends Controller
                 ->whereHas('roleAssignments', fn ($q) => $q->where('scope_type', RoleAssignment::SCOPE_PLATFORM))
                 ->count(),
             'filters' => $filters,
+            'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }
 

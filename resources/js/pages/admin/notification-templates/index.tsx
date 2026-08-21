@@ -3,6 +3,7 @@ import { useState } from 'react';
 import toastr from 'toastr';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
 import type { NotificationTemplate, PaginatedResult } from '@/types/models';
@@ -11,7 +12,8 @@ interface Props {
     templates: PaginatedResult<NotificationTemplate>;
     groups: string[];
     stats: { total: number; mandatory: number; optional: number; inactive: number };
-    filters: { search?: string; group?: string; class?: string };
+    filters: { search?: string; group?: string; class?: string; sort?: string; dir?: string };
+    sort: SortState;
 }
 
 const GROUP_LABELS: Record<string, string> = {
@@ -44,10 +46,12 @@ function ClassBadge({ value }: { value: string }) {
     );
 }
 
-export default function NotificationTemplatesIndex({ templates, groups, stats, filters }: Props) {
+export default function NotificationTemplatesIndex({ templates, groups, stats, filters, sort }: Props) {
     const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
         group: filters?.group,
         class: filters?.class,
+        sort: filters?.sort,
+        dir: filters?.dir,
     });
     const [editing, setEditing] = useState<NotificationTemplate | null>(null);
 
@@ -92,6 +96,9 @@ export default function NotificationTemplatesIndex({ templates, groups, stats, f
                 search: filters?.search || undefined,
                 group: key === 'group' ? value || undefined : filters?.group || undefined,
                 class: key === 'class' ? value || undefined : filters?.class || undefined,
+                // الترتيب النشط لا يسقط بتغيير الفلتر.
+                sort: filters?.sort || undefined,
+                dir: filters?.dir || undefined,
             },
             { preserveState: true, replace: true },
         );
@@ -148,24 +155,28 @@ export default function NotificationTemplatesIndex({ templates, groups, stats, f
                     <table className="portal-table">
                         <thead>
                             <tr>
-                                <th>المفتاح</th>
-                                <th>العنوان</th>
-                                <th>المستلم</th>
-                                <th>التصنيف</th>
+                                <SortableHeader label="المجموعة" sortKey="group" sort={sort} />
+                                <SortableHeader label="المفتاح" sortKey="key" sort={sort} />
+                                <SortableHeader label="العنوان" sortKey="title_ar" sort={sort} />
+                                <SortableHeader label="المستلم" sortKey="audience" sort={sort} />
+                                <SortableHeader label="التصنيف" sortKey="class" sort={sort} />
                                 <th>القنوات</th>
-                                <th>الحالة</th>
+                                <SortableHeader label="الحالة" sortKey="active" sort={sort} />
                                 <th>إجراء</th>
                             </tr>
                         </thead>
                         <tbody>
                             <ListStates
                                 count={templates.data.length}
-                                columns={7}
+                                columns={8}
                                 emptyTitle="لا توجد قوالب مطابقة"
                                 emptyHint="لا قالب إشعار مطابق للبحث والفلاتر الحالية."
                             />
                             {templates.data.map((template) => (
                                 <tr key={template.id}>
+                                    <td style={{ fontSize: 12, color: '#C8D0E0', whiteSpace: 'nowrap' }}>
+                                        {GROUP_LABELS[template.group] ?? template.group}
+                                    </td>
                                     <td style={{ direction: 'ltr', textAlign: 'right', fontSize: 12, color: '#6B7A99' }}>
                                         {template.key}
                                     </td>

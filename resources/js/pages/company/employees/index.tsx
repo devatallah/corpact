@@ -6,25 +6,33 @@ import CategoryIcon from '@/components/category-icon';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
 import PasswordInput from '@/components/password-input';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import StatusBadge from '@/components/status-badge';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import CompanyLayout from '@/layouts/company-layout';
+import { fmtDate } from '@/lib/utils';
 import type { Department, Employee, PaginatedResult } from '@/types/models';
 
 interface Props {
     employees: PaginatedResult<Employee>;
     departments: Department[];
-    filters: { search?: string };
+    filters: { search?: string; status?: string; department_id?: string; sort?: string; dir?: string };
     activeCount: number;
     totalCount: number;
+    sort: SortState;
 }
 
-export default function EmployeesIndex({ employees, departments, filters, activeCount, totalCount }: Props) {
+export default function EmployeesIndex({ employees, departments, filters, activeCount, totalCount, sort }: Props) {
     const [showInvite, setShowInvite] = useState(false);
     const [editingItem, setEditingItem] = useState<Employee | null>(null);
     const inviteForm = useForm({ email: '' });
     const editForm = useForm({ name: '', email: '', password: '', phone: '', department_id: '', status: 'active' });
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '');
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        status: filters?.status,
+        department_id: filters?.department_id,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
 
     useEffect(() => {
         if (editingItem) {
@@ -129,18 +137,19 @@ return;
                 <table className="portal-table">
                     <thead>
                         <tr>
-                            <th>الموظف</th>
+                            <SortableHeader label="الموظف" sortKey="name" sort={sort} />
                             <th>القسم</th>
                             <th>المجتمعات</th>
                             <th>الفعاليات</th>
-                            <th>الحالة</th>
+                            <SortableHeader label="تاريخ الإضافة" sortKey="created_at" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         <ListStates
                             count={employees.data.length}
-                            columns={6}
+                            columns={7}
                             emptyTitle="لا يوجد موظفون بعد"
                             emptyHint="ارفع ملف الدعوات أو أضف موظفاً لبدء التفعيل."
                         />
@@ -177,6 +186,9 @@ return;
                                 </td>
                                 <td style={{ fontWeight: 700, ...(employee.events_count === 0 ? { color: '#7A8BA8' } : {}) }}>
                                     {employee.events_count ?? 0}
+                                </td>
+                                <td style={{ color: '#7A8BA8', fontSize: 12, whiteSpace: 'nowrap' }}>
+                                    {fmtDate(employee.created_at)}
                                 </td>
                                 <td>
                                     <StatusBadge status={employee.status} />

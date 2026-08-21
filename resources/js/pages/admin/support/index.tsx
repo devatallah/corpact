@@ -3,6 +3,7 @@ import { useState } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
 import { fmtDate } from '@/lib/utils';
@@ -22,7 +23,8 @@ interface SupportMessage {
 interface Props {
     messages: PaginatedResult<SupportMessage>;
     stats: { total: number; new: number; in_progress: number; resolved: number };
-    filters: { search?: string; status?: string };
+    filters: { search?: string; status?: string; sort?: string; dir?: string };
+    sort: SortState;
 }
 
 const STATUS_META: Record<SupportMessage['status'], { label: string; color: string; bg: string }> = {
@@ -41,8 +43,12 @@ function StatusBadge({ status }: { status: SupportMessage['status'] }) {
     );
 }
 
-export default function SupportIndex({ messages, stats, filters }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', { status: filters?.status });
+export default function SupportIndex({ messages, stats, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        status: filters?.status,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const [detail, setDetail] = useState<SupportMessage | null>(null);
     // H §18: نافذة تأكيد موحّدة بدل نافذة المتصفح، والنص يصف أثر الحذف.
     const [deleteTarget, setDeleteTarget] = useState<SupportMessage | null>(null);
@@ -51,6 +57,9 @@ export default function SupportIndex({ messages, stats, filters }: Props) {
         router.get('/admin/support', {
             search: filters?.search || undefined,
             status: value || undefined,
+            // الترتيب النشط لا يسقط بتغيير الفلتر.
+            sort: filters?.sort || undefined,
+            dir: filters?.dir || undefined,
         }, { preserveState: true, replace: true });
     }
 
@@ -111,11 +120,11 @@ export default function SupportIndex({ messages, stats, filters }: Props) {
                 <table className="portal-table">
                     <thead>
                         <tr>
-                            <th>المرسل</th>
-                            <th>الموضوع</th>
+                            <SortableHeader label="المرسل" sortKey="name" sort={sort} />
+                            <SortableHeader label="الموضوع" sortKey="subject" sort={sort} />
                             <th>الرسالة</th>
-                            <th>الحالة</th>
-                            <th>التاريخ</th>
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
+                            <SortableHeader label="التاريخ" sortKey="created_at" sort={sort} initialDirection="desc" />
                             <th>إجراء</th>
                         </tr>
                     </thead>

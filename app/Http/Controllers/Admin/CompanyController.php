@@ -38,6 +38,7 @@ class CompanyController extends Controller
             'companies' => $companies,
             'stats' => $stats,
             'filters' => $filters,
+            'sort' => CompanyService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }
 

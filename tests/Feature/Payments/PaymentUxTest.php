@@ -97,8 +97,9 @@ test('the payments history lists the employee\'s intents with their states', fun
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('employee/payments/index')
-            ->has('intents', 1)
-            ->where('intents.0.status', 'paid')
+            // H §18: القائمة صارت مرقّمة (20 عنصراً) فالصفوف تحت `data`.
+            ->has('intents.data', 1)
+            ->where('intents.data.0.status', 'paid')
         );
 });
 

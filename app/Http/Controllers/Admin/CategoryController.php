@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -153,6 +154,26 @@ class CategoryController extends Controller
         return $candidates[0]['hex'];
     }
 
+    /**
+     * H §18 — الترتيب على شجرة الفئات حالة خاصة معلنة.
+     *
+     * الترتيب الافتراضي `COALESCE(parent_id, id), parent_id IS NOT NULL, name`
+     * **ليس ترتيباً بل بنية**: يُبقي الفئة الأمّ ملاصقة لأبنائها. أي ترتيب
+     * يختاره المستخدم يفكّك هذا التجاور، فالشاشة تحتفظ بالشجرة ما لم يطلب
+     * المستخدم عموداً صراحةً — وعندها تصير القائمة مسطّحة مرتَّبة، وهو ما طلبه.
+     * التعبير نفسه ثابت في الكود ولا يدخله شيء من الطلب.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'name' => 'name',
+            'name_en' => 'name_en',
+            'communities_count' => 'communities_count',
+            'venues_count' => 'venues_count',
+            'events_count' => 'events_count',
+        ], 'name', ListSort::ASC, 'id');
+    }
+
     public function index(Request $request): Response
     {
         $query = Category::withTrashed()->with('parent')->withCount(['communities', 'venues', 'events']);
@@ -164,7 +185,27 @@ class CategoryController extends Controller
             });
         }
 
-        $categories = $query->orderByRaw('COALESCE(parent_id, id), parent_id IS NOT NULL, name')->paginate(20)->withQueryString();
+        // فلترة بالفئة الأمّ — الخيارات نفسها المعروضة في `parentCategories`.
+        $parentFilter = $request->input('parent_id');
+
+        if ($parentFilter === 'root') {
+            $query->whereNull('parent_id');
+        } elseif (filled($parentFilter)) {
+            $query->where('parent_id', (int) $parentFilter);
+        }
+
+        $sortKey = $request->input('sort');
+        $sortKey = is_string($sortKey) ? $sortKey : null;
+        $sortDir = $request->input('dir');
+        $sortDir = is_string($sortDir) ? $sortDir : null;
+
+        if (self::sort()->allows($sortKey)) {
+            self::sort()->apply($query, $sortKey, $sortDir);
+        } else {
+            $query->orderByRaw('COALESCE(parent_id, id), parent_id IS NOT NULL, name');
+        }
+
+        $categories = $query->paginate(20)->withQueryString();
         $totalSports = Category::withTrashed()->count();
         $parentCategories = Category::withTrashed()->whereNull('parent_id')->orderBy('name')->get();
 
@@ -172,7 +213,11 @@ class CategoryController extends Controller
             'categories' => $categories,
             'parentCategories' => $parentCategories,
             'totalSports' => $totalSports,
-            'filters' => $request->only('search'),
+            'filters' => $request->only('search', 'parent_id', 'sort', 'dir'),
+            // `key: ''` تعني «الشجرة» — لا عمود نشط.
+            'sort' => self::sort()->allows($sortKey)
+                ? self::sort()->state($sortKey, $sortDir)
+                : ['key' => '', 'direction' => 'asc'],
         ]);
     }
 

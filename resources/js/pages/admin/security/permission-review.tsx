@@ -1,6 +1,7 @@
 import ConfirmModal from '@/components/confirm-modal';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import StatCard from '@/components/stat-card';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
@@ -38,12 +39,13 @@ interface ReviewRow {
 
 interface Props {
     assignments: PaginatedResult<AssignmentRow>;
-    filters: { search?: string; role?: string; scope_type?: string; sort?: string };
+    filters: { search?: string; role?: string; scope_type?: string; sort?: string; dir?: string };
     roles: { value: string; label: string }[];
     currentPeriod: string;
     lastReview: ReviewRow | null;
     history: ReviewRow[];
     stats: { total: number; platform: number; reviewed_this_period: boolean };
+    sort: SortState;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -58,11 +60,12 @@ const inputStyle: React.CSSProperties = {
     fontFamily: 'inherit',
 };
 
-export default function PermissionReview({ assignments, filters, roles, currentPeriod, lastReview, history, stats }: Props) {
+export default function PermissionReview({ assignments, filters, roles, currentPeriod, lastReview, history, stats, sort }: Props) {
     const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
         role: filters?.role,
         scope_type: filters?.scope_type,
         sort: filters?.sort,
+        dir: filters?.dir,
     });
     const [confirming, setConfirming] = useState(false);
     const [expanded, setExpanded] = useState<number | null>(null);
@@ -77,6 +80,7 @@ export default function PermissionReview({ assignments, filters, roles, currentP
                 role: filters?.role || undefined,
                 scope_type: filters?.scope_type || undefined,
                 sort: filters?.sort || undefined,
+                dir: filters?.dir || undefined,
                 ...patch,
             },
             { preserveState: true, replace: true },
@@ -158,9 +162,6 @@ export default function PermissionReview({ assignments, filters, roles, currentP
                     <option value="community">مجتمع</option>
                     <option value="provider">مزوّد</option>
                 </select>
-                <button className="fbtn" onClick={() => apply({ sort: filters?.sort === 'asc' ? 'desc' : 'asc' })}>
-                    الترتيب: {filters?.sort === 'asc' ? 'الأقدم منحاً' : 'الأحدث منحاً'}
-                </button>
             </div>
 
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -169,10 +170,10 @@ export default function PermissionReview({ assignments, filters, roles, currentP
                         <thead>
                             <tr>
                                 <th>المستخدم</th>
-                                <th>الدور</th>
-                                <th>النطاق</th>
+                                <SortableHeader label="الدور" sortKey="role" sort={sort} />
+                                <SortableHeader label="النطاق" sortKey="scope_type" sort={sort} />
                                 <th>الحالة</th>
-                                <th>مُنح في</th>
+                                <SortableHeader label="مُنح في" sortKey="created_at" sort={sort} initialDirection="desc" />
                                 <th>الصلاحيات</th>
                             </tr>
                         </thead>

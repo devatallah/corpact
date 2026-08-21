@@ -1,6 +1,8 @@
 import { Head, router } from '@inertiajs/react';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { SortBar, type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
 import { fmtDate } from '@/lib/utils';
 import type { AdminAlert, PaginatedResult } from '@/types/models';
@@ -8,7 +10,8 @@ import type { AdminAlert, PaginatedResult } from '@/types/models';
 interface Props {
     alerts: PaginatedResult<AdminAlert>;
     stats: { open: number; critical: number };
-    filters: { acknowledged: boolean };
+    filters: { acknowledged: boolean; search?: string | null; sort?: string | null; dir?: string | null };
+    sort: SortState;
 }
 
 const KEY_LABELS: Record<string, string> = {
@@ -21,9 +24,20 @@ const KEY_LABELS: Record<string, string> = {
     'notification.delivery_failed': 'فشل تسليم رسالة على كل القنوات',
 };
 
-export default function AdminAlertsIndex({ alerts, stats, filters }: Props) {
+export default function AdminAlertsIndex({ alerts, stats, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        acknowledged: filters.acknowledged ? '1' : undefined,
+        sort: filters?.sort ?? undefined,
+        dir: filters?.dir ?? undefined,
+    });
+
     function toggleView() {
-        router.get('/admin/alerts', { acknowledged: filters.acknowledged ? undefined : 1 }, { preserveState: true, replace: true });
+        router.get('/admin/alerts', {
+            acknowledged: filters.acknowledged ? undefined : 1,
+            search: filters?.search || undefined,
+            sort: filters?.sort || undefined,
+            dir: filters?.dir || undefined,
+        }, { preserveState: true, replace: true });
     }
 
     function acknowledge(alert: AdminAlert) {
@@ -42,10 +56,18 @@ export default function AdminAlertsIndex({ alerts, stats, filters }: Props) {
                 قبلها.
             </div>
 
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث بعنوان التنبيه أو نصه أو مفتاحه..."
+                    style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 240 }}
+                />
                 <button onClick={toggleView} className="act-btn btn-view">
                     {filters.acknowledged ? 'إظهار المفتوحة فقط' : 'إظهار المُقَرّة أيضاً'}
                 </button>
+                {/* الخطورة تُقرأ من لون العنوان لا من عمود مستقل، فترتيبها هنا. */}
+                <SortBar sort={sort} options={[{ key: 'level', label: 'الخطورة', initialDirection: 'asc' }]} />
             </div>
 
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -53,11 +75,11 @@ export default function AdminAlertsIndex({ alerts, stats, filters }: Props) {
                     <table className="portal-table">
                         <thead>
                             <tr>
-                                <th>التنبيه</th>
+                                <SortableHeader label="التنبيه" sortKey="title" sort={sort} />
                                 <th>التفاصيل</th>
-                                <th>التكرار</th>
-                                <th>آخر ظهور</th>
-                                <th>الحالة</th>
+                                <SortableHeader label="التكرار" sortKey="occurrences" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="آخر ظهور" sortKey="last_seen_at" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الحالة" sortKey="acknowledged_at" sort={sort} initialDirection="desc" />
                                 <th>إجراء</th>
                             </tr>
                         </thead>
@@ -66,7 +88,7 @@ export default function AdminAlertsIndex({ alerts, stats, filters }: Props) {
                                 count={alerts.data.length}
                                 columns={6}
                                 emptyTitle="لا توجد تنبيهات"
-                                emptyHint="لا تنبيه مطابق للفلتر الحالي — وهي الحالة الطبيعية حين لا يوجد ما يستدعي تدخّلاً."
+                                emptyHint="لا تنبيه مطابق للبحث والفلتر الحالي — وهي الحالة الطبيعية حين لا يوجد ما يستدعي تدخّلاً."
                             />
                             {alerts.data.map((alert) => (
                                 <tr key={alert.id}>

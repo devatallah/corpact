@@ -2,6 +2,7 @@ import AdminLayout from '@/layouts/admin-layout';
 import CategoryIcon from '@/components/category-icon';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import type { Category, PaginatedResult } from '@/types/models';
 import { Head, useForm, router } from '@inertiajs/react';
 import { useDebouncedSearch } from '@/hooks/use-debounced-search';
@@ -20,11 +21,30 @@ interface Props {
     categories: PaginatedResult<CategoryWithCounts>;
     parentCategories: CategoryWithCounts[];
     totalSports: number;
-    filters: { search?: string };
+    filters: { search?: string; parent_id?: string; sort?: string; dir?: string };
+    /** `key: ''` تعني ترتيب الشجرة الافتراضي — لا عمود نشط. */
+    sort: SortState;
 }
 
-export default function SportsIndex({ categories, parentCategories, totalSports, filters }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {});
+export default function SportsIndex({ categories, parentCategories, totalSports, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        parent_id: filters?.parent_id,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
+
+    function applyParent(value: string) {
+        router.get(
+            '/admin/categories',
+            {
+                search: filters?.search || undefined,
+                parent_id: value || undefined,
+                sort: filters?.sort || undefined,
+                dir: filters?.dir || undefined,
+            },
+            { preserveState: true, replace: true },
+        );
+    }
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<CategoryWithCounts | null>(null);
     const [iconPreview, setIconPreview] = useState<string | null>(null);
@@ -133,18 +153,34 @@ export default function SportsIndex({ categories, parentCategories, totalSports,
                     placeholder="ابحث بالاسم..."
                     style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
                 />
+                <select
+                    value={filters?.parent_id ?? ''}
+                    onChange={(e) => applyParent(e.target.value)}
+                    style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
+                >
+                    <option value="">كل الفئات</option>
+                    <option value="root">الرئيسية فقط</option>
+                    {parentCategories.map((parent) => (
+                        <option key={parent.id} value={parent.id}>{parent.name}</option>
+                    ))}
+                </select>
+                {sort.key !== '' && (
+                    <button className="fbtn on" onClick={() => applyParent(filters?.parent_id ?? '')} title="العودة إلى ترتيب الشجرة">
+                        عودة لترتيب الشجرة ✕
+                    </button>
+                )}
             </div>
 
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                 <table className="portal-table">
                     <thead>
                         <tr>
-                            <th>الفئة</th>
-                            <th>الاسم بالإنجليزية</th>
+                            <SortableHeader label="الفئة" sortKey="name" sort={sort} />
+                            <SortableHeader label="الاسم بالإنجليزية" sortKey="name_en" sort={sort} />
                             <th>النوع</th>
-                            <th>المجتمعات</th>
-                            <th>المرافق</th>
-                            <th>الفعاليات</th>
+                            <SortableHeader label="المجتمعات" sortKey="communities_count" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="المرافق" sortKey="venues_count" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="الفعاليات" sortKey="events_count" sort={sort} initialDirection="desc" />
                             <th>الحالة</th>
                             <th>إجراء</th>
                         </tr>
@@ -154,7 +190,7 @@ export default function SportsIndex({ categories, parentCategories, totalSports,
                             count={categories.data.length}
                             columns={8}
                             emptyTitle="لا توجد فئات"
-                            emptyHint="لا فئة مطابقة للبحث الحالي."
+                            emptyHint="لا فئة مطابقة للبحث والفلترة الحاليين."
                         />
                         {categories.data.map((cat) => (
                             <tr key={cat.id}>

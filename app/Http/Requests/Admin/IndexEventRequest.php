@@ -31,6 +31,10 @@ class IndexEventRequest extends FormRequest
             'date_from' => ['sometimes', 'date'],
             'date_to' => ['sometimes', 'date', 'after_or_equal:date_from'],
             'per_page' => ['sometimes', 'integer', 'min:5', 'max:100'],
+            // H §18 — الترتيب. القيمة مفتاح من قائمة بيضاء في `ListSort`، لا
+            // اسم عمود؛ التحقق هنا يمنع الحشو فقط.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
         ];
     }
 

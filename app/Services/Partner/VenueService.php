@@ -5,23 +5,46 @@ namespace App\Services\Partner;
 use App\Models\Partner;
 use App\Models\Venue;
 use App\Models\VenuePricing;
+use App\Support\Lists\ListSort;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class VenueService
 {
     /**
-     * List all venues for a partner.
+     * الأعمدة المسموح الترتيب بها — الاسم والحالة وتاريخ الإضافة، وكلها
+     * معروضة على بطاقة المرفق أصلاً (H §18). القيمة القادمة من الطلب مفتاح
+     * في هذه القائمة، لا اسم عمود.
      */
-    public function listForpartner(Partner $partner): Collection
+    public static function sort(): ListSort
     {
-        return Venue::query()
+        return ListSort::make([
+            'name' => 'name',
+            'status' => 'status',
+            'created_at' => 'created_at',
+        ], 'name', ListSort::ASC, 'id');
+    }
+
+    /**
+     * List all venues for a partner — 20 per page with search and sort
+     * (H §18). النطاق (`partner_id`) خارج أي تأثير للترتيب أو البحث.
+     *
+     * @param  array{search?: string, sort?: string, dir?: string, per_page?: int}  $filters
+     * @return LengthAwarePaginator<int, Venue>
+     */
+    public function listForpartner(Partner $partner, array $filters = []): LengthAwarePaginator
+    {
+        $query = Venue::query()
             ->with(['category', 'pricings'])
             ->where('partner_id', $partner->id)
-            ->orderBy('name')
-            ->get();
+            ->when(filled($filters['search'] ?? null), fn ($q) => $q->where('name', 'like', '%'.$filters['search'].'%'));
+
+        return self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
     }
 
     /**

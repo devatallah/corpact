@@ -5,6 +5,7 @@ namespace App\Services\Admin;
 use App\Models\Partner;
 use App\Notifications\PartnerApprovedNotification;
 use App\Services\ActivityLogService;
+use App\Support\Lists\ListSort;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -12,13 +13,31 @@ use Illuminate\Support\Str;
 class PartnerService
 {
     /**
+     * الأعمدة المسموح الترتيب بها — كلها معروضة في جدول الشاشة أصلاً (H §18).
+     * `staff_count` تجميع موجود في الاستعلام (`withCount('staff')`) و
+     * `venues_count` عمود حقيقي على `partners`. الفئات علاقة فلا مفتاح لها.
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'name' => 'name',
+            'city' => 'city',
+            'venues_count' => 'venues_count',
+            'commission_rate' => 'commission_rate',
+            'staff_count' => 'staff_count',
+            'status' => 'status',
+            'created_at' => 'created_at',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
+    /**
      * List partners with optional filters.
      *
-     * @param  array{status?: string, search?: string, per_page?: int}  $filters
+     * @param  array{status?: string, search?: string, sort?: string, dir?: string, per_page?: int}  $filters
      */
     public function list(array $filters = []): LengthAwarePaginator
     {
-        return Partner::query()
+        $query = Partner::query()
             ->whereNull('parent_id')
             ->with(['categories', 'venues'])
             ->withCount('staff')
@@ -30,9 +49,12 @@ class PartnerService
                     ->orWhere('email', 'like', '%'.$filters['search'].'%')
                     ->orWhere('contact_phone', 'like', '%'.$filters['search'].'%')
                     ->orWhereHas('categories', fn ($s) => $s->where('name', 'like', '%'.$filters['search'].'%'));
-            }))
-            ->latest()
-            ->paginate($filters['per_page'] ?? 15);
+            }));
+
+        return self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
+            ->paginate($filters['per_page'] ?? 20)
+            ->withQueryString();
     }
 
     /**

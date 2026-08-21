@@ -1,5 +1,8 @@
 import ConfirmModal from '@/components/confirm-modal';
+import FilterTabs from '@/components/filter-tabs';
 import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
 import type { PaginatedResult } from '@/types/models';
 import { Head, Link, router } from '@inertiajs/react';
@@ -26,10 +29,11 @@ interface InvoiceRow {
 
 interface Props {
     invoices: PaginatedResult<InvoiceRow>;
-    filters: { status: string };
+    filters: { status?: string; search?: string; sort?: string; dir?: string };
     cycle: { key: string; start: string; end: string };
     realInvoicesEnabled: boolean;
     missingContracts: { id: number; name: string }[];
+    sort: SortState;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -39,7 +43,27 @@ const STATUS_LABEL: Record<string, string> = {
     void: 'ملغاة',
 };
 
-export default function FinanceInvoices({ invoices, filters, cycle, realInvoicesEnabled, missingContracts }: Props) {
+const STATUS_FILTERS = [
+    { label: 'الكل', value: '' },
+    { label: STATUS_LABEL.issued, value: 'issued' },
+    { label: STATUS_LABEL.paid, value: 'paid' },
+];
+
+// H §18 — «كل قائمة: بحث + فلترة + ترتيب + ترقيم صفحات».
+const SORT_OPTIONS = [
+    { key: 'period_key', label: 'الدورة', initialDirection: 'desc' as const },
+    { key: 'total_amount', label: 'الإجمالي', initialDirection: 'desc' as const },
+    { key: 'due_at', label: 'الاستحقاق', initialDirection: 'desc' as const },
+    { key: 'activated_employees_count', label: 'المفعّلون', initialDirection: 'desc' as const },
+    { key: 'status', label: 'الحالة' },
+];
+
+export default function FinanceInvoices({ invoices, filters, cycle, realInvoicesEnabled, missingContracts, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        status: filters?.status,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const [payFor, setPayFor] = useState<number | null>(null);
     const [reference, setReference] = useState('');
     // H §18: «كل إجراء مالي … يمر بنافذة تأكيد تعرض المبلغ والأثر صراحة».
@@ -142,22 +166,29 @@ export default function FinanceInvoices({ invoices, filters, cycle, realInvoices
                 </Link>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                {['', 'issued', 'paid'].map((status) => (
-                    <Link
-                        key={status || 'all'}
-                        href={`/admin/finance/invoices${status ? `?status=${status}` : ''}`}
-                        className="fbtn"
-                        style={{ opacity: filters.status === status ? 1 : 0.6 }}
-                    >
-                        {status === '' ? 'الكل' : STATUS_LABEL[status]}
-                    </Link>
-                ))}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث برقم الفاتورة أو اسم الشركة..."
+                    style={{
+                        padding: '9px 14px',
+                        borderRadius: 10,
+                        border: '1px solid #E2E8F4',
+                        fontSize: 13,
+                        outline: 'none',
+                        direction: 'rtl',
+                        fontFamily: 'inherit',
+                        minWidth: 260,
+                    }}
+                />
+                <FilterTabs options={STATUS_FILTERS} current={filters?.status ?? ''} />
+                <SortBar sort={sort} options={SORT_OPTIONS} />
             </div>
 
             <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 22 }}>
                 {invoices.data.length === 0 ? (
-                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا فواتير.</div>
+                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا فاتورة مطابقة للبحث والفلاتر الحالية.</div>
                 ) : (
                     invoices.data.map((row, index) => (
                         <div

@@ -54,10 +54,12 @@ test('the provider reconciles a statement item by item', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('partner/settlements/show')
-            ->has('statement.items', 1)
-            ->where('statement.items.0.gross_amount', '300.00')
-            ->where('statement.items.0.commission_amount', '36.00')
-            ->where('statement.items.0.net_amount', '264.00')
+            // H §18: البنود صارت حمولة مرقّمة (20/صفحة) لا مصفوفة داخل الكشف.
+            ->where('items.per_page', 20)
+            ->has('items.data', 1)
+            ->where('items.data.0.gross_amount', '300.00')
+            ->where('items.data.0.commission_amount', '36.00')
+            ->where('items.data.0.net_amount', '264.00')
         );
 });
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AuditLogController as AdminAuditLogController;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Support\Audit\AuditAction;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -59,6 +60,21 @@ class AuditLogController extends Controller
         ];
     }
 
+    /**
+     * الأعمدة المسموح الترتيب بها — أعمدة الملخص المعروضة وحدها. لا `ip_address`
+     * ولا `user_agent` ولا قيم قبل/بعد: ما لا يراه مسؤول الحساب لا يُرتَّب به،
+     * فالترتيب لا يستنتج ما لا يُعرض (H §18/§19).
+     */
+    public static function sort(): ListSort
+    {
+        return ListSort::make([
+            'created_at' => 'created_at',
+            'action' => 'action',
+            'actor_name' => 'actor_name',
+            'entity_type' => 'entity_type',
+        ], 'created_at', ListSort::DESC, 'id');
+    }
+
     public function index(Request $request): Response
     {
         $company = auth('company')->user();
@@ -68,12 +84,13 @@ class AuditLogController extends Controller
             'action' => ['sometimes', 'nullable', 'string', 'max:120'],
             'from' => ['sometimes', 'nullable', 'date'],
             'to' => ['sometimes', 'nullable', 'date'],
-            'sort' => ['sometimes', 'nullable', 'string'],
+            // H §18 — مفتاح ترتيب من القائمة البيضاء + اتجاهه؛ `?sort=asc`
+            // القديم يبقى عاملاً عبر توافق `ListSort`.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
         ]);
 
-        $direction = ($filters['sort'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
-
-        $logs = AuditLog::query()
+        $query = AuditLog::query()
             ->forCompany($company->id)
             ->whereIn('action', self::visibleActions())
             ->when(filled($filters['search'] ?? null), fn ($query) => $query->where(fn ($inner) => $inner
@@ -81,9 +98,10 @@ class AuditLogController extends Controller
                 ->orWhere('reason', 'like', '%'.$filters['search'].'%')))
             ->when(filled($filters['action'] ?? null), fn ($query) => $query->where('action', $filters['action']))
             ->when(filled($filters['from'] ?? null), fn ($query) => $query->whereDate('created_at', '>=', $filters['from']))
-            ->when(filled($filters['to'] ?? null), fn ($query) => $query->whereDate('created_at', '<=', $filters['to']))
-            ->orderBy('created_at', $direction)
-            ->orderBy('id', $direction)
+            ->when(filled($filters['to'] ?? null), fn ($query) => $query->whereDate('created_at', '<=', $filters['to']));
+
+        $logs = self::sort()
+            ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)
             ->paginate(20)
             ->withQueryString()
             ->through(fn (AuditLog $log) => [
@@ -104,6 +122,7 @@ class AuditLogController extends Controller
             'company' => $company,
             'logs' => $logs,
             'filters' => $filters,
+            'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'actions' => collect(self::visibleActions())
                 ->map(fn (string $action) => ['value' => $action, 'label' => AuditAction::label($action)])
                 ->values()

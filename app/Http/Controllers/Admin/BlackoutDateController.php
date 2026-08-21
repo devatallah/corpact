@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BlackoutDate;
 use App\Services\ActivityLogService;
+use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,10 +18,39 @@ use Inertia\Response;
  */
 class BlackoutDateController extends Controller
 {
-    public function index(): Response
+    /**
+     * الأعمدة المسموح الترتيب بها — الاسم ونطاق التاريخ، وهي كل ما تعرضه
+     * البطاقة (H §18). الافتراضي هو ترتيب الشاشة اليوم: الأحدث بداية أولاً.
+     */
+    public static function sort(): ListSort
     {
+        return ListSort::make([
+            'starts_on' => 'starts_on',
+            'ends_on' => 'ends_on',
+            'name' => 'name',
+        ], 'starts_on', ListSort::DESC, 'id');
+    }
+
+    public function index(Request $request): Response
+    {
+        $search = $request->query('search');
+        $search = is_string($search) && trim($search) !== '' ? trim($search) : null;
+
+        // H §18 — الترتيب: القيمتان مفتاحان من قائمة بيضاء، لا اسما عمودين.
+        $sortKey = is_string($request->query('sort')) ? $request->query('sort') : null;
+        $sortDir = is_string($request->query('dir')) ? $request->query('dir') : null;
+
+        $query = BlackoutDate::query()
+            ->when($search !== null, fn ($q) => $q->where('name', 'like', '%'.$search.'%'));
+
         return Inertia::render('admin/blackouts/index', [
-            'blackouts' => BlackoutDate::query()->orderByDesc('starts_on')->get(),
+            'blackouts' => self::sort()
+                ->apply($query, $sortKey, $sortDir)
+                ->paginate(20)
+                ->withQueryString(),
+            'totalBlackouts' => BlackoutDate::count(),
+            'filters' => ['search' => $search, 'sort' => $sortKey, 'dir' => $sortDir],
+            'sort' => self::sort()->state($sortKey, $sortDir),
         ]);
     }
 

@@ -1,6 +1,9 @@
 import CompanyLayout from '@/layouts/company-layout';
 import CategoryIcon from '@/components/category-icon';
-import type { Community, Category, Employee } from '@/types/models';
+import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import type { Community, Category, PaginatedResult } from '@/types/models';
 import { Head, useForm } from '@inertiajs/react';
 import { useState, useEffect, useRef, useCallback, useMemo, type FormEvent } from 'react';
 import toastr from 'toastr';
@@ -8,11 +11,17 @@ import toastr from 'toastr';
 const COLORS = ['#0CA678', '#D4820A', '#5B3FCC', '#3B5BDB', '#E03050', '#8B5CF6'];
 
 interface Props {
-    communities: Community[];
+    communities: PaginatedResult<Community>;
     categories?: Category[];
+    filters: { search?: string; sort?: string; dir?: string };
+    sort: SortState;
 }
 
-export default function CommunitiesIndex({ communities, categories }: Props) {
+export default function CommunitiesIndex({ communities, categories, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const [showCreate, setShowCreate] = useState(false);
     const [editingItem, setEditingItem] = useState<Community | null>(null);
 
@@ -104,7 +113,7 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <div>
                     <div className="page-title">إدارة المجتمعات</div>
-                    <div className="page-sub">{communities.length} مجتمعات نشطة</div>
+                    <div className="page-sub">{communities.total} مجتمعات نشطة</div>
                 </div>
                 <button
                     onClick={() => { setShowCreate(true); setEditingItem(null); form.reset(); setLeaderQuery(''); setSelectedLeaderName(''); setLeaderResults([]); }}
@@ -114,13 +123,29 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
                 </button>
             </div>
 
-            {communities.length === 0 ? (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث باسم المجتمع..."
+                    style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 220 }}
+                />
+                <SortBar
+                    sort={sort}
+                    options={[
+                        { key: 'name', label: 'الاسم' },
+                        { key: 'members_count', label: 'عدد الأعضاء', initialDirection: 'desc' },
+                    ]}
+                />
+            </div>
+
+            {communities.data.length === 0 ? (
                 <div className="card" style={{ textAlign: 'center', padding: 32 }}>
-                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا توجد مجتمعات بعد</div>
+                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا توجد مجتمعات مطابقة</div>
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                    {communities.map((community, index) => {
+                    {communities.data.map((community, index) => {
                         const color = community.color ?? COLORS[index % COLORS.length];
                         const activeMembers = community.members_count ?? 0;
                         const eventCount = community.events_count ?? 0;
@@ -187,6 +212,8 @@ export default function CommunitiesIndex({ communities, categories }: Props) {
                     })}
                 </div>
             )}
+
+            <Pagination links={communities.links} />
 
             {(showCreate || editingItem) && (
                 <div className="detail-overlay open" onClick={() => { setShowCreate(false); setEditingItem(null); }}>

@@ -1,7 +1,10 @@
 import EmployeeLayout from '@/layouts/employee-layout';
 import CategoryIcon from '@/components/category-icon';
+import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import { Head, router } from '@inertiajs/react';
-import type { Community, Category } from '@/types/models';
+import type { Community, Category, PaginatedResult } from '@/types/models';
 
 interface ExploreCommunity extends Community {
     members_count: number;
@@ -11,10 +14,24 @@ interface ExploreCommunity extends Community {
 }
 
 interface Props {
-    communities: ExploreCommunity[];
+    communities: PaginatedResult<ExploreCommunity>;
+    filters?: { search?: string; sort?: string; dir?: string };
+    sort?: SortState;
 }
 
-export default function ExploreIndex({ communities }: Props) {
+const sortOptions = [
+    { key: 'name', label: 'الاسم', initialDirection: 'asc' as const },
+    { key: 'members_count', label: 'الأعضاء', initialDirection: 'desc' as const },
+    { key: 'created_at', label: 'الأحدث', initialDirection: 'desc' as const },
+];
+
+export default function ExploreIndex({ communities, filters, sort }: Props) {
+    const items = communities?.data ?? [];
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
+
     function handleJoin(communityId: number) {
         router.post(`/employee/community/${communityId}/join`);
     }
@@ -32,8 +49,19 @@ export default function ExploreIndex({ communities }: Props) {
                 <p style={{ fontSize: 14, color: '#666', marginTop: 4 }}>اكتشف واختر المجتمعات التي تناسبك</p>
             </div>
 
-            {communities.length > 0 ? (
-                communities.map((community) => {
+            {/* H §18: بحث + ترتيب + ترقيم صفحات */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث باسم المجتمع..."
+                    style={{ padding: '8px 14px', borderRadius: 99, border: '1px solid #EBEBEB', background: '#fff', fontSize: 13, color: '#0A0A0A', outline: 'none', direction: 'rtl', fontFamily: 'inherit', flex: '1 1 180px', minWidth: 0 }}
+                />
+                <SortBar sort={sort} options={sortOptions} />
+            </div>
+
+            {items.length > 0 ? (
+                items.map((community) => {
                     const color = community.category?.color ?? community.color ?? '#18A86B';
                     return (
                         <div
@@ -77,9 +105,11 @@ export default function ExploreIndex({ communities }: Props) {
             ) : (
                 <div className="empty">
                     <div className="ico">📭</div>
-                    <div className="txt">لا توجد مجتمعات متاحة حاليا</div>
+                    <div className="txt">{search ? 'لا مجتمع مطابق لبحثك' : 'لا توجد مجتمعات متاحة حاليا'}</div>
                 </div>
             )}
+
+            {communities?.links && <Pagination links={communities.links} />}
         </EmployeeLayout>
     );
 }

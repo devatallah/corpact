@@ -1,5 +1,6 @@
 import CompanyLayout from '@/layouts/company-layout';
 import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
 import { fmtDateTime } from '@/lib/utils';
 import type { Notification as NotificationModel, PaginatedResult } from '@/types/models';
 import { Head, router } from '@inertiajs/react';
@@ -17,9 +18,10 @@ function notificationEmoji(type: string | null) {
 interface Props {
     notifications: PaginatedResult<NotificationModel>;
     unreadCount: number;
+    sort: SortState;
 }
 
-export default function NotificationsIndex({ notifications, unreadCount }: Props) {
+export default function NotificationsIndex({ notifications, unreadCount, sort }: Props) {
     function markAllRead() {
         router.post('/company/notifications/mark-all-read', {}, {
             onSuccess: () => toastr.success('تم تحديد جميع الإشعارات كمقروءة'),
@@ -43,6 +45,17 @@ export default function NotificationsIndex({ notifications, unreadCount }: Props
                         تحديد الكل
                     </button>
                 )}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+                <SortBar
+                    sort={sort}
+                    options={[
+                        { key: 'created_at', label: 'التاريخ', initialDirection: 'desc' },
+                        { key: 'read_at', label: 'غير المقروءة أولاً', initialDirection: 'asc' },
+                        { key: 'title', label: 'العنوان' },
+                    ]}
+                />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

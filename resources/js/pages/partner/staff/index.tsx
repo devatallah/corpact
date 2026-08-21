@@ -2,9 +2,12 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 import toastr from 'toastr';
 import ConfirmModal from '@/components/confirm-modal';
+import Pagination from '@/components/pagination';
 import PasswordInput from '@/components/password-input';
+import { SortBar, type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import PartnerLayout from '@/layouts/partner-layout';
-import type { Partner } from '@/types/models';
+import type { Partner, PaginatedResult } from '@/types/models';
 
 interface Role {
     value: string;
@@ -22,12 +25,27 @@ interface StaffMember {
 
 interface Props {
     partner: Partner;
-    staff: StaffMember[];
+    staff: PaginatedResult<StaffMember>;
     roles: Role[];
+    filters?: { search?: string; sort?: string; dir?: string };
+    sort?: SortState;
 }
 
-export default function StaffIndex({ partner, staff, roles }: Props) {
+const sortOptions = [
+    { key: 'name', label: 'الاسم', initialDirection: 'asc' as const },
+    { key: 'email', label: 'البريد', initialDirection: 'asc' as const },
+    { key: 'role', label: 'الدور', initialDirection: 'asc' as const },
+    { key: 'status', label: 'الحالة', initialDirection: 'asc' as const },
+    { key: 'created_at', label: 'الأحدث', initialDirection: 'desc' as const },
+];
+
+export default function StaffIndex({ partner, staff, roles, filters, sort }: Props) {
+    const members = staff?.data ?? [];
     const [showForm, setShowForm] = useState(false);
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const [editingId, setEditingId] = useState<number | null>(null);
     // H §18: نافذة تأكيد موحّدة بدل نافذة المتصفح، والنص يصف أثر الحذف.
     const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
@@ -122,6 +140,17 @@ return;
                 </button>
             </div>
 
+            {/* H §18: بحث + ترتيب + ترقيم صفحات */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث بالاسم أو البريد..."
+                    style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #EAE4DC', fontSize: 13, background: '#fff', color: '#1C1410', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 220 }}
+                />
+                <SortBar sort={sort} options={sortOptions} />
+            </div>
+
             {/* Add Form */}
             {showForm && (
                 <div className="card" style={{ marginBottom: 20 }}>
@@ -192,15 +221,15 @@ return;
             )}
 
             {/* Staff List */}
-            {staff.length === 0 ? (
+            {members.length === 0 ? (
                 <div className="card" style={{ textAlign: 'center', padding: 40, color: '#8A7868' }}>
                     <div style={{ fontSize: 32, marginBottom: 8 }}>👥</div>
-                    <div style={{ fontSize: 14 }}>لم تتم إضافة أي موظفين بعد</div>
+                    <div style={{ fontSize: 14 }}>{search ? 'لا موظف مطابق لبحثك' : 'لم تتم إضافة أي موظفين بعد'}</div>
                     <div style={{ fontSize: 12, marginTop: 4 }}>أضف موظفي الاستقبال ليتمكنوا من إدارة الطلبات</div>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {staff.map(member => (
+                    {members.map(member => (
                         <div key={member.id} className="card" style={{ padding: 16 }}>
                             {editingId === member.id ? (
                                 <form onSubmit={handleUpdate}>
@@ -327,6 +356,8 @@ return;
                     ))}
                 </div>
             )}
+
+            {staff?.links && <Pagination links={staff.links} />}
 
             <ConfirmModal
                 open={deleteTarget !== null}

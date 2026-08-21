@@ -26,6 +26,10 @@ class IndexPartnerRequest extends FormRequest
             'status' => ['sometimes', 'string', 'in:pending,active,rejected,suspended'],
             'search' => ['sometimes', 'string', 'max:255'],
             'per_page' => ['sometimes', 'integer', 'min:5', 'max:100'],
+            // H §18 — الترتيب. القيمة مفتاح من قائمة بيضاء في `ListSort`، لا
+            // اسم عمود؛ التحقق هنا يمنع الحشو فقط.
+            'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
         ];
     }
 

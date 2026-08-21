@@ -1,13 +1,34 @@
 import CompanyLayout from '@/layouts/company-layout';
 import ConfirmModal from '@/components/confirm-modal';
+import FilterTabs from '@/components/filter-tabs';
+import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import type { CommunityRequest } from '@/types/models';
+import type { CommunityRequest, PaginatedResult } from '@/types/models';
 import toastr from 'toastr';
 
 interface Props {
-    requests: CommunityRequest[];
+    requests: PaginatedResult<CommunityRequest>;
+    filters?: { status?: string; search?: string; sort?: string; dir?: string };
+    sort?: SortState;
+    /** عدد الطلبات المعلقة في القائمة كلها — لا في الصفحة الحالية. */
+    pendingCommunityRequests?: number;
 }
+
+const statusFilters = [
+    { label: 'الكل', value: '' },
+    { label: 'قيد المراجعة', value: 'pending' },
+    { label: 'تمت الموافقة', value: 'approved' },
+    { label: 'مرفوض', value: 'rejected' },
+];
+
+const sortOptions = [
+    { key: 'created_at', label: 'الأحدث', initialDirection: 'desc' as const },
+    { key: 'name', label: 'الاسم', initialDirection: 'asc' as const },
+    { key: 'status', label: 'الحالة', initialDirection: 'asc' as const },
+];
 
 function statusLabel(status: string): { text: string; bg: string; color: string } {
     switch (status) {
@@ -22,19 +43,20 @@ function statusLabel(status: string): { text: string; bg: string; color: string 
     }
 }
 
-export default function CommunityRequestsIndex({ requests }: Props) {
-    const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+export default function CommunityRequestsIndex({ requests, filters, sort, pendingCommunityRequests = 0 }: Props) {
+    const items = requests?.data ?? [];
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        status: filters?.status,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
     const [rejectingId, setRejectingId] = useState<number | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
     const [processing, setProcessing] = useState<number | null>(null);
     // H §18: نافذة تأكيد موحّدة بدل نافذة المتصفح، والنص يصف أثر الموافقة.
     const [approveTarget, setApproveTarget] = useState<CommunityRequest | null>(null);
 
-    const filteredRequests = activeFilter === 'all'
-        ? requests
-        : requests.filter((r) => r.status === activeFilter);
-
-    const pendingCount = requests.filter((r) => r.status === 'pending').length;
+    const pendingCount = pendingCommunityRequests;
 
     function handleApprove(request: CommunityRequest) {
         setApproveTarget(request);
@@ -67,13 +89,6 @@ export default function CommunityRequestsIndex({ requests }: Props) {
         });
     }
 
-    const filters: { key: typeof activeFilter; label: string; count?: number }[] = [
-        { key: 'all', label: 'الكل' },
-        { key: 'pending', label: 'قيد المراجعة', count: pendingCount },
-        { key: 'approved', label: 'تمت الموافقة' },
-        { key: 'rejected', label: 'مرفوض' },
-    ];
-
     return (
         <CompanyLayout>
             <Head title="طلبات إنشاء مجتمعات" />
@@ -89,42 +104,29 @@ export default function CommunityRequestsIndex({ requests }: Props) {
                 </div>
             </div>
 
-            {/* Filters */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                {filters.map((f) => (
-                    <button
-                        key={f.key}
-                        onClick={() => setActiveFilter(f.key)}
-                        style={{
-                            padding: '6px 16px', borderRadius: 20, border: 'none',
-                            fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                            background: activeFilter === f.key ? '#3B5BDB' : '#F1F5F9',
-                            color: activeFilter === f.key ? '#fff' : '#64748B',
-                            display: 'flex', alignItems: 'center', gap: 6,
-                        }}
-                    >
-                        {f.label}
-                        {f.count !== undefined && f.count > 0 && (
-                            <span style={{
-                                background: activeFilter === f.key ? 'rgba(255,255,255,0.3)' : '#F59E0B',
-                                color: activeFilter === f.key ? '#fff' : '#fff',
-                                borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 800,
-                            }}>
-                                {f.count}
-                            </span>
-                        )}
-                    </button>
-                ))}
+            {/* H §18: بحث + فلترة + ترتيب — كلها على الخادم فتصمد عبر الصفحات */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث باسم المجتمع..."
+                    style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
+                />
+                <FilterTabs options={statusFilters} current={filters?.status ?? ''} />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+                <SortBar sort={sort} options={sortOptions} />
             </div>
 
             {/* Requests list */}
-            {filteredRequests.length === 0 ? (
+            {items.length === 0 ? (
                 <div className="card" style={{ textAlign: 'center', padding: 32 }}>
                     <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا توجد طلبات</div>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {filteredRequests.map((req) => {
+                    {items.map((req) => {
                         const s = statusLabel(req.status);
                         const isRejecting = rejectingId === req.id;
 
@@ -289,6 +291,8 @@ export default function CommunityRequestsIndex({ requests }: Props) {
                     })}
                 </div>
             )}
+
+            {requests?.links && <Pagination links={requests.links} />}
 
             <ConfirmModal
                 open={approveTarget !== null}

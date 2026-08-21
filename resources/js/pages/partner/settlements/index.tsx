@@ -1,7 +1,10 @@
+import FilterTabs from '@/components/filter-tabs';
 import ListStates from '@/components/list-states';
 import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import StatCard from '@/components/stat-card';
 import StatusBadge from '@/components/status-badge';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import PartnerLayout from '@/layouts/partner-layout';
 import type { PaginatedResult, Partner } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
@@ -31,10 +34,28 @@ interface Props {
     partner: Partner;
     statements: PaginatedResult<StatementRow>;
     totals: Totals;
-    filters?: { status?: string };
+    filters?: { status?: string; search?: string; sort?: string; dir?: string };
+    sort: SortState;
 }
 
-export default function SettlementsIndex({ statements, totals }: Props) {
+/**
+ * الخادم يقبل `status` (مسودة/معتمد/مدفوع) منذ A11 وكانت الشاشة تُعلنه في
+ * `Props` ثم تهمله — فلترة بلا واجهة. صار له ضابط ظاهر (H §18).
+ */
+const statusOptions = [
+    { label: 'الكل', value: '' },
+    { label: 'مسودة', value: 'draft' },
+    { label: 'معتمد', value: 'approved' },
+    { label: 'مدفوع', value: 'paid' },
+];
+
+export default function SettlementsIndex({ statements, totals, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        status: filters?.status,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
+
     return (
         <PartnerLayout>
             <Head title="التسويات" />
@@ -63,17 +84,27 @@ export default function SettlementsIndex({ statements, totals }: Props) {
                 <StatCard emoji="⏭️" label="بنود للكشف القادم" value={totals.unstated_net} color="#6B7A99" />
             </div>
 
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="🔍 ابحث بالفترة أو مرجع التحويل..."
+                    style={{ flex: 1, minWidth: 200, padding: '9px 14px', background: '#fff', border: '1px solid #EAE4DC', borderRadius: 10, fontSize: 13, color: '#3A2E22', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
+                />
+                <FilterTabs options={statusOptions} current={filters?.status ?? ''} />
+            </div>
+
             <div className="card">
                 <div style={{ overflow: 'auto' }}>
                     <table className="portal-table">
                         <thead>
                             <tr>
-                                <th>الفترة</th>
-                                <th>الفعاليات</th>
-                                <th>الإجمالي</th>
-                                <th>العمولة</th>
-                                <th>الصافي</th>
-                                <th>الحالة</th>
+                                <SortableHeader label="الفترة" sortKey="period_end" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الفعاليات" sortKey="items_count" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الإجمالي" sortKey="gross_amount" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="العمولة" sortKey="commission_amount" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الصافي" sortKey="net_amount" sort={sort} initialDirection="desc" />
+                                <SortableHeader label="الحالة" sortKey="status" sort={sort} />
                                 <th></th>
                             </tr>
                         </thead>
@@ -82,7 +113,7 @@ export default function SettlementsIndex({ statements, totals }: Props) {
                                 count={statements.data.length}
                                 columns={7}
                                 emptyTitle="لا كشوف بعد"
-                                emptyHint="أول كشف تسوية يُولَّد بعد اكتمال فعالياتك في الفترة."
+                                emptyHint="أول كشف تسوية يُولَّد بعد اكتمال فعالياتك في الفترة. إن كنت تبحث أو تفلتر، وسّع المدى."
                             />
                             {statements.data.map((row) => (
                                 <tr key={row.id}>

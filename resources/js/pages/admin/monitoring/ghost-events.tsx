@@ -1,6 +1,10 @@
 import ListStates from '@/components/list-states';
+import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
 import StatCard from '@/components/stat-card';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import AdminLayout from '@/layouts/admin-layout';
+import type { PaginatedResult } from '@/types/models';
 import { Head, router } from '@inertiajs/react';
 
 /* A13 — H §13 ⟶ §15: الإنذار المبكر لـ«الفعالية الشبح».
@@ -43,7 +47,9 @@ interface Props {
     };
     companyId: number | null;
     companies: { id: number; name: string }[];
-    recentManualChanges: ManualChange[];
+    recentManualChanges: PaginatedResult<ManualChange>;
+    filters: { search?: string; sort?: string; dir?: string };
+    sort: SortState;
 }
 
 const thStyle = { padding: '10px 14px', fontSize: 12, fontWeight: 600 } as const;
@@ -63,9 +69,19 @@ function spikeNote(latest: number, baseline: number): string {
     return `خط الأساس ${baseline}%`;
 }
 
-export default function GhostEventMonitor({ weeks, latest, baseline, companyId, companies, recentManualChanges }: Props) {
+export default function GhostEventMonitor({ weeks, latest, baseline, companyId, companies, recentManualChanges, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        company_id: companyId ? String(companyId) : undefined,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
+
     function filterCompany(value: string) {
-        router.get('/admin/monitoring/ghost-events', value === '' ? {} : { company_id: value }, { preserveScroll: true });
+        router.get(
+            '/admin/monitoring/ghost-events',
+            value === '' ? {} : { company_id: value },
+            { preserveScroll: true },
+        );
     }
 
     return (
@@ -163,25 +179,31 @@ export default function GhostEventMonitor({ weeks, latest, baseline, companyId, 
                 <div style={{ padding: '14px 20px', borderBottom: '1px solid #232A3E' }}>
                     <div style={{ fontSize: 14, fontWeight: 700 }}>آخر التدخلات اليدوية</div>
                     <div style={{ fontSize: 11, opacity: 0.7, marginTop: 3 }}>كل تدخل يدوي يحمل سبباً مكتوباً — اقرأ السبب قبل أن تتدخل مرة أخرى</div>
+                    <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="🔍 ابحث بالفعالية أو الشركة أو السبب..."
+                        style={{ marginTop: 10, width: '100%', maxWidth: 360, padding: '8px 12px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 12, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
+                    />
                 </div>
                 <table className="portal-table">
                     <thead>
                         <tr>
-                            <th style={thStyle}>الفعالية</th>
-                            <th style={thStyle}>الشركة</th>
-                            <th style={thStyle}>من ← إلى</th>
+                            <SortableHeader label="الفعالية" sortKey="event_title" sort={sort} style={thStyle} />
+                            <SortableHeader label="الشركة" sortKey="company_name" sort={sort} style={thStyle} />
+                            <SortableHeader label="من ← إلى" sortKey="to_status" sort={sort} style={thStyle} />
                             <th style={thStyle}>السبب</th>
-                            <th style={thStyle}>الوقت</th>
+                            <SortableHeader label="الوقت" sortKey="created_at" sort={sort} initialDirection="desc" style={thStyle} />
                         </tr>
                     </thead>
                     <tbody>
                         <ListStates
-                            count={recentManualChanges.length}
+                            count={recentManualChanges.data.length}
                             columns={5}
                             emptyTitle="لا تدخلات يدوية مسجّلة"
                             emptyHint="وهذه هي الحالة الصحية — كل انتقال حالة تم بآلة الحالات لا بتدخل يدوي."
                         />
-                        {recentManualChanges.map((change) => (
+                        {recentManualChanges.data.map((change) => (
                             <tr key={change.id}>
                                 <td style={tdStyle}>{change.event_title}</td>
                                 <td style={tdStyle}>{change.company_name}</td>
@@ -192,6 +214,7 @@ export default function GhostEventMonitor({ weeks, latest, baseline, companyId, 
                         ))}
                     </tbody>
                 </table>
+                <Pagination links={recentManualChanges.links} />
             </div>
         </AdminLayout>
     );
