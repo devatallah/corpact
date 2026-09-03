@@ -40,7 +40,9 @@ class PartnerService
         $query = Partner::query()
             ->whereNull('parent_id')
             ->with(['categories', 'venues'])
-            ->withCount('staff')
+            // الفروع والوحدات تقيس الطاقة الفعلية للمزوّد — المرافق وحدها لا
+            // تقولها، فالمرفق بلا وحدة نشطة لا يُحجز.
+            ->withCount(['staff', 'branches'])
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->when(isset($filters['search']), fn ($query) => $query->where(function ($q) use ($filters) {
                 $q->where('name', 'like', '%'.$filters['search'].'%')

@@ -67,7 +67,8 @@ export default function AdminEvents({
 
             <PageHeader
                 icon={Calendar}
-                title="الفعاليات عبر المنصة"
+                title="مراقبة الفعاليات والتدخل اليدوي"
+                badge={`${events.total} فعالية`}
                 subtitle="الدورة تلقائية بالكامل. هذه الشاشة للبحث والتشخيص — التدخل اليدوي يتم من صفحة الفعالية وبسبب موثّق."
             />
 

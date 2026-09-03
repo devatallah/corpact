@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Coins, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Coins, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar, visitWith } from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
@@ -158,12 +158,7 @@ export default function AuditIndex({
                                         </Badge>
                                     )}
                                     {open === log.id && (log.before_values || log.after_values) && (
-                                        <pre
-                                            dir="ltr"
-                                            className="mt-2 p-2 rounded-lg bg-page border-[0.5px] border-ink/10 text-[10px] font-mono overflow-x-auto max-w-md"
-                                        >
-                                            {JSON.stringify({ before: log.before_values, after: log.after_values }, null, 1)}
-                                        </pre>
+                                        <ValueDiff before={log.before_values} after={log.after_values} />
                                     )}
                                 </Td>
                                 <Td>
@@ -197,5 +192,56 @@ export default function AuditIndex({
                 </div>
             </Card>
         </AdminLayout>
+    );
+}
+
+/**
+ * القيمة السابقة والجديدة، حقلاً بحقل.
+ *
+ * The row already carries `before`/`after`; this used to print them as raw
+ * JSON. An audit trail is read by someone reconstructing what changed and
+ * why — usually under dispute — and `{"attendance_status":"absent"}` makes
+ * them parse a data structure to find out. Only fields that actually differ
+ * are shown, because an unchanged field is noise in exactly the moment
+ * precision matters.
+ */
+function ValueDiff({
+    before,
+    after,
+}: {
+    before: Record<string, unknown> | null;
+    after: Record<string, unknown> | null;
+}) {
+    const keys = [...new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})])].filter(
+        (key) => JSON.stringify(before?.[key]) !== JSON.stringify(after?.[key]),
+    );
+
+    if (keys.length === 0) {
+        return <p className="mt-2 text-[10px] text-ink/45">لا تغيّر في القيم — الصف يوثّق الإجراء نفسه.</p>;
+    }
+
+    const show = (value: unknown) => {
+        if (value === null || value === undefined || value === '') {
+            return '—';
+        }
+
+        return typeof value === 'object' ? JSON.stringify(value) : String(value);
+    };
+
+    return (
+        <div className="mt-2 space-y-1 max-w-md">
+            {keys.map((key) => (
+                <div key={key} className="rounded-lg border-[0.5px] border-ink/10 bg-page p-2">
+                    <span className="block font-mono text-[10px] text-ink/50" dir="ltr">
+                        {key}
+                    </span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <span className="flex-1 min-w-0 text-[11px] text-ink/60 line-through truncate">{show(before?.[key])}</span>
+                        <ArrowLeft className="w-3 h-3 text-ink/30 shrink-0" aria-hidden="true" />
+                        <span className="flex-1 min-w-0 text-[11px] font-bold text-ink truncate">{show(after?.[key])}</span>
+                    </div>
+                </div>
+            ))}
+        </div>
     );
 }

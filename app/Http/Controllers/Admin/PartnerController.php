@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\IndexPartnerRequest;
 use App\Http\Requests\Admin\StorePartnerRequest;
 use App\Http\Requests\Admin\UpdatePartnerRequest;
+use App\Models\ActivityUnit;
 use App\Models\Category;
 use App\Models\Partner;
 use App\Services\Admin\PartnerService;
 use App\Services\Identity\IdentityResolver;
+use App\Services\Provider\ReliabilityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Password;
 use Inertia\Inertia;
@@ -33,8 +36,21 @@ class PartnerController extends Controller
         $partners = $this->partnerService->list($filters);
         $stats = $this->partnerService->dashboardStats();
 
+        // مؤشر الموثوقية يراه أدمن تيمات وحده (H §11) — ولا يُعرض قبل عشر
+        // عيّنات لأنه قبلها ضجيج يُقرأ كحُكم.
+        $partners->getCollection()->transform(function (Partner $partner) {
+            $partner->setAttribute('reliability_visible', $partner->reliabilityVisible());
+            $partner->setAttribute('units_count', ActivityUnit::whereHas(
+                'branch',
+                fn ($q) => $q->where('partner_id', $partner->id),
+            )->count());
+
+            return $partner;
+        });
+
         return Inertia::render('admin/partners/index', [
             'partners' => $partners,
+            'reliabilityDeltas' => ReliabilityService::DELTAS,
             'stats' => $stats,
             'filters' => (object) $filters,
             'sort' => PartnerService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
@@ -93,7 +109,7 @@ class PartnerController extends Controller
      * The activity tree the provider forms pick from — parents with their
      * children, same shape the index filter uses.
      *
-     * @return \Illuminate\Support\Collection<int, Category>
+     * @return Collection<int, Category>
      */
     private static function categoryTree()
     {

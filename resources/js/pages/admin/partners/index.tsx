@@ -4,7 +4,7 @@ import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
-import { Badge, ButtonLink, Card, IconButton, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import { Badge, ButtonLink, Card, IconButton, PageHeader, StatCard, TableShell, Tbody, Td, Th, Thead, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
 import type { Paginated, SortState } from '@/types';
 
@@ -24,6 +24,11 @@ type Partner = {
     city: string | null;
     district: string | null;
     venues_count: number | null;
+    branches_count?: number | null;
+    units_count?: number | null;
+    reliability_score: number | null;
+    reliability_samples: number | null;
+    reliability_visible?: boolean;
     staff_count: number | null;
     commission_rate: string | number | null;
     status: string;
@@ -40,12 +45,14 @@ const PARTNER_STATUS: Record<string, { label: string; tone: 'neutral' | 'success
 
 export default function AdminPartners({
     partners,
+    reliabilityDeltas,
     stats,
     filters,
     sort,
     categories,
 }: {
     partners: Paginated<Partner>;
+    reliabilityDeltas: Record<string, number>;
     stats: { total: number; pending: number; active: number; rejected: number; suspended: number };
     filters: { search?: string; status?: string; category_id?: string };
     sort: SortState;
@@ -60,8 +67,9 @@ export default function AdminPartners({
 
             <PageHeader
                 icon={Users}
-                title="مزوّدو الخدمة"
-                subtitle="اعتماد المرافق، ونسب العمولة، وحالة الحساب البنكي التي تحكم إمكانية الصرف."
+                title="شبكة المزوّدين والمرافق الرياضية"
+                badge={`${stats.active} مزوّداً مفعَّلاً`}
+                subtitle="تدقيق السجلات التجارية، والحسابات البنكية المعتمدة، ونسب العمولة، ومؤشر الموثوقية التشغيلية."
                 actions={
                     <ButtonLink href="/admin/partners/create" icon={Plus}>
                         إضافة مزوّد
@@ -75,6 +83,8 @@ export default function AdminPartners({
                 <StatCard label="مفعّلون" value={stats.active} tone="success" />
                 <StatCard label="موقوفون أو مرفوضون" value={stats.suspended + stats.rejected} />
             </div>
+
+            <ReliabilityFormula deltas={reliabilityDeltas} />
 
             <Card padding="p-4" className="space-y-4">
                 <Toolbar>
@@ -113,6 +123,7 @@ export default function AdminPartners({
                         <Th>
                             <SortableHeader label="العمولة" sortKey="commission_rate" sort={sort} initialDirection="desc" />
                         </Th>
+                        <Th>مؤشر الموثوقية</Th>
                         <Th>الحساب البنكي</Th>
                         <Th>
                             <SortableHeader label="الحالة" sortKey="status" sort={sort} />
@@ -136,8 +147,16 @@ export default function AdminPartners({
                                     <span className="text-ink/85 block">{partner.city ?? '—'}</span>
                                     <span className="text-[11px] text-ink/50">{partner.district ?? ''}</span>
                                 </Td>
-                                <Td className="font-mono font-bold text-ink">{partner.venues_count ?? 0}</Td>
+                                <Td>
+                                    <span className="font-mono font-bold text-ink">{partner.venues_count ?? 0}</span>
+                                    <span className="block text-[10px] text-ink/50">
+                                        {partner.branches_count ?? 0} فرع · {partner.units_count ?? 0} وحدة
+                                    </span>
+                                </Td>
                                 <Td className="font-mono text-ink/85">{partner.commission_rate ?? '—'}٪</Td>
+                                <Td>
+                                    <Reliability partner={partner} />
+                                </Td>
                                 <Td>
                                     <Badge
                                         tone={partner.bank_status === 'approved' ? 'success' : 'danger'}
@@ -253,5 +272,71 @@ export default function AdminPartners({
                 onCancel={() => setDeciding(null)}
             />
         </AdminLayout>
+    );
+}
+
+/**
+ * H §11 — مؤشر الموثوقية، لعين أدمن تيمات وحده.
+ *
+ * The provider never sees this number; the admin does, because ordering the
+ * suggestion engine is their job. Below ten samples it is not shown at all —
+ * a score built on three requests reads as a verdict and is not one.
+ */
+function Reliability({ partner }: { partner: Partner }) {
+    if (!partner.reliability_visible) {
+        return (
+            <span className="text-[10px] text-ink/45">
+                عيّنات غير كافية
+                <span className="block font-mono">({partner.reliability_samples ?? 0}/10)</span>
+            </span>
+        );
+    }
+
+    const score = partner.reliability_score ?? 0;
+    const tone = score >= 80 ? 'text-success' : score >= 60 ? 'text-warning' : 'text-danger';
+
+    return (
+        <span>
+            <span className={`font-mono text-sm font-black ${tone}`}>{score}</span>
+            <span className="font-mono text-[10px] text-ink/45"> / 100</span>
+            <span className="block text-[10px] text-ink/45">{partner.reliability_samples} عيّنة</span>
+        </span>
+    );
+}
+
+/** معادلة المؤشر — تُعرض للأدمن لأنه من يشرحها للمزوّد عند الاعتراض. */
+export function ReliabilityFormula({ deltas }: { deltas: Record<string, number> }) {
+    const labels: Record<string, string> = {
+        accept_within_deadline: 'قبول ضمن المهلة',
+        late_response: 'ردّ متأخر',
+        reject: 'رفض الطلب',
+        cancel_after_accept: 'إلغاء بعد القبول',
+        event_completed_clean: 'فعالية تمّت دون مشاكل',
+        stale_availability_conflict: 'إلغاء بسبب تقويم غير محدَّث',
+        manual_adjustment: 'تعديل يدوي موثَّق من أدمن تيمات',
+    };
+
+    return (
+        <Card padding="p-4" className="space-y-2">
+            <h2 className="text-sm font-extrabold text-ink">معادلة مؤشر الموثوقية</h2>
+            <p className="text-[11px] text-ink/55">يبدأ من 80، ويُقصّ دائماً بين 0 و100. لا يُعرض للمزوّد في الإصدار الأول.</p>
+
+            <div className="flex flex-wrap gap-1.5">
+                {Object.entries(deltas).map(([key, delta]) => (
+                    <span
+                        key={key}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border-[0.5px] ${
+                            delta > 0 ? 'bg-success-tint text-success border-success/25' : 'bg-danger-tint text-danger border-danger/25'
+                        }`}
+                    >
+                        <span className="font-mono" dir="ltr">
+                            {delta > 0 ? '+' : ''}
+                            {delta}
+                        </span>
+                        {labels[key] ?? key}
+                    </span>
+                ))}
+            </div>
+        </Card>
     );
 }
