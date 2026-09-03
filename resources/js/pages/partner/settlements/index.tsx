@@ -1,8 +1,27 @@
 import { Head, Link } from '@inertiajs/react';
 import { Ban, Landmark, Scale } from 'lucide-react';
-import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import {
+    FilterSelect,
+    Pagination,
+    ResultCount,
+    SearchInput,
+    SortableHeader,
+    Toolbar,
+} from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
-import { Badge, Card, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import {
+    Badge,
+    Card,
+    Note,
+    PageHeader,
+    StatCard,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    TableShell,
+    Tr,
+} from '@/components/portal/ui';
 import PartnerLayout from '@/layouts/partner-layout';
 import type { Paginated, SortState } from '@/types';
 
@@ -28,7 +47,10 @@ type Statement = {
     payout_reference: string | null;
 };
 
-const STATUS: Record<string, { label: string; tone: 'neutral' | 'success' | 'warning' }> = {
+const STATUS: Record<
+    string,
+    { label: string; tone: 'neutral' | 'success' | 'warning' }
+> = {
     draft: { label: 'قيد الإعداد', tone: 'neutral' },
     approved: { label: 'معتمد — بانتظار التحويل', tone: 'warning' },
     paid: { label: 'حُوِّل', tone: 'success' },
@@ -63,22 +85,47 @@ export default function PartnerSettlements({
             />
 
             {totals.payouts_blocked && (
-                <Note tone="danger" title="التحويل موقوف — الحساب البنكي غير معتمد">
-                    كشوفك تُحتسب وتُعتمد كالمعتاد، لكن لا يمكن تنفيذ التحويل قبل اعتماد حسابك البنكي من فريق تيمات. راجع صفحة
-                    «الحساب البنكي».
+                <Note
+                    tone="danger"
+                    title="التحويل موقوف — الحساب البنكي غير معتمد"
+                >
+                    كشوفك تُحتسب وتُعتمد كالمعتاد، لكن لا يمكن تنفيذ التحويل قبل
+                    اعتماد حسابك البنكي من فريق تيمات. راجع صفحة «الحساب
+                    البنكي».
                 </Note>
             )}
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard label="حُوِّل إليك" value={totals.paid_net} hint="ريال" tone="success" />
-                <StatCard label="معتمد بانتظار التحويل" value={totals.approved_net} hint="ريال" tone="warning" />
-                <StatCard label="قيد الإعداد" value={totals.draft_net} hint="ريال" />
-                <StatCard label="بنود لم يحن كشفها" value={totals.unstated_net} hint="تدخل الكشف القادم" />
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <StatCard
+                    label="حُوِّل إليك"
+                    value={totals.paid_net}
+                    hint="ريال"
+                    tone="success"
+                />
+                <StatCard
+                    label="معتمد بانتظار التحويل"
+                    value={totals.approved_net}
+                    hint="ريال"
+                    tone="warning"
+                />
+                <StatCard
+                    label="قيد الإعداد"
+                    value={totals.draft_net}
+                    hint="ريال"
+                />
+                <StatCard
+                    label="بنود لم يحن كشفها"
+                    value={totals.unstated_net}
+                    hint="تدخل الكشف القادم"
+                />
             </div>
 
             <Card padding="p-4" className="space-y-4">
                 <Toolbar>
-                    <SearchInput value={filters.search ?? ''} placeholder="ابحث بالفترة أو مرجع التحويل…" />
+                    <SearchInput
+                        value={filters.search ?? ''}
+                        placeholder="ابحث بالفترة أو مرجع التحويل…"
+                    />
                     <FilterSelect
                         name="status"
                         label="حالة الكشف"
@@ -95,16 +142,30 @@ export default function PartnerSettlements({
                 <TableShell>
                     <Thead>
                         <Th>
-                            <SortableHeader label="الفترة" sortKey="period_key" sort={sort} initialDirection="desc" />
+                            <SortableHeader
+                                label="الفترة"
+                                sortKey="period_key"
+                                sort={sort}
+                                initialDirection="desc"
+                            />
                         </Th>
                         <Th>البنود</Th>
                         <Th>الإجمالي</Th>
                         <Th>العمولة</Th>
                         <Th>
-                            <SortableHeader label="الصافي" sortKey="net_amount" sort={sort} initialDirection="desc" />
+                            <SortableHeader
+                                label="الصافي"
+                                sortKey="net_amount"
+                                sort={sort}
+                                initialDirection="desc"
+                            />
                         </Th>
                         <Th>
-                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
+                            <SortableHeader
+                                label="الحالة"
+                                sortKey="status"
+                                sort={sort}
+                            />
                         </Th>
                     </Thead>
 
@@ -114,32 +175,51 @@ export default function PartnerSettlements({
                                 <Td>
                                     <Link
                                         href={`/partner/settlements/${statement.id}`}
-                                        className="font-extrabold text-ink hover:underline font-mono"
+                                        className="font-mono font-extrabold text-ink hover:underline"
                                     >
                                         {statement.period_key}
                                     </Link>
-                                    <span className="block text-[11px] text-ink/45 font-mono">
-                                        {statement.period_start} → {statement.period_end}
+                                    <span className="block font-mono text-[11px] text-ink/45">
+                                        {statement.period_start} →{' '}
+                                        {statement.period_end}
                                     </span>
                                 </Td>
-                                <Td className="font-mono text-ink/70">{statement.items_count}</Td>
-                                <Td className="font-mono text-ink/85">{statement.gross_amount}</Td>
-                                <Td className="font-mono text-ink/85">− {statement.commission_amount}</Td>
-                                <Td className="font-mono font-black text-ink">{statement.net_amount}</Td>
+                                <Td className="font-mono text-ink/70">
+                                    {statement.items_count}
+                                </Td>
+                                <Td className="font-mono text-ink/85">
+                                    {statement.gross_amount}
+                                </Td>
+                                <Td className="font-mono text-ink/85">
+                                    − {statement.commission_amount}
+                                </Td>
+                                <Td className="font-mono font-black text-ink">
+                                    {statement.net_amount}
+                                </Td>
                                 <Td>
-                                    <Badge tone={STATUS[statement.status]?.tone ?? 'neutral'}>
-                                        {STATUS[statement.status]?.label ?? statement.status}
+                                    <Badge
+                                        tone={
+                                            STATUS[statement.status]?.tone ??
+                                            'neutral'
+                                        }
+                                    >
+                                        {STATUS[statement.status]?.label ??
+                                            statement.status}
                                     </Badge>
                                     {statement.payout_reference && (
-                                        <span className="block text-[11px] text-ink/45 font-mono mt-1" dir="ltr">
+                                        <span
+                                            className="mt-1 block font-mono text-[11px] text-ink/45"
+                                            dir="ltr"
+                                        >
                                             {statement.payout_reference}
                                         </span>
                                     )}
-                                    {statement.status === 'approved' && totals.payouts_blocked && (
-                                        <Badge tone="danger" icon={Ban}>
-                                            بانتظار اعتماد الحساب البنكي
-                                        </Badge>
-                                    )}
+                                    {statement.status === 'approved' &&
+                                        totals.payouts_blocked && (
+                                            <Badge tone="danger" icon={Ban}>
+                                                بانتظار اعتماد الحساب البنكي
+                                            </Badge>
+                                        )}
                                 </Td>
                             </Tr>
                         ))}
@@ -153,15 +233,16 @@ export default function PartnerSettlements({
                     </Tbody>
                 </TableShell>
 
-                <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <ResultCount page={statements} />
                     <Pagination page={statements} />
                 </div>
             </Card>
 
             <Note title="كيف يُحسب الصافي؟">
-                الصافي = إجمالي الفعاليات المكتملة − عمولة المنصة. العمولة تُحتسب على كل بند بنسبة عقدك، ولا تتغيّر بأثر رجعي
-                على بند صدر كشفه. <Landmark className="w-3 h-3 inline" aria-hidden="true" />
+                الصافي = إجمالي الفعاليات المكتملة − عمولة المنصة. العمولة
+                تُحتسب على كل بند بنسبة عقدك، ولا تتغيّر بأثر رجعي على بند صدر
+                كشفه. <Landmark className="inline h-3 w-3" aria-hidden="true" />
             </Note>
         </PartnerLayout>
     );

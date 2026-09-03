@@ -131,3 +131,19 @@ export const severity = lookup({
     warning: { label: 'تحذير', tone: 'warning' },
     critical: { label: 'حرج', tone: 'danger' },
 });
+
+/**
+ * H §11 — حالات طلب المزوّد.
+ *
+ * `expired` is not a neutral outcome here the way it is for an event: a
+ * request that expired is one the provider never answered, and it costs
+ * reliability points exactly like a rejection would. The tone says so.
+ */
+export const providerRequestStatus = lookup({
+    pending: { label: 'بانتظار ردّك', tone: 'warning' },
+    accepted: { label: 'مقبول', tone: 'success' },
+    rejected: { label: 'مرفوض', tone: 'danger' },
+    alternative_proposed: { label: 'اقترحتَ وقتاً بديلاً', tone: 'lime' },
+    expired: { label: 'انتهت المهلة دون ردّ', tone: 'danger' },
+    cancelled: { label: 'ملغى بعد القبول', tone: 'danger' },
+});

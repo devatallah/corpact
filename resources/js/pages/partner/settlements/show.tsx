@@ -1,8 +1,23 @@
 import { Head } from '@inertiajs/react';
 import { Scale } from 'lucide-react';
-import { Pagination, ResultCount, SortableHeader } from '@/components/list-controls';
+import {
+    Pagination,
+    ResultCount,
+    SortableHeader,
+} from '@/components/list-controls';
 import { BackLink, ListStates } from '@/components/list-states';
-import { Badge, Card, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import {
+    Badge,
+    Card,
+    PageHeader,
+    StatCard,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    TableShell,
+    Tr,
+} from '@/components/portal/ui';
 import PartnerLayout from '@/layouts/partner-layout';
 import type { Paginated, SortState } from '@/types';
 
@@ -45,7 +60,10 @@ type Statement = {
     payout_reference: string | null;
 };
 
-const STATUS: Record<string, { label: string; tone: 'neutral' | 'success' | 'warning' }> = {
+const STATUS: Record<
+    string,
+    { label: string; tone: 'neutral' | 'success' | 'warning' }
+> = {
     draft: { label: 'قيد الإعداد', tone: 'neutral' },
     approved: { label: 'معتمد — بانتظار التحويل', tone: 'warning' },
     paid: { label: 'حُوِّل', tone: 'success' },
@@ -64,7 +82,10 @@ export default function PartnerSettlementShow({
         <PartnerLayout>
             <Head title={`كشف ${statement.period_key}`} />
 
-            <BackLink href="/partner/settlements" label="العودة إلى كشوف المستحقات" />
+            <BackLink
+                href="/partner/settlements"
+                label="العودة إلى كشوف المستحقات"
+            />
 
             <PageHeader
                 icon={Scale}
@@ -77,18 +98,39 @@ export default function PartnerSettlementShow({
                 }
             />
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard label="إجمالي الفعاليات" value={statement.gross_amount} hint="ريال" />
-                <StatCard label="عمولة المنصة" value={`− ${statement.commission_amount}`} hint="ريال" tone="warning" />
-                <StatCard label="ضريبة القيمة المضافة" value={statement.vat_amount} hint="ريال" />
-                <StatCard label="الصافي المستحق" value={statement.net_amount} hint="ريال" tone="success" />
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <StatCard
+                    label="إجمالي الفعاليات"
+                    value={statement.gross_amount}
+                    hint="ريال"
+                />
+                <StatCard
+                    label="عمولة المنصة"
+                    value={`− ${statement.commission_amount}`}
+                    hint="ريال"
+                    tone="warning"
+                />
+                <StatCard
+                    label="ضريبة القيمة المضافة"
+                    value={statement.vat_amount}
+                    hint="ريال"
+                />
+                <StatCard
+                    label="الصافي المستحق"
+                    value={statement.net_amount}
+                    hint="ريال"
+                    tone="success"
+                />
             </div>
 
             {statement.payout_reference && (
                 <Card padding="p-4">
                     <div className="flex items-center justify-between gap-3 text-xs">
                         <span className="text-ink/60">مرجع التحويل البنكي</span>
-                        <span className="font-mono font-bold text-ink" dir="ltr">
+                        <span
+                            className="font-mono font-bold text-ink"
+                            dir="ltr"
+                        >
                             {statement.payout_reference}
                         </span>
                     </div>
@@ -101,17 +143,36 @@ export default function PartnerSettlementShow({
                 <TableShell>
                     <Thead>
                         <Th>
-                            <SortableHeader label="الفعالية" sortKey="event_id" sort={sort} />
+                            <SortableHeader
+                                label="الفعالية"
+                                sortKey="event_id"
+                                sort={sort}
+                            />
                         </Th>
                         <Th>
-                            <SortableHeader label="التاريخ" sortKey="event_date" sort={sort} initialDirection="desc" />
+                            <SortableHeader
+                                label="التاريخ"
+                                sortKey="event_date"
+                                sort={sort}
+                                initialDirection="desc"
+                            />
                         </Th>
                         <Th>
-                            <SortableHeader label="الإجمالي" sortKey="gross_amount" sort={sort} initialDirection="desc" />
+                            <SortableHeader
+                                label="الإجمالي"
+                                sortKey="gross_amount"
+                                sort={sort}
+                                initialDirection="desc"
+                            />
                         </Th>
                         <Th>العمولة</Th>
                         <Th>
-                            <SortableHeader label="الصافي" sortKey="net_amount" sort={sort} initialDirection="desc" />
+                            <SortableHeader
+                                label="الصافي"
+                                sortKey="net_amount"
+                                sort={sort}
+                                initialDirection="desc"
+                            />
                         </Th>
                     </Thead>
 
@@ -119,31 +180,52 @@ export default function PartnerSettlementShow({
                         {items.data.map((item) => (
                             <Tr key={item.id}>
                                 <Td>
-                                    <span className="font-extrabold text-ink block">{item.event_title ?? `فعالية #${item.event_id}`}</span>
+                                    <span className="block font-extrabold text-ink">
+                                        {item.event_title ??
+                                            `فعالية #${item.event_id}`}
+                                    </span>
                                     {item.corrects_item_id !== null && (
-                                        <Badge tone="warning">تصحيح للبند #{item.corrects_item_id}</Badge>
+                                        <Badge tone="warning">
+                                            تصحيح للبند #{item.corrects_item_id}
+                                        </Badge>
                                     )}
-                                    {item.reason && <span className="block text-[11px] text-ink/55 mt-0.5">{item.reason}</span>}
+                                    {item.reason && (
+                                        <span className="mt-0.5 block text-[11px] text-ink/55">
+                                            {item.reason}
+                                        </span>
+                                    )}
                                 </Td>
-                                <Td className="font-mono text-[11px] text-ink/70">{item.event_date ?? '—'}</Td>
-                                <Td className="font-mono text-ink/85">{item.gross_amount}</Td>
+                                <Td className="font-mono text-[11px] text-ink/70">
+                                    {item.event_date ?? '—'}
+                                </Td>
+                                <Td className="font-mono text-ink/85">
+                                    {item.gross_amount}
+                                </Td>
                                 <Td>
-                                    <span className="font-mono text-ink/85">− {item.commission_amount}</span>
+                                    <span className="font-mono text-ink/85">
+                                        − {item.commission_amount}
+                                    </span>
                                     {item.commission_rate_percent !== null && (
-                                        <span className="block text-[11px] text-ink/45 font-mono">
+                                        <span className="block font-mono text-[11px] text-ink/45">
                                             {item.commission_rate_percent}٪
                                         </span>
                                     )}
                                 </Td>
-                                <Td className="font-mono font-black text-ink">{item.net_amount}</Td>
+                                <Td className="font-mono font-black text-ink">
+                                    {item.net_amount}
+                                </Td>
                             </Tr>
                         ))}
 
-                        <ListStates count={items.data.length} colSpan={5} empty="لا بنود في هذا الكشف." />
+                        <ListStates
+                            count={items.data.length}
+                            colSpan={5}
+                            empty="لا بنود في هذا الكشف."
+                        />
                     </Tbody>
                 </TableShell>
 
-                <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <ResultCount page={items} />
                     <Pagination page={items} />
                 </div>
