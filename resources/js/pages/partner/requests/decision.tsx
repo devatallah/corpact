@@ -10,16 +10,7 @@ import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import { BackLink } from '@/components/list-states';
 import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
-import {
-    Badge,
-    Button,
-    Card,
-    Field,
-    INPUT,
-    Note,
-    PageHeader,
-    StatCard,
-} from '@/components/portal/ui';
+import { Badge, Button, Card, Field, INPUT, Note, PageHeader, StatCard } from '@/components/portal/ui';
 import PartnerLayout from '@/layouts/partner-layout';
 import { providerRequestStatus } from '@/lib/status';
 import { Deadline } from '@/pages/partner/requests/queue';
@@ -44,9 +35,11 @@ import type { ProviderRequestRow } from '@/pages/partner/requests/queue';
 export default function PartnerRequestDecision({
     request,
     can_decide: canDecide,
+    commissionRate,
 }: {
     request: ProviderRequestRow;
     can_decide: boolean;
+    commissionRate: number;
 }) {
     const [accepting, setAccepting] = useState(false);
     const [rejecting, setRejecting] = useState(false);
@@ -152,6 +145,40 @@ export default function PartnerRequestDecision({
                     />
                 </div>
             </Card>
+
+            {/* ── القناة المعتمدة ── */}
+            <Note tone="danger" title="تنبيه تنظيمي ملزم — القناة المعتمدة الوحيدة">
+                لوحة المنصة هي القناة المعتمدة الوحيدة لقبول الطلبات ورفضها. واتساب والبريد للإشعار فقط: رسالة تقول «تمام محجوز»
+                لا تحجز شيئاً ولا تُلزم أحداً — أول ردّ رقمي هنا هو ما يثبّت الحالة.
+            </Note>
+
+            {/* ── صافي ما يصلك ── */}
+            <Card padding="p-4" className="space-y-2">
+                <h2 className="text-sm font-extrabold text-ink">صافي التحويل المتوقع عند الاكتمال</h2>
+
+                <div className="space-y-1.5">
+                    <NetRow label="قيمة الطلب شاملة ضريبة القيمة المضافة" value={`${Number(request.total_amount ?? 0).toFixed(2)} ر.س`} />
+                    <NetRow
+                        label={`عمولة تيمات (${commissionRate}٪ تُقتطع من مستحقاتك)`}
+                        value={`−${((Number(request.total_amount ?? 0) * commissionRate) / 100).toFixed(2)} ر.س`}
+                        negative
+                    />
+                    <NetRow
+                        label="صافي التحويل إليك"
+                        value={`${(Number(request.total_amount ?? 0) * (1 - commissionRate / 100)).toFixed(2)} ر.س`}
+                        strong
+                    />
+                </div>
+
+                <p className="text-[10px] text-ink/50">
+                    لا يُنشأ بند التسوية إلا بعد اكتمال الفعالية — لا عند القبول ولا عند الحجز.
+                </p>
+            </Card>
+
+            <Note title="الكمية مجمَّدة عند الإرسال">
+                الطلب بكمية محددة نهائياً: زيادة عدد المشاركين بعد إرساله لا تغيّر التكلفة ولا تُلزمك بأكثر مما قبلته. والمهلة
+                هي 12 ساعة من الإرسال أو 6 ساعات قبل الموعد — أيّهما أقرب.
+            </Note>
 
             {!canDecide && (
                 <Note tone="warning" title="هذا الطلب لم يعد يقبل قراراً">
@@ -528,5 +555,34 @@ export default function PartnerRequestDecision({
                 onCancel={() => setCancelling(false)}
             />
         </PartnerLayout>
+    );
+}
+
+/** سطر من حساب الصافي — بالسالب صريحاً، لأن الاقتطاع يُقرأ خطأً كإضافة على الشركة. */
+function NetRow({
+    label,
+    value,
+    negative = false,
+    strong = false,
+}: {
+    label: string;
+    value: string;
+    negative?: boolean;
+    strong?: boolean;
+}) {
+    return (
+        <div
+            className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 ${
+                strong ? 'bg-panel' : 'bg-page border-[0.5px] border-ink/10'
+            }`}
+        >
+            <span className={`text-[11px] ${strong ? 'text-white/70' : 'text-ink/65'}`}>{label}</span>
+            <span
+                className={`font-mono text-xs font-black ${strong ? 'text-lime' : negative ? 'text-danger' : 'text-ink'}`}
+                dir="ltr"
+            >
+                {value}
+            </span>
+        </div>
     );
 }

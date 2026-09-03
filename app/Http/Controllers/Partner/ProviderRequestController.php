@@ -86,9 +86,14 @@ class ProviderRequestController extends Controller
     {
         $this->ensureOwned($providerRequest);
 
+        $provider = $this->provider();
+
         return Inertia::render('partner/requests/decision', [
             'request' => $this->presentForProvider($providerRequest->load(['event.community', 'event.company', 'event.creator', 'unit'])),
             'can_decide' => $providerRequest->isPending(),
+            // صافي ما يصله عند الاكتمال — العمولة تُقتطع من مستحقاته لا تُضاف
+            // على الشركة، وحسابها أمامه وقت القرار يمنع مفاجأة كشف التسوية.
+            'commissionRate' => (float) $provider->commission_rate,
         ]);
     }
 
