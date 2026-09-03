@@ -100,7 +100,7 @@ class MonthlyReportController extends Controller
         return Inertia::render('coordinator/reports/index', [
             'reports' => $reports,
             'isPlatformAdmin' => $companyIds === null,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }

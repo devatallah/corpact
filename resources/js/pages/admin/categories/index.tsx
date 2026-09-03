@@ -1,376 +1,267 @@
+import { Head, router, useForm } from '@inertiajs/react';
+import { Plus, RotateCcw, Tags, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Button, Card, Field, IconButton, INPUT, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import CategoryIcon from '@/components/category-icon';
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import type { Category, PaginatedResult } from '@/types/models';
-import { Head, useForm, router } from '@inertiajs/react';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
-import { useState, useEffect, useRef } from 'react';
-import toastr from 'toastr';
+import type { Paginated, SortState } from '@/types';
 
-interface CategoryWithCounts extends Category {
+/**
+ * H §16 — شجرة الفئات والأنشطة.
+ *
+ * The tree is the vocabulary the whole product speaks: an employee picks
+ * interests from it, a provider is listed under it, and the suggestion engine
+ * matches on it. Deleting a category soft-deletes it — history that already
+ * points at it must keep resolving, so it is disabled, never erased.
+ */
+type CategoryRow = {
+    id: number;
+    name: string;
+    name_en: string | null;
+    icon: string | null;
+    parent_id: number | null;
+    deleted_at: string | null;
     communities_count: number;
     venues_count: number;
     events_count: number;
-    deleted_at: string | null;
-    children?: CategoryWithCounts[];
-}
+    parent?: { id: number; name: string } | null;
+};
 
-interface Props {
-    categories: PaginatedResult<CategoryWithCounts>;
-    parentCategories: CategoryWithCounts[];
+export default function AdminCategories({
+    categories,
+    parentCategories,
+    totalSports,
+    filters,
+    sort,
+}: {
+    categories: Paginated<CategoryRow>;
+    parentCategories: { id: number; name: string }[];
     totalSports: number;
-    filters: { search?: string; parent_id?: string; sort?: string; dir?: string };
-    /** `key: ''` تعني ترتيب الشجرة الافتراضي — لا عمود نشط. */
+    filters: { search?: string; parent_id?: string };
     sort: SortState;
-}
-
-export default function SportsIndex({ categories, parentCategories, totalSports, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        parent_id: filters?.parent_id,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-
-    function applyParent(value: string) {
-        router.get(
-            '/admin/categories',
-            {
-                search: filters?.search || undefined,
-                parent_id: value || undefined,
-                sort: filters?.sort || undefined,
-                dir: filters?.dir || undefined,
-            },
-            { preserveState: true, replace: true },
-        );
-    }
-    const [showCreate, setShowCreate] = useState(false);
-    const [editingItem, setEditingItem] = useState<CategoryWithCounts | null>(null);
-    const [iconPreview, setIconPreview] = useState<string | null>(null);
-    const fileRef = useRef<HTMLInputElement>(null);
-
-    const form = useForm({
-        name: '',
-        name_en: '',
-        parent_id: '' as string,
-        icon: null as File | null,
-    });
-
-    useEffect(() => {
-        if (editingItem) {
-            form.setData({
-                name: editingItem.name ?? '',
-                name_en: editingItem.name_en ?? '',
-                parent_id: editingItem.parent_id ? String(editingItem.parent_id) : '',
-                icon: null,
-            });
-            setIconPreview(editingItem.icon ?? null);
-        } else if (!showCreate) {
-            form.reset();
-            setIconPreview(null);
-        }
-    }, [editingItem]);
-
-    function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const file = e.target.files?.[0] ?? null;
-        form.setData('icon', file);
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (ev) => setIconPreview(ev.target?.result as string);
-            reader.readAsDataURL(file);
-        }
-    }
-
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        if (editingItem) {
-            router.post(`/admin/categories/${editingItem.id}`, {
-                _method: 'PUT',
-                name: form.data.name,
-                name_en: form.data.name_en,
-                parent_id: form.data.parent_id || null,
-                icon: form.data.icon ?? undefined,
-            }, {
-                forceFormData: true,
-                onSuccess: () => { setEditingItem(null); toastr.success('تم التحديث بنجاح.'); },
-            });
-        } else {
-            router.post('/admin/categories', {
-                name: form.data.name,
-                name_en: form.data.name_en,
-                parent_id: form.data.parent_id || null,
-                icon: form.data.icon ?? undefined,
-            }, {
-                forceFormData: true,
-                onSuccess: () => { setShowCreate(false); form.reset(); setIconPreview(null); toastr.success('تم الإنشاء بنجاح.'); },
-            });
-        }
-    }
-
-    function toggleStatus(cat: CategoryWithCounts) {
-        const url = cat.deleted_at
-            ? `/admin/categories/${cat.id}/restore`
-            : `/admin/categories/${cat.id}`;
-        const method = cat.deleted_at ? 'post' : 'delete';
-        const msg = cat.deleted_at ? 'تم التفعيل بنجاح.' : 'تم التعطيل بنجاح.';
-        (router[method] as (url: string, options: Record<string, unknown>) => void)(url, { preserveScroll: true, onSuccess: () => { setEditingItem(null); toastr.success(msg); } });
-    }
-
-    function closePanel() {
-        setShowCreate(false);
-        setEditingItem(null);
-        setIconPreview(null);
-        if (fileRef.current) fileRef.current.value = '';
-    }
-
-    function openCreate() {
-        setShowCreate(true);
-        setEditingItem(null);
-        form.reset();
-        setIconPreview(null);
-        if (fileRef.current) fileRef.current.value = '';
-    }
+}) {
+    const [adding, setAdding] = useState(false);
+    const [toggling, setToggling] = useState<{ category: CategoryRow; action: 'disable' | 'restore' } | null>(null);
+    const form = useForm<{ name: string; name_en: string; parent_id: string }>({ name: '', name_en: '', parent_id: '' });
 
     return (
         <AdminLayout>
-            <Head title="إدارة الفئات" />
+            <Head title="الفئات والأنشطة" />
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <div className="page-title">إدارة الفئات</div>
-                <button onClick={openCreate} className="act-btn btn-approve">
-                    إضافة فئة
-                </button>
-            </div>
-            <div className="page-sub">
-                {totalSports} فئة على المنصة
-            </div>
+            <PageHeader
+                icon={Tags}
+                title="شجرة الفئات والأنشطة"
+                subtitle="المفردات التي يختار منها الموظف اهتماماته ويُدرج تحتها المزوّد — وعليها يطابق محرك الاقتراحات."
+                actions={
+                    <Button icon={Plus} onClick={() => setAdding(true)}>
+                        إضافة فئة
+                    </Button>
+                }
+            />
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="ابحث بالاسم..."
-                    style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
-                />
-                <select
-                    value={filters?.parent_id ?? ''}
-                    onChange={(e) => applyParent(e.target.value)}
-                    style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
-                >
-                    <option value="">كل الفئات</option>
-                    <option value="root">الرئيسية فقط</option>
-                    {parentCategories.map((parent) => (
-                        <option key={parent.id} value={parent.id}>{parent.name}</option>
-                    ))}
-                </select>
-                {sort.key !== '' && (
-                    <button className="fbtn on" onClick={() => applyParent(filters?.parent_id ?? '')} title="العودة إلى ترتيب الشجرة">
-                        عودة لترتيب الشجرة ✕
-                    </button>
-                )}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <StatCard label="إجمالي الفئات" value={totalSports} />
+                <StatCard label="الفئات الرئيسية" value={parentCategories.length} />
+                <StatCard label="المعروض بعد التصفية" value={categories.total} />
             </div>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
+            {adding && (
+                <Card padding="p-4" className="space-y-4">
+                    <h2 className="text-sm font-extrabold text-ink">فئة جديدة</h2>
+
+                    <form
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            form.post('/admin/categories', {
+                                preserveScroll: true,
+                                onSuccess: () => {
+                                    form.reset();
+                                    setAdding(false);
+                                },
+                            });
+                        }}
+                        className="space-y-4"
+                    >
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <Field label="الاسم بالعربية" htmlFor="category-name" required error={form.errors.name}>
+                                <input
+                                    id="category-name"
+                                    type="text"
+                                    required
+                                    value={form.data.name}
+                                    onChange={(event) => form.setData('name', event.target.value)}
+                                    className={INPUT}
+                                />
+                            </Field>
+                            <Field label="الاسم بالإنجليزية" htmlFor="category-name-en" error={form.errors.name_en}>
+                                <input
+                                    id="category-name-en"
+                                    type="text"
+                                    dir="ltr"
+                                    value={form.data.name_en}
+                                    onChange={(event) => form.setData('name_en', event.target.value)}
+                                    className={`${INPUT} text-right`}
+                                />
+                            </Field>
+                            <Field label="الفئة الأمّ" htmlFor="category-parent" hint="اتركه فارغاً لفئة رئيسية">
+                                <select
+                                    id="category-parent"
+                                    value={form.data.parent_id}
+                                    onChange={(event) => form.setData('parent_id', event.target.value)}
+                                    className={`${INPUT} cursor-pointer`}
+                                >
+                                    <option value="">— فئة رئيسية —</option>
+                                    {parentCategories.map((parent) => (
+                                        <option key={parent.id} value={parent.id}>
+                                            {parent.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <Button type="submit" disabled={form.processing}>
+                                حفظ الفئة
+                            </Button>
+                            <Button
+                                type="button"
+                                tone="soft"
+                                onClick={() => {
+                                    form.reset();
+                                    setAdding(false);
+                                }}
+                            >
+                                إلغاء
+                            </Button>
+                        </div>
+                    </form>
+                </Card>
+            )}
+
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث بالاسم العربي أو الإنجليزي…" />
+                    <FilterSelect
+                        name="parent_id"
+                        label="الفئة الأمّ"
+                        value={filters.parent_id ?? ''}
+                        options={[
+                            ['', 'الشجرة كاملة'],
+                            ['root', 'الفئات الرئيسية فقط'],
+                            ...parentCategories.map((parent): [string, string] => [String(parent.id), parent.name]),
+                        ]}
+                    />
+                </Toolbar>
+
+                <TableShell>
+                    <Thead>
+                        <Th>
                             <SortableHeader label="الفئة" sortKey="name" sort={sort} />
-                            <SortableHeader label="الاسم بالإنجليزية" sortKey="name_en" sort={sort} />
-                            <th>النوع</th>
+                        </Th>
+                        <Th>
+                            <SortableHeader label="بالإنجليزية" sortKey="name_en" sort={sort} />
+                        </Th>
+                        <Th>
                             <SortableHeader label="المجتمعات" sortKey="communities_count" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
                             <SortableHeader label="المرافق" sortKey="venues_count" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
                             <SortableHeader label="الفعاليات" sortKey="events_count" sort={sort} initialDirection="desc" />
-                            <th>الحالة</th>
-                            <th>إجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                        </Th>
+                        <Th className="text-center">الإجراء</Th>
+                    </Thead>
+
+                    <Tbody>
+                        {categories.data.map((category) => (
+                            <Tr key={category.id}>
+                                <Td>
+                                    <span className={`font-extrabold ${category.parent_id === null ? 'text-ink' : 'text-ink/85 ps-4'}`}>
+                                        {category.parent_id !== null && <span className="text-ink/30">↳ </span>}
+                                        {category.name}
+                                    </span>
+                                    {category.parent && <span className="block text-[11px] text-ink/45">تحت {category.parent.name}</span>}
+                                    {category.deleted_at && <Badge tone="neutral">معطّلة</Badge>}
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/70" dir="ltr">
+                                    {category.name_en ?? '—'}
+                                </Td>
+                                <Td className="font-mono font-bold text-ink">{category.communities_count}</Td>
+                                <Td className="font-mono font-bold text-ink">{category.venues_count}</Td>
+                                <Td className="font-mono font-bold text-ink">{category.events_count}</Td>
+                                <Td className="text-center">
+                                    {category.deleted_at ? (
+                                        <IconButton
+                                            icon={RotateCcw}
+                                            label="إعادة التفعيل"
+                                            onClick={() => setToggling({ category, action: 'restore' })}
+                                        />
+                                    ) : (
+                                        <IconButton
+                                            icon={Trash2}
+                                            label="تعطيل الفئة"
+                                            tone="danger"
+                                            onClick={() => setToggling({ category, action: 'disable' })}
+                                        />
+                                    )}
+                                </Td>
+                            </Tr>
+                        ))}
+
                         <ListStates
                             count={categories.data.length}
-                            columns={8}
-                            emptyTitle="لا توجد فئات"
-                            emptyHint="لا فئة مطابقة للبحث والفلترة الحاليين."
+                            colSpan={6}
+                            empty="لا توجد فئات مطابقة."
+                            emptyHint="جرّب مصطلحاً آخر أو اعرض الشجرة كاملة."
                         />
-                        {categories.data.map((cat) => (
-                            <tr key={cat.id}>
-                                <td>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                        <CategoryIcon icon={cat.icon} size={32} />
-                                        <div>
-                                            <span style={{ fontWeight: 700, color: '#fff' }}>{cat.name}</span>
-                                            {cat.parent && (
-                                                <div style={{ fontSize: 11, color: '#6B7A99', marginTop: 2 }}>
-                                                    {cat.parent.name}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td style={{ color: '#6B7A99' }}>{cat.name_en || '—'}</td>
-                                <td>
-                                    <span style={{
-                                        fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
-                                        background: cat.parent_id ? '#3B82F618' : '#F59E0B18',
-                                        color: cat.parent_id ? '#3B82F6' : '#F59E0B',
-                                    }}>
-                                        {cat.parent_id ? 'فرعية' : 'رئيسية'}
-                                    </span>
-                                </td>
-                                <td>{cat.communities_count}</td>
-                                <td>{cat.venues_count}</td>
-                                <td>{cat.events_count}</td>
-                                <td>
-                                    <span style={{
-                                        fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
-                                        background: cat.deleted_at ? '#E0305018' : '#0CA67818',
-                                        color: cat.deleted_at ? '#E03050' : '#0CA678',
-                                    }}>
-                                        {cat.deleted_at ? 'معطّلة' : 'مفعّلة'}
-                                    </span>
-                                </td>
-                                <td>
-                                    <button
-                                        onClick={() => { setEditingItem(cat); setShowCreate(false); }}
-                                        className="act-btn btn-view"
-                                    >
-                                        تعديل
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                    </Tbody>
+                </TableShell>
 
-            <Pagination links={categories.links} />
-
-            {/* Create/Edit Modal */}
-            {(showCreate || editingItem) && (
-                <div className="detail-overlay open" onClick={closePanel}>
-                    <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
-                        <h3>
-                            {editingItem ? 'تعديل فئة' : 'إضافة فئة'}
-                            <button className="close-btn" onClick={closePanel}>×</button>
-                        </h3>
-
-                        {Object.keys(form.errors).length > 0 && (
-                            <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
-                                {Object.values(form.errors).map((error, i) => (
-                                    <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                                ))}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSubmit}>
-                            {/* Icon upload */}
-                            <div className="frow">
-                                <div className="fg" style={{ gridColumn: '1 / -1' }}>
-                                    <label>الأيقونة</label>
-                                    <div
-                                        onClick={() => fileRef.current?.click()}
-                                        style={{
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8,
-                                            width: '100%', minHeight: 120, background: '#0F1117', border: '2px dashed #232A3E',
-                                            borderRadius: 12, cursor: 'pointer', transition: 'border-color .15s',
-                                        }}
-                                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#009E82')}
-                                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#232A3E')}
-                                    >
-                                        {iconPreview && (iconPreview.startsWith('/storage') || iconPreview.startsWith('data:')) ? (
-                                            <img src={iconPreview} alt="" style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover' }} />
-                                        ) : iconPreview ? (
-                                            <div style={{ fontSize: 48 }}>{iconPreview}</div>
-                                        ) : (
-                                            <div style={{ fontSize: 36, color: '#3D4A60' }}>📷</div>
-                                        )}
-                                        <span style={{ fontSize: 12, color: '#6B7A99' }}>
-                                            {iconPreview ? 'انقر لتغيير الأيقونة' : 'انقر لرفع أيقونة'}
-                                        </span>
-                                    </div>
-                                    <input
-                                        ref={fileRef}
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleFileChange}
-                                        style={{ display: 'none' }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>الاسم بالعربية *</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.name}
-                                        onChange={(e) => form.setData('name', e.target.value)}
-                                        placeholder="كرة القدم"
-                                        required
-                                    />
-                                </div>
-                                <div className="fg">
-                                    <label>الاسم بالإنجليزية</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.name_en}
-                                        onChange={(e) => form.setData('name_en', e.target.value)}
-                                        placeholder="Football"
-                                        dir="ltr"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="frow">
-                                <div className="fg" style={{ gridColumn: '1 / -1' }}>
-                                    <label>الفئة الرئيسية</label>
-                                    <select
-                                        value={form.data.parent_id}
-                                        onChange={(e) => form.setData('parent_id', e.target.value)}
-                                    >
-                                        <option value="">بدون (فئة رئيسية)</option>
-                                        {parentCategories
-                                            .filter((p) => p.id !== editingItem?.id)
-                                            .map((p) => (
-                                                <option key={p.id} value={String(p.id)}>{p.name}</option>
-                                            ))}
-                                    </select>
-                                    <span style={{ fontSize: 11, color: '#6B7A99', marginTop: 4, display: 'block' }}>
-                                        اتركه فارغاً لإنشاء فئة رئيسية، أو اختر فئة لجعلها فرعية
-                                    </span>
-                                </div>
-                            </div>
-
-                            {editingItem && (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: editingItem.deleted_at ? '#E0305010' : '#0CA67810', border: `1px solid ${editingItem.deleted_at ? '#E0305033' : '#0CA67833'}`, borderRadius: 12, marginBottom: 16 }}>
-                                    <div>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: editingItem.deleted_at ? '#E03050' : '#0CA678' }}>
-                                            {editingItem.deleted_at ? 'هذه الفئة معطّلة' : 'هذه الفئة مفعّلة'}
-                                        </div>
-                                        <div style={{ fontSize: 11, color: '#6B7A99', marginTop: 2 }}>
-                                            {editingItem.deleted_at ? 'لن تظهر في بقية الأقسام' : 'تظهر في جميع الأقسام'}
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => toggleStatus(editingItem)}
-                                        className={editingItem.deleted_at ? 'act-btn btn-approve' : 'act-btn btn-reject'}
-                                    >
-                                        {editingItem.deleted_at ? 'تفعيل' : 'تعطيل'}
-                                    </button>
-                                </div>
-                            )}
-
-                            <div className="panel-actions">
-                                <button type="submit" className="pa-approve" disabled={form.processing}>
-                                    {editingItem ? 'حفظ التعديلات' : 'إضافة الفئة'}
-                                </button>
-                                <button type="button" className="pa-reject" onClick={closePanel}>إلغاء</button>
-                            </div>
-                        </form>
-                    </div>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={categories} />
+                    <Pagination page={categories} />
                 </div>
-            )}
+            </Card>
+
+            <Note title="لماذا تُعطَّل الفئة ولا تُحذف؟">
+                فعاليات ومجتمعات ومرافق قائمة تشير إلى الفئة، وسجلها المالي والتاريخي يجب أن يبقى قابلاً للقراءة. التعطيل يمنع
+                الاختيار الجديد ويُبقي القديم مفهوماً.
+            </Note>
+
+            <ConfirmModal
+                open={toggling !== null}
+                tone={toggling?.action === 'disable' ? 'danger' : 'default'}
+                title={toggling?.action === 'disable' ? 'تعطيل الفئة' : 'إعادة تفعيل الفئة'}
+                message={
+                    toggling?.action === 'disable'
+                        ? 'لن تظهر الفئة في اختيارات الموظفين ولا في إدراج المرافق الجديدة. السجلات القائمة تبقى كما هي.'
+                        : 'تعود الفئة للظهور في الاختيارات وإدراج المرافق.'
+                }
+                details={
+                    toggling && (
+                        <>
+                            <ConfirmRow label="الفئة" value={toggling.category.name} strong />
+                            <ConfirmRow label="مجتمعات مرتبطة" value={String(toggling.category.communities_count)} />
+                            <ConfirmRow label="مرافق مرتبطة" value={String(toggling.category.venues_count)} />
+                        </>
+                    )
+                }
+                confirmLabel={toggling?.action === 'disable' ? 'تعطيل' : 'إعادة التفعيل'}
+                onConfirm={() => {
+                    if (toggling?.action === 'disable') {
+                        router.delete(`/admin/categories/${toggling.category.id}`, { preserveScroll: true });
+                    } else {
+                        router.post(`/admin/categories/${toggling?.category.id}/restore`, {}, { preserveScroll: true });
+                    }
+
+                    setToggling(null);
+                }}
+                onCancel={() => setToggling(null)}
+            />
         </AdminLayout>
     );
 }

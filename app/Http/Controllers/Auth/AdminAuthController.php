@@ -31,12 +31,9 @@ class AdminAuthController extends Controller
 
     public function showLoginForm(): Response
     {
-        return Inertia::render('auth/login', [
-            'guard' => 'admin',
-            'guardLabel' => 'المشرف',
-            'portalTag' => 'ADMIN',
-            'canRegister' => false,
-        ]);
+        // The internal door has its own screen (teamat.ai.studio auth_internal);
+        // auth/login stays the customer-facing one.
+        return Inertia::render('auth/internal-login');
     }
 
     /**

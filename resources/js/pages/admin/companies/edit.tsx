@@ -1,18 +1,47 @@
+import { Head, useForm } from '@inertiajs/react';
+import { Building2, FileText, Upload } from 'lucide-react';
+import { BackLink, ListStates } from '@/components/list-states';
+import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
+import { Badge, Button, Card, Field, INPUT, Note, PageHeader, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import type { Company } from '@/types/models';
-import { Head, Link, useForm } from '@inertiajs/react';
-import toastr from 'toastr';
+import { COMPANY_STATUS } from '@/pages/admin/companies/index';
 
-interface ContractFile {
+/**
+ * H §16 — الشركة وعقدها.
+ *
+ * Two forms on purpose: the company record and the *contract*. The contract
+ * fields drive the monthly invoice, and every contract file version is kept —
+ * nothing is ever deleted from the contract history (H §19), so a superseded
+ * PDF stays readable next to the one that replaced it.
+ */
+type Company = {
+    id: number;
+    name: string;
+    email: string;
+    domain: string | null;
+    sector: string | null;
+    city: string | null;
+    contact_name: string | null;
+    contact_phone: string | null;
+    status: string;
+    event_creation_blocked_at: string | null;
+    event_creation_block_reason: string | null;
+};
+
+type ContractFile = {
     id: number;
     original_name: string;
     version: number;
     is_current: boolean;
     size: string;
     created_at: string | null;
-}
+};
 
-interface Props {
+export default function EditCompany({
+    company,
+    contract,
+    contractFiles,
+}: {
     company: Company;
     contract: {
         commercial_registration: string | null;
@@ -22,302 +51,336 @@ interface Props {
         contract_coordinator_service: boolean;
     };
     contractFiles: ContractFile[];
-}
-
-export default function CompaniesEdit({ company, contract, contractFiles }: Props) {
-    const { data, setData, put, processing, errors } = useForm({
-        name: company.name ?? '',
-        email: company.email ?? '',
+}) {
+    const profile = useForm({
+        name: company.name,
+        email: company.email,
         password: '',
         domain: company.domain ?? '',
         sector: company.sector ?? '',
-        employee_count: String(company.employee_count ?? ''),
-        contact_name: company.contact_name ?? '',
         city: company.city ?? '',
-        status: company.status ?? 'pending',
+        contact_name: company.contact_name ?? '',
+        contact_phone: company.contact_phone ?? '',
+        status: company.status,
     });
 
-    // H §16 «الشركات والعقود» + G/أدمن تيمات §1: «سجّل العقد: رسوم النظام لكل
-    // موظف مفعّل، والحد الأدنى الشهري، وخدمة المنسّق إن وُجدت» + الرقم الضريبي
-    // الذي تحتاجه الفاتورة (H §12.9). الأعمدة كانت جاهزة بلا واجهة إدخال.
-    const contractForm = useForm({
-        commercial_registration: contract?.commercial_registration ?? '',
-        vat_number: contract?.vat_number ?? '',
-        contract_fee_per_activated_employee: contract?.contract_fee_per_activated_employee ?? '',
-        contract_monthly_minimum: contract?.contract_monthly_minimum ?? '',
-        contract_coordinator_service: contract?.contract_coordinator_service ?? false,
-        contract_file: null as File | null,
+    const terms = useForm<{
+        commercial_registration: string;
+        vat_number: string;
+        contract_fee_per_activated_employee: string;
+        contract_monthly_minimum: string;
+        contract_coordinator_service: boolean;
+        contract_file: File | null;
+    }>({
+        commercial_registration: contract.commercial_registration ?? '',
+        vat_number: contract.vat_number ?? '',
+        contract_fee_per_activated_employee: contract.contract_fee_per_activated_employee,
+        contract_monthly_minimum: contract.contract_monthly_minimum,
+        contract_coordinator_service: contract.contract_coordinator_service,
+        contract_file: null,
     });
-
-    function submit(e: React.FormEvent) {
-        e.preventDefault();
-        put(`/admin/companies/${company.id}`);
-    }
-
-    function submitContract(e: React.FormEvent) {
-        e.preventDefault();
-        contractForm.put(`/admin/companies/${company.id}/contract`, {
-            forceFormData: true,
-            preserveScroll: true,
-            onSuccess: () => toastr.success('حُفظت بيانات العقد.'),
-        });
-    }
 
     return (
         <AdminLayout>
-            <Head title={`تعديل: ${company.name}`} />
+            <Head title={company.name} />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                <Link href="/admin/companies" style={{ color: '#6B7A99', textDecoration: 'none', fontSize: '14px' }}>
-                    ← الشركات
-                </Link>
-                <span style={{ color: '#3D4A60' }}>/</span>
-                <span style={{ color: '#fff', fontWeight: 700 }}>تعديل: {company.name}</span>
-            </div>
+            <BackLink href="/admin/companies" label="العودة إلى الشركات" />
 
-            {Object.keys(errors).length > 0 && (
-                <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
-                    {Object.values(errors).map((error, i) => (
-                        <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                    ))}
-                </div>
+            <PageHeader
+                icon={Building2}
+                title={company.name}
+                subtitle={company.email}
+                actions={
+                    <Badge tone={COMPANY_STATUS[company.status]?.tone ?? 'neutral'}>
+                        {COMPANY_STATUS[company.status]?.label ?? company.status}
+                    </Badge>
+                }
+            />
+
+            {company.event_creation_blocked_at && (
+                <Note tone="danger" title="إنشاء الفعاليات موقوف على هذه الشركة">
+                    {company.event_creation_block_reason ?? 'مستحق متأخر على الحساب. يُرفع الحجب تلقائياً عند تسجيل السداد.'}
+                </Note>
             )}
 
-            <div className="card" style={{ maxWidth: '600px' }}>
-                <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>تعديل بيانات الشركة</div>
-                <form onSubmit={submit}>
-                    <div className="frow">
-                        <div className="fg">
-                            <label>اسم الشركة *</label>
+            {/* ── بيانات الشركة ── */}
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    profile.put(`/admin/companies/${company.id}`, { preserveScroll: true });
+                }}
+                className="space-y-6"
+            >
+                <FormSection title="بيانات الشركة">
+                    <FormGrid>
+                        <Field label="اسم الشركة" htmlFor="edit-name" required error={profile.errors.name}>
                             <input
+                                id="edit-name"
                                 type="text"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                placeholder="مثال: شركة التقنية المتقدمة"
                                 required
+                                value={profile.data.name}
+                                onChange={(event) => profile.setData('name', event.target.value)}
+                                className={INPUT}
                             />
-                        </div>
-                        <div className="fg">
-                            <label>المسؤول</label>
-                            <input
-                                type="text"
-                                value={data.contact_name}
-                                onChange={(e) => setData('contact_name', e.target.value)}
-                                placeholder="اسم مسؤول الحساب"
-                            />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>البريد الإلكتروني *</label>
+                        <Field label="البريد الإلكتروني" htmlFor="edit-email" error={profile.errors.email}>
                             <input
+                                id="edit-email"
                                 type="email"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                placeholder="info@company.sa"
                                 dir="ltr"
-                                required
+                                value={profile.data.email}
+                                onChange={(event) => profile.setData('email', event.target.value)}
+                                className={`${INPUT} text-right font-mono`}
                             />
-                        </div>
-                        <div className="fg">
-                            <label>النطاق *</label>
+                        </Field>
+
+                        <Field label="القطاع" htmlFor="edit-sector" error={profile.errors.sector}>
                             <input
+                                id="edit-sector"
                                 type="text"
-                                value={data.domain}
-                                onChange={(e) => setData('domain', e.target.value)}
-                                placeholder="company.sa"
+                                value={profile.data.sector}
+                                onChange={(event) => profile.setData('sector', event.target.value)}
+                                className={INPUT}
+                            />
+                        </Field>
+
+                        <Field label="المدينة" htmlFor="edit-city" error={profile.errors.city}>
+                            <input
+                                id="edit-city"
+                                type="text"
+                                value={profile.data.city}
+                                onChange={(event) => profile.setData('city', event.target.value)}
+                                className={INPUT}
+                            />
+                        </Field>
+
+                        <Field label="نطاق البريد" htmlFor="edit-domain" error={profile.errors.domain}>
+                            <input
+                                id="edit-domain"
+                                type="text"
                                 dir="ltr"
+                                value={profile.data.domain}
+                                onChange={(event) => profile.setData('domain', event.target.value)}
+                                className={`${INPUT} text-right font-mono`}
                             />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>القطاع *</label>
-                            <input
-                                type="text"
-                                value={data.sector}
-                                onChange={(e) => setData('sector', e.target.value)}
-                                placeholder="تقنية المعلومات"
-                            />
-                        </div>
-                        <div className="fg">
-                            <label>المدينة *</label>
-                            <input
-                                type="text"
-                                value={data.city}
-                                onChange={(e) => setData('city', e.target.value)}
-                                placeholder="الرياض"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="frow">
-                        <div className="fg">
-                            <label>عدد الموظفين *</label>
-                            <input
-                                type="number"
-                                value={data.employee_count}
-                                onChange={(e) => setData('employee_count', e.target.value)}
-                                placeholder="50"
-                                min={1}
-                            />
-                        </div>
-                        <div className="fg">
-                            <label>الحالة</label>
+                        <Field label="حالة الشركة" htmlFor="edit-status" error={profile.errors.status}>
                             <select
-                                value={data.status}
-                                onChange={(e) => setData('status', e.target.value)}
+                                id="edit-status"
+                                value={profile.data.status}
+                                onChange={(event) => profile.setData('status', event.target.value)}
+                                className={`${INPUT} cursor-pointer`}
                             >
-                                <option value="pending">معلق</option>
+                                <option value="pending">طلب جديد</option>
                                 <option value="review">قيد المراجعة</option>
-                                <option value="active">نشط</option>
-                                <option value="rejected">مرفوض</option>
+                                <option value="active">مفعّلة</option>
+                                <option value="rejected">مرفوضة</option>
                             </select>
-                        </div>
-                    </div>
+                        </Field>
+                    </FormGrid>
+                </FormSection>
 
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="act-btn btn-approve"
-                            style={{ flex: 1, padding: '12px' }}
+                <FormSection title="مسؤول الحساب" hint="الجوال هنا هو هوية الدخول لبوابة الشركة.">
+                    <FormGrid>
+                        <Field label="الاسم" htmlFor="edit-contact" error={profile.errors.contact_name}>
+                            <input
+                                id="edit-contact"
+                                type="text"
+                                value={profile.data.contact_name}
+                                onChange={(event) => profile.setData('contact_name', event.target.value)}
+                                className={INPUT}
+                            />
+                        </Field>
+
+                        <Field label="رقم الجوال" htmlFor="edit-phone" error={profile.errors.contact_phone}>
+                            <input
+                                id="edit-phone"
+                                type="tel"
+                                dir="ltr"
+                                value={profile.data.contact_phone}
+                                onChange={(event) => profile.setData('contact_phone', event.target.value)}
+                                className={`${INPUT} text-right font-mono`}
+                            />
+                        </Field>
+
+                        <Field
+                            label="كلمة مرور جديدة"
+                            htmlFor="edit-password"
+                            hint="اتركها فارغة للإبقاء عليها"
+                            error={profile.errors.password}
                         >
-                            حفظ التعديلات
-                        </button>
-                        <Link
-                            href="/admin/companies"
-                            style={{ padding: '12px 24px', background: '#232A3E', borderRadius: '10px', color: '#6B7A99', fontSize: '14px', fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
+                            <input
+                                id="edit-password"
+                                type="password"
+                                autoComplete="new-password"
+                                value={profile.data.password}
+                                onChange={(event) => profile.setData('password', event.target.value)}
+                                className={INPUT}
+                            />
+                        </Field>
+                    </FormGrid>
+                </FormSection>
+
+                <FormActions cancelHref="/admin/companies">
+                    <Button type="submit" disabled={profile.processing}>
+                        حفظ بيانات الشركة
+                    </Button>
+                </FormActions>
+            </form>
+
+            {/* ── شروط العقد ── */}
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    terms.post(`/admin/companies/${company.id}/contract`, {
+                        preserveScroll: true,
+                        forceFormData: true,
+                        headers: { 'X-HTTP-Method-Override': 'PUT' },
+                    });
+                }}
+                className="space-y-6"
+            >
+                <FormSection
+                    title="شروط العقد والفوترة"
+                    hint="هذه القيم تُبنى عليها الفاتورة الشهرية. شركة بلا رسم موظف مفعّل لا تدخل دورة الفوترة."
+                >
+                    <FormGrid>
+                        <Field
+                            label="رسم الموظف المفعّل"
+                            htmlFor="terms-fee"
+                            hint="بالريال، شهرياً لكل موظف"
+                            error={terms.errors.contract_fee_per_activated_employee}
                         >
-                            إلغاء
-                        </Link>
-                    </div>
-                </form>
-            </div>
-
-            <div className="card" style={{ maxWidth: '600px', marginTop: 20 }}>
-                <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '6px' }}>العقد والرقم الضريبي</div>
-                <p style={{ fontSize: 12, color: '#6B7A99', lineHeight: 1.9, marginTop: 0 }}>
-                    أي تغيير في رسوم عقد شركة يسري <b>من تاريخ مستقبلي محدد فقط</b> ولا يُطبَّق بأثر رجعي — الجدولة
-                    المؤرَّخة من شاشة «شروط العقود». هذه القيم هي عقد الأساس، وكل تعديل يُسجَّل في سجل التدقيق.
-                </p>
-
-                {Object.keys(contractForm.errors).length > 0 && (
-                    <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px' }}>
-                        {Object.values(contractForm.errors).map((error, i) => (
-                            <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                        ))}
-                    </div>
-                )}
-
-                <form onSubmit={submitContract}>
-                    <div className="frow">
-                        <div className="fg">
-                            <label>السجل التجاري</label>
                             <input
+                                id="terms-fee"
+                                type="number"
+                                step="0.01"
+                                min={0}
+                                value={terms.data.contract_fee_per_activated_employee}
+                                onChange={(event) => terms.setData('contract_fee_per_activated_employee', event.target.value)}
+                                className={`${INPUT} font-mono`}
+                            />
+                        </Field>
+
+                        <Field
+                            label="الحد الأدنى الشهري"
+                            htmlFor="terms-minimum"
+                            hint="يُكمَّل الفرق إن قلّت الرسوم عنه"
+                            error={terms.errors.contract_monthly_minimum}
+                        >
+                            <input
+                                id="terms-minimum"
+                                type="number"
+                                step="0.01"
+                                min={0}
+                                value={terms.data.contract_monthly_minimum}
+                                onChange={(event) => terms.setData('contract_monthly_minimum', event.target.value)}
+                                className={`${INPUT} font-mono`}
+                            />
+                        </Field>
+
+                        <Field label="السجل التجاري" htmlFor="terms-cr" error={terms.errors.commercial_registration}>
+                            <input
+                                id="terms-cr"
                                 type="text"
                                 dir="ltr"
-                                value={contractForm.data.commercial_registration}
-                                onChange={(e) => contractForm.setData('commercial_registration', e.target.value)}
-                                placeholder="1010XXXXXX"
+                                value={terms.data.commercial_registration}
+                                onChange={(event) => terms.setData('commercial_registration', event.target.value)}
+                                className={`${INPUT} text-right font-mono`}
                             />
-                        </div>
-                        <div className="fg">
-                            <label>الرقم الضريبي (15 رقماً)</label>
-                            <input
-                                type="text"
-                                dir="ltr"
-                                value={contractForm.data.vat_number}
-                                onChange={(e) => contractForm.setData('vat_number', e.target.value)}
-                                placeholder="3XXXXXXXXXXXXX3"
-                            />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>رسوم النظام لكل موظف مفعّل (ريال)</label>
+                        <Field
+                            label="الرقم الضريبي"
+                            htmlFor="terms-vat"
+                            hint="١٥ رقماً يبدأ وينتهي بالرقم ٣"
+                            error={terms.errors.vat_number}
+                        >
                             <input
+                                id="terms-vat"
                                 type="text"
                                 dir="ltr"
-                                value={contractForm.data.contract_fee_per_activated_employee}
-                                onChange={(e) => contractForm.setData('contract_fee_per_activated_employee', e.target.value)}
-                                placeholder="لا افتراض — القيمة من العقد"
+                                value={terms.data.vat_number}
+                                onChange={(event) => terms.setData('vat_number', event.target.value)}
+                                className={`${INPUT} text-right font-mono`}
                             />
-                        </div>
-                        <div className="fg">
-                            <label>الحد الأدنى الشهري (ريال)</label>
-                            <input
-                                type="text"
-                                dir="ltr"
-                                value={contractForm.data.contract_monthly_minimum}
-                                onChange={(e) => contractForm.setData('contract_monthly_minimum', e.target.value)}
-                                placeholder="لا افتراض — القيمة من العقد"
-                            />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>
-                                <input
-                                    type="checkbox"
-                                    checked={contractForm.data.contract_coordinator_service}
-                                    onChange={(e) => contractForm.setData('contract_coordinator_service', e.target.checked)}
-                                    style={{ marginInlineEnd: 8 }}
-                                />
-                                خدمة المنسّق المُدار مشمولة في العقد
-                            </label>
-                        </div>
-                        <div className="fg">
-                            <label>ملف العقد (pdf — حتى 10MB)</label>
+                        <Field label="ملف العقد (PDF)" htmlFor="terms-file" error={terms.errors.contract_file}>
                             <input
+                                id="terms-file"
                                 type="file"
                                 accept="application/pdf"
-                                onChange={(e) => contractForm.setData('contract_file', e.target.files?.[0] ?? null)}
+                                onChange={(event) => terms.setData('contract_file', event.target.files?.[0] ?? null)}
+                                className={`${INPUT} cursor-pointer`}
                             />
-                        </div>
-                    </div>
+                        </Field>
 
-                    {contractFiles.length > 0 && (
-                        <div style={{ marginTop: 12 }}>
-                            <div style={{ fontSize: 12, color: '#6B7A99', marginBottom: 6 }}>
-                                نسخ العقد المحفوظة — الاستبدال ينشئ نسخة جديدة وتبقى القديمة، ولا حذف نهائي
-                            </div>
-                            <table className="portal-table">
-                                <thead>
-                                    <tr>
-                                        <th>النسخة</th>
-                                        <th>الملف</th>
-                                        <th>الحجم</th>
-                                        <th>الحالة</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {contractFiles.map((file) => (
-                                        <tr key={file.id}>
-                                            <td>v{file.version}</td>
-                                            <td dir="ltr" style={{ fontSize: 12 }}>{file.original_name}</td>
-                                            <td dir="ltr" style={{ fontSize: 12 }}>{file.size}</td>
-                                            <td style={{ fontSize: 12, color: file.is_current ? '#009E82' : '#6B7A99' }}>
-                                                {file.is_current ? 'النسخة السارية' : 'نسخة سابقة (محفوظة)'}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="flex items-end pb-2">
+                            <label className="flex items-center gap-2 text-xs font-bold text-ink cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={terms.data.contract_coordinator_service}
+                                    onChange={(event) => terms.setData('contract_coordinator_service', event.target.checked)}
+                                    className="w-4 h-4 accent-lime cursor-pointer"
+                                />
+                                خدمة المنسّق المُدار مفعّلة
+                            </label>
                         </div>
-                    )}
+                    </FormGrid>
+                </FormSection>
 
-                    <div style={{ marginTop: 20 }}>
-                        <button type="submit" disabled={contractForm.processing} className="act-btn btn-approve" style={{ padding: '12px 24px' }}>
-                            حفظ بيانات العقد
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <FormActions cancelHref="/admin/companies">
+                    <Button type="submit" icon={Upload} disabled={terms.processing}>
+                        حفظ شروط العقد
+                    </Button>
+                </FormActions>
+            </form>
+
+            {/* ── نسخ العقد ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-ink" aria-hidden="true" />
+                    <h2 className="text-sm font-extrabold text-ink">نسخ ملف العقد</h2>
+                </div>
+
+                <TableShell>
+                    <Thead>
+                        <Th>الملف</Th>
+                        <Th>النسخة</Th>
+                        <Th>الحجم</Th>
+                        <Th>رُفع في</Th>
+                    </Thead>
+                    <Tbody>
+                        {contractFiles.map((file) => (
+                            <Tr key={file.id}>
+                                <Td>
+                                    <span className="font-bold text-ink">{file.original_name}</span>
+                                    {file.is_current && <Badge tone="success">النسخة السارية</Badge>}
+                                </Td>
+                                <Td className="font-mono font-bold text-ink">v{file.version}</Td>
+                                <Td className="font-mono text-[11px] text-ink/70">{file.size}</Td>
+                                <Td className="font-mono text-[11px] text-ink/70">
+                                    {file.created_at ? new Date(file.created_at).toLocaleDateString('ar-SA') : '—'}
+                                </Td>
+                            </Tr>
+                        ))}
+                        <ListStates
+                            count={contractFiles.length}
+                            colSpan={4}
+                            empty="لا نسخ عقد مرفوعة."
+                            emptyHint="ارفع نسخة PDF من العقد الموقّع لحفظها في السجل."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <Note title="لماذا تبقى النسخ القديمة؟">
+                    نسخة العقد دليل تعاقدي على فترة فوترة مضت. حذفها يعني فقدان المرجع الذي حُسبت عليه فواتير صادرة فعلاً — لذلك
+                    ترفع نسخة جديدة ولا تُستبدل القديمة أبداً.
+                </Note>
+            </Card>
         </AdminLayout>
     );
 }

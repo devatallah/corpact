@@ -36,7 +36,7 @@ class PartnerController extends Controller
         return Inertia::render('admin/partners/index', [
             'partners' => $partners,
             'stats' => $stats,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => PartnerService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
         ]);
@@ -47,7 +47,11 @@ class PartnerController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('admin/partners/create');
+        // `category_ids` is required by StorePartnerRequest, so the form cannot
+        // be filled without the tree to pick from.
+        return Inertia::render('admin/partners/create', [
+            'categories' => self::categoryTree(),
+        ]);
     }
 
     /**
@@ -80,8 +84,24 @@ class PartnerController extends Controller
     public function edit(Partner $partner): Response
     {
         return Inertia::render('admin/partners/edit', [
-            'partner' => $partner,
+            'partner' => $partner->load('categories:id'),
+            'categories' => self::categoryTree(),
         ]);
+    }
+
+    /**
+     * The activity tree the provider forms pick from — parents with their
+     * children, same shape the index filter uses.
+     *
+     * @return \Illuminate\Support\Collection<int, Category>
+     */
+    private static function categoryTree()
+    {
+        return Category::whereNull('parent_id')
+            ->with('children:id,parent_id,name,icon')
+            ->select('id', 'parent_id', 'name', 'icon')
+            ->orderBy('name')
+            ->get();
     }
 
     /**

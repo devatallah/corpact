@@ -31,7 +31,7 @@ class SettlementController extends Controller
             'partner' => $partner,
             'statements' => $this->settlements->listForPartner($partner, $filters),
             'totals' => $this->settlements->totals($partner),
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => PartnerSettlementService::statementSort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }

@@ -1,136 +1,111 @@
-import AdminLayout from '@/layouts/admin-layout';
-import FilterTabs from '@/components/filter-tabs';
-import Pagination from '@/components/pagination';
-import { SortBar, type SortState } from '@/components/sortable-header';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
-import { fmtDateTime } from '@/lib/utils';
-import type { Notification, PaginatedResult } from '@/types/models';
 import { Head, router } from '@inertiajs/react';
+import { Bell, Check, Trash2 } from 'lucide-react';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Card, IconButton, PageHeader, StatCard } from '@/components/portal/ui';
+import AdminLayout from '@/layouts/admin-layout';
+import type { Paginated, SortState } from '@/types';
 
-interface Props {
-    notifications: PaginatedResult<Notification>;
-    unreadCount: number;
-    filters: { search?: string; state?: string; sort?: string; dir?: string };
-    sort: SortState;
-}
-
-const typeEmojiMap: Record<string, string> = {
-    company_registration: '🏢',
-    partner_registration: '🏟️',
-    event_created: '📅',
-    settlement: '💰',
+/** Your own inbox — the notifications addressed to this admin account. */
+type NotificationRow = {
+    id: number;
+    type: string | null;
+    title: string;
+    body: string | null;
+    link: string | null;
+    read_at: string | null;
+    created_at: string | null;
 };
 
-const STATE_FILTERS = [
-    { label: 'الكل', value: '' },
-    { label: 'غير مقروءة', value: 'unread' },
-    { label: 'مقروءة', value: 'read' },
-];
-
-// H §18 — «كل قائمة: بحث + فلترة + ترتيب + ترقيم صفحات».
-const SORT_OPTIONS = [
-    { key: 'created_at', label: 'الوقت', initialDirection: 'desc' as const },
-    { key: 'read_at', label: 'القراءة', initialDirection: 'desc' as const },
-    { key: 'title', label: 'العنوان' },
-    { key: 'type', label: 'النوع' },
-];
-
-export default function NotifsIndex({ notifications, unreadCount, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        state: filters?.state,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-
+export default function AdminNotifs({
+    notifications,
+    unreadCount,
+    filters,
+    sort,
+}: {
+    notifications: Paginated<NotificationRow>;
+    unreadCount: number;
+    filters: { search?: string; state?: string };
+    sort: SortState;
+}) {
     return (
         <AdminLayout>
             <Head title="الإشعارات" />
 
-            <div className="page-title">الإشعارات</div>
-            <div className="page-sub">{unreadCount} إشعارات تحتاج تدخلاً</div>
+            <PageHeader icon={Bell} title="صندوق إشعاراتك" subtitle="الإشعارات الموجّهة إلى حسابك أنت — لا سجل الإرسال العام." />
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث في العنوان أو النص..."
-                    style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 220 }}
-                />
-                <FilterTabs options={STATE_FILTERS} current={filters?.state ?? ''} paramName="state" />
-                <SortBar sort={sort} options={SORT_OPTIONS} />
+            <div className="grid grid-cols-2 gap-4">
+                <StatCard label="غير مقروءة" value={unreadCount} tone={unreadCount > 0 ? 'warning' : 'success'} />
+                <StatCard label="المعروض بعد التصفية" value={notifications.total} />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {notifications.data.length === 0 ? (
-                    <div className="card" style={{ display: 'flex', gap: '14px', alignItems: 'center', justifyContent: 'center', padding: '30px' }}>
-                        <div style={{ fontSize: '14px', color: '#6B7A99' }}>لا إشعار مطابق للبحث والفلاتر الحالية.</div>
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث في العنوان أو النص…" />
+                    <FilterSelect
+                        name="state"
+                        label="حالة القراءة"
+                        value={filters.state ?? ''}
+                        options={[
+                            ['', 'الكل'],
+                            ['unread', 'غير المقروءة'],
+                            ['read', 'المقروءة'],
+                        ]}
+                    />
+                    <div className="flex items-center justify-end">
+                        <SortableHeader label="الأحدث" sortKey="created_at" sort={sort} initialDirection="desc" />
                     </div>
-                ) : (
-                    notifications.data.map((notif) => {
-                        const isUnread = !notif.read_at;
-                        const emoji = typeEmojiMap[notif.type ?? ''] ?? (isUnread ? '🔔' : '✅');
+                </Toolbar>
 
-                        return (
-                            <div
-                                key={notif.id}
-                                className="card"
-                                onClick={() => isUnread && router.post(`/admin/notifs/${notif.id}/read`, {}, { preserveScroll: true })}
-                                style={{
-                                    ...(isUnread ? { borderRight: '4px solid #D4820A' } : {}),
-                                    display: 'flex',
-                                    gap: '14px',
-                                    alignItems: 'flex-start',
-                                    ...(!isUnread ? { opacity: 0.6 } : {}),
-                                    cursor: isUnread ? 'pointer' : 'default',
-                                }}
-                            >
-                                <div style={{
-                                    width: '42px',
-                                    height: '42px',
-                                    borderRadius: '12px',
-                                    background: isUnread ? '#D4820A20' : '#232A3E',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '22px',
-                                    flexShrink: 0,
-                                }}>
-                                    {emoji}
+                <div className="divide-y-[0.5px] divide-ink/10">
+                    {notifications.data.map((notification) => (
+                        <div
+                            key={notification.id}
+                            className={`p-4 flex items-start justify-between gap-3 ${notification.read_at === null ? 'bg-lime/[0.06]' : ''}`}
+                        >
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-extrabold text-ink">{notification.title}</span>
+                                    {notification.read_at === null && <Badge tone="lime">جديد</Badge>}
                                 </div>
-
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
-                                        {notif.title}
-                                    </div>
-                                    {notif.body && (
-                                        <div style={{ fontSize: '12px', color: '#C8D0E0', lineHeight: 1.5 }}>
-                                            {notif.body}
-                                        </div>
-                                    )}
-                                    <div style={{ fontSize: '11px', color: '#6B7A99', marginTop: '4px' }}>
-                                        {fmtDateTime(notif.created_at)}
-                                    </div>
-                                </div>
-
-                                {isUnread && (
-                                    <>
-                                        <div style={{
-                                            width: '8px',
-                                            height: '8px',
-                                            borderRadius: '50%',
-                                            background: '#D4820A',
-                                            flexShrink: 0,
-                                            marginTop: '6px',
-                                        }} />
-                                    </>
+                                {notification.body && (
+                                    <p className="text-[11px] text-ink/70 leading-relaxed mt-0.5">{notification.body}</p>
                                 )}
+                                <span className="text-[10px] text-ink/45 font-mono">
+                                    {notification.created_at ? new Date(notification.created_at).toLocaleString('ar-SA') : '—'}
+                                </span>
                             </div>
-                        );
-                    })
-                )}
-            </div>
 
-            <Pagination links={notifications.links} />
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                {notification.read_at === null && (
+                                    <IconButton
+                                        icon={Check}
+                                        label="تعليم كمقروء"
+                                        onClick={() => router.post(`/admin/notifs/${notification.id}/read`, {}, { preserveScroll: true })}
+                                    />
+                                )}
+                                <IconButton
+                                    icon={Trash2}
+                                    label="حذف الإشعار"
+                                    tone="danger"
+                                    onClick={() => router.delete(`/admin/notifs/${notification.id}`, { preserveScroll: true })}
+                                />
+                            </div>
+                        </div>
+                    ))}
+
+                    <ListStates
+                        count={notifications.data.length}
+                        empty="لا إشعارات."
+                        emptyHint="ستصلك هنا تنبيهات النظام الموجّهة لحسابك."
+                    />
+                </div>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={notifications} />
+                    <Pagination page={notifications} />
+                </div>
+            </Card>
         </AdminLayout>
     );
 }

@@ -1,345 +1,267 @@
+import { Head, Link } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
+import { CalendarClock, Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import {
+    FilterSelect,
+    Pagination,
+    ResultCount,
+    SearchInput,
+    SortableHeader,
+    Toolbar,
+} from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import {
+    Badge,
+    ButtonLink,
+    Card,
+    IconButton,
+    PageHeader,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    TableShell,
+    Tr,
+} from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
-import CategoryIcon from '@/components/category-icon';
-import Pagination from '@/components/pagination';
-import { SortBar, type SortState } from '@/components/sortable-header';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
-import type { Community, Category, PaginatedResult } from '@/types/models';
-import { Head, useForm } from '@inertiajs/react';
-import { useState, useEffect, useRef, useCallback, useMemo, type FormEvent } from 'react';
-import toastr from 'toastr';
+import type { Paginated, SortState } from '@/types';
 
-const COLORS = ['#0CA678', '#D4820A', '#5B3FCC', '#3B5BDB', '#E03050', '#8B5CF6'];
+/**
+ * H §6 — المجتمعات.
+ *
+ * A community without a leader is a community nobody can run: no one may
+ * create its events. The list says so outright rather than leaving an empty
+ * cell, because that is the single most common reason a community goes quiet.
+ */
+type Category = {
+    id: number;
+    parent_id: number | null;
+    name: string;
+    icon?: string | null;
+    children?: Category[];
+};
 
-interface Props {
-    communities: PaginatedResult<Community>;
-    categories?: Category[];
-    filters: { search?: string; sort?: string; dir?: string };
+type Community = {
+    id: number;
+    name: string;
+    description: string | null;
+    members_count: number;
+    category?: { id: number; name: string } | null;
+    leader?: { id: number; name: string } | null;
+};
+
+export default function CompanyCommunities({
+    communities,
+    filters,
+    sort,
+    categories,
+}: {
+    company: { id: number; name: string };
+    communities: Paginated<Community>;
+    filters: { search?: string; category_id?: string | number };
     sort: SortState;
-}
+    categories: Category[];
+    unreadNotifications: number;
+}) {
+    const [deleting, setDeleting] = useState<Community | null>(null);
 
-export default function CommunitiesIndex({ communities, categories, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-    const [showCreate, setShowCreate] = useState(false);
-    const [editingItem, setEditingItem] = useState<Community | null>(null);
-
-    const form = useForm({
-        name: '',
-        description: '',
-        category_id: '',
-        parent_category_id: '',
-        leader_id: '',
-    });
-
-    const subcategories = useMemo(() => {
-        if (!form.data.parent_category_id) return [];
-        const parent = categories?.find((c) => String(c.id) === form.data.parent_category_id);
-        return parent?.children ?? [];
-    }, [form.data.parent_category_id, categories]);
-
-    // Leader search state
-    const [leaderQuery, setLeaderQuery] = useState('');
-    const [leaderResults, setLeaderResults] = useState<{ id: number; name: string; email: string }[]>([]);
-    const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
-    const [selectedLeaderName, setSelectedLeaderName] = useState('');
-    const leaderRef = useRef<HTMLDivElement>(null);
-    const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-    const searchLeader = useCallback((q: string) => {
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(async () => {
-            if (q.length === 0) { setLeaderResults([]); return; }
-            const res = await fetch(`/company/employees/search?q=${encodeURIComponent(q)}`);
-            const data = await res.json();
-            setLeaderResults(data);
-            setShowLeaderDropdown(true);
-        }, 300);
-    }, []);
-
-    // Close dropdown on outside click
-    useEffect(() => {
-        function handleClick(e: MouseEvent) {
-            if (leaderRef.current && !leaderRef.current.contains(e.target as Node)) {
-                setShowLeaderDropdown(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClick);
-        return () => document.removeEventListener('mousedown', handleClick);
-    }, []);
-
-    useEffect(() => {
-        if (editingItem) {
-            const catParentId = editingItem.category?.parent_id
-                ? String(editingItem.category.parent_id)
-                : editingItem.category_id ? String(editingItem.category_id) : '';
-            form.setData({
-                name: editingItem.name ?? '',
-                description: editingItem.description ?? '',
-                category_id: editingItem.category_id ? String(editingItem.category_id) : '',
-                parent_category_id: catParentId,
-                leader_id: editingItem.leader?.id ? String(editingItem.leader.id) : '',
-            });
-            setSelectedLeaderName(editingItem.leader?.name ?? '');
-            setLeaderQuery(editingItem.leader?.name ?? '');
-        }
-    }, [editingItem]);
-
-    function handleSubmit(e: FormEvent) {
-        e.preventDefault();
-        if (editingItem) {
-            form.put(`/company/communities/${editingItem.id}`, {
-                onSuccess: () => {
-                    setEditingItem(null);
-                    toastr.success('تم تعديل المجتمع بنجاح');
-                },
-            });
-        } else {
-            form.post('/company/communities', {
-                onSuccess: () => {
-                    setShowCreate(false);
-                    form.reset();
-                    toastr.success('تم إنشاء المجتمع بنجاح');
-                },
-            });
-        }
-    }
+    const leaderless = communities.data.filter(
+        (community) => !community.leader,
+    ).length;
 
     return (
         <CompanyLayout>
             <Head title="المجتمعات" />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                <div>
-                    <div className="page-title">إدارة المجتمعات</div>
-                    <div className="page-sub">{communities.total} مجتمعات نشطة</div>
-                </div>
-                <button
-                    onClick={() => { setShowCreate(true); setEditingItem(null); form.reset(); setLeaderQuery(''); setSelectedLeaderName(''); setLeaderResults([]); }}
-                    style={{ background: '#3B5BDB', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            <PageHeader
+                icon={UsersRound}
+                title="المجتمعات"
+                subtitle="كل مجتمع يحتاج قائداً وفئة ومحفظة — بدون قائد لا تُنشأ فعاليات."
+                actions={
+                    <ButtonLink href="/company/communities/create" icon={Plus}>
+                        مجتمع جديد
+                    </ButtonLink>
+                }
+            />
+
+            {leaderless > 0 && (
+                <Card
+                    padding="p-3.5"
+                    className="border-warning/30 bg-warning-tint"
                 >
-                    + إنشاء مجتمع
-                </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث باسم المجتمع..."
-                    style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 220 }}
-                />
-                <SortBar
-                    sort={sort}
-                    options={[
-                        { key: 'name', label: 'الاسم' },
-                        { key: 'members_count', label: 'عدد الأعضاء', initialDirection: 'desc' },
-                    ]}
-                />
-            </div>
-
-            {communities.data.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: 32 }}>
-                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا توجد مجتمعات مطابقة</div>
-                </div>
-            ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                    {communities.data.map((community, index) => {
-                        const color = community.color ?? COLORS[index % COLORS.length];
-                        const activeMembers = community.members_count ?? 0;
-                        const eventCount = community.events_count ?? 0;
-                        const balance = Number(community.balance ?? 0);
-
-                        return (
-                            <div
-                                key={community.id}
-                                style={{
-                                    background: '#fff',
-                                    borderRadius: 20,
-                                    overflow: 'hidden',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03)',
-                                }}
-                            >
-                                {/* Colored top band */}
-                                <div style={{ height: 5, background: color }} />
-
-                                <div style={{ padding: '28px 28px 24px' }}>
-                                    {/* Row 1: Category icon + name + edit */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
-                                        <CategoryIcon icon={community.category?.icon ?? community.icon} size={38} />
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: 20, fontWeight: 800 }}>{community.name}</div>
-                                        </div>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); window.location.href = `/company/communities/${community.id}/templates`; }}
-                                            title="قوالب التكرار — محرك التشغيل التلقائي"
-                                            style={{ background: '#EFF6FF', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#1A5FAB', cursor: 'pointer', fontFamily: 'inherit' }}
-                                        >
-                                            🔄 القوالب
-                                        </button>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setEditingItem(community); setShowCreate(false); }}
-                                            style={{ background: '#F1F5F9', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#64748B', cursor: 'pointer', fontFamily: 'inherit' }}
-                                        >
-                                            تعديل
-                                        </button>
-                                    </div>
-
-                                    {/* Leader */}
-                                    <div style={{ fontSize: 14, color: '#94A3B8', marginBottom: 24, paddingRight: 54 }}>
-                                        {community.leader?.name ?? '\u2014'}
-                                    </div>
-
-                                    {/* Stats */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0, background: '#F8FAFC', borderRadius: 14, padding: '20px 0' }}>
-                                        <div style={{ textAlign: 'center', borderLeft: '1px solid #E8ECF4' }}>
-                                            <div style={{ fontSize: 26, fontWeight: 800, color: '#0F1923' }}>{activeMembers}</div>
-                                            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4, fontWeight: 500 }}>عضو</div>
-                                        </div>
-                                        <div style={{ textAlign: 'center', borderLeft: '1px solid #E8ECF4' }}>
-                                            <div style={{ fontSize: 26, fontWeight: 800, color: '#0F1923' }}>{eventCount}</div>
-                                            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4, fontWeight: 500 }}>فعالية</div>
-                                        </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 22, fontWeight: 800, color }}>{balance.toLocaleString()}</div>
-                                            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4, fontWeight: 500 }}>ريال</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                    <p className="text-xs font-bold text-warning">
+                        {leaderless} من المجتمعات المعروضة بلا قائد — لن تُنشأ
+                        فيها فعاليات حتى تُعيّن قائداً.
+                    </p>
+                </Card>
             )}
 
-            <Pagination links={communities.links} />
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput
+                        value={filters.search ?? ''}
+                        placeholder="ابحث باسم المجتمع…"
+                    />
+                    <FilterSelect
+                        name="category_id"
+                        label="الفئة"
+                        value={String(filters.category_id ?? '')}
+                        options={[
+                            ['', 'كل الفئات'],
+                            ...categories.flatMap((parent) => [
+                                [String(parent.id), parent.name] as [
+                                    string,
+                                    string,
+                                ],
+                                ...(parent.children ?? []).map(
+                                    (child) =>
+                                        [
+                                            String(child.id),
+                                            `— ${child.name}`,
+                                        ] as [string, string],
+                                ),
+                            ]),
+                        ]}
+                    />
+                </Toolbar>
 
-            {(showCreate || editingItem) && (
-                <div className="detail-overlay open" onClick={() => { setShowCreate(false); setEditingItem(null); }}>
-                    <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
-                        <h3>
-                            {editingItem ? 'تعديل المجتمع' : 'إضافة مجتمع'}
-                            <button className="close-btn" onClick={() => { setShowCreate(false); setEditingItem(null); }}>×</button>
-                        </h3>
-                        <form onSubmit={handleSubmit}>
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>اسم المجتمع</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.name}
-                                        onChange={(e) => form.setData('name', e.target.value)}
-                                        required
-                                    />
-                                    {form.errors.name && <div className="field-error">{form.errors.name}</div>}
-                                </div>
-                                <div className="fg" ref={leaderRef} style={{ position: 'relative' }}>
-                                    <label>القائد</label>
-                                    <input
-                                        type="text"
-                                        placeholder="ابحث باسم الموظف..."
-                                        value={leaderQuery}
-                                        onChange={(e) => {
-                                            setLeaderQuery(e.target.value);
-                                            searchLeader(e.target.value);
-                                            if (!e.target.value) {
-                                                form.setData('leader_id', '');
-                                                setSelectedLeaderName('');
-                                            }
-                                        }}
-                                        onFocus={() => { if (leaderResults.length > 0) setShowLeaderDropdown(true); }}
-                                    />
-                                    {showLeaderDropdown && leaderResults.length > 0 && (
-                                        <div style={{
-                                            position: 'absolute', top: '100%', right: 0, left: 0, zIndex: 50,
-                                            background: '#fff', border: '1px solid #E4E9F2', borderRadius: 10,
-                                            boxShadow: '0 8px 24px rgba(0,0,0,.1)', maxHeight: 200, overflowY: 'auto',
-                                            marginTop: 4,
-                                        }}>
-                                            {leaderResults.map((emp) => (
-                                                <div
-                                                    key={emp.id}
-                                                    onClick={() => {
-                                                        form.setData('leader_id', String(emp.id));
-                                                        setLeaderQuery(emp.name);
-                                                        setSelectedLeaderName(emp.name);
-                                                        setShowLeaderDropdown(false);
-                                                    }}
-                                                    style={{
-                                                        padding: '10px 14px', cursor: 'pointer', fontSize: 13,
-                                                        borderBottom: '1px solid #F1F5F9',
-                                                        background: String(emp.id) === form.data.leader_id ? '#3B5BDB08' : undefined,
-                                                    }}
-                                                    onMouseEnter={(e) => (e.currentTarget.style.background = '#F8F9FC')}
-                                                    onMouseLeave={(e) => (e.currentTarget.style.background = String(emp.id) === form.data.leader_id ? '#3B5BDB08' : '')}
-                                                >
-                                                    <div style={{ fontWeight: 600 }}>{emp.name}</div>
-                                                    <div style={{ fontSize: 11, color: '#7A8BA8' }}>{emp.email}</div>
-                                                </div>
-                                            ))}
-                                        </div>
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader
+                                label="المجتمع"
+                                sortKey="name"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th>الفئة</Th>
+                        <Th>القائد الأساسي</Th>
+                        <Th>
+                            <SortableHeader
+                                label="الأعضاء"
+                                sortKey="members_count"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th className="text-center">الإجراءات</Th>
+                    </Thead>
+
+                    <Tbody>
+                        {communities.data.map((community) => (
+                            <Tr key={community.id}>
+                                <Td>
+                                    <Link
+                                        href={`/company/communities/${community.id}/edit`}
+                                        className="font-extrabold text-ink hover:underline"
+                                    >
+                                        {community.name}
+                                    </Link>
+                                    {community.description && (
+                                        <span className="block max-w-xs truncate text-[11px] text-ink/50">
+                                            {community.description}
+                                        </span>
                                     )}
-                                    {form.errors.leader_id && <div className="field-error">{form.errors.leader_id}</div>}
-                                </div>
-                            </div>
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>الفئة</label>
-                                    <select
-                                        value={form.data.parent_category_id}
-                                        onChange={(e) => {
-                                            const parentId = e.target.value;
-                                            const parent = categories?.find((c) => String(c.id) === parentId);
-                                            const hasChildren = (parent?.children?.length ?? 0) > 0;
-                                            form.setData({
-                                                ...form.data,
-                                                parent_category_id: parentId,
-                                                category_id: hasChildren ? '' : parentId,
-                                            });
-                                        }}
-                                    >
-                                        <option value="">اختر الفئة</option>
-                                        {categories?.map((cat) => (
-                                            <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
-                                        ))}
-                                    </select>
-                                    {form.errors.category_id && <div className="field-error">{form.errors.category_id}</div>}
-                                </div>
-                                <div className="fg">
-                                    <label>الفئة الفرعية</label>
-                                    <select
-                                        value={form.data.category_id}
-                                        onChange={(e) => form.setData('category_id', e.target.value)}
-                                        disabled={!form.data.parent_category_id || subcategories.length === 0}
-                                    >
-                                        <option value="">{form.data.parent_category_id ? 'اختر الفئة الفرعية' : 'اختر الفئة أولاً'}</option>
-                                        {subcategories.map((sub) => (
-                                            <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>الوصف</label>
-                                    <textarea
-                                        value={form.data.description}
-                                        onChange={(e) => form.setData('description', e.target.value)}
-                                        rows={3}
-                                    />
-                                    {form.errors.description && <div className="field-error">{form.errors.description}</div>}
-                                </div>
-                                <div className="fg" />
-                            </div>
-                            <div className="panel-actions">
-                                <button type="submit" className="pa-approve" disabled={form.processing}>حفظ</button>
-                                <button type="button" className="pa-reject" onClick={() => { setShowCreate(false); setEditingItem(null); }}>إلغاء</button>
-                            </div>
-                        </form>
-                    </div>
+                                </Td>
+                                <Td className="text-ink/85">
+                                    {community.category?.name ?? '—'}
+                                </Td>
+                                <Td>
+                                    {community.leader ? (
+                                        <span className="text-ink/85">
+                                            {community.leader.name}
+                                        </span>
+                                    ) : (
+                                        <Badge tone="warning">بلا قائد</Badge>
+                                    )}
+                                </Td>
+                                <Td className="font-mono font-bold text-ink">
+                                    {community.members_count}
+                                </Td>
+                                <Td className="text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                        <Link
+                                            href={`/company/communities/${community.id}/templates`}
+                                            title="قوالب التكرار"
+                                            className="rounded-lg bg-ink/5 p-1.5 text-ink transition-colors hover:bg-ink/10"
+                                        >
+                                            <CalendarClock
+                                                className="h-3.5 w-3.5"
+                                                aria-hidden="true"
+                                            />
+                                        </Link>
+                                        <Link
+                                            href={`/company/communities/${community.id}/edit`}
+                                            title="تعديل المجتمع"
+                                            className="rounded-lg bg-ink/5 p-1.5 text-ink transition-colors hover:bg-ink/10"
+                                        >
+                                            <Pencil
+                                                className="h-3.5 w-3.5"
+                                                aria-hidden="true"
+                                            />
+                                        </Link>
+                                        <IconButton
+                                            icon={Trash2}
+                                            label="حذف المجتمع"
+                                            tone="danger"
+                                            onClick={() =>
+                                                setDeleting(community)
+                                            }
+                                        />
+                                    </div>
+                                </Td>
+                            </Tr>
+                        ))}
+
+                        <ListStates
+                            count={communities.data.length}
+                            colSpan={5}
+                            empty="لا مجتمعات بعد."
+                            emptyHint="أنشئ أول مجتمع، ثم عيّن له قائداً ووزّع له رصيداً من المحفظة."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <ResultCount page={communities} />
+                    <Pagination page={communities} />
                 </div>
-            )}
+            </Card>
+
+            <ConfirmModal
+                open={deleting !== null}
+                tone="danger"
+                title="حذف المجتمع"
+                message="يُحذف المجتمع وعضوياته وقوالب تكراره. الفعاليات المكتملة تبقى في السجل والتقارير، لكن لا يمكن إنشاء فعاليات جديدة تحته."
+                details={
+                    deleting && (
+                        <>
+                            <ConfirmRow
+                                label="المجتمع"
+                                value={deleting.name}
+                                strong
+                            />
+                            <ConfirmRow
+                                label="الأعضاء"
+                                value={`${deleting.members_count} عضواً يفقدون عضويتهم`}
+                            />
+                            <ConfirmRow
+                                label="القائد"
+                                value={deleting.leader?.name ?? 'بلا قائد'}
+                            />
+                        </>
+                    )
+                }
+                confirmLabel="نعم، احذف المجتمع"
+                onConfirm={() => {
+                    router.delete(`/company/communities/${deleting?.id}`, {
+                        preserveScroll: true,
+                    });
+                    setDeleting(null);
+                }}
+                onCancel={() => setDeleting(null)}
+            />
         </CompanyLayout>
     );
 }

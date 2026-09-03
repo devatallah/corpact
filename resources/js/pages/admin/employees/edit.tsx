@@ -1,156 +1,192 @@
+import { Head, useForm } from '@inertiajs/react';
+import { UserRound } from 'lucide-react';
+import { BackLink } from '@/components/list-states';
+import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
+import { Badge, Button, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import type { Company, Department, Employee } from '@/types/models';
-import { Head, Link, useForm } from '@inertiajs/react';
 
-interface Props {
-    employee: Employee & { company?: Company };
-    companies: Company[];
-    departments: Department[];
-}
+/**
+ * H §16 — تعديل موظف من لوحة المنصة.
+ *
+ * Moving an employee between companies is the heavy action here: reports are
+ * attributed to the department and company *at the time of the event*, so a
+ * move does not rewrite history — it starts a new membership from today.
+ */
+type EmployeeModel = {
+    id: number;
+    name: string;
+    email: string;
+    phone: string | null;
+    status: string;
+    company_id: number;
+    department_id: number | null;
+    employee_number: string | null;
+    anonymized_at: string | null;
+    company?: { id: number; name: string } | null;
+};
 
-export default function EmployeesEdit({ employee, companies, departments }: Props) {
-    const { data, setData, put, processing, errors } = useForm({
-        name: employee.name ?? '',
-        email: employee.email ?? '',
+const EMPLOYEE_STATUS: Record<string, { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger' }> = {
+    active: { label: 'مفعّل', tone: 'success' },
+    pending_verification: { label: 'بانتظار التفعيل', tone: 'warning' },
+    invited: { label: 'مدعو', tone: 'warning' },
+    inactive: { label: 'معطّل', tone: 'neutral' },
+    banned: { label: 'محظور', tone: 'danger' },
+};
+
+export default function EditEmployee({
+    employee,
+    companies,
+    departments,
+}: {
+    employee: EmployeeModel;
+    companies: { id: number; name: string }[];
+    departments: { id: number; name: string; company_id: number }[];
+}) {
+    const form = useForm({
+        name: employee.name,
+        email: employee.email,
         password: '',
         phone: employee.phone ?? '',
-        company_id: String(employee.company_id ?? ''),
-        department_id: String(employee.department_id ?? ''),
-        status: employee.status ?? 'active',
+        company_id: String(employee.company_id),
+        department_id: employee.department_id === null ? '' : String(employee.department_id),
+        status: employee.status,
     });
 
-    const filteredDepartments = departments.filter((d) => String(d.company_id) === data.company_id);
-
-    function submit(e: React.FormEvent) {
-        e.preventDefault();
-        put(`/admin/employees/${employee.id}`);
-    }
+    const availableDepartments = departments.filter((department) => String(department.company_id) === form.data.company_id);
 
     return (
         <AdminLayout>
-            <Head title={`تعديل: ${employee.name}`} />
+            <Head title={employee.name} />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                <Link href="/admin/employees" style={{ color: '#6B7A99', textDecoration: 'none', fontSize: '14px' }}>
-                    ← الموظفون
-                </Link>
-                <span style={{ color: '#3D4A60' }}>/</span>
-                <span style={{ color: '#fff', fontWeight: 700 }}>تعديل: {employee.name}</span>
-            </div>
+            <BackLink href="/admin/employees" label="العودة إلى الموظفين" />
 
-            {Object.keys(errors).length > 0 && (
-                <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
-                    {Object.values(errors).map((error, i) => (
-                        <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                    ))}
-                </div>
-            )}
+            <PageHeader
+                icon={UserRound}
+                title={employee.name}
+                subtitle={employee.company?.name ?? undefined}
+                actions={
+                    <>
+                        <Badge tone={EMPLOYEE_STATUS[employee.status]?.tone ?? 'neutral'}>
+                            {EMPLOYEE_STATUS[employee.status]?.label ?? employee.status}
+                        </Badge>
+                        {employee.anonymized_at && <Badge tone="neutral">مُخفى الهوية</Badge>}
+                    </>
+                }
+            />
 
-            <div className="card" style={{ maxWidth: '600px' }}>
-                <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>تعديل بيانات الموظف</div>
-                <form onSubmit={submit}>
-                    <div className="frow">
-                        <div className="fg">
-                            <label>الاسم *</label>
+            <Note title="نقل الموظف بين الشركات">
+                التقارير التاريخية تُنسب للشركة والإدارة وقت وقوع الفعالية لا وقت قراءتها. النقل يبدأ عضوية جديدة من اليوم ولا
+                يعيد كتابة ما مضى.
+            </Note>
+
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.put(`/admin/employees/${employee.id}`, { preserveScroll: true });
+                }}
+                className="space-y-6"
+            >
+                <FormSection title="بيانات الموظف">
+                    <FormGrid>
+                        <Field label="الاسم" htmlFor="e-name" error={form.errors.name}>
                             <input
+                                id="e-name"
                                 type="text"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                placeholder="اسم الموظف"
-                                required
+                                value={form.data.name}
+                                onChange={(event) => form.setData('name', event.target.value)}
+                                className={INPUT}
                             />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>البريد الإلكتروني *</label>
+                        <Field label="البريد الإلكتروني" htmlFor="e-email" error={form.errors.email}>
                             <input
+                                id="e-email"
                                 type="email"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                placeholder="example@email.com"
                                 dir="ltr"
-                                required
+                                value={form.data.email}
+                                onChange={(event) => form.setData('email', event.target.value)}
+                                className={`${INPUT} text-right font-mono`}
                             />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>رقم الجوال</label>
+                        <Field label="رقم الجوال" htmlFor="e-phone" hint="هوية الدخول" error={form.errors.phone}>
                             <input
-                                type="text"
-                                value={data.phone}
-                                onChange={(e) => setData('phone', e.target.value)}
-                                placeholder="05xxxxxxxx"
+                                id="e-phone"
+                                type="tel"
                                 dir="ltr"
+                                value={form.data.phone}
+                                onChange={(event) => form.setData('phone', event.target.value)}
+                                className={`${INPUT} text-right font-mono`}
                             />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>الشركة *</label>
+                        <Field label="الشركة" htmlFor="e-company" error={form.errors.company_id}>
                             <select
-                                value={data.company_id}
-                                onChange={(e) => setData('company_id', e.target.value)}
-                                required
+                                id="e-company"
+                                value={form.data.company_id}
+                                onChange={(event) => {
+                                    form.setData('company_id', event.target.value);
+                                    form.setData('department_id', '');
+                                }}
+                                className={`${INPUT} cursor-pointer`}
                             >
-                                <option value="">اختر الشركة</option>
-                                {companies.map((c) => (
-                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                {companies.map((company) => (
+                                    <option key={company.id} value={company.id}>
+                                        {company.name}
+                                    </option>
                                 ))}
                             </select>
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>القسم</label>
+                        <Field label="الإدارة" htmlFor="e-department" error={form.errors.department_id}>
                             <select
-                                value={data.department_id}
-                                onChange={(e) => setData('department_id', e.target.value)}
+                                id="e-department"
+                                value={form.data.department_id}
+                                onChange={(event) => form.setData('department_id', event.target.value)}
+                                className={`${INPUT} cursor-pointer`}
                             >
-                                <option value="">بدون قسم</option>
-                                {filteredDepartments.map((d) => (
-                                    <option key={d.id} value={d.id}>{d.name}</option>
+                                <option value="">— بلا إدارة —</option>
+                                {availableDepartments.map((department) => (
+                                    <option key={department.id} value={department.id}>
+                                        {department.name}
+                                    </option>
                                 ))}
                             </select>
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>الحالة</label>
+                        <Field label="حالة الحساب" htmlFor="e-status" error={form.errors.status}>
                             <select
-                                value={data.status}
-                                onChange={(e) => setData('status', e.target.value)}
+                                id="e-status"
+                                value={form.data.status}
+                                onChange={(event) => form.setData('status', event.target.value)}
+                                className={`${INPUT} cursor-pointer`}
                             >
-                                <option value="active">نشط</option>
-                                <option value="inactive">غير نشط</option>
+                                <option value="active">مفعّل</option>
+                                <option value="pending_verification">بانتظار التفعيل</option>
+                                <option value="inactive">معطّل</option>
+                                <option value="banned">محظور</option>
                             </select>
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="act-btn btn-approve"
-                            style={{ flex: 1, padding: '12px' }}
-                        >
-                            حفظ التعديلات
-                        </button>
-                        <Link
-                            href="/admin/employees"
-                            style={{ padding: '12px 24px', background: '#232A3E', borderRadius: '10px', color: '#6B7A99', fontSize: '14px', fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
-                        >
-                            إلغاء
-                        </Link>
-                    </div>
-                </form>
-            </div>
+                        <Field label="كلمة مرور جديدة" htmlFor="e-password" hint="اتركها فارغة للإبقاء عليها" error={form.errors.password}>
+                            <input
+                                id="e-password"
+                                type="password"
+                                autoComplete="new-password"
+                                value={form.data.password}
+                                onChange={(event) => form.setData('password', event.target.value)}
+                                className={INPUT}
+                            />
+                        </Field>
+                    </FormGrid>
+                </FormSection>
+
+                <FormActions cancelHref="/admin/employees">
+                    <Button type="submit" disabled={form.processing}>
+                        حفظ التعديلات
+                    </Button>
+                </FormActions>
+            </form>
         </AdminLayout>
     );
 }

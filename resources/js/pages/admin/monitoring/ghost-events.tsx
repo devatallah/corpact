@@ -1,20 +1,21 @@
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import StatCard from '@/components/stat-card';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import { Head, Link } from '@inertiajs/react';
+import { Ghost, TrendingDown, TrendingUp } from 'lucide-react';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Card, Note, PageHeader, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import type { PaginatedResult } from '@/types/models';
-import { Head, router } from '@inertiajs/react';
+import type { Paginated, SortState } from '@/types';
 
-/* A13 — H §13 ⟶ §15: الإنذار المبكر لـ«الفعالية الشبح».
-
-   الحضور التلقائي يعني أن فعالية لم تُقم فعلاً ولم يبلّغ عنها أحد ستُحتسب
-   مكتملة فتُصرف للمزوّد وتدخل الفوترة. النص صريح: «يجب مراقبة معدل التعديلات
-   بعد الاكتمال كمؤشر إنذار مبكر». والرقم وحده لا يقول شيئاً — **ارتفاعه**
-   على خط الأساس هو الإشارة، ومعناه عطل تشغيلي في الميدان لا نشاط إداري. */
-
-interface WeekRow {
+/**
+ * H §13 — مراقبة الفعالية الشبح.
+ *
+ * A "ghost event" is one that completed on paper without happening: nobody
+ * reviewed the roll, or the attendance was rewritten afterwards, or an admin
+ * moved the state by hand. None of those is proof on its own — the signal is
+ * the *jump* against the preceding weeks, which is why every rate here is
+ * shown next to its own baseline rather than against a fixed threshold.
+ */
+type Week = {
     label: string;
     completed_events: number;
     post_completion_edited_events: number;
@@ -24,9 +25,9 @@ interface WeekRow {
     manual_state_change_rate: number;
     locked_without_review: number;
     locked_without_review_rate: number;
-}
+};
 
-interface ManualChange {
+type ManualChange = {
     id: number;
     event_id: number;
     event_title: string;
@@ -35,187 +36,196 @@ interface ManualChange {
     to_status: string;
     reason: string | null;
     created_at: string;
-}
+};
 
-interface Props {
-    weeks: WeekRow[];
-    latest: WeekRow;
-    baseline: {
-        post_completion_edit_rate: number;
-        manual_state_change_rate: number;
-        locked_without_review_rate: number;
-    };
+export default function GhostEvents({
+    weeks,
+    latest,
+    baseline,
+    companyId,
+    companies,
+    recentManualChanges,
+    filters,
+    sort,
+}: {
+    weeks: Week[];
+    latest: Week;
+    baseline: { post_completion_edit_rate: number; manual_state_change_rate: number; locked_without_review_rate: number };
     companyId: number | null;
     companies: { id: number; name: string }[];
-    recentManualChanges: PaginatedResult<ManualChange>;
-    filters: { search?: string; sort?: string; dir?: string };
+    recentManualChanges: Paginated<ManualChange>;
+    filters: { search?: string };
     sort: SortState;
-}
-
-const thStyle = { padding: '10px 14px', fontSize: 12, fontWeight: 600 } as const;
-const tdStyle = { padding: '10px 14px', fontSize: 13 } as const;
-
-function spikeColor(latest: number, baseline: number): string {
-    if (baseline === 0) return latest > 0 ? '#D4820A' : '#0CA678';
-    if (latest >= baseline * 2) return '#E03050';
-    if (latest > baseline * 1.25) return '#D4820A';
-    return '#0CA678';
-}
-
-function spikeNote(latest: number, baseline: number): string {
-    if (baseline === 0 && latest === 0) return 'لا حركة على هذا المؤشر';
-    if (latest >= baseline * 2 && baseline > 0) return `قفزة على خط الأساس ${baseline}% — يستحق فحصاً`;
-    if (latest > baseline * 1.25 && baseline > 0) return `أعلى من خط الأساس ${baseline}%`;
-    return `خط الأساس ${baseline}%`;
-}
-
-export default function GhostEventMonitor({ weeks, latest, baseline, companyId, companies, recentManualChanges, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        company_id: companyId ? String(companyId) : undefined,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-
-    function filterCompany(value: string) {
-        router.get(
-            '/admin/monitoring/ghost-events',
-            value === '' ? {} : { company_id: value },
-            { preserveScroll: true },
-        );
-    }
-
+}) {
     return (
         <AdminLayout>
-            <Head title="مراقبة الفعالية الشبح" />
+            <Head title="مراقبة الفعاليات الشبح" />
 
-            <div className="page-title">الإنذار المبكر — الفعالية الشبح</div>
-            <div className="page-sub">
-                مراقبة أسبوعية لمعدل التعديل بعد الاكتمال ومعدل التدخل اليدوي. الارتفاع المفاجئ يعني أن الفعاليات
-                لا تقع كما تُسجَّل — عطل تشغيلي، لا مؤشر نشاط إداري.
-            </div>
+            <PageHeader
+                icon={Ghost}
+                title="مراقبة الفعالية الشبح"
+                subtitle="فعالية اكتملت على الورق دون أن تقع فعلاً. المؤشر ليس الرقم المطلق بل قفزته عن أسابيعه السابقة."
+            />
 
-            <div className="card" style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, opacity: 0.7, display: 'block', marginBottom: 4 }}>الشركة</label>
-                <select
-                    value={companyId ?? ''}
-                    onChange={(e) => filterCompany(e.target.value)}
-                    style={{ padding: '8px 10px', border: '1px solid #232A3E', borderRadius: 8, minWidth: 220 }}
-                >
-                    <option value="">كل الشركات</option>
-                    {companies.map((company) => (
-                        <option key={company.id} value={company.id}>{company.name}</option>
-                    ))}
-                </select>
-            </div>
+            <Toolbar>
+                <FilterSelect
+                    name="company_id"
+                    label="الشركة"
+                    value={companyId === null ? '' : String(companyId)}
+                    options={[['', 'كل الشركات'], ...companies.map((company): [string, string] => [String(company.id), company.name])]}
+                />
+            </Toolbar>
 
-            <div className="stat-row">
-                <StatCard
-                    emoji="✏️"
-                    label="تعديل الحضور بعد الاكتمال — الأسبوع الأخير"
-                    value={`${latest.post_completion_edit_rate}%`}
-                    change={spikeNote(latest.post_completion_edit_rate, baseline.post_completion_edit_rate)}
-                    color={spikeColor(latest.post_completion_edit_rate, baseline.post_completion_edit_rate)}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Indicator
+                    label="تعديل الحضور بعد الاكتمال"
+                    rate={latest.post_completion_edit_rate}
+                    base={baseline.post_completion_edit_rate}
+                    detail={`${latest.post_completion_edited_events} من ${latest.completed_events} مكتملة`}
                 />
-                <StatCard
-                    emoji="🛠️"
-                    label="تغيير الحالة يدوياً — الأسبوع الأخير"
-                    value={`${latest.manual_state_change_rate}%`}
-                    change={spikeNote(latest.manual_state_change_rate, baseline.manual_state_change_rate)}
-                    color={spikeColor(latest.manual_state_change_rate, baseline.manual_state_change_rate)}
+                <Indicator
+                    label="تدخّل يدوي في الحالة"
+                    rate={latest.manual_state_change_rate}
+                    base={baseline.manual_state_change_rate}
+                    detail={`${latest.manual_state_change_events} من ${latest.events_created} فعالية`}
                 />
-                <StatCard
-                    emoji="👻"
-                    label="أُقفلت نافذتها بلا مراجعة"
-                    value={`${latest.locked_without_review_rate}%`}
-                    change={`${latest.locked_without_review} فعالية — الخانة التي تسكنها الفعالية الشبح`}
-                    color={spikeColor(latest.locked_without_review_rate, baseline.locked_without_review_rate)}
-                />
-                <StatCard
-                    emoji="📅"
-                    label="فعاليات مكتملة — الأسبوع الأخير"
-                    value={latest.completed_events}
-                    change={`${latest.events_created} أُنشئت`}
-                    color="#3B5BDB"
+                <Indicator
+                    label="أُقفلت بلا مراجعة"
+                    rate={latest.locked_without_review_rate}
+                    base={baseline.locked_without_review_rate}
+                    detail={`${latest.locked_without_review} فعالية`}
                 />
             </div>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
-                <div style={{ padding: '14px 20px', borderBottom: '1px solid #232A3E', fontSize: 14, fontWeight: 700 }}>
-                    الأسابيع الثمانية الأخيرة
-                </div>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <th style={thStyle}>الأسبوع</th>
-                            <th style={thStyle}>مكتملة</th>
-                            <th style={thStyle}>عُدِّل حضورها</th>
-                            <th style={thStyle}>معدل التعديل</th>
-                            <th style={thStyle}>تدخل يدوي</th>
-                            <th style={thStyle}>معدل التدخل</th>
-                            <th style={thStyle}>بلا مراجعة</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            {/* ── الاتجاه الأسبوعي ── */}
+            <Card padding="p-4" className="space-y-4">
+                <h2 className="text-sm font-extrabold text-ink">الاتجاه الأسبوعي</h2>
+
+                <TableShell>
+                    <Thead>
+                        <Th>الأسبوع</Th>
+                        <Th>مكتملة</Th>
+                        <Th>تعديل بعد الاكتمال</Th>
+                        <Th>تدخّل يدوي</Th>
+                        <Th>بلا مراجعة</Th>
+                    </Thead>
+                    <Tbody>
                         {weeks.map((week) => (
-                            <tr key={week.label}>
-                                <td style={tdStyle}>{week.label}</td>
-                                <td style={tdStyle}>{week.completed_events}</td>
-                                <td style={tdStyle}>{week.post_completion_edited_events}</td>
-                                <td style={{ ...tdStyle, color: spikeColor(week.post_completion_edit_rate, baseline.post_completion_edit_rate), fontWeight: 700 }}>
-                                    {week.post_completion_edit_rate}%
-                                </td>
-                                <td style={tdStyle}>{week.manual_state_change_events}</td>
-                                <td style={{ ...tdStyle, color: spikeColor(week.manual_state_change_rate, baseline.manual_state_change_rate), fontWeight: 700 }}>
-                                    {week.manual_state_change_rate}%
-                                </td>
-                                <td style={tdStyle}>{week.locked_without_review}</td>
-                            </tr>
+                            <Tr key={week.label}>
+                                <Td className="font-mono text-[11px] text-ink/80">{week.label}</Td>
+                                <Td className="font-mono font-bold text-ink">{week.completed_events}</Td>
+                                <Td>
+                                    <Rate value={week.post_completion_edit_rate} count={week.post_completion_edited_events} />
+                                </Td>
+                                <Td>
+                                    <Rate value={week.manual_state_change_rate} count={week.manual_state_change_events} />
+                                </Td>
+                                <Td>
+                                    <Rate value={week.locked_without_review_rate} count={week.locked_without_review} />
+                                </Td>
+                            </Tr>
                         ))}
-                    </tbody>
-                </table>
-            </div>
+                    </Tbody>
+                </TableShell>
+            </Card>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ padding: '14px 20px', borderBottom: '1px solid #232A3E' }}>
-                    <div style={{ fontSize: 14, fontWeight: 700 }}>آخر التدخلات اليدوية</div>
-                    <div style={{ fontSize: 11, opacity: 0.7, marginTop: 3 }}>كل تدخل يدوي يحمل سبباً مكتوباً — اقرأ السبب قبل أن تتدخل مرة أخرى</div>
-                    <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="🔍 ابحث بالفعالية أو الشركة أو السبب..."
-                        style={{ marginTop: 10, width: '100%', maxWidth: 360, padding: '8px 12px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 12, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
-                    />
-                </div>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <SortableHeader label="الفعالية" sortKey="event_title" sort={sort} style={thStyle} />
-                            <SortableHeader label="الشركة" sortKey="company_name" sort={sort} style={thStyle} />
-                            <SortableHeader label="من ← إلى" sortKey="to_status" sort={sort} style={thStyle} />
-                            <th style={thStyle}>السبب</th>
-                            <SortableHeader label="الوقت" sortKey="created_at" sort={sort} initialDirection="desc" style={thStyle} />
-                        </tr>
-                    </thead>
-                    <tbody>
+            {/* ── التدخلات اليدوية بأسبابها ── */}
+            <Card padding="p-4" className="space-y-4">
+                <h2 className="text-sm font-extrabold text-ink">التدخلات اليدوية بأسبابها</h2>
+
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث بالفعالية أو الشركة أو السبب…" />
+                </Toolbar>
+
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader label="الوقت" sortKey="created_at" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="الفعالية" sortKey="event_title" sort={sort} />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="الشركة" sortKey="company_name" sort={sort} />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="الانتقال" sortKey="to_status" sort={sort} />
+                        </Th>
+                        <Th>السبب</Th>
+                    </Thead>
+                    <Tbody>
+                        {recentManualChanges.data.map((change) => (
+                            <Tr key={change.id}>
+                                <Td className="font-mono text-[11px] text-ink/70 whitespace-nowrap">
+                                    {new Date(change.created_at).toLocaleString('ar-SA')}
+                                </Td>
+                                <Td>
+                                    <Link
+                                        href={`/admin/support-console/events/${change.event_id}`}
+                                        className="font-extrabold text-ink hover:underline"
+                                    >
+                                        {change.event_title}
+                                    </Link>
+                                </Td>
+                                <Td className="text-ink/85">{change.company_name || '—'}</Td>
+                                <Td className="font-mono text-[11px]">
+                                    <span className="text-ink/55">{change.from_status ?? '—'}</span>
+                                    <span className="text-ink/30"> → </span>
+                                    <span className="font-bold text-ink">{change.to_status}</span>
+                                </Td>
+                                <Td className="text-ink/70 max-w-xs text-[11px]">{change.reason ?? '—'}</Td>
+                            </Tr>
+                        ))}
+
                         <ListStates
                             count={recentManualChanges.data.length}
-                            columns={5}
-                            emptyTitle="لا تدخلات يدوية مسجّلة"
-                            emptyHint="وهذه هي الحالة الصحية — كل انتقال حالة تم بآلة الحالات لا بتدخل يدوي."
+                            colSpan={5}
+                            empty="لا تدخلات يدوية."
+                            emptyHint="الدورة تعمل تلقائياً بالكامل — وهذه هي الحالة المرجوّة."
                         />
-                        {recentManualChanges.data.map((change) => (
-                            <tr key={change.id}>
-                                <td style={tdStyle}>{change.event_title}</td>
-                                <td style={tdStyle}>{change.company_name}</td>
-                                <td style={tdStyle}>{change.from_status ?? '—'} ← {change.to_status}</td>
-                                <td style={tdStyle}>{change.reason ?? '—'}</td>
-                                <td style={tdStyle}>{new Date(change.created_at).toLocaleString('ar-SA')}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <Pagination links={recentManualChanges.links} />
-            </div>
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={recentManualChanges} />
+                    <Pagination page={recentManualChanges} />
+                </div>
+            </Card>
+
+            <Note title="كيف تُقرأ هذه الشاشة؟">
+                لا يوجد رقم «صحيح» هنا. المؤشر المرتفع مع خط أساس مرتفع قد يكون طبيعة تشغيل شركة، والمؤشر المنخفض الذي قفز عن
+                أسابيعه فجأة هو ما يستحق السؤال. ابدأ من السبب المكتوب في التدخل اليدوي.
+            </Note>
         </AdminLayout>
+    );
+}
+
+function Rate({ value, count }: { value: number; count: number }) {
+    return (
+        <span className="font-mono text-ink/85">
+            {value}٪ <span className="text-[11px] text-ink/45">({count})</span>
+        </span>
+    );
+}
+
+/** A rate against its own baseline — the jump is the signal, not the level. */
+function Indicator({ label, rate, base, detail }: { label: string; rate: number; base: number; detail: string }) {
+    const delta = Math.round((rate - base) * 10) / 10;
+    const worse = delta > 0;
+
+    return (
+        <Card className="space-y-2">
+            <span className="text-xs font-bold text-ink block">{label}</span>
+            <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-black font-mono text-ink">{rate}٪</span>
+                <span className={`text-[11px] font-bold flex items-center gap-0.5 ${worse ? 'text-danger' : 'text-success'}`}>
+                    {worse ? <TrendingUp className="w-3 h-3" aria-hidden="true" /> : <TrendingDown className="w-3 h-3" aria-hidden="true" />}
+                    {delta > 0 ? '+' : ''}
+                    {delta}
+                </span>
+            </div>
+            <div className="text-[11px] text-ink/55">{detail}</div>
+            <div className="text-[11px] text-ink/45 pt-1 border-t-[0.5px] border-ink/10 font-mono">خط الأساس {base}٪</div>
+        </Card>
     );
 }

@@ -1,350 +1,300 @@
-import ConfirmModal from '@/components/confirm-modal';
-import { ListState } from '@/components/list-states';
-import AdminLayout from '@/layouts/admin-layout';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Building2, CalendarDays, Headphones, Send, TriangleAlert, UserRound } from 'lucide-react';
 import { useState } from 'react';
-import toastr from 'toastr';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { FilterSelect, SearchInput, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Button, Card, Note, PageHeader, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import AdminLayout from '@/layouts/admin-layout';
+import { companyStatus, employeeStatus, eventStatus } from '@/lib/status';
 
 /**
- * G — «دليل وكيل الدعم»: البحث وقراءة سجل الحالات وسجل الإشعارات وإعادة
- * الإرسال ضمن الحدود، ومصفوفة التصعيد لكل ما هو خارج الصلاحية.
+ * دليل وكيل الدعم — البحث والاستعلام.
+ *
+ * The agent reads; they do not decide. Every search here is itself written to
+ * the audit log («كل ما تقرأه من بيانات موظفين وشركات يخضع لسجل التدقيق»),
+ * phone numbers are shown as their last four digits only, and the escalation
+ * table states in the agent's own words what they must hand upward instead of
+ * doing themselves.
  */
+type Results = {
+    events: { id: number; title: string; status: string; event_date: string | null; company: { id: number; name: string } | null; community: { id: number; name: string } | null }[];
+    employees: { id: number; name: string; email: string; phone_tail: string | null; status: string; company: { id: number; name: string } | null }[];
+    companies: { id: number; name: string; email: string; status: string }[];
+};
 
-interface EventResult {
-    id: number;
-    title: string;
-    status: string;
-    event_date: string | null;
-    company: { id: number; name: string } | null;
-    community: { id: number; name: string } | null;
-}
-
-interface EmployeeResult {
-    id: number;
-    name: string;
-    email: string | null;
-    phone_tail: string | null;
-    status: string;
-    company: { id: number; name: string } | null;
-}
-
-interface CompanyResult {
-    id: number;
-    name: string;
-    email: string | null;
-    status: string;
-}
-
-interface InvitationRow {
+type Invitation = {
     id: number;
     name: string | null;
-    email: string | null;
+    email: string;
     phone_tail: string | null;
     company: { id: number; name: string } | null;
     send_count: number;
     expires_at: string | null;
-}
-
-interface Props {
-    filters: { search?: string; scope?: string };
-    results: { events: EventResult[]; employees: EmployeeResult[]; companies: CompanyResult[] };
-    escalation: { action: string; label: string; role: string }[];
-    pendingInvitations: InvitationRow[];
-}
-
-const inputStyle: React.CSSProperties = {
-    padding: '10px 14px',
-    background: '#161B27',
-    border: '1px solid #232A3E',
-    borderRadius: '10px',
-    fontSize: '13px',
-    color: '#E8EAF0',
-    outline: 'none',
-    direction: 'rtl',
-    fontFamily: 'inherit',
 };
 
-const SCOPES = [
-    { value: 'all', label: 'الكل' },
-    { value: 'events', label: 'الفعاليات' },
-    { value: 'employees', label: 'الموظفون' },
-    { value: 'companies', label: 'الشركات' },
-];
-
-export default function SupportConsole({ filters, results, escalation, pendingInvitations }: Props) {
-    const [term, setTerm] = useState(filters?.search ?? '');
-    const [resendTarget, setResendTarget] = useState<InvitationRow | null>(null);
-    const otpForm = useForm({ phone: '' });
-
-    const scope = filters?.scope ?? 'all';
-    const hasSearched = (filters?.search ?? '') !== '';
-    const totalResults = results.events.length + results.employees.length + results.companies.length;
-
-    function runSearch(nextScope = scope) {
-        router.get(
-            '/admin/support-console',
-            { search: term || undefined, scope: nextScope === 'all' ? undefined : nextScope },
-            { preserveState: true, replace: true },
-        );
-    }
-
-    function confirmResend() {
-        if (!resendTarget) return;
-        const id = resendTarget.id;
-        setResendTarget(null);
-        router.post(`/admin/support-console/invitations/${id}/resend`, {}, {
-            preserveScroll: true,
-            onSuccess: () => toastr.success('أُعيد إرسال الدعوة.'),
-        });
-    }
-
-    function resendOtp(e: React.FormEvent) {
-        e.preventDefault();
-        otpForm.post('/admin/support-console/otp/resend', {
-            preserveScroll: true,
-            onSuccess: () => {
-                otpForm.reset();
-                toastr.success('أُرسل رمز دخول جديد.');
-            },
-        });
-    }
+export default function SupportConsole({
+    filters,
+    results,
+    escalation,
+    pendingInvitations,
+}: {
+    filters: { search?: string; scope?: string };
+    results: Results;
+    escalation: { action: string; label: string; role: string }[];
+    pendingInvitations: Invitation[];
+}) {
+    const [resending, setResending] = useState<Invitation | null>(null);
+    const searched = (filters.search ?? '').trim() !== '';
+    const found = results.events.length + results.employees.length + results.companies.length;
 
     return (
         <AdminLayout>
             <Head title="مركز الدعم" />
 
-            <div className="page-title">مركز الدعم</div>
-            <div className="page-sub">
-                تشخيص وتوثيق وتصعيد — لا حلّ بتجاوز النظام. كل قراءة هنا مسجَّلة في سجل التدقيق.
-            </div>
+            <PageHeader
+                icon={Headphones}
+                title="مركز الدعم — البحث والاستعلام"
+                subtitle="ابحث عن فعالية أو موظف أو شركة لتشخيص بلاغ. كل عملية بحث تُقيَّد في سجل التدقيق باسمك."
+            />
 
-            <div className="card" style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <input
-                        value={term}
-                        onChange={(e) => setTerm(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-                        placeholder="🔍 معرّف فعالية · اسم موظف · بريد · رقم جوال · اسم شركة"
-                        style={{ ...inputStyle, flex: 1, minWidth: 240 }}
+            <Note title="حدود صلاحيتك">
+                تقرأ وتشخّص وتعيد الإرسال ضمن الحدود. أي تغيير في حالة أو مال أو صلاحية يُصعَّد إلى الدور المختص أدناه — لا
+                يُنفَّذ من هنا.
+            </Note>
+
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="اسم، بريد، رقم جوال، أو رقم فعالية…" />
+                    <FilterSelect
+                        name="scope"
+                        label="نطاق البحث"
+                        value={filters.scope ?? 'all'}
+                        options={[
+                            ['all', 'كل النتائج'],
+                            ['events', 'الفعاليات'],
+                            ['employees', 'الموظفون'],
+                            ['companies', 'الشركات'],
+                        ]}
                     />
-                    <button className="act-btn btn-approve" onClick={() => runSearch()}>بحث</button>
-                </div>
-                <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                    {SCOPES.map((s) => (
-                        <button key={s.value} className={`fbtn${scope === s.value ? ' on' : ''}`} onClick={() => runSearch(s.value)}>
-                            {s.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
+                </Toolbar>
 
-            {!hasSearched && (
-                <div className="card">
-                    <ListState
-                        tone="empty"
-                        title="ابدأ بالبحث"
-                        hint="اكتب معرّف الفعالية أو اسم الموظف أو الشركة. G: «وثّق البلاغ بمعرّف الفعالية أو المستخدم، والوقت، والحالة الفعلية مقابل المتوقعة»."
+                {!searched && (
+                    <ListStates
+                        count={0}
+                        empty="ابدأ بالبحث"
+                        emptyHint="اكتب اسماً أو بريداً أو رقم جوال أو رقم فعالية. لا تُعرض أي بيانات قبل بحث صريح."
                     />
-                </div>
-            )}
+                )}
 
-            {hasSearched && totalResults === 0 && (
-                <div className="card">
-                    <ListState tone="empty" title="لا نتائج مطابقة" hint="جرّب معرّفاً رقمياً أو جزءاً من الاسم أو آخر أربعة أرقام من الجوال." />
-                </div>
-            )}
+                {searched && found === 0 && (
+                    <ListStates count={0} empty="لا نتائج مطابقة." emptyHint="جرّب مصطلحاً أقصر أو غيّر نطاق البحث." />
+                )}
 
-            {results.events.length > 0 && (
-                <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
-                    <div style={{ padding: '12px 16px', fontWeight: 700, color: '#fff' }}>الفعاليات</div>
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>الفعالية</th>
-                                <th>الحالة</th>
-                                <th>التاريخ</th>
-                                <th>الشركة / المجتمع</th>
-                                <th>إجراء</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {results.events.map((event) => (
-                                <tr key={event.id}>
-                                    <td dir="ltr">{event.id}</td>
-                                    <td style={{ fontWeight: 700, color: '#fff' }}>{event.title}</td>
-                                    <td style={{ color: '#C8D0E0' }}>{event.status}</td>
-                                    <td style={{ fontSize: 12, color: '#6B7A99' }}>{event.event_date ?? '—'}</td>
-                                    <td style={{ fontSize: 12, color: '#9CA3BC' }}>
-                                        {event.company?.name ?? '—'}
-                                        {event.community ? ` · ${event.community.name}` : ''}
-                                    </td>
-                                    <td>
-                                        <Link href={`/admin/support-console/events/${event.id}`} className="act-btn btn-view">
-                                            سجل الحالات
-                                        </Link>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                {results.events.length > 0 && (
+                    <ResultBlock icon={CalendarDays} title="الفعاليات">
+                        <TableShell>
+                            <Thead>
+                                <Th>الفعالية</Th>
+                                <Th>الشركة</Th>
+                                <Th>التاريخ</Th>
+                                <Th>الحالة</Th>
+                                <Th className="text-center">السجل</Th>
+                            </Thead>
+                            <Tbody>
+                                {results.events.map((event) => (
+                                    <Tr key={event.id}>
+                                        <Td>
+                                            <span className="font-extrabold text-ink block">{event.title}</span>
+                                            <span className="font-mono text-[10px] text-ink/45">#{event.id}</span>
+                                        </Td>
+                                        <Td className="text-ink/85">{event.company?.name ?? '—'}</Td>
+                                        <Td className="font-mono text-[11px] text-ink/70">{event.event_date ?? '—'}</Td>
+                                        <Td>
+                                            <Badge tone={eventStatus(event.status).tone}>{eventStatus(event.status).label}</Badge>
+                                        </Td>
+                                        <Td className="text-center">
+                                            <Link
+                                                href={`/admin/support-console/events/${event.id}`}
+                                                className="text-[11px] font-bold text-ink hover:underline"
+                                            >
+                                                سجل الحالات ←
+                                            </Link>
+                                        </Td>
+                                    </Tr>
+                                ))}
+                            </Tbody>
+                        </TableShell>
+                    </ResultBlock>
+                )}
 
-            {results.employees.length > 0 && (
-                <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
-                    <div style={{ padding: '12px 16px', fontWeight: 700, color: '#fff' }}>الموظفون</div>
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <th>الاسم</th>
-                                <th>البريد</th>
-                                <th>الجوال</th>
-                                <th>الشركة</th>
-                                <th>الحالة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {results.employees.map((employee) => (
-                                <tr key={employee.id}>
-                                    <td style={{ fontWeight: 700, color: '#fff' }}>{employee.name}</td>
-                                    <td dir="ltr" style={{ fontSize: 12, color: '#9CA3BC' }}>{employee.email ?? '—'}</td>
-                                    <td dir="ltr" style={{ fontSize: 12, color: '#9CA3BC' }}>
-                                        {employee.phone_tail ? `••••${employee.phone_tail}` : '—'}
-                                    </td>
-                                    <td style={{ fontSize: 12, color: '#C8D0E0' }}>{employee.company?.name ?? '—'}</td>
-                                    <td style={{ fontSize: 12 }}>{employee.status}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                {results.employees.length > 0 && (
+                    <ResultBlock icon={UserRound} title="الموظفون">
+                        <TableShell>
+                            <Thead>
+                                <Th>الموظف</Th>
+                                <Th>البريد</Th>
+                                <Th>الجوال</Th>
+                                <Th>الشركة</Th>
+                                <Th>الحالة</Th>
+                            </Thead>
+                            <Tbody>
+                                {results.employees.map((employee) => (
+                                    <Tr key={employee.id}>
+                                        <Td className="font-extrabold text-ink">{employee.name}</Td>
+                                        <Td className="font-mono text-[11px] text-ink/70" dir="ltr">
+                                            {employee.email}
+                                        </Td>
+                                        <Td className="font-mono text-[11px] text-ink/70" dir="ltr">
+                                            {employee.phone_tail ? `•••• ${employee.phone_tail}` : '—'}
+                                        </Td>
+                                        <Td className="text-ink/85">{employee.company?.name ?? '—'}</Td>
+                                        <Td>
+                                            <Badge tone={employeeStatus(employee.status).tone}>{employeeStatus(employee.status).label}</Badge>
+                                        </Td>
+                                    </Tr>
+                                ))}
+                            </Tbody>
+                        </TableShell>
+                    </ResultBlock>
+                )}
 
-            {results.companies.length > 0 && (
-                <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
-                    <div style={{ padding: '12px 16px', fontWeight: 700, color: '#fff' }}>الشركات</div>
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <th>الشركة</th>
-                                <th>البريد</th>
-                                <th>الحالة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {results.companies.map((company) => (
-                                <tr key={company.id}>
-                                    <td style={{ fontWeight: 700, color: '#fff' }}>{company.name}</td>
-                                    <td dir="ltr" style={{ fontSize: 12, color: '#9CA3BC' }}>{company.email ?? '—'}</td>
-                                    <td style={{ fontSize: 12 }}>{company.status}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                {results.companies.length > 0 && (
+                    <ResultBlock icon={Building2} title="الشركات">
+                        <TableShell>
+                            <Thead>
+                                <Th>الشركة</Th>
+                                <Th>البريد</Th>
+                                <Th>الحالة</Th>
+                            </Thead>
+                            <Tbody>
+                                {results.companies.map((company) => (
+                                    <Tr key={company.id}>
+                                        <Td className="font-extrabold text-ink">{company.name}</Td>
+                                        <Td className="font-mono text-[11px] text-ink/70" dir="ltr">
+                                            {company.email}
+                                        </Td>
+                                        <Td>
+                                            <Badge tone={companyStatus(company.status).tone}>{companyStatus(company.status).label}</Badge>
+                                        </Td>
+                                    </Tr>
+                                ))}
+                            </Tbody>
+                        </TableShell>
+                    </ResultBlock>
+                )}
+            </Card>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 16 }}>
-                <div className="card">
-                    <h3 style={{ marginTop: 0 }}>إعادة إرسال رمز الدخول</h3>
-                    <p style={{ fontSize: 12, color: '#9CA3BC', lineHeight: 1.9 }}>
-                        الحد ٣ طلبات في الساعة للرقم الواحد — مفروض في النظام لا في الإجراء، فالتجاوز مستحيل من هنا.
-                    </p>
-                    <form onSubmit={resendOtp}>
-                        <div className="fg">
-                            <label>رقم الجوال</label>
-                            <input
-                                value={otpForm.data.phone}
-                                onChange={(e) => otpForm.setData('phone', e.target.value)}
-                                dir="ltr"
-                                placeholder="9665XXXXXXXX"
-                                style={{ ...inputStyle, width: '100%' }}
-                            />
-                        </div>
-                        {otpForm.errors.phone && <p style={{ fontSize: 12, color: '#E03050' }}>{otpForm.errors.phone}</p>}
-                        <button type="submit" className="act-btn btn-approve" disabled={otpForm.processing}>
-                            إرسال الرمز
-                        </button>
-                    </form>
-                </div>
+            {/* ── إعادة إرسال الدعوات ── */}
+            <Card padding="p-4" className="space-y-4">
+                <h2 className="text-sm font-extrabold text-ink">دعوات معلّقة — إعادة الإرسال</h2>
 
-                <div className="card">
-                    <h3 style={{ marginTop: 0 }}>ما لا تفعله — يُصعَّد فوراً</h3>
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <th>الحالة</th>
-                                <th>تُصعَّد إلى</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {escalation.map((row) => (
-                                <tr key={row.action}>
-                                    <td style={{ fontSize: 12, color: '#C8D0E0' }}>{row.label}</td>
-                                    <td style={{ fontSize: 12, color: '#F5A623', fontWeight: 700 }}>{row.role}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                <TableShell>
+                    <Thead>
+                        <Th>المدعو</Th>
+                        <Th>الشركة</Th>
+                        <Th>مرات الإرسال</Th>
+                        <Th>تنتهي في</Th>
+                        <Th className="text-center">الإجراء</Th>
+                    </Thead>
+                    <Tbody>
+                        {pendingInvitations.map((invitation) => {
+                            const expired = invitation.expires_at !== null && new Date(invitation.expires_at) < new Date();
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden', marginTop: 16 }}>
-                <div style={{ padding: '12px 16px', fontWeight: 700, color: '#fff' }}>دعوات معلّقة — إعادة الإرسال</div>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <th>المدعو</th>
-                            <th>الشركة</th>
-                            <th>مرات الإرسال</th>
-                            <th>تنتهي في</th>
-                            <th>إجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {pendingInvitations.length === 0 ? (
-                            <tr>
-                                <td colSpan={5} style={{ padding: 0 }}>
-                                    <ListState tone="empty" title="لا دعوات معلّقة" hint="كل الدعوات إما قُبلت أو انتهت صلاحيتها." />
-                                </td>
-                            </tr>
-                        ) : (
-                            pendingInvitations.map((invitation) => (
-                                <tr key={invitation.id}>
-                                    <td>
-                                        <div style={{ fontWeight: 700, color: '#fff' }}>{invitation.name ?? '—'}</div>
-                                        <div dir="ltr" style={{ fontSize: 10, color: '#6B7A99' }}>
-                                            {invitation.email ?? (invitation.phone_tail ? `••••${invitation.phone_tail}` : '—')}
-                                        </div>
-                                    </td>
-                                    <td style={{ fontSize: 12, color: '#C8D0E0' }}>{invitation.company?.name ?? '—'}</td>
-                                    <td>{invitation.send_count}</td>
-                                    <td style={{ fontSize: 12, color: '#6B7A99' }}>{invitation.expires_at?.slice(0, 10) ?? '—'}</td>
-                                    <td>
-                                        <button className="act-btn btn-view" onClick={() => setResendTarget(invitation)}>
+                            return (
+                                <Tr key={invitation.id}>
+                                    <Td>
+                                        <span className="font-extrabold text-ink block">{invitation.name ?? '—'}</span>
+                                        <span className="font-mono text-[11px] text-ink/60" dir="ltr">
+                                            {invitation.email}
+                                        </span>
+                                    </Td>
+                                    <Td className="text-ink/85">{invitation.company?.name ?? '—'}</Td>
+                                    <Td className="font-mono text-ink/70">{invitation.send_count}</Td>
+                                    <Td>
+                                        <span className="font-mono text-[11px] text-ink/70">
+                                            {invitation.expires_at ? new Date(invitation.expires_at).toLocaleDateString('ar-SA') : '—'}
+                                        </span>
+                                        {expired && <Badge tone="danger">منتهية</Badge>}
+                                    </Td>
+                                    <Td className="text-center">
+                                        <Button tone="soft" icon={Send} onClick={() => setResending(invitation)}>
                                             إعادة الإرسال
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                                        </Button>
+                                    </Td>
+                                </Tr>
+                            );
+                        })}
+                        <ListStates
+                            count={pendingInvitations.length}
+                            colSpan={5}
+                            empty="لا دعوات معلّقة."
+                            emptyHint="كل الدعوات إما قُبلت أو انتهت صلاحيتها."
+                        />
+                    </Tbody>
+                </TableShell>
+            </Card>
+
+            {/* ── ما لا تفعله — يُصعَّد فوراً ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <TriangleAlert className="w-4 h-4 text-warning" aria-hidden="true" />
+                    <h2 className="text-sm font-extrabold text-ink">ما لا تفعله — يُصعَّد فوراً</h2>
+                </div>
+
+                <TableShell>
+                    <Thead>
+                        <Th>الإجراء</Th>
+                        <Th>يُصعَّد إلى</Th>
+                    </Thead>
+                    <Tbody>
+                        {escalation.map((row) => (
+                            <Tr key={row.action}>
+                                <Td>
+                                    <span className="font-bold text-ink block">{row.label}</span>
+                                    <span className="font-mono text-[10px] text-ink/45">{row.action}</span>
+                                </Td>
+                                <Td>
+                                    <Badge tone="warning">{row.role}</Badge>
+                                </Td>
+                            </Tr>
+                        ))}
+                    </Tbody>
+                </TableShell>
+            </Card>
 
             <ConfirmModal
-                open={resendTarget !== null}
+                open={resending !== null}
                 title="إعادة إرسال الدعوة"
-                message={
-                    resendTarget
-                        ? `ستُرسل دعوة جديدة إلى «${resendTarget.name ?? resendTarget.email ?? 'المدعو'}» وتُمدَّد صلاحية الرابط 7 أيام. عدد مرات الإرسال سيصبح ${resendTarget.send_count + 1}.`
-                        : ''
+                message="سيصل المدعو رابط جديد صالح ٧ أيام، ويزيد عدّاد الإرسال. لا يُنشأ حساب جديد ولا تتغيّر هوية الدعوة."
+                details={
+                    resending && (
+                        <>
+                            <ConfirmRow label="المدعو" value={resending.email} />
+                            <ConfirmRow label="الشركة" value={resending.company?.name ?? '—'} />
+                            <ConfirmRow label="مرات الإرسال السابقة" value={String(resending.send_count)} strong />
+                        </>
+                    )
                 }
-                confirmLabel="إرسال"
-                onConfirm={confirmResend}
-                onCancel={() => setResendTarget(null)}
+                confirmLabel="إعادة الإرسال"
+                onConfirm={() => {
+                    router.post(`/admin/support-console/invitations/${resending?.id}/resend`, {}, { preserveScroll: true });
+                    setResending(null);
+                }}
+                onCancel={() => setResending(null)}
             />
         </AdminLayout>
+    );
+}
+
+function ResultBlock({ icon: Icon, title, children }: { icon: typeof Building2; title: string; children: React.ReactNode }) {
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+                <Icon className="w-3.5 h-3.5 text-ink/60" aria-hidden="true" />
+                <h3 className="text-xs font-extrabold text-ink">{title}</h3>
+            </div>
+            {children}
+        </div>
     );
 }

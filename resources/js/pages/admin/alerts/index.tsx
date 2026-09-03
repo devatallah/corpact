@@ -1,128 +1,174 @@
 import { Head, router } from '@inertiajs/react';
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import SortableHeader, { SortBar, type SortState } from '@/components/sortable-header';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import { CircleCheckBig, Siren, TriangleAlert } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Button, Card, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import { fmtDate } from '@/lib/utils';
-import type { AdminAlert, PaginatedResult } from '@/types/models';
+import type { Paginated, SortState } from '@/types';
 
-interface Props {
-    alerts: PaginatedResult<AdminAlert>;
-    stats: { open: number; critical: number };
-    filters: { acknowledged: boolean; search?: string | null; sort?: string | null; dir?: string | null };
-    sort: SortState;
-}
-
-const KEY_LABELS: Record<string, string> = {
-    'payments.webhook_failed': 'فشل ويبهوك دفع',
-    'payments.refund_failed': 'فشل استرداد',
-    'wallet.negative_balance': 'رصيد محفظة سالب',
-    'wallet.reconciliation_mismatch': 'عدم تطابق الرصيد مع الدفتر',
-    'jobs.watchdog': 'مهمة مجدولة لم تُنفَّذ',
-    'jobs.exhausted': 'مهمة استنفدت محاولاتها',
-    'notification.delivery_failed': 'فشل تسليم رسالة على كل القنوات',
+/**
+ * H §20 — التنبيهات الحرجة.
+ *
+ * «الصمت ليس دليل نجاح.» An alert here means an engine reported something it
+ * could not resolve itself. Acknowledging one records who took responsibility
+ * for it — it does not fix anything, and the copy says so.
+ */
+type Alert = {
+    id: number;
+    key: string;
+    title: string;
+    body: string | null;
+    level: string;
+    source: string | null;
+    occurrences: number;
+    last_seen_at: string | null;
+    acknowledged_at: string | null;
 };
 
-export default function AdminAlertsIndex({ alerts, stats, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        acknowledged: filters.acknowledged ? '1' : undefined,
-        sort: filters?.sort ?? undefined,
-        dir: filters?.dir ?? undefined,
-    });
+const LEVEL: Record<string, { label: string; tone: 'neutral' | 'warning' | 'danger' }> = {
+    critical: { label: 'حرج', tone: 'danger' },
+    warning: { label: 'تحذير', tone: 'warning' },
+    info: { label: 'معلومة', tone: 'neutral' },
+};
 
-    function toggleView() {
-        router.get('/admin/alerts', {
-            acknowledged: filters.acknowledged ? undefined : 1,
-            search: filters?.search || undefined,
-            sort: filters?.sort || undefined,
-            dir: filters?.dir || undefined,
-        }, { preserveState: true, replace: true });
-    }
-
-    function acknowledge(alert: AdminAlert) {
-        router.post(`/admin/alerts/${alert.id}/acknowledge`, {}, { preserveScroll: true });
-    }
+export default function AdminAlerts({
+    alerts,
+    stats,
+    filters,
+    sort,
+}: {
+    alerts: Paginated<Alert>;
+    stats: { open: number; critical: number };
+    filters: { acknowledged?: boolean; search?: string | null };
+    sort: SortState;
+}) {
+    const [acking, setAcking] = useState<Alert | null>(null);
 
     return (
         <AdminLayout>
             <Head title="التنبيهات الحرجة" />
 
-            <div style={{ marginBottom: 4 }}>
-                <div className="page-title">التنبيهات الحرجة</div>
-            </div>
-            <div className="page-sub">
-                {stats.open} تنبيهاً مفتوحاً منها {stats.critical} حرج. الصمت ليس دليل نجاح — أقرّ التنبيه بعد معالجته لا
-                قبلها.
+            <PageHeader
+                icon={Siren}
+                title="التنبيهات الحرجة"
+                subtitle="ما أبلغت عنه المحرّكات ولم تستطع معالجته بنفسها. الإقرار يوثّق من تولّى التنبيه — ولا يعالجه."
+            />
+
+            {stats.critical > 0 && (
+                <Note tone="danger" title={`${stats.critical} تنبيه حرج مفتوح`}>
+                    التنبيه الحرج يعني توقف مسار تشغيلي أو خطراً على سلامة البيانات المالية. عالجه قبل أي عمل آخر على هذه الشاشة.
+                </Note>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+                <StatCard label="تنبيهات مفتوحة" value={stats.open} tone={stats.open > 0 ? 'warning' : 'success'} />
+                <StatCard label="منها حرجة" value={stats.critical} tone={stats.critical > 0 ? 'danger' : 'success'} />
             </div>
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث بعنوان التنبيه أو نصه أو مفتاحه..."
-                    style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 240 }}
-                />
-                <button onClick={toggleView} className="act-btn btn-view">
-                    {filters.acknowledged ? 'إظهار المفتوحة فقط' : 'إظهار المُقَرّة أيضاً'}
-                </button>
-                {/* الخطورة تُقرأ من لون العنوان لا من عمود مستقل، فترتيبها هنا. */}
-                <SortBar sort={sort} options={[{ key: 'level', label: 'الخطورة', initialDirection: 'asc' }]} />
-            </div>
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث بعنوان التنبيه…" />
+                    <FilterSelect
+                        name="acknowledged"
+                        label="حالة الإقرار"
+                        value={filters.acknowledged ? '1' : ''}
+                        options={[
+                            ['', 'المفتوحة فقط'],
+                            ['1', 'تشمل المُقرّ بها'],
+                        ]}
+                    />
+                </Toolbar>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <SortableHeader label="التنبيه" sortKey="title" sort={sort} />
-                                <th>التفاصيل</th>
-                                <SortableHeader label="التكرار" sortKey="occurrences" sort={sort} initialDirection="desc" />
-                                <SortableHeader label="آخر ظهور" sortKey="last_seen_at" sort={sort} initialDirection="desc" />
-                                <SortableHeader label="الحالة" sortKey="acknowledged_at" sort={sort} initialDirection="desc" />
-                                <th>إجراء</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <ListStates
-                                count={alerts.data.length}
-                                columns={6}
-                                emptyTitle="لا توجد تنبيهات"
-                                emptyHint="لا تنبيه مطابق للبحث والفلتر الحالي — وهي الحالة الطبيعية حين لا يوجد ما يستدعي تدخّلاً."
-                            />
-                            {alerts.data.map((alert) => (
-                                <tr key={alert.id}>
-                                    <td>
-                                        <div style={{ fontWeight: 700, color: alert.level === 'critical' ? '#E03050' : '#E0B040' }}>
-                                            {alert.title}
-                                        </div>
-                                        <div style={{ fontSize: 12, color: '#6B7A99' }}>{KEY_LABELS[alert.key] ?? alert.key}</div>
-                                    </td>
-                                    <td style={{ color: '#C8D0E0', fontSize: 13, maxWidth: 380 }}>{alert.body ?? '—'}</td>
-                                    <td style={{ fontSize: 13, color: '#C8D0E0' }}>{alert.occurrences}×</td>
-                                    <td style={{ fontSize: 12, color: '#6B7A99' }}>
-                                        {alert.last_seen_at ? fmtDate(alert.last_seen_at) : fmtDate(alert.created_at)}
-                                    </td>
-                                    <td style={{ fontSize: 12, color: alert.acknowledged_at ? '#009E82' : '#E03050' }}>
-                                        {alert.acknowledged_at
-                                            ? `أُقر — ${alert.acknowledged_by?.name ?? 'أدمن'}`
-                                            : 'مفتوح'}
-                                    </td>
-                                    <td>
-                                        {!alert.acknowledged_at && (
-                                            <button onClick={() => acknowledge(alert)} className="act-btn btn-approve">
-                                                إقرار
-                                            </button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader label="التنبيه" sortKey="title" sort={sort} />
+                        </Th>
+                        <Th>المصدر</Th>
+                        <Th>
+                            <SortableHeader label="الخطورة" sortKey="level" sort={sort} />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="التكرار" sortKey="occurrences" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="آخر ظهور" sortKey="last_seen_at" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th className="text-center">الإجراء</Th>
+                    </Thead>
+
+                    <Tbody>
+                        {alerts.data.map((alert) => (
+                            <Tr key={alert.id}>
+                                <Td>
+                                    <span className="font-extrabold text-ink block">{alert.title}</span>
+                                    {alert.body && <span className="block text-[11px] text-ink/65 leading-relaxed mt-0.5">{alert.body}</span>}
+                                    <span className="font-mono text-[10px] text-ink/40">{alert.key}</span>
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/70">{alert.source ?? '—'}</Td>
+                                <Td>
+                                    <Badge
+                                        tone={LEVEL[alert.level]?.tone ?? 'neutral'}
+                                        icon={alert.level === 'critical' ? TriangleAlert : undefined}
+                                    >
+                                        {LEVEL[alert.level]?.label ?? alert.level}
+                                    </Badge>
+                                </Td>
+                                <Td className="font-mono font-bold text-ink">{alert.occurrences}</Td>
+                                <Td className="font-mono text-[11px] text-ink/70 whitespace-nowrap">
+                                    {alert.last_seen_at ? new Date(alert.last_seen_at).toLocaleString('ar-SA') : '—'}
+                                </Td>
+                                <Td className="text-center">
+                                    {alert.acknowledged_at ? (
+                                        <Badge tone="success" icon={CircleCheckBig}>
+                                            أُقرّ به
+                                        </Badge>
+                                    ) : (
+                                        <Button tone="soft" onClick={() => setAcking(alert)}>
+                                            إقرار
+                                        </Button>
+                                    )}
+                                </Td>
+                            </Tr>
+                        ))}
+
+                        <ListStates
+                            count={alerts.data.length}
+                            colSpan={6}
+                            empty="لا تنبيهات مفتوحة."
+                            emptyHint="المحرّكات تعمل ولم تبلّغ عن شيء يحتاج تدخلاً."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={alerts} />
+                    <Pagination page={alerts} />
                 </div>
-            </div>
+            </Card>
 
-            <Pagination links={alerts.links} />
+            <ConfirmModal
+                open={acking !== null}
+                title="الإقرار بالتنبيه"
+                message="يُسجَّل اسمك ووقت الإقرار. هذا توثيق لتولّي التنبيه ولا يعالج سببه — إن تكرّر السبب سيظهر التنبيه من جديد."
+                details={
+                    acking && (
+                        <>
+                            <ConfirmRow label="التنبيه" value={acking.title} strong />
+                            <ConfirmRow label="المصدر" value={acking.source ?? '—'} />
+                            <ConfirmRow label="عدد مرات التكرار" value={String(acking.occurrences)} />
+                        </>
+                    )
+                }
+                confirmLabel="إقرار وتولّي"
+                onConfirm={() => {
+                    router.post(`/admin/alerts/${acking?.id}/acknowledge`, {}, { preserveScroll: true });
+                    setAcking(null);
+                }}
+                onCancel={() => setAcking(null)}
+            />
         </AdminLayout>
     );
 }

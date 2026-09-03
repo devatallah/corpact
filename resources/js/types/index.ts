@@ -1,4 +1,37 @@
-export type * from './auth';
-export type * from './models';
-export type * from './navigation';
-export type * from './ui';
+import type { Auth } from './auth';
+
+export type { Auth, AuthUser, GuardName, Membership } from './auth';
+
+/** What `HandleInertiaRequests::share()` puts on every page. */
+export type SharedProps = {
+    name: string;
+    auth: Auth;
+    flash: {
+        success?: string | null;
+        error?: string | null;
+        status?: string | null;
+    };
+    unreadNotifications?: number;
+    errors: Record<string, string>;
+};
+
+/** A Laravel length-aware paginator, as Inertia serialises it. */
+export type Paginated<T> = {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    from: number | null;
+    to: number | null;
+    total: number;
+    links: { url: string | null; label: string; active: boolean }[];
+};
+
+/**
+ * H §18 — sorting is a column plus a direction, never a bare direction. The
+ * server whitelists the key (`ListSort`) and echoes back what it applied.
+ */
+export type SortState = {
+    key: string;
+    direction: 'asc' | 'desc';
+};

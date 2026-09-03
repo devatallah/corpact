@@ -47,7 +47,11 @@ class CommunityService
             ->where('company_id', $company->id)
             ->withCount('members')
             ->when(filled($filters['search'] ?? null), fn ($inner) => $inner
-                ->where('name', 'like', '%'.$filters['search'].'%'));
+                ->where('name', 'like', '%'.$filters['search'].'%'))
+            // H §18 — التصفية بالفئة. بدونها يكون المُنتقي في الواجهة زرّاً
+            // لا يفعل شيئاً، وهو أسوأ من غيابه.
+            ->when(filled($filters['category_id'] ?? null), fn ($inner) => $inner
+                ->where('category_id', $filters['category_id']));
 
         $communities = self::sort()
             ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)

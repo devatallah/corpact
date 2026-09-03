@@ -1,464 +1,334 @@
-import CompanyLayout from '@/layouts/company-layout';
-import StatusBadge from '@/components/status-badge';
-import CategoryIcon from '@/components/category-icon';
-import { fmtDate, fmtTime } from '@/lib/utils';
-import type { Event, Employee, Community, Partner, Category, EventAlternative } from '@/types/models';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import {
+    CalendarDays,
+    Clock,
+    MapPin,
+    UserMinus,
+    UserPlus,
+    Users,
+} from 'lucide-react';
 import { useState } from 'react';
-import toastr from 'toastr';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { BackLink, ListStates } from '@/components/list-states';
+import {
+    Badge,
+    Button,
+    Card,
+    IconButton,
+    Money,
+    PageHeader,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    TableShell,
+    Tr,
+} from '@/components/portal/ui';
+import CompanyLayout from '@/layouts/company-layout';
+import { eventStatus } from '@/lib/status';
 
-interface SeriesEvent {
+/**
+ * H §9 / §12.4 — the account manager's view of one event.
+ *
+ * Cancelling here is a company cancellation, and the matrix says that is
+ * always a full refund: the dialog states the policy and the headcount, not
+ * just «هل أنت متأكد؟».
+ */
+type EventModel = {
     id: number;
-    event_date: string;
-    start_time: string;
+    title: string;
+    description: string | null;
+    event_date: string | null;
+    start_time: string | null;
+    end_time: string | null;
     status: string;
-    participants_count: number;
-    capacity: number;
-}
+    capacity: number | null;
+    participants_count: number | null;
+    min_participants: number | null;
+    total_amount?: string | number | null;
+    community?: { id: number; name: string } | null;
+    partner?: { id: number; name: string } | null;
+    category?: { id: number; name: string } | null;
+    creator?: { id: number; name: string } | null;
+    participants?: { id: number; name: string; email?: string }[];
+};
 
-/** A10 — H §12.4: إلغاء الشركة = استرداد كامل دائماً — النسب المتدرجة ماتت. */
-interface RefundPreview {
-    percentage: number;
-    policy_label: string;
-}
 
-interface Props {
-    event: Event & {
-        community: Community;
-        partner: Partner;
-        category: Category;
-        creator: Employee;
-        participants: (Employee & { pivot?: { status: string; joined_at: string } })[];
-        alternatives?: EventAlternative[];
-    };
-    communityMembers: Employee[];
+export default function CompanyEventShow({
+    event,
+    communityMembers,
+    joinedIds,
+    refundPreview,
+}: {
+    company: { id: number; name: string };
+    event: EventModel;
+    communityMembers: { id: number; name: string; email: string }[];
     joinedIds: number[];
-    seriesEvents: SeriesEvent[];
-    refundPreview: RefundPreview | null;
-}
+    seriesEvents: unknown[];
+    refundPreview: { percentage: number; policy_label: string } | null;
+}) {
+    const [cancelling, setCancelling] = useState(false);
+    const [removing, setRemoving] = useState<{
+        id: number;
+        name: string;
+    } | null>(null);
+    const [adding, setAdding] = useState('');
 
-export default function EventShow({ event, communityMembers, joinedIds, seriesEvents, refundPreview }: Props) {
-    const [processing, setProcessing] = useState<number | null>(null);
-    const [cancelProcessing, setCancelProcessing] = useState(false);
-    const [showCancelModal, setShowCancelModal] = useState(false);
-    const canCancel = ['booked', 'confirmed'].includes(event.status); // H §9: إلغاء الشركة من booked/confirmed فقط
-    const canManageMembers = ['open', 'pending_provider', 'provider_alternative', 'booked'].includes(event.status);
-
-    const joinedParticipants = event.participants?.filter(
-        (p) => p.pivot?.seat_status === 'reserved',
-    ) ?? [];
-
-    const fillPercent = event.capacity > 0
-        ? Math.round((event.participants_count / event.capacity) * 100)
-        : 0;
-
-    const isFull = event.participants_count >= event.capacity;
-
-    function toggleMember(employeeId: number, isJoined: boolean) {
-        setProcessing(employeeId);
-        const url = isJoined
-            ? `/company/events/${event.id}/remove-member`
-            : `/company/events/${event.id}/add-member`;
-
-        router.post(url, { employee_id: employeeId }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                toastr.success(isJoined ? 'تمت إزالة العضو بنجاح' : 'تمت إضافة العضو بنجاح');
-            },
-            onFinish: () => setProcessing(null),
-        });
-    }
-
-    const cardStyle: React.CSSProperties = { background: '#fff', border: '1px solid #E4E9F2', borderRadius: 14, padding: '16px 18px', marginBottom: 14 };
-    const labelStyle: React.CSSProperties = { fontSize: 11, color: '#7A8BA8' };
-    const valueStyle: React.CSSProperties = { fontSize: 14, fontWeight: 700 };
+    const joined = new Set(joinedIds);
+    const participants = communityMembers.filter((member) =>
+        joined.has(member.id),
+    );
+    const available = communityMembers.filter(
+        (member) => !joined.has(member.id),
+    );
+    const status = eventStatus(event.status);
 
     return (
         <CompanyLayout>
-            <Head title={`فعالية #${event.id}`} />
+            <Head title={event.title} />
 
-            {/* Breadcrumb */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 13 }}>
-                <Link href="/company/events" style={{ color: '#7A8BA8', textDecoration: 'none' }}>الفعاليات</Link>
-                <span style={{ color: '#C0C8D8' }}>/</span>
-                <span style={{ fontWeight: 700 }}>فعالية #{event.id}</span>
-            </div>
+            <BackLink href="/company/events" label="العودة إلى الفعاليات" />
 
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
-                <div>
-                    <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>
-                        <CategoryIcon icon={event.category?.icon} size={16} /> {event.community?.name}
-                    </div>
-                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>
-                        {event.partner?.name} — {fmtDate(event.event_date)} — {fmtTime(event.start_time)}
-                    </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <StatusBadge status={event.status} />
-                    {canCancel && (
-                        <button
-                            onClick={() => setShowCancelModal(true)}
-                            disabled={cancelProcessing}
-                            style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #E03050', background: 'none', color: '#E03050', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: cancelProcessing ? 0.5 : 1 }}
-                        >
-                            إلغاء الفعالية
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Info cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 20 }}>
-                <div style={cardStyle}>
-                    <div style={labelStyle}>اللاعبون</div>
-                    <div style={{ ...valueStyle, color: fillPercent >= 100 ? '#0CA678' : undefined }}>
-                        {event.participants_count}/{event.capacity}
-                    </div>
-                    <div style={{ height: 4, background: '#E4E9F2', borderRadius: 4, marginTop: 8, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${fillPercent}%`, background: '#0CA678', borderRadius: 4 }} />
-                    </div>
-                </div>
-                <div style={cardStyle}>
-                    <div style={labelStyle}>عدد المرافق</div>
-                    <div style={valueStyle}>{event.venues_count}</div>
-                </div>
-                <div style={cardStyle}>
-                    <div style={labelStyle}>إجمالي التكلفة</div>
-                    <div style={valueStyle}>{Number(event.total_amount).toLocaleString()} ريال</div>
-                </div>
-                <div style={cardStyle}>
-                    <div style={labelStyle}>حصة كل لاعب</div>
-                    <div style={valueStyle}>{Number(event.cost_per_person).toLocaleString()} ريال</div>
-                </div>
-                {Number(event.community_contribution) > 0 && (
-                    <div style={cardStyle}>
-                        <div style={labelStyle}>استقطاع من المحفظة</div>
-                        <div style={{ ...valueStyle, color: '#009E82' }}>{Number(event.community_contribution).toLocaleString()} ريال</div>
-                        {!event.budget_deducted_at && (
-                            <div style={{ fontSize: 10, color: '#B8860A', marginTop: 4 }}>بانتظار موافقة الشريك</div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* A8 — مولّدة من قالب تكرار (H §8) */}
-            {event.template_id && (
-                <div style={{ ...cardStyle, background: '#1A5FAB08', borderColor: '#1A5FAB33', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 16 }}>🔄</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#1A5FAB' }}>مولّدة من قالب تكرار</span>
-                    {(event.reschedule_attempt ?? 0) > 0 && (
-                        <span style={{ fontSize: 11, color: '#D4820A', marginRight: 'auto' }}>أُعيدت جدولتها مرة — لم يكتمل العدد</span>
-                    )}
-                </div>
-            )}
-            {event.parent_event_id && (
-                <div style={{ ...cardStyle, background: '#1A5FAB08', borderColor: '#1A5FAB33', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 16 }}>🔄</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#1A5FAB' }}>جزء من سلسلة فعاليات متكررة</span>
-                    <Link
-                        href={`/company/events/${event.parent_event_id}`}
-                        style={{ fontSize: 11, color: '#1A5FAB', marginRight: 'auto', textDecoration: 'underline' }}
-                    >
-                        عرض السلسلة
-                    </Link>
-                </div>
-            )}
-
-            {/* Series timeline */}
-            {seriesEvents && seriesEvents.length > 0 && (
-                <div style={cardStyle}>
-                    <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>
-                        سلسلة الفعاليات ({seriesEvents.length + 1} فعاليات)
-                    </div>
-                    <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {seriesEvents.map((se) => {
-                            const isCurrent = se.id === event.id;
-                            const statusColor = se.status === 'cancelled' ? '#E03050' : se.status === 'completed' ? '#7A8BA8' : '#009E82';
-                            const statusLabel = se.status === 'cancelled' ? 'ملغية' : se.status === 'completed' ? 'مكتملة' : `${se.participants_count}/${se.capacity}`;
-                            return (
-                                <Link
-                                    key={se.id}
-                                    href={`/company/events/${se.id}`}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        padding: '8px 12px',
-                                        borderRadius: 10,
-                                        textDecoration: 'none',
-                                        background: isCurrent ? '#009E8210' : '#fff',
-                                        border: isCurrent ? '1px solid #009E8233' : '1px solid #E4E9F2',
-                                        color: 'inherit',
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <span style={{ fontSize: 12, fontWeight: isCurrent ? 700 : 400, color: isCurrent ? '#009E82' : '#4A5C78' }}>
-                                            {fmtDate(se.event_date)}
-                                        </span>
-                                        <span style={{ fontSize: 11, color: '#7A8BA8' }}>
-                                            {fmtTime(se.start_time)}
-                                        </span>
-                                    </div>
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: statusColor }}>
-                                        {statusLabel}
-                                    </span>
-                                </Link>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {/* Payment deadline notice */}
-            {event.status === 'confirmed' && event.payment_deadline && (
-                <div style={{ background: '#FFF3E0', border: '1px solid #FFB74D44', borderRadius: 12, padding: '10px 14px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#E65100' }}>مهلة الدفع</div>
-                        <div style={{ fontSize: 11, color: '#BF360C' }}>يجب إتمام الدفع خلال 30 دقيقة من الموافقة</div>
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#E65100' }}>
-                        {new Date(event.payment_deadline).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                </div>
-            )}
-
-            {/* Joined participants */}
-            <div style={cardStyle}>
-                <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>
-                    المنضمون ({joinedParticipants.length}/{event.capacity})
-                </div>
-                {joinedParticipants.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: '#7A8BA8', fontSize: 13, padding: '16px 0' }}>
-                        لا يوجد منضمون بعد
-                    </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {joinedParticipants.map((p) => (
-                            <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#F8F9FC', borderRadius: 10 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#009E8220', color: '#009E82', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
-                                        {p.name?.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: 13, fontWeight: 700 }}>{p.name}</div>
-                                        <div style={{ fontSize: 11, color: '#7A8BA8' }}>{p.email}</div>
-                                    </div>
-                                </div>
-                                {canManageMembers && (
-                                    <button
-                                        onClick={() => toggleMember(p.id, true)}
-                                        disabled={processing === p.id}
-                                        style={{ background: 'none', border: '1px solid #E03050', color: '#E03050', borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: processing === p.id ? 0.5 : 1 }}
-                                    >
-                                        إزالة
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Add members from community */}
-            {canManageMembers && (
-                <div style={cardStyle}>
-                    <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>
-                        أعضاء المجتمع
-                    </div>
-                    <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 12 }}>
-                        اختر الموظفين لإضافتهم أو إزالتهم من الفعالية
-                    </div>
-                    {communityMembers.length === 0 ? (
-                        <div style={{ textAlign: 'center', color: '#7A8BA8', fontSize: 13, padding: '16px 0' }}>
-                            لا يوجد أعضاء في المجتمع
-                        </div>
-                    ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            {communityMembers.map((member) => {
-                                const isJoined = joinedIds.includes(member.id);
-                                const isProcessing = processing === member.id;
-
-                                return (
-                                    <div
-                                        key={member.id}
-                                        style={{
-                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                            padding: '10px 12px', borderRadius: 10,
-                                            background: isJoined ? '#009E8208' : '#fff',
-                                            border: `1px solid ${isJoined ? '#009E8244' : '#E4E9F2'}`,
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <div style={{
-                                                width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: 14, fontWeight: 700,
-                                                background: isJoined ? '#009E8220' : '#E4E9F220',
-                                                color: isJoined ? '#009E82' : '#7A8BA8',
-                                            }}>
-                                                {member.name?.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <div style={{ fontSize: 13, fontWeight: 600 }}>{member.name}</div>
-                                                <div style={{ fontSize: 11, color: '#7A8BA8' }}>{member.email}</div>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => toggleMember(member.id, isJoined)}
-                                            disabled={isProcessing || (!isJoined && isFull)}
-                                            style={{
-                                                background: isJoined ? 'none' : '#009E82',
-                                                border: isJoined ? '1px solid #E03050' : 'none',
-                                                color: isJoined ? '#E03050' : '#fff',
-                                                borderRadius: 8, padding: '6px 14px', fontSize: 11, fontWeight: 700,
-                                                cursor: isProcessing || (!isJoined && isFull) ? 'not-allowed' : 'pointer',
-                                                fontFamily: 'inherit',
-                                                opacity: isProcessing || (!isJoined && isFull) ? 0.5 : 1,
-                                            }}
-                                        >
-                                            {isJoined ? 'إزالة' : 'إضافة'}
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                    {isFull && (
-                        <div style={{ marginTop: 10, background: '#FFF3E0', border: '1px solid #FFB74D44', borderRadius: 10, padding: '8px 12px', fontSize: 11, color: '#E65100', textAlign: 'center' }}>
-                            الفعالية مكتملة العدد — أزل موظف لإضافة آخر
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Proposed Alternatives */}
-            {event.status === 'provider_alternative' && event.alternatives && event.alternatives.filter((a) => a.status === 'proposed').length > 0 && (
-                <div style={cardStyle}>
-                    <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14, color: '#1A5FAB' }}>
-                        وقت بديل مقترح من الشريك
-                    </div>
-                    {event.alternatives.filter((a) => a.status === 'proposed').map((alt) => (
-                        <div key={alt.id} style={{ background: '#1A5FAB08', border: '1px solid #1A5FAB22', borderRadius: 12, padding: 16, marginBottom: 10 }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 12 }}>
-                                <div>
-                                    <div style={{ fontSize: 11, color: '#7A8BA8' }}>التاريخ</div>
-                                    <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtDate(alt.proposed_date)}</div>
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: 11, color: '#7A8BA8' }}>من</div>
-                                    <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtTime(alt.proposed_start_time)}</div>
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: 11, color: '#7A8BA8' }}>إلى</div>
-                                    <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtTime(alt.proposed_end_time)}</div>
-                                </div>
-                                {alt.proposed_venues_count && (
-                                    <div>
-                                        <div style={{ fontSize: 11, color: '#7A8BA8' }}>عدد المرافق</div>
-                                        <div style={{ fontSize: 14, fontWeight: 700 }}>{alt.proposed_venues_count}</div>
-                                    </div>
-                                )}
-                                {alt.proposed_amount && (
-                                    <div>
-                                        <div style={{ fontSize: 11, color: '#7A8BA8' }}>المبلغ</div>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#1A5FAB' }}>{Number(alt.proposed_amount).toLocaleString()} ريال</div>
-                                    </div>
-                                )}
-                            </div>
-                            {alt.notes && (
-                                <div style={{ fontSize: 12, color: '#4A5C78', marginBottom: 12 }}>{alt.notes}</div>
-                            )}
-                            <div style={{ fontSize: 12, color: '#7A8BA8', textAlign: 'center', padding: '8px 0' }}>
-                                بانتظار رد منشئ الفعالية
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Accepted/Rejected alternatives history */}
-            {event.alternatives && event.alternatives.filter((a) => a.status !== 'proposed').length > 0 && (
-                <div style={cardStyle}>
-                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: '#7A8BA8' }}>سجل البدائل</div>
-                    {event.alternatives.filter((a) => a.status !== 'proposed').map((alt) => (
-                        <div key={alt.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #E4E9F2' }}>
-                            <div style={{ fontSize: 12 }}>
-                                {fmtDate(alt.proposed_date)} — {fmtTime(alt.proposed_start_time)} إلى {fmtTime(alt.proposed_end_time)}
-                                {alt.proposed_amount ? ` — ${Number(alt.proposed_amount).toLocaleString()} ريال` : ''}
-                            </div>
-                            <span style={{
-                                fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-                                background: alt.status === 'accepted' ? '#0CA67818' : '#E0305018',
-                                color: alt.status === 'accepted' ? '#0CA678' : '#E03050',
-                            }}>
-                                {alt.status === 'accepted' ? 'مقبول' : 'مرفوض'}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Notes */}
-            {event.notes && (
-                <div style={cardStyle}>
-                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>ملاحظات</div>
-                    <div style={{ fontSize: 13, color: '#4A5C78' }}>{event.notes}</div>
-                </div>
-            )}
-
-            {/* Cancel confirmation modal with refund info */}
-            {showCancelModal && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div onClick={() => setShowCancelModal(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
-                    <div style={{ position: 'relative', background: '#fff', borderRadius: 16, padding: '28px 24px', width: '90%', maxWidth: 380, textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
-                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#E0305014', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                            <span style={{ fontSize: 22 }}>⚠</span>
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>إلغاء الفعالية</div>
-                        <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 16 }}>
-                            هل أنت متأكد من إلغاء هذه الفعالية؟ لا يمكن التراجع عن هذا الإجراء.
-                        </div>
-
-                        {/* A10 — H §12.4: مصفوفة الاسترداد — إلغاء الشركة استرداد كامل دائماً */}
+            <PageHeader
+                icon={CalendarDays}
+                title={event.title}
+                subtitle={event.community?.name ?? undefined}
+                actions={
+                    <>
+                        <Badge tone={status.tone}>{status.label}</Badge>
                         {refundPreview && (
-                            <div style={{ background: '#F8F9FC', border: '1px solid #E4E9F2', borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'right' }}>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: '#7A8BA8', marginBottom: 10 }}>سياسة الاسترداد</div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                    <span style={{ fontSize: 12, color: '#7A8BA8' }}>نسبة الاسترداد</span>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#0CA678' }}>{refundPreview.percentage}%</span>
-                                </div>
-                                <div style={{ marginTop: 10, padding: '6px 10px', borderRadius: 8, fontSize: 11, textAlign: 'center', background: '#0CA67818', color: '#0CA678' }}>
-                                    {refundPreview.policy_label}
-                                </div>
+                            <Button
+                                tone="danger"
+                                onClick={() => setCancelling(true)}
+                            >
+                                إلغاء الفعالية
+                            </Button>
+                        )}
+                    </>
+                }
+            />
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <Card className="space-y-2">
+                    <span className="block text-[11px] font-bold text-ink/50">
+                        الموعد
+                    </span>
+                    <div className="flex items-center gap-1.5 text-xs text-ink">
+                        <CalendarDays
+                            className="h-3.5 w-3.5 text-ink/50"
+                            aria-hidden="true"
+                        />
+                        <span className="font-mono">
+                            {event.event_date ?? '—'}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-ink">
+                        <Clock
+                            className="h-3.5 w-3.5 text-ink/50"
+                            aria-hidden="true"
+                        />
+                        <span className="font-mono">
+                            {event.start_time ?? '—'}
+                            {event.end_time ? ` - ${event.end_time}` : ''}
+                        </span>
+                    </div>
+                </Card>
+
+                <Card className="space-y-2">
+                    <span className="block text-[11px] font-bold text-ink/50">
+                        المرفق
+                    </span>
+                    <div className="flex items-center gap-1.5 text-xs text-ink">
+                        <MapPin
+                            className="h-3.5 w-3.5 text-ink/50"
+                            aria-hidden="true"
+                        />
+                        <span className="truncate">
+                            {event.partner?.name ?? 'لم يُحدَّد بعد'}
+                        </span>
+                    </div>
+                    {event.total_amount !== undefined &&
+                        event.total_amount !== null && (
+                            <div className="text-xs text-ink/70">
+                                التكلفة الإجمالية:{' '}
+                                <Money
+                                    amount={event.total_amount}
+                                    className="text-ink"
+                                />
                             </div>
                         )}
+                </Card>
 
-                        <div style={{ display: 'flex', gap: 10 }}>
-                            <button
-                                onClick={() => setShowCancelModal(false)}
-                                style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: '1px solid #E4E9F2', background: '#fff', color: '#4A5C78', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-                            >
-                                تراجع
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowCancelModal(false);
-                                    setCancelProcessing(true);
-                                    router.post(`/company/events/${event.id}/cancel`, {}, {
-                                        preserveScroll: true,
-                                        onSuccess: () => toastr.success('تم إلغاء الفعالية بنجاح'),
-                                        onFinish: () => setCancelProcessing(false),
-                                    });
-                                }}
-                                disabled={cancelProcessing}
-                                style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: '#E03050', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: cancelProcessing ? 0.5 : 1 }}
-                            >
-                                نعم، إلغاء
-                            </button>
-                        </div>
+                <Card className="space-y-2">
+                    <span className="block text-[11px] font-bold text-ink/50">
+                        المشاركة
+                    </span>
+                    <div className="flex items-center gap-1.5 text-xs text-ink">
+                        <Users
+                            className="h-3.5 w-3.5 text-ink/50"
+                            aria-hidden="true"
+                        />
+                        <span className="font-mono">
+                            {participants.length} / {event.capacity ?? '—'} مقعد
+                        </span>
                     </div>
-                </div>
+                    <div className="text-[11px] text-ink/55">
+                        النصاب الأدنى {event.min_participants ?? '—'}
+                    </div>
+                </Card>
+            </div>
+
+            {event.description && (
+                <Card>
+                    <p className="text-xs leading-relaxed text-ink/75">
+                        {event.description}
+                    </p>
+                </Card>
             )}
+
+            {/* ── المشاركون ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                    <h2 className="text-sm font-extrabold text-ink">
+                        المشاركون
+                    </h2>
+
+                    {available.length > 0 && (
+                        <div className="flex items-center gap-2">
+                            <select
+                                aria-label="إضافة عضو"
+                                value={adding}
+                                onChange={(changeEvent) =>
+                                    setAdding(changeEvent.target.value)
+                                }
+                                className="cursor-pointer rounded-xl border-[0.5px] border-ink/20 bg-surface p-2 text-xs focus:border-ink focus:outline-none"
+                            >
+                                <option value="">اختر عضواً من المجتمع…</option>
+                                {available.map((member) => (
+                                    <option key={member.id} value={member.id}>
+                                        {member.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <Button
+                                tone="soft"
+                                icon={UserPlus}
+                                disabled={adding === ''}
+                                onClick={() => {
+                                    router.post(
+                                        `/company/events/${event.id}/add-member`,
+                                        { employee_id: Number(adding) },
+                                        { preserveScroll: true },
+                                    );
+                                    setAdding('');
+                                }}
+                            >
+                                إضافة
+                            </Button>
+                        </div>
+                    )}
+                </div>
+
+                <TableShell>
+                    <Thead>
+                        <Th>العضو</Th>
+                        <Th>البريد</Th>
+                        <Th className="text-center">الإجراء</Th>
+                    </Thead>
+                    <Tbody>
+                        {participants.map((member) => (
+                            <Tr key={member.id}>
+                                <Td className="font-extrabold text-ink">
+                                    {member.name}
+                                </Td>
+                                <Td
+                                    className="font-mono text-[11px] text-ink/70"
+                                    dir="ltr"
+                                >
+                                    {member.email}
+                                </Td>
+                                <Td className="text-center">
+                                    <IconButton
+                                        icon={UserMinus}
+                                        label="إزالة من الفعالية"
+                                        tone="danger"
+                                        onClick={() =>
+                                            setRemoving({
+                                                id: member.id,
+                                                name: member.name,
+                                            })
+                                        }
+                                    />
+                                </Td>
+                            </Tr>
+                        ))}
+                        <ListStates
+                            count={participants.length}
+                            colSpan={3}
+                            empty="لا مشاركين بعد."
+                            emptyHint="أضف أعضاء من المجتمع أو انتظر تأكيدهم بأنفسهم."
+                        />
+                    </Tbody>
+                </TableShell>
+            </Card>
+
+            {/* H §12.4 — a company cancellation is always a full refund; say so. */}
+            <ConfirmModal
+                open={cancelling}
+                tone="danger"
+                title="إلغاء الفعالية"
+                message="سيُبلَّغ كل المشاركين والمزوّد فوراً، ويُنفَّذ الاسترداد وفق سياسة الاسترداد أدناه."
+                details={
+                    <>
+                        <ConfirmRow label="الفعالية" value={event.title} />
+                        <ConfirmRow
+                            label="المشاركون المتأثرون"
+                            value={`${participants.length} موظف`}
+                        />
+                        <ConfirmRow
+                            label="سياسة الاسترداد"
+                            value={refundPreview?.policy_label ?? '—'}
+                            strong
+                        />
+                        <ConfirmRow
+                            label="نسبة الاسترداد"
+                            value={`${refundPreview?.percentage ?? 0}٪`}
+                        />
+                    </>
+                }
+                confirmLabel="تأكيد الإلغاء"
+                onConfirm={() => {
+                    router.post(`/company/events/${event.id}/cancel`);
+                    setCancelling(false);
+                }}
+                onCancel={() => setCancelling(false)}
+            />
+
+            <ConfirmModal
+                open={removing !== null}
+                tone="danger"
+                title="إزالة مشارك"
+                message="سيُحرَّر مقعده ويُعرض على أول من في قائمة الانتظار، ويصله إشعار بالإزالة."
+                details={
+                    removing && (
+                        <ConfirmRow
+                            label="العضو"
+                            value={removing.name}
+                            strong
+                        />
+                    )
+                }
+                confirmLabel="إزالة"
+                onConfirm={() => {
+                    router.post(
+                        `/company/events/${event.id}/remove-member`,
+                        { employee_id: removing?.id },
+                        { preserveScroll: true },
+                    );
+                    setRemoving(null);
+                }}
+                onCancel={() => setRemoving(null)}
+            />
         </CompanyLayout>
     );
 }

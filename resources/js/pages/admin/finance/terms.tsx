@@ -1,236 +1,320 @@
-import AdminLayout from '@/layouts/admin-layout';
 import { Head, useForm } from '@inertiajs/react';
+import { CalendarClock, Ruler } from 'lucide-react';
+import { useState } from 'react';
+import { ListStates } from '@/components/list-states';
+import { Badge, Button, Card, Field, INPUT, Note, PageHeader, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import AdminLayout from '@/layouts/admin-layout';
 
-interface ScheduledRate {
-    id: number;
-    rate_percent: number;
-    effective_from: string | null;
-    reason: string | null;
-}
-
-interface ProviderRow {
+/**
+ * H §12.9 — شروط العقود المجدولة.
+ *
+ * Terms are never edited in place and never take effect today: a rate change
+ * is *scheduled* from a future date, and everything already invoiced or
+ * settled keeps the terms it was computed under. That is the whole point —
+ * «لا تغيير بأثر رجعي» — so the form refuses today's date at the server.
+ */
+type Provider = {
     id: number;
     name: string;
     effective_rate_percent: number | null;
-    scheduled: ScheduledRate[];
-}
+    scheduled: { id: number; rate_percent: number; effective_from: string | null; reason: string | null }[];
+};
 
-interface ScheduledTerm {
-    id: number;
-    fee_per_activated_employee: string | null;
-    monthly_minimum: string | null;
-    effective_from: string | null;
-    reason: string | null;
-}
-
-interface CompanyRow {
+type CompanyTerms = {
     id: number;
     name: string;
     fee_per_activated_employee: string | null;
     monthly_minimum: string | null;
-    scheduled: ScheduledTerm[];
-}
+    scheduled: {
+        id: number;
+        fee_per_activated_employee: string | null;
+        monthly_minimum: string | null;
+        effective_from: string | null;
+        reason: string | null;
+    }[];
+};
 
-interface Props {
-    providers: ProviderRow[];
-    companies: CompanyRow[];
+export default function FinanceTerms({
+    providers,
+    companies,
+    today,
+}: {
+    providers: Provider[];
+    companies: CompanyTerms[];
     today: string;
-}
+}) {
+    const [tab, setTab] = useState<'providers' | 'companies'>('providers');
 
-export default function FinanceTerms({ providers, companies }: Props) {
     const rateForm = useForm({ partner_id: '', rate_percent: '', effective_from: '', reason: '' });
-    const termForm = useForm({
-        company_id: '',
-        fee_per_activated_employee: '',
-        monthly_minimum: '',
-        effective_from: '',
-        reason: '',
-    });
-
-    const input = { padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13 };
+    const termsForm = useForm({ company_id: '', fee_per_activated_employee: '', monthly_minimum: '', effective_from: '', reason: '' });
 
     return (
         <AdminLayout>
-            <Head title="الشروط المالية المستقبلية" />
+            <Head title="شروط العقود" />
 
-            <div className="page-title">الشروط المالية المستقبلية</div>
-            <div className="page-sub" style={{ marginBottom: 20 }}>
-                أي تغيير في نسبة عمولة مزوّد أو في رسوم عقد شركة يسري من تاريخ مستقبلي محدد فقط، ولا يُطبَّق بأثر رجعي:
-                كشف قديم أو فاتورة دورة سابقة لا يتغيران أبداً.
+            <PageHeader
+                icon={Ruler}
+                title="شروط العقود المجدولة"
+                subtitle="نسب عمولة المزوّدين ورسوم عقود الشركات. كل تغيير يُجدوَل لتاريخ مستقبلي ولا يمسّ ما صدر."
+            />
+
+            <Note tone="warning" title="لا تغيير بأثر رجعي">
+                الفواتير والكشوف الصادرة تبقى محسوبة بالشروط التي كانت سارية وقت احتسابها. لذلك تاريخ السريان يجب أن يكون بعد
+                اليوم ({today}) — لا يمكن تعديل الماضي.
+            </Note>
+
+            <div className="flex items-center gap-2">
+                <Button tone={tab === 'providers' ? 'ink' : 'soft'} onClick={() => setTab('providers')}>
+                    عمولة المزوّدين
+                </Button>
+                <Button tone={tab === 'companies' ? 'ink' : 'soft'} onClick={() => setTab('companies')}>
+                    عقود الشركات
+                </Button>
             </div>
 
-            <div
-                style={{
-                    background: '#fff',
-                    border: '1px solid #E2E8F4',
-                    borderRadius: 16,
-                    padding: 22,
-                    marginBottom: 20,
-                }}
-            >
-                <div className="card-title">نسب عمولة المزوّدين</div>
+            {tab === 'providers' ? (
+                <>
+                    <Card padding="p-4" className="space-y-4">
+                        <h2 className="text-sm font-extrabold text-ink">جدولة نسبة عمولة جديدة</h2>
 
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        rateForm.post('/admin/finance/commission-rates', {
-                            preserveScroll: true,
-                            onSuccess: () => rateForm.reset(),
-                        });
-                    }}
-                    style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}
-                >
-                    <select
-                        value={rateForm.data.partner_id}
-                        onChange={(e) => rateForm.setData('partner_id', e.target.value)}
-                        style={input}
-                    >
-                        <option value="">اختر المزوّد</option>
-                        {providers.map((p) => (
-                            <option key={p.id} value={p.id}>
-                                {p.name}
-                            </option>
-                        ))}
-                    </select>
-                    <input
-                        value={rateForm.data.rate_percent}
-                        onChange={(e) => rateForm.setData('rate_percent', e.target.value)}
-                        placeholder="النسبة %"
-                        style={input}
-                    />
-                    <input
-                        type="date"
-                        value={rateForm.data.effective_from}
-                        onChange={(e) => rateForm.setData('effective_from', e.target.value)}
-                        style={input}
-                    />
-                    <input
-                        value={rateForm.data.reason}
-                        onChange={(e) => rateForm.setData('reason', e.target.value)}
-                        placeholder="السبب (اختياري)"
-                        style={input}
-                    />
-                    <button type="submit" className="fbtn" disabled={rateForm.processing}>
-                        جدولة
-                    </button>
-                </form>
+                        <form
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                rateForm.post('/admin/finance/commission-rates', {
+                                    preserveScroll: true,
+                                    onSuccess: () => rateForm.reset(),
+                                });
+                            }}
+                            className="space-y-4"
+                        >
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <Field label="المزوّد" htmlFor="rate-partner" required error={rateForm.errors.partner_id}>
+                                    <select
+                                        id="rate-partner"
+                                        required
+                                        value={rateForm.data.partner_id}
+                                        onChange={(event) => rateForm.setData('partner_id', event.target.value)}
+                                        className={`${INPUT} cursor-pointer`}
+                                    >
+                                        <option value="">اختر المزوّد…</option>
+                                        {providers.map((provider) => (
+                                            <option key={provider.id} value={provider.id}>
+                                                {provider.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </Field>
+                                <Field label="النسبة الجديدة" htmlFor="rate-percent" required error={rateForm.errors.rate_percent}>
+                                    <input
+                                        id="rate-percent"
+                                        type="number"
+                                        step="0.01"
+                                        min={0}
+                                        max={100}
+                                        required
+                                        value={rateForm.data.rate_percent}
+                                        onChange={(event) => rateForm.setData('rate_percent', event.target.value)}
+                                        className={`${INPUT} font-mono`}
+                                    />
+                                </Field>
+                                <Field
+                                    label="تسري من"
+                                    htmlFor="rate-from"
+                                    required
+                                    hint="تاريخ مستقبلي"
+                                    error={rateForm.errors.effective_from}
+                                >
+                                    <input
+                                        id="rate-from"
+                                        type="date"
+                                        required
+                                        value={rateForm.data.effective_from}
+                                        onChange={(event) => rateForm.setData('effective_from', event.target.value)}
+                                        className={INPUT}
+                                    />
+                                </Field>
+                                <Field label="السبب" htmlFor="rate-reason">
+                                    <input
+                                        id="rate-reason"
+                                        type="text"
+                                        value={rateForm.data.reason}
+                                        onChange={(event) => rateForm.setData('reason', event.target.value)}
+                                        className={INPUT}
+                                    />
+                                </Field>
+                            </div>
 
-                {rateForm.errors.effective_from && (
-                    <div style={{ color: '#E03050', fontSize: 12, marginBottom: 10 }}>
-                        {rateForm.errors.effective_from}
-                    </div>
-                )}
+                            <Button type="submit" disabled={rateForm.processing}>
+                                جدولة النسبة
+                            </Button>
+                        </form>
+                    </Card>
 
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <th>المزوّد</th>
-                            <th>النسبة السارية</th>
-                            <th>تغييرات مجدولة</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {providers.map((p) => (
-                            <tr key={p.id}>
-                                <td style={{ fontWeight: 700 }}>{p.name}</td>
-                                <td>{p.effective_rate_percent ?? 'لا نسبة في العقد'}</td>
-                                <td style={{ fontSize: 12, color: '#7A8BA8' }}>
-                                    {p.scheduled.length === 0
-                                        ? '—'
-                                        : p.scheduled
-                                              .map((s) => `${s.rate_percent}% من ${s.effective_from}`)
-                                              .join('، ')}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                    <Card padding="p-4" className="space-y-4">
+                        <h2 className="text-sm font-extrabold text-ink">النسب السارية والمجدولة</h2>
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 22 }}>
-                <div className="card-title">رسوم عقود الشركات</div>
+                        <TableShell>
+                            <Thead>
+                                <Th>المزوّد</Th>
+                                <Th>النسبة السارية</Th>
+                                <Th>مجدول</Th>
+                            </Thead>
+                            <Tbody>
+                                {providers.map((provider) => (
+                                    <Tr key={provider.id}>
+                                        <Td className="font-extrabold text-ink">{provider.name}</Td>
+                                        <Td className="font-mono font-bold text-ink">
+                                            {provider.effective_rate_percent ?? '—'}٪
+                                        </Td>
+                                        <Td>
+                                            {provider.scheduled.length === 0 ? (
+                                                <span className="text-ink/45">—</span>
+                                            ) : (
+                                                <div className="space-y-1">
+                                                    {provider.scheduled.map((rate) => (
+                                                        <div key={rate.id} className="flex items-center gap-2 text-[11px]">
+                                                            <Badge tone="warning" icon={CalendarClock}>
+                                                                {rate.rate_percent}٪ من {rate.effective_from}
+                                                            </Badge>
+                                                            {rate.reason && <span className="text-ink/55">{rate.reason}</span>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </Td>
+                                    </Tr>
+                                ))}
+                                <ListStates count={providers.length} colSpan={3} empty="لا مزوّدون مسجّلون." />
+                            </Tbody>
+                        </TableShell>
+                    </Card>
+                </>
+            ) : (
+                <>
+                    <Card padding="p-4" className="space-y-4">
+                        <h2 className="text-sm font-extrabold text-ink">جدولة شروط عقد جديدة</h2>
 
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        termForm.post('/admin/finance/contract-terms', {
-                            preserveScroll: true,
-                            onSuccess: () => termForm.reset(),
-                        });
-                    }}
-                    style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}
-                >
-                    <select
-                        value={termForm.data.company_id}
-                        onChange={(e) => termForm.setData('company_id', e.target.value)}
-                        style={input}
-                    >
-                        <option value="">اختر الشركة</option>
-                        {companies.map((c) => (
-                            <option key={c.id} value={c.id}>
-                                {c.name}
-                            </option>
-                        ))}
-                    </select>
-                    <input
-                        value={termForm.data.fee_per_activated_employee}
-                        onChange={(e) => termForm.setData('fee_per_activated_employee', e.target.value)}
-                        placeholder="رسم الموظف المفعّل (ريال)"
-                        style={input}
-                    />
-                    <input
-                        value={termForm.data.monthly_minimum}
-                        onChange={(e) => termForm.setData('monthly_minimum', e.target.value)}
-                        placeholder="الحد الأدنى الشهري (ريال)"
-                        style={input}
-                    />
-                    <input
-                        type="date"
-                        value={termForm.data.effective_from}
-                        onChange={(e) => termForm.setData('effective_from', e.target.value)}
-                        style={input}
-                    />
-                    <button type="submit" className="fbtn" disabled={termForm.processing}>
-                        جدولة
-                    </button>
-                </form>
+                        <form
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                termsForm.post('/admin/finance/contract-terms', {
+                                    preserveScroll: true,
+                                    onSuccess: () => termsForm.reset(),
+                                });
+                            }}
+                            className="space-y-4"
+                        >
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                                <Field label="الشركة" htmlFor="terms-company" required error={termsForm.errors.company_id}>
+                                    <select
+                                        id="terms-company"
+                                        required
+                                        value={termsForm.data.company_id}
+                                        onChange={(event) => termsForm.setData('company_id', event.target.value)}
+                                        className={`${INPUT} cursor-pointer`}
+                                    >
+                                        <option value="">اختر الشركة…</option>
+                                        {companies.map((company) => (
+                                            <option key={company.id} value={company.id}>
+                                                {company.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </Field>
+                                <Field label="رسم الموظف المفعّل" htmlFor="terms-fee" error={termsForm.errors.fee_per_activated_employee}>
+                                    <input
+                                        id="terms-fee"
+                                        type="number"
+                                        step="0.01"
+                                        min={0}
+                                        value={termsForm.data.fee_per_activated_employee}
+                                        onChange={(event) => termsForm.setData('fee_per_activated_employee', event.target.value)}
+                                        className={`${INPUT} font-mono`}
+                                    />
+                                </Field>
+                                <Field label="الحد الأدنى الشهري" htmlFor="terms-min" error={termsForm.errors.monthly_minimum}>
+                                    <input
+                                        id="terms-min"
+                                        type="number"
+                                        step="0.01"
+                                        min={0}
+                                        value={termsForm.data.monthly_minimum}
+                                        onChange={(event) => termsForm.setData('monthly_minimum', event.target.value)}
+                                        className={`${INPUT} font-mono`}
+                                    />
+                                </Field>
+                                <Field
+                                    label="تسري من"
+                                    htmlFor="terms-from"
+                                    required
+                                    hint="تاريخ مستقبلي"
+                                    error={termsForm.errors.effective_from}
+                                >
+                                    <input
+                                        id="terms-from"
+                                        type="date"
+                                        required
+                                        value={termsForm.data.effective_from}
+                                        onChange={(event) => termsForm.setData('effective_from', event.target.value)}
+                                        className={INPUT}
+                                    />
+                                </Field>
+                                <Field label="السبب" htmlFor="terms-reason">
+                                    <input
+                                        id="terms-reason"
+                                        type="text"
+                                        value={termsForm.data.reason}
+                                        onChange={(event) => termsForm.setData('reason', event.target.value)}
+                                        className={INPUT}
+                                    />
+                                </Field>
+                            </div>
 
-                {termForm.errors.effective_from && (
-                    <div style={{ color: '#E03050', fontSize: 12, marginBottom: 10 }}>
-                        {termForm.errors.effective_from}
-                    </div>
-                )}
+                            <Button type="submit" disabled={termsForm.processing}>
+                                جدولة الشروط
+                            </Button>
+                        </form>
+                    </Card>
 
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <th>الشركة</th>
-                            <th>رسم الموظف المفعّل</th>
-                            <th>الحد الأدنى</th>
-                            <th>تغييرات مجدولة</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {companies.map((c) => (
-                            <tr key={c.id}>
-                                <td style={{ fontWeight: 700 }}>{c.name}</td>
-                                <td>{c.fee_per_activated_employee ?? 'غير محدد'}</td>
-                                <td>{c.monthly_minimum ?? '—'}</td>
-                                <td style={{ fontSize: 12, color: '#7A8BA8' }}>
-                                    {c.scheduled.length === 0
-                                        ? '—'
-                                        : c.scheduled
-                                              .map(
-                                                  (s) =>
-                                                      `${s.fee_per_activated_employee ?? '—'} / ${s.monthly_minimum ?? '—'} من ${s.effective_from}`,
-                                              )
-                                              .join('، ')}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                    <Card padding="p-4" className="space-y-4">
+                        <h2 className="text-sm font-extrabold text-ink">الشروط السارية والمجدولة</h2>
+
+                        <TableShell>
+                            <Thead>
+                                <Th>الشركة</Th>
+                                <Th>رسم الموظف</Th>
+                                <Th>الحد الأدنى</Th>
+                                <Th>مجدول</Th>
+                            </Thead>
+                            <Tbody>
+                                {companies.map((company) => (
+                                    <Tr key={company.id}>
+                                        <Td className="font-extrabold text-ink">{company.name}</Td>
+                                        <Td className="font-mono text-ink/85">
+                                            {company.fee_per_activated_employee ?? <span className="text-danger font-bold font-arabic">بلا عقد</span>}
+                                        </Td>
+                                        <Td className="font-mono text-ink/85">{company.monthly_minimum ?? '—'}</Td>
+                                        <Td>
+                                            {company.scheduled.length === 0 ? (
+                                                <span className="text-ink/45">—</span>
+                                            ) : (
+                                                <div className="space-y-1">
+                                                    {company.scheduled.map((term) => (
+                                                        <Badge key={term.id} tone="warning" icon={CalendarClock}>
+                                                            {term.fee_per_activated_employee ?? '—'} من {term.effective_from}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </Td>
+                                    </Tr>
+                                ))}
+                                <ListStates count={companies.length} colSpan={4} empty="لا شركات مسجّلة." />
+                            </Tbody>
+                        </TableShell>
+                    </Card>
+                </>
+            )}
         </AdminLayout>
     );
 }

@@ -70,7 +70,7 @@ class LeagueController extends Controller
         return Inertia::render('company/leagues/index', [
             'company' => $company,
             'leagues' => $leagues,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'unreadNotifications' => $unreadNotifications,
         ]);

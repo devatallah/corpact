@@ -1,349 +1,298 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
-import toastr from 'toastr';
-import ConfirmModal from '@/components/confirm-modal';
-import FilterTabs from '@/components/filter-tabs';
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import PasswordInput from '@/components/password-input';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import StatusBadge from '@/components/status-badge';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import { KeyRound, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Button, Card, Field, IconButton, INPUT, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import { fmtDateTime } from '@/lib/utils';
-import type { PaginatedResult } from '@/types/models';
+import type { Paginated, SortState } from '@/types';
 
-interface Admin {
+/**
+ * H §16 — فريق تيمات الداخلي، وفصل الأدوار.
+ *
+ * «حساب واحد هنا يكفي للوصول إلى كل الأموال» — which is why this list exists
+ * as its own screen, why a phone is mandatory (the second factor has to reach
+ * somewhere), and why every grant lands in the quarterly permission review.
+ */
+type AdminRow = {
     id: number;
     name: string;
     email: string;
     phone: string | null;
-    role: string;
     status: string;
-    created_at: string;
-}
-
-const roleLabels: Record<string, string> = {
-    platform_admin: 'أدمن تيمات',
-    finance_admin: 'الأدمن المالي',
+    role: string | null;
+    roles: string[];
+    created_at: string | null;
 };
 
-interface Props {
-    admins: PaginatedResult<Admin>;
+const ROLE_LABELS: Record<string, { label: string; tone: 'neutral' | 'warning' | 'danger' | 'lime' }> = {
+    platform_admin: { label: 'أدمن المنصة', tone: 'danger' },
+    finance_admin: { label: 'الأدمن المالي', tone: 'warning' },
+    support_agent: { label: 'وكيل الدعم', tone: 'neutral' },
+};
+
+export default function AdminAdmins({
+    admins,
+    totalAdmins,
+    filters,
+    sort,
+}: {
+    admins: Paginated<AdminRow>;
     totalAdmins: number;
-    filters: {
-        search?: string;
-        status?: string;
-        sort?: string;
-        dir?: string;
-    };
+    filters: { search?: string; status?: string };
     sort: SortState;
-}
-
-/**
- * الخادم يقبل `status` منذ البداية، لكن الشاشة لم تكن تعرض ضابطاً له — فلترة
- * بلا واجهة. هذه هي الواجهة (H §18: بحث + **فلترة** + ترتيب + ترقيم).
- */
-const statusOptions = [
-    { label: 'الكل', value: '' },
-    { label: 'نشط', value: 'active' },
-    { label: 'معطَّل', value: 'inactive' },
-];
-
-export default function AdminsIndex({ admins, totalAdmins, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        status: filters?.status,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-    const [showCreate, setShowCreate] = useState(false);
-    const [editingItem, setEditingItem] = useState<Admin | null>(null);
-
-    const form = useForm({
-        name: '',
-        email: '',
-        password: '',
-        phone: '',
-        role: 'platform_admin',
-        status: 'active',
-    });
-
-    useEffect(() => {
-        if (editingItem) {
-            form.setData({
-                name: editingItem.name ?? '',
-                email: editingItem.email ?? '',
-                password: '',
-                phone: editingItem.phone ?? '',
-                role: editingItem.role ?? 'platform_admin',
-                status: editingItem.status ?? 'active',
-            });
-        } else {
-            form.reset();
-        }
-    }, [editingItem]);
-
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-
-        if (editingItem) {
-            form.put(`/admin/admins/${editingItem.id}`, {
-                onSuccess: () => {
- setEditingItem(null); toastr.success('تم التحديث بنجاح.'); 
-},
-            });
-        } else {
-            form.post('/admin/admins', {
-                onSuccess: () => {
- setShowCreate(false); form.reset(); toastr.success('تم الإنشاء بنجاح.'); 
-},
-            });
-        }
-    }
-
-    const [resetTarget, setResetTarget] = useState<{ id: number; email: string } | null>(null);
-    const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
-
-    function confirmResetPassword() {
-        if (!resetTarget) {
-return;
-}
-
-        const email = resetTarget.email;
-        router.post(`/admin/admins/${resetTarget.id}/reset-password`, {}, { preserveScroll: true, onSuccess: () => toastr.success(`تم إرسال رابط إعادة تعيين كلمة المرور إلى ${email}`) });
-        setResetTarget(null);
-    }
-
-    function confirmDelete() {
-        if (!deleteTarget) {
-return;
-}
-
-        router.delete(`/admin/admins/${deleteTarget.id}`, { preserveScroll: true, onSuccess: () => toastr.success('تم حذف المشرف بنجاح.'), onError: () => toastr.error('لا يمكنك حذف حسابك الحالي.') });
-        setDeleteTarget(null);
-    }
+}) {
+    const [adding, setAdding] = useState(false);
+    const [removing, setRemoving] = useState<AdminRow | null>(null);
+    const form = useForm({ name: '', email: '', phone: '', password: '', role: 'support_agent' });
 
     return (
         <AdminLayout>
-            <Head title="إدارة المشرفين" />
+            <Head title="المشرفون" />
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <div className="page-title">إدارة المشرفين</div>
-                <button onClick={() => setShowCreate(true)} className="act-btn btn-approve">
-                    إضافة مشرف
-                </button>
-            </div>
-            <div className="page-sub">
-                {totalAdmins.toLocaleString()} مشرف مسجّل على المنصة
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث باسم المشرف أو البريد..."
-                    style={{ flex: 1, minWidth: '200px', padding: '10px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: '10px', fontSize: '13px', color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
-                />
-                <FilterTabs options={statusOptions} current={filters?.status ?? ''} />
-            </div>
-
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <SortableHeader label="المشرف" sortKey="name" sort={sort} />
-                            <th>الدور</th>
-                            <th>رقم الجوال</th>
-                            <SortableHeader label="تاريخ التسجيل" sortKey="created_at" sort={sort} initialDirection="desc" />
-                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
-                            <th>إجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <ListStates
-                            count={admins.data.length}
-                            columns={6}
-                            emptyTitle="لا يوجد مشرفون"
-                            emptyHint="لا حساب مشرف مطابق للبحث الحالي."
-                        />
-                        {admins.data.map((admin) => (
-                            <tr key={admin.id}>
-                                <td>
-                                    <div style={{ fontWeight: 700, color: '#fff' }}>{admin.name ?? '-'}</div>
-                                    <div style={{ fontSize: '10px', color: '#6B7A99' }}>{admin.email ?? '-'}</div>
-                                </td>
-                                <td>
-                                    <span style={{
-                                        padding: '3px 10px',
-                                        borderRadius: '6px',
-                                        fontSize: '11px',
-                                        fontWeight: 600,
-                                        background: admin.role === 'platform_admin' ? 'rgba(224,48,80,.15)' : admin.role === 'finance_admin' ? 'rgba(91,126,255,.15)' : 'rgba(0,158,130,.15)',
-                                        color: admin.role === 'platform_admin' ? '#E03050' : admin.role === 'finance_admin' ? '#5B7EFF' : '#009E82',
-                                    }}>
-                                        {roleLabels[admin.role] ?? admin.role}
-                                    </span>
-                                </td>
-                                <td style={{ color: '#C8D0E0', direction: 'ltr', textAlign: 'right' }}>{admin.phone ?? '-'}</td>
-                                <td style={{ fontSize: '12px', color: '#6B7A99' }}>{fmtDateTime(admin.created_at)}</td>
-                                <td>
-                                    <StatusBadge status={admin.status} />
-                                </td>
-                                <td>
-                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                        <button
-                                            onClick={() => setEditingItem(admin)}
-                                            className="act-btn btn-view"
-                                        >
-                                            تعديل
-                                        </button>
-                                        <button
-                                            className="act-btn"
-                                            style={{ background: '#2A1F3D', color: '#A78BFA', borderColor: '#3B2D5A' }}
-                                            onClick={() => setResetTarget({ id: admin.id, email: admin.email })}
-                                        >
-                                            إعادة كلمة المرور
-                                        </button>
-                                        <button
-                                            className="act-btn btn-reject"
-                                            onClick={() => setDeleteTarget({ id: admin.id, name: admin.name })}
-                                        >
-                                            حذف
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            <Pagination links={admins.links} />
-
-            {/* Create/Edit Modal */}
-            {(showCreate || editingItem) && (
-                <div className="detail-overlay open" onClick={() => {
- setShowCreate(false); setEditingItem(null); 
-}}>
-                    <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
-                        <h3>
-                            {editingItem ? 'تعديل مشرف' : 'إضافة مشرف'}
-                            <button className="close-btn" onClick={() => {
- setShowCreate(false); setEditingItem(null); 
-}}>×</button>
-                        </h3>
-
-                        {Object.keys(form.errors).length > 0 && (
-                            <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
-                                {Object.values(form.errors).map((error, i) => (
-                                    <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                                ))}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSubmit}>
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>اسم المشرف *</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.name}
-                                        onChange={(e) => form.setData('name', e.target.value)}
-                                        placeholder="الاسم الكامل"
-                                        required
-                                    />
-                                </div>
-                                <div className="fg">
-                                    <label>البريد الإلكتروني *</label>
-                                    <input
-                                        type="email"
-                                        value={form.data.email}
-                                        onChange={(e) => form.setData('email', e.target.value)}
-                                        placeholder="admin@teamat.com"
-                                        dir="ltr"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>{editingItem ? 'كلمة المرور (اتركها فارغة للإبقاء)' : 'كلمة المرور *'}</label>
-                                    <PasswordInput
-                                        value={form.data.password}
-                                        onChange={(e) => form.setData('password', e.target.value)}
-                                        placeholder="••••••"
-                                        dir="ltr"
-                                        {...(!editingItem && { required: true })}
-                                        autoComplete="new-password"
-                                    />
-                                </div>
-                                <div className="fg">
-                                    <label>رقم الجوال</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.phone}
-                                        onChange={(e) => form.setData('phone', e.target.value)}
-                                        placeholder="05xxxxxxxx"
-                                        dir="ltr"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>الدور *</label>
-                                    <select
-                                        value={form.data.role}
-                                        onChange={(e) => form.setData('role', e.target.value)}
-                                    >
-                                        <option value="platform_admin">أدمن تيمات</option>
-                                        <option value="finance_admin">الأدمن المالي</option>
-                                    </select>
-                                </div>
-                                {editingItem ? (
-                                    <div className="fg">
-                                        <label>الحالة</label>
-                                        <select
-                                            value={form.data.status}
-                                            onChange={(e) => form.setData('status', e.target.value)}
-                                        >
-                                            <option value="active">نشط</option>
-                                            <option value="inactive">غير نشط</option>
-                                        </select>
-                                    </div>
-                                ) : (
-                                    <div className="fg" />
-                                )}
-                            </div>
-
-                            <div className="panel-actions">
-                                <button type="submit" className="pa-approve" disabled={form.processing}>حفظ</button>
-                                <button type="button" className="pa-reject" onClick={() => {
- setShowCreate(false); setEditingItem(null); 
-}}>إلغاء</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            <ConfirmModal
-                open={!!resetTarget}
-                title="إعادة تعيين كلمة المرور"
-                message={`سيتم إرسال رابط إعادة تعيين كلمة المرور إلى ${resetTarget?.email ?? ''}. هل تريد المتابعة؟`}
-                confirmLabel="إرسال"
-                onConfirm={confirmResetPassword}
-                onCancel={() => setResetTarget(null)}
+            <PageHeader
+                icon={KeyRound}
+                title="فريق تيمات الداخلي"
+                subtitle="ثلاثة أدوار مفصولة: أدمن المنصة (كل شيء عدا الاعتماد المالي)، الأدمن المالي (الاعتمادات)، وكيل الدعم (قراءة وتدخل محدود)."
+                actions={
+                    <Button icon={Plus} onClick={() => setAdding(true)}>
+                        إضافة مشرف
+                    </Button>
+                }
             />
 
+            <Note tone="warning" title="مبدأ أقل صلاحية">
+                امنح وكيل الدعم أولاً، ولا ترفع إلى أدمن المنصة إلا لحاجة قائمة. كل تعيين يظهر في المراجعة الربع سنوية
+                للصلاحيات ويُقيَّد في سجل التدقيق.
+            </Note>
+
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <StatCard label="إجمالي المشرفين" value={totalAdmins} />
+                <StatCard
+                    label="أدمن المنصة"
+                    value={admins.data.filter((admin) => admin.roles.includes('platform_admin')).length}
+                    hint="في هذه الصفحة"
+                    tone="warning"
+                />
+                <StatCard label="المعروض بعد التصفية" value={admins.total} />
+            </div>
+
+            {adding && (
+                <Card padding="p-4" className="space-y-4">
+                    <h2 className="text-sm font-extrabold text-ink">مشرف جديد</h2>
+
+                    <form
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            form.post('/admin/admins', {
+                                preserveScroll: true,
+                                onSuccess: () => {
+                                    form.reset();
+                                    setAdding(false);
+                                },
+                            });
+                        }}
+                        className="space-y-4"
+                    >
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <Field label="الاسم" htmlFor="admin-name" required error={form.errors.name}>
+                                <input
+                                    id="admin-name"
+                                    type="text"
+                                    required
+                                    value={form.data.name}
+                                    onChange={(event) => form.setData('name', event.target.value)}
+                                    className={INPUT}
+                                />
+                            </Field>
+                            <Field label="البريد المؤسسي" htmlFor="admin-email" required error={form.errors.email}>
+                                <input
+                                    id="admin-email"
+                                    type="email"
+                                    dir="ltr"
+                                    required
+                                    value={form.data.email}
+                                    onChange={(event) => form.setData('email', event.target.value)}
+                                    className={`${INPUT} text-right font-mono`}
+                                />
+                            </Field>
+                            <Field
+                                label="رقم الجوال"
+                                htmlFor="admin-phone"
+                                required
+                                hint="إلزامي — إليه يصل العامل الثاني"
+                                error={form.errors.phone}
+                            >
+                                <input
+                                    id="admin-phone"
+                                    type="tel"
+                                    dir="ltr"
+                                    required
+                                    value={form.data.phone}
+                                    onChange={(event) => form.setData('phone', event.target.value)}
+                                    className={`${INPUT} text-right font-mono`}
+                                />
+                            </Field>
+                            <Field label="كلمة المرور المبدئية" htmlFor="admin-password" required error={form.errors.password}>
+                                <input
+                                    id="admin-password"
+                                    type="password"
+                                    required
+                                    value={form.data.password}
+                                    onChange={(event) => form.setData('password', event.target.value)}
+                                    className={INPUT}
+                                />
+                            </Field>
+                            <Field label="الدور" htmlFor="admin-role" required error={form.errors.role}>
+                                <select
+                                    id="admin-role"
+                                    value={form.data.role}
+                                    onChange={(event) => form.setData('role', event.target.value)}
+                                    className={`${INPUT} cursor-pointer`}
+                                >
+                                    <option value="support_agent">وكيل الدعم</option>
+                                    <option value="finance_admin">الأدمن المالي</option>
+                                    <option value="platform_admin">أدمن المنصة</option>
+                                </select>
+                            </Field>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <Button type="submit" disabled={form.processing}>
+                                إنشاء الحساب
+                            </Button>
+                            <Button
+                                type="button"
+                                tone="soft"
+                                onClick={() => {
+                                    form.reset();
+                                    setAdding(false);
+                                }}
+                            >
+                                إلغاء
+                            </Button>
+                        </div>
+                    </form>
+                </Card>
+            )}
+
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث بالاسم أو البريد…" />
+                    <FilterSelect
+                        name="status"
+                        label="حالة الحساب"
+                        value={filters.status ?? ''}
+                        options={[
+                            ['', 'كل الحالات'],
+                            ['active', 'مفعّل'],
+                            ['inactive', 'معطّل'],
+                        ]}
+                    />
+                </Toolbar>
+
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader label="المشرف" sortKey="name" sort={sort} />
+                        </Th>
+                        <Th>الجوال</Th>
+                        <Th>الأدوار</Th>
+                        <Th>
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="أُنشئ في" sortKey="created_at" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th className="text-center">الإجراءات</Th>
+                    </Thead>
+
+                    <Tbody>
+                        {admins.data.map((admin) => (
+                            <Tr key={admin.id}>
+                                <Td>
+                                    <span className="font-extrabold text-ink block">{admin.name}</span>
+                                    <span className="font-mono text-[11px] text-ink/50" dir="ltr">
+                                        {admin.email}
+                                    </span>
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/80" dir="ltr">
+                                    {admin.phone ?? (
+                                        <span className="font-arabic text-danger font-bold" dir="rtl">
+                                            بلا جوال — لا يمكنه الدخول
+                                        </span>
+                                    )}
+                                </Td>
+                                <Td>
+                                    <div className="flex flex-wrap gap-1">
+                                        {admin.roles.map((role) => (
+                                            <Badge key={role} tone={ROLE_LABELS[role]?.tone ?? 'neutral'}>
+                                                {ROLE_LABELS[role]?.label ?? role}
+                                            </Badge>
+                                        ))}
+                                        {admin.roles.length === 0 && <span className="text-ink/45">—</span>}
+                                    </div>
+                                </Td>
+                                <Td>
+                                    <Badge tone={admin.status === 'active' ? 'success' : 'neutral'}>
+                                        {admin.status === 'active' ? 'مفعّل' : 'معطّل'}
+                                    </Badge>
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/60">
+                                    {admin.created_at ? new Date(admin.created_at).toLocaleDateString('ar-SA') : '—'}
+                                </Td>
+                                <Td className="text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                        <IconButton
+                                            icon={KeyRound}
+                                            label="إرسال رابط إعادة تعيين كلمة المرور"
+                                            onClick={() => router.post(`/admin/admins/${admin.id}/reset-password`, {}, { preserveScroll: true })}
+                                        />
+                                        <IconButton
+                                            icon={Trash2}
+                                            label="إزالة صلاحيات المشرف"
+                                            tone="danger"
+                                            onClick={() => setRemoving(admin)}
+                                        />
+                                    </div>
+                                </Td>
+                            </Tr>
+                        ))}
+
+                        <ListStates count={admins.data.length} colSpan={6} empty="لا يوجد مشرفون مطابقون." />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={admins} />
+                    <Pagination page={admins} />
+                </div>
+            </Card>
+
             <ConfirmModal
-                open={!!deleteTarget}
-                title="حذف مشرف"
-                message={`هل أنت متأكد من حذف المشرف "${deleteTarget?.name ?? ''}"؟ لا يمكن التراجع عن هذا الإجراء.`}
-                confirmLabel="حذف"
-                onConfirm={confirmDelete}
-                onCancel={() => setDeleteTarget(null)}
+                open={removing !== null}
+                tone="danger"
+                title="إزالة صلاحيات المشرف"
+                message="يفقد الحساب وصوله إلى البوابة الداخلية فوراً. سجلاته في التدقيق تبقى منسوبة إليه."
+                details={
+                    removing && (
+                        <>
+                            <ConfirmRow label="المشرف" value={removing.name} strong />
+                            <ConfirmRow label="البريد" value={removing.email} />
+                            <ConfirmRow
+                                label="الأدوار المُزالة"
+                                value={removing.roles.map((role) => ROLE_LABELS[role]?.label ?? role).join(' · ') || '—'}
+                            />
+                        </>
+                    )
+                }
+                confirmLabel="إزالة الصلاحيات"
+                onConfirm={() => {
+                    router.delete(`/admin/admins/${removing?.id}`, { preserveScroll: true });
+                    setRemoving(null);
+                }}
+                onCancel={() => setRemoving(null)}
             />
         </AdminLayout>
     );

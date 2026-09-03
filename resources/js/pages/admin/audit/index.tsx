@@ -1,28 +1,25 @@
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import StatCard from '@/components/stat-card';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
-import AdminLayout from '@/layouts/admin-layout';
-import { fmtDateTime } from '@/lib/utils';
-import type { PaginatedResult } from '@/types/models';
-import { Head, router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
+import { Coins, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar, visitWith } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Card, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import AdminLayout from '@/layouts/admin-layout';
+import type { Paginated, SortState } from '@/types';
 
 /**
- * H §16 «الدعم وسجل التدقيق» + H §19 — السجل كاملاً لأدمن تيمات.
- * H §18: بحث + فلترة + ترتيب + ترقيم 20، وثلاث حالات إلزامية.
+ * H §19 — سجل التدقيق: من فعل ماذا، متى، ولماذا.
+ *
+ * Rows are append-only on the server. A row can carry a before/after pair,
+ * so the table expands one row at a time rather than shipping every diff
+ * into the page at once.
  */
-
-interface AuditRow {
+type Log = {
     id: number;
     action: string;
     action_label: string;
     actor_name: string | null;
     actor_role: string | null;
-    actor_guard: string | null;
-    scope_type: string;
-    scope_id: number | null;
     company: { id: number; name: string } | null;
     entity_type: string | null;
     entity_id: number | null;
@@ -30,221 +27,175 @@ interface AuditRow {
     after_values: Record<string, unknown> | null;
     reason: string | null;
     ip_address: string | null;
-    user_agent: string | null;
     is_financial: boolean;
     created_at: string | null;
-}
+};
 
-interface Option {
-    value: string;
-    label: string;
-}
+type Option = { value: string; label: string };
 
-interface Props {
-    logs: PaginatedResult<AuditRow>;
-    filters: {
-        search?: string;
-        action?: string;
-        group?: string;
-        company_id?: string;
-        from?: string;
-        to?: string;
-        financial?: string;
-        sort?: string;
-        dir?: string;
-    };
+export default function AuditIndex({
+    logs,
+    filters,
+    sort,
+    actions,
+    groups,
+    companies,
+    total,
+}: {
+    logs: Paginated<Log>;
+    filters: { search?: string; action?: string; group?: string; company_id?: number; from?: string; to?: string; financial?: string };
+    sort: SortState;
     actions: Option[];
     groups: Option[];
     companies: { id: number; name: string }[];
     total: number;
-    sort: SortState;
-}
-
-const inputStyle: React.CSSProperties = {
-    padding: '10px 14px',
-    background: '#161B27',
-    border: '1px solid #232A3E',
-    borderRadius: '10px',
-    fontSize: '13px',
-    color: '#E8EAF0',
-    outline: 'none',
-    direction: 'rtl',
-    fontFamily: 'inherit',
-};
-
-export default function AuditIndex({ logs, filters, actions, groups, companies, total, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        action: filters?.action,
-        group: filters?.group,
-        company_id: filters?.company_id,
-        from: filters?.from,
-        to: filters?.to,
-        financial: filters?.financial,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-    const [expanded, setExpanded] = useState<number | null>(null);
-
-    function apply(patch: Record<string, string | undefined>) {
-        router.get(
-            '/admin/audit',
-            {
-                search: filters?.search || undefined,
-                action: filters?.action || undefined,
-                group: filters?.group || undefined,
-                company_id: filters?.company_id || undefined,
-                from: filters?.from || undefined,
-                to: filters?.to || undefined,
-                financial: filters?.financial || undefined,
-                sort: filters?.sort || undefined,
-                dir: filters?.dir || undefined,
-                ...patch,
-            },
-            { preserveState: true, replace: true },
-        );
-    }
+}) {
+    const [open, setOpen] = useState<number | null>(null);
 
     return (
         <AdminLayout>
             <Head title="سجل التدقيق" />
 
-            <div className="page-title">سجل التدقيق</div>
-            <div className="page-sub">
-                {total.toLocaleString()} حدثاً مسجَّلاً · السجل للكتابة فقط — لا يُعدَّل ولا يُحذف
+            <PageHeader
+                icon={ShieldCheck}
+                title="سجل التدقيق"
+                subtitle="سجل لا يُعدَّل ولا يُحذف: كل إجراء حسّاس مقيّد باسم فاعله ووقته وسببه."
+            />
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard label="إجمالي السجلات" value={total.toLocaleString()} />
+                <StatCard label="المعروض الآن" value={logs.total.toLocaleString()} hint="بعد تطبيق الفلاتر" />
+                <StatCard label="الصفحة" value={`${logs.current_page} / ${logs.last_page}`} />
+                <StatCard label="لكل صفحة" value={logs.per_page} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12, margin: '16px 0' }}>
-                <StatCard emoji="🧾" label="إجمالي الأحداث" value={total.toLocaleString()} />
-                <StatCard emoji="💰" label="أحداث مالية (تُحفظ 10 سنوات)" value={logs.data.filter((l) => l.is_financial).length.toLocaleString()} />
-                <StatCard emoji="📄" label="في هذه الصفحة" value={logs.data.length.toLocaleString()} />
-            </div>
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث بالفاعل أو الإجراء أو السبب…" />
+                    <FilterSelect
+                        name="group"
+                        label="مجموعة الإجراء"
+                        value={filters.group ?? ''}
+                        options={[['', 'كل المجموعات'], ...groups.map((group): [string, string] => [group.value, group.label])]}
+                    />
+                    <FilterSelect
+                        name="action"
+                        label="الإجراء"
+                        value={filters.action ?? ''}
+                        options={[['', 'كل الإجراءات'], ...actions.map((action): [string, string] => [action.value, action.label])]}
+                    />
+                </Toolbar>
 
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث بالفاعل أو الإجراء أو السبب..."
-                    style={{ ...inputStyle, flex: 1, minWidth: '220px' }}
-                />
-                <select value={filters?.group ?? ''} onChange={(e) => apply({ group: e.target.value || undefined, action: undefined })} style={inputStyle}>
-                    <option value="">كل المجموعات</option>
-                    {groups.map((g) => (
-                        <option key={g.value} value={g.value}>{g.label}</option>
-                    ))}
-                </select>
-                <select value={filters?.action ?? ''} onChange={(e) => apply({ action: e.target.value || undefined })} style={inputStyle}>
-                    <option value="">كل الإجراءات</option>
-                    {actions.map((a) => (
-                        <option key={a.value} value={a.value}>{a.label}</option>
-                    ))}
-                </select>
-                <select value={filters?.company_id ?? ''} onChange={(e) => apply({ company_id: e.target.value || undefined })} style={inputStyle}>
-                    <option value="">كل الشركات</option>
-                    {companies.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                </select>
-                <input type="date" value={filters?.from ?? ''} onChange={(e) => apply({ from: e.target.value || undefined })} style={inputStyle} />
-                <input type="date" value={filters?.to ?? ''} onChange={(e) => apply({ to: e.target.value || undefined })} style={inputStyle} />
-                <button
-                    className={`fbtn${filters?.financial === '1' ? ' on' : ''}`}
-                    onClick={() => apply({ financial: filters?.financial === '1' ? undefined : '1' })}
-                >
-                    المالية فقط
-                </button>
-            </div>
+                <Toolbar>
+                    <FilterSelect
+                        name="company_id"
+                        label="الشركة"
+                        value={filters.company_id === undefined ? '' : String(filters.company_id)}
+                        options={[['', 'كل الشركات'], ...companies.map((company): [string, string] => [String(company.id), company.name])]}
+                    />
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="date"
+                            aria-label="من تاريخ"
+                            value={filters.from ?? ''}
+                            onChange={(event) => visitWith({ from: event.target.value })}
+                            className="w-full p-2 rounded-xl border-[0.5px] border-ink/20 text-xs bg-surface focus:outline-none focus:border-ink"
+                        />
+                        <input
+                            type="date"
+                            aria-label="إلى تاريخ"
+                            value={filters.to ?? ''}
+                            onChange={(event) => visitWith({ to: event.target.value })}
+                            className="w-full p-2 rounded-xl border-[0.5px] border-ink/20 text-xs bg-surface focus:outline-none focus:border-ink"
+                        />
+                    </div>
+                    <label className="flex items-center gap-2 text-xs font-bold text-ink cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={filters.financial === '1'}
+                            onChange={(event) => visitWith({ financial: event.target.checked ? '1' : null })}
+                            className="w-4 h-4 accent-lime cursor-pointer"
+                        />
+                        <span className="flex items-center gap-1">
+                            <Coins className="w-3.5 h-3.5" aria-hidden="true" />
+                            الإجراءات المالية فقط
+                        </span>
+                    </label>
+                </Toolbar>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <SortableHeader label="الوقت" sortKey="created_at" sort={sort} initialDirection="desc" />
-                                <SortableHeader label="الفاعل ودوره" sortKey="actor_name" sort={sort} />
-                                <SortableHeader label="الإجراء" sortKey="action" sort={sort} />
-                                <SortableHeader label="الكيان" sortKey="entity_type" sort={sort} />
-                                <th>النطاق</th>
-                                <SortableHeader label="IP" sortKey="ip_address" sort={sort} />
-                                <th>التفاصيل</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <ListStates
-                                count={logs.data.length}
-                                columns={7}
-                                emptyTitle="لا توجد أحداث مطابقة"
-                                emptyHint="غيّر الفلاتر أو وسّع المدى الزمني — السجل لا يُحذف منه شيء، فغياب النتيجة يعني أن الفلتر لا يطابق."
-                            />
-                            {logs.data.map((log) => (
-                                <tr key={log.id}>
-                                    <td style={{ fontSize: 12, color: '#6B7A99', whiteSpace: 'nowrap' }}>{fmtDateTime(log.created_at ?? '')}</td>
-                                    <td>
-                                        <div style={{ fontWeight: 700, color: '#fff' }}>{log.actor_name ?? 'النظام'}</div>
-                                        <div style={{ fontSize: 10, color: '#6B7A99' }}>
-                                            {log.actor_role ?? '—'}
-                                            {log.actor_guard ? ` · ${log.actor_guard}` : ''}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span style={{ color: log.is_financial ? '#C8FF00' : '#C8D0E0', fontWeight: 700 }}>{log.action_label}</span>
-                                        <div style={{ fontSize: 10, color: '#6B7A99' }} dir="ltr">{log.action}</div>
-                                    </td>
-                                    <td style={{ fontSize: 12, color: '#C8D0E0' }} dir="ltr">
-                                        {log.entity_type ? `${log.entity_type}#${log.entity_id}` : '—'}
-                                    </td>
-                                    <td style={{ fontSize: 12, color: '#9CA3BC' }}>
-                                        {log.company?.name ?? log.scope_type}
-                                    </td>
-                                    <td style={{ fontSize: 11, color: '#6B7A99' }} dir="ltr">{log.ip_address ?? '—'}</td>
-                                    <td>
-                                        <button className="act-btn btn-view" onClick={() => setExpanded(expanded === log.id ? null : log.id)}>
-                                            {expanded === log.id ? 'إخفاء' : 'قبل / بعد'}
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {logs.data.map((log) =>
-                                expanded === log.id ? (
-                                    <tr key={`${log.id}-detail`}>
-                                        <td colSpan={7} style={{ background: '#12161F' }}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, padding: '6px 4px' }}>
-                                                <div>
-                                                    <div style={{ fontSize: 11, color: '#6B7A99', marginBottom: 4 }}>القيمة قبل</div>
-                                                    <pre dir="ltr" style={preStyle}>{JSON.stringify(log.before_values ?? {}, null, 2)}</pre>
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontSize: 11, color: '#6B7A99', marginBottom: 4 }}>القيمة بعد</div>
-                                                    <pre dir="ltr" style={preStyle}>{JSON.stringify(log.after_values ?? {}, null, 2)}</pre>
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontSize: 11, color: '#6B7A99', marginBottom: 4 }}>السبب</div>
-                                                    <div style={{ fontSize: 12, color: '#C8D0E0', lineHeight: 1.8 }}>{log.reason ?? '—'}</div>
-                                                    <div style={{ fontSize: 11, color: '#6B7A99', margin: '10px 0 4px' }}>المتصفح</div>
-                                                    <div dir="ltr" style={{ fontSize: 11, color: '#9CA3BC', wordBreak: 'break-all' }}>{log.user_agent ?? '—'}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : null,
-                            )}
-                        </tbody>
-                    </table>
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader label="الوقت" sortKey="created_at" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="الإجراء" sortKey="action" sort={sort} />
+                        </Th>
+                        <Th>الفاعل</Th>
+                        <Th>الكيان</Th>
+                        <Th>السبب</Th>
+                        <Th>IP</Th>
+                    </Thead>
+
+                    <Tbody>
+                        {logs.data.map((log) => (
+                            <Tr key={log.id}>
+                                <Td className="font-mono text-[11px] text-ink/70 whitespace-nowrap">
+                                    {log.created_at ? new Date(log.created_at).toLocaleString('ar-SA') : '—'}
+                                </Td>
+                                <Td>
+                                    <button
+                                        type="button"
+                                        onClick={() => setOpen(open === log.id ? null : log.id)}
+                                        className="text-start cursor-pointer"
+                                    >
+                                        <span className="font-extrabold text-ink block">{log.action_label}</span>
+                                        <span className="font-mono text-[10px] text-ink/45">{log.action}</span>
+                                    </button>
+                                    {log.is_financial && (
+                                        <Badge tone="lime" icon={Coins}>
+                                            مالي
+                                        </Badge>
+                                    )}
+                                    {open === log.id && (log.before_values || log.after_values) && (
+                                        <pre
+                                            dir="ltr"
+                                            className="mt-2 p-2 rounded-lg bg-page border-[0.5px] border-ink/10 text-[10px] font-mono overflow-x-auto max-w-md"
+                                        >
+                                            {JSON.stringify({ before: log.before_values, after: log.after_values }, null, 1)}
+                                        </pre>
+                                    )}
+                                </Td>
+                                <Td>
+                                    <span className="font-bold text-ink block">{log.actor_name ?? 'النظام'}</span>
+                                    <span className="text-[11px] text-ink/50">{log.actor_role ?? '—'}</span>
+                                </Td>
+                                <Td>
+                                    <span className="text-ink/85">{log.entity_type ?? '—'}</span>
+                                    {log.entity_id !== null && <span className="font-mono text-[11px] text-ink/45"> #{log.entity_id}</span>}
+                                    {log.company && <span className="block text-[11px] text-ink/50">{log.company.name}</span>}
+                                </Td>
+                                <Td className="text-ink/70 max-w-xs">{log.reason ?? '—'}</Td>
+                                <Td className="font-mono text-[11px] text-ink/50" dir="ltr">
+                                    {log.ip_address ?? '—'}
+                                </Td>
+                            </Tr>
+                        ))}
+
+                        <ListStates
+                            count={logs.data.length}
+                            colSpan={6}
+                            empty="لا توجد سجلات مطابقة."
+                            emptyHint="جرّب توسيع المدة الزمنية أو إزالة بعض الفلاتر."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={logs} />
+                    <Pagination page={logs} />
                 </div>
-            </div>
-
-            <Pagination links={logs.links} />
+            </Card>
         </AdminLayout>
     );
 }
-
-const preStyle: React.CSSProperties = {
-    background: '#0E121B',
-    border: '1px solid #232A3E',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 11,
-    color: '#9CA3BC',
-    maxHeight: 220,
-    overflow: 'auto',
-    margin: 0,
-};

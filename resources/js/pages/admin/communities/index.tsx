@@ -1,218 +1,136 @@
+import { Head } from '@inertiajs/react';
+import { UsersRound } from 'lucide-react';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Card, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import CategoryIcon from '@/components/category-icon';
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import { fmtDate } from '@/lib/utils';
-import type { Community, Company, Category, PaginatedResult } from '@/types/models';
-import { Head, router } from '@inertiajs/react';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
-import { useState } from 'react';
+import type { Paginated, SortState } from '@/types';
 
-interface CommunityRow extends Community {
-    company?: Company;
-    members_count?: number;
-    events_count?: number;
-}
+/**
+ * H §16 — المجتمعات عبر كل الشركات.
+ *
+ * Read-only from here on purpose: a community belongs to its company, and its
+ * leaders are appointed by that company's account manager. What Teamat needs
+ * from this screen is the health signal — a community with no leader is one
+ * that will stop producing events.
+ */
+type CommunityRow = {
+    id: number;
+    name: string;
+    status: string;
+    members_count: number;
+    events_count: number;
+    leaderless_since: string | null;
+    primary_leader?: { id: number; name: string } | null;
+    company?: { id: number; name: string } | null;
+    category?: { id: number; name: string } | null;
+};
 
-interface Props {
-    communities: PaginatedResult<CommunityRow>;
+export default function AdminCommunities({
+    communities,
+    totalCommunities,
+    companies,
+    categories,
+    filters,
+    sort,
+}: {
+    communities: Paginated<CommunityRow>;
     totalCommunities: number;
     companies: { id: number; name: string }[];
-    categories: Category[];
-    filters: { search?: string; company_id?: string; category_id?: string; sort?: string; dir?: string };
+    categories: { id: number; name: string }[];
+    filters: { search?: string; company_id?: string; category_id?: string };
     sort: SortState;
-}
-
-export default function CommunitiesIndex({ communities, totalCommunities, companies, categories, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        company_id: filters?.company_id,
-        category_id: filters?.category_id,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-    const [detail, setDetail] = useState<CommunityRow | null>(null);
-
-    function handleFilter(key: string, value: string) {
-        router.get('/admin/communities', {
-            search: filters?.search || undefined,
-            company_id: key === 'company_id' ? (value || undefined) : (filters?.company_id || undefined),
-            category_id: key === 'category_id' ? (value || undefined) : (filters?.category_id || undefined),
-            sort: filters?.sort || undefined,
-            dir: filters?.dir || undefined,
-        }, { preserveState: true, replace: true });
-    }
+}) {
+    const leaderless = communities.data.filter((community) => community.leaderless_since !== null).length;
 
     return (
         <AdminLayout>
             <Head title="المجتمعات" />
 
-            <div style={{ marginBottom: 4 }}>
-                <div className="page-title">المجتمعات</div>
-            </div>
-            <div className="page-sub">
-                {totalCommunities} مجتمع على المنصة
-            </div>
+            <PageHeader
+                icon={UsersRound}
+                title="المجتمعات عبر المنصة"
+                subtitle="المجتمع هو وحدة البناء: كيان له قادة ومحفظة وجدول. مجتمع بلا قائد يتوقف عن توليد الفعاليات."
+            />
 
-            {/* Filters */}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="ابحث بالاسم..."
-                    style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 180 }}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <StatCard label="إجمالي المجتمعات" value={totalCommunities} />
+                <StatCard label="المعروض بعد التصفية" value={communities.total} />
+                <StatCard
+                    label="بلا قائد في هذه الصفحة"
+                    value={leaderless}
+                    tone={leaderless > 0 ? 'danger' : 'success'}
                 />
-                <select
-                    value={filters?.company_id ?? ''}
-                    onChange={(e) => handleFilter('company_id', e.target.value)}
-                    style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
-                >
-                    <option value="">كل الشركات</option>
-                    {companies.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                </select>
-                <select
-                    value={filters?.category_id ?? ''}
-                    onChange={(e) => handleFilter('category_id', e.target.value)}
-                    style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
-                >
-                    <option value="">كل الفئات</option>
-                    {categories.map((cat) =>
-                        cat.children && cat.children.length > 0 ? (
-                            <optgroup key={cat.id} label={cat.name}>
-                                {cat.children.map((sub) => (
-                                    <option key={sub.id} value={sub.id}>{sub.name}</option>
-                                ))}
-                            </optgroup>
-                        ) : (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
-                        )
-                    )}
-                </select>
             </div>
 
-            {/* Table */}
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
+            {leaderless > 0 && (
+                <Note tone="warning" title="مجتمعات بلا قائد">
+                    مجتمع بلا قائد لا يجدول فعالياته. نبّه مسؤول الحساب في الشركة لتعيين قائد بديل.
+                </Note>
+            )}
+
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث باسم المجتمع…" />
+                    <FilterSelect
+                        name="company_id"
+                        label="الشركة"
+                        value={filters.company_id ?? ''}
+                        options={[['', 'كل الشركات'], ...companies.map((company): [string, string] => [String(company.id), company.name])]}
+                    />
+                    <FilterSelect
+                        name="category_id"
+                        label="النشاط"
+                        value={filters.category_id ?? ''}
+                        options={[['', 'كل الأنشطة'], ...categories.map((category): [string, string] => [String(category.id), category.name])]}
+                    />
+                </Toolbar>
+
+                <TableShell>
+                    <Thead>
+                        <Th>
                             <SortableHeader label="المجتمع" sortKey="name" sort={sort} />
-                            <th>الشركة</th>
-                            <th>الفئة</th>
-                            <th>القائد</th>
+                        </Th>
+                        <Th>الشركة</Th>
+                        <Th>النشاط</Th>
+                        <Th>القائد الأساسي</Th>
+                        <Th>
                             <SortableHeader label="الأعضاء" sortKey="members_count" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
                             <SortableHeader label="الفعاليات" sortKey="events_count" sort={sort} initialDirection="desc" />
-                            <th>الرصيد</th>
-                            <th>إجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                        </Th>
+                    </Thead>
+
+                    <Tbody>
+                        {communities.data.map((community) => (
+                            <Tr key={community.id}>
+                                <Td>
+                                    <span className="font-extrabold text-ink block">{community.name}</span>
+                                    {community.leaderless_since && <Badge tone="danger">بلا قائد</Badge>}
+                                </Td>
+                                <Td className="text-ink/85">{community.company?.name ?? '—'}</Td>
+                                <Td className="text-ink/85">{community.category?.name ?? '—'}</Td>
+                                <Td className="text-ink/85">{community.primary_leader?.name ?? '—'}</Td>
+                                <Td className="font-mono font-bold text-ink">{community.members_count}</Td>
+                                <Td className="font-mono font-bold text-ink">{community.events_count}</Td>
+                            </Tr>
+                        ))}
+
                         <ListStates
                             count={communities.data.length}
-                            columns={8}
-                            emptyTitle="لا توجد مجتمعات"
-                            emptyHint="لا مجتمع مطابق للبحث والفلاتر الحالية — جرّب توسيع نطاق البحث أو إزالة الفلاتر."
+                            colSpan={6}
+                            empty="لا توجد مجتمعات مطابقة."
+                            emptyHint="جرّب تغيير الشركة أو النشاط أو مصطلح البحث."
                         />
-                        {communities.data.map((community) => (
-                            <tr key={community.id}>
-                                <td>
-                                    <div style={{ fontWeight: 700, color: '#fff' }}>{community.name}</div>
-                                </td>
-                                <td style={{ color: '#C8D0E0' }}>{community.company?.name ?? '-'}</td>
-                                <td>
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                        <CategoryIcon icon={community.category?.icon} size={16} />
-                                        <span style={{ fontSize: 12 }}>{community.category?.name ?? '-'}</span>
-                                    </span>
-                                </td>
-                                <td style={{ fontSize: 12, color: '#C8D0E0' }}>{community.leader?.name ?? '-'}</td>
-                                <td>{community.members_count ?? 0}</td>
-                                <td>{community.events_count ?? 0}</td>
-                                <td>
-                                    <span style={{ color: Number(community.balance) > 0 ? '#009E82' : '#6B7A99', fontWeight: 700 }}>
-                                        {Number(community.balance).toLocaleString()} ريال
-                                    </span>
-                                </td>
-                                <td>
-                                    <button
-                                        onClick={() => setDetail(community)}
-                                        className="act-btn btn-view"
-                                    >
-                                        عرض
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                    </Tbody>
+                </TableShell>
 
-            <Pagination links={communities.links} />
-
-            {/* Detail Modal */}
-            {detail && (
-                <div className="detail-overlay open" onClick={() => setDetail(null)}>
-                    <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
-                        <h3>
-                            تفاصيل المجتمع
-                            <button className="close-btn" onClick={() => setDetail(null)}>×</button>
-                        </h3>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-                            <CategoryIcon icon={detail.category?.icon} size={44} />
-                            <div>
-                                <div style={{ fontSize: 18, fontWeight: 800, color: '#E8EAF0' }}>{detail.name}</div>
-                                <div style={{ fontSize: 12, color: '#6B7A99' }}>{detail.category?.name ?? '-'}</div>
-                            </div>
-                        </div>
-
-                        {detail.description && (
-                            <div style={{ fontSize: 13, color: '#9CA3BC', marginBottom: 20, lineHeight: 1.7 }}>
-                                {detail.description}
-                            </div>
-                        )}
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-                            <div style={{ background: '#0F1117', borderRadius: 12, padding: '16px 18px' }}>
-                                <div style={{ fontSize: 11, color: '#6B7A99', marginBottom: 4 }}>الشركة</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#E8EAF0' }}>{detail.company?.name ?? '-'}</div>
-                            </div>
-                            <div style={{ background: '#0F1117', borderRadius: 12, padding: '16px 18px' }}>
-                                <div style={{ fontSize: 11, color: '#6B7A99', marginBottom: 4 }}>القائد</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#E8EAF0' }}>{detail.leader?.name ?? '-'}</div>
-                            </div>
-                            <div style={{ background: '#0F1117', borderRadius: 12, padding: '16px 18px' }}>
-                                <div style={{ fontSize: 11, color: '#6B7A99', marginBottom: 4 }}>الأعضاء</div>
-                                <div style={{ fontSize: 22, fontWeight: 800, color: '#E8EAF0' }}>{detail.members_count ?? 0}</div>
-                            </div>
-                            <div style={{ background: '#0F1117', borderRadius: 12, padding: '16px 18px' }}>
-                                <div style={{ fontSize: 11, color: '#6B7A99', marginBottom: 4 }}>الفعاليات</div>
-                                <div style={{ fontSize: 22, fontWeight: 800, color: '#E8EAF0' }}>{detail.events_count ?? 0}</div>
-                            </div>
-                            <div style={{ background: '#0F1117', borderRadius: 12, padding: '16px 18px', gridColumn: '1 / -1' }}>
-                                <div style={{ fontSize: 11, color: '#6B7A99', marginBottom: 4 }}>رصيد المحفظة</div>
-                                <div style={{ fontSize: 22, fontWeight: 800, color: Number(detail.balance) > 0 ? '#009E82' : '#6B7A99' }}>
-                                    {Number(detail.balance).toLocaleString()} ريال
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                            <div style={{ background: '#0F1117', borderRadius: 12, padding: '16px 18px' }}>
-                                <div style={{ fontSize: 11, color: '#6B7A99', marginBottom: 4 }}>الحالة</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: detail.status === 'active' ? '#009E82' : '#E03050' }}>
-                                    {detail.status === 'active' ? 'نشط' : 'غير نشط'}
-                                </div>
-                            </div>
-                            <div style={{ background: '#0F1117', borderRadius: 12, padding: '16px 18px' }}>
-                                <div style={{ fontSize: 11, color: '#6B7A99', marginBottom: 4 }}>تاريخ الإنشاء</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#E8EAF0' }}>{fmtDate(detail.created_at)}</div>
-                            </div>
-                        </div>
-                    </div>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={communities} />
+                    <Pagination page={communities} />
                 </div>
-            )}
+            </Card>
         </AdminLayout>
     );
 }

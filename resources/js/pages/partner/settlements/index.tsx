@@ -1,15 +1,19 @@
-import FilterTabs from '@/components/filter-tabs';
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import StatCard from '@/components/stat-card';
-import StatusBadge from '@/components/status-badge';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
-import PartnerLayout from '@/layouts/partner-layout';
-import type { PaginatedResult, Partner } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
+import { Ban, Landmark, Scale } from 'lucide-react';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Card, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import PartnerLayout from '@/layouts/partner-layout';
+import type { Paginated, SortState } from '@/types';
 
-interface StatementRow {
+/**
+ * H §12.7 — the provider's own statements.
+ *
+ * The payout gate is spelled out rather than implied: a statement can be
+ * approved and still unpayable because the bank details are not approved, and
+ * a provider chasing a late transfer needs to see which of the two it is.
+ */
+type Statement = {
     id: number;
     period_key: string;
     period_start: string | null;
@@ -19,132 +23,146 @@ interface StatementRow {
     gross_amount: string;
     commission_amount: string;
     net_amount: string;
+    approved_at: string | null;
     paid_at: string | null;
-}
+    payout_reference: string | null;
+};
 
-interface Totals {
-    paid_net: string;
-    draft_net: string;
-    approved_net: string;
-    unstated_net: string;
-    payouts_blocked: boolean;
-}
+const STATUS: Record<string, { label: string; tone: 'neutral' | 'success' | 'warning' }> = {
+    draft: { label: 'قيد الإعداد', tone: 'neutral' },
+    approved: { label: 'معتمد — بانتظار التحويل', tone: 'warning' },
+    paid: { label: 'حُوِّل', tone: 'success' },
+};
 
-interface Props {
-    partner: Partner;
-    statements: PaginatedResult<StatementRow>;
-    totals: Totals;
-    filters?: { status?: string; search?: string; sort?: string; dir?: string };
+export default function PartnerSettlements({
+    statements,
+    totals,
+    filters,
+    sort,
+}: {
+    partner: { id: number; name: string };
+    statements: Paginated<Statement>;
+    totals: {
+        paid_net: string;
+        approved_net: string;
+        draft_net: string;
+        unstated_net: string;
+        payouts_blocked: boolean;
+    };
+    filters: { status?: string; search?: string };
     sort: SortState;
-}
-
-/**
- * الخادم يقبل `status` (مسودة/معتمد/مدفوع) منذ A11 وكانت الشاشة تُعلنه في
- * `Props` ثم تهمله — فلترة بلا واجهة. صار له ضابط ظاهر (H §18).
- */
-const statusOptions = [
-    { label: 'الكل', value: '' },
-    { label: 'مسودة', value: 'draft' },
-    { label: 'معتمد', value: 'approved' },
-    { label: 'مدفوع', value: 'paid' },
-];
-
-export default function SettlementsIndex({ statements, totals, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        status: filters?.status,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-
+}) {
     return (
         <PartnerLayout>
-            <Head title="التسويات" />
+            <Head title="المستحقات" />
 
-            <div style={{ marginBottom: 24 }}>
-                <div className="page-title">المستحقات والتسويات</div>
-                <div className="page-sub">
-                    بند التسوية يُنشأ عند اكتمال الفعالية — لا قبله. الكشف يُولَّد كل 15 يوماً ويمر بمسودة ← معتمد ←
-                    مدفوع. العمولة تُقتطع من مستحقاتك ولا تُضاف على السعر المعروض.
-                </div>
-            </div>
+            <PageHeader
+                icon={Scale}
+                title="كشوف المستحقات"
+                subtitle="كل فعالية مكتملة تولّد بنداً، والبنود تُجمَّع في كشف فترة يُعتمد ثم يُحوَّل."
+            />
 
             {totals.payouts_blocked && (
-                <div
-                    className="card"
-                    style={{ borderColor: '#C8410A', color: '#C8410A', fontWeight: 700, marginBottom: 16 }}
-                >
-                    حسابك البنكي غير معتمد — لا يمكن صرف أي كشف قبل اعتماده. حدّث بياناتك من صفحة الحساب البنكي.
-                </div>
+                <Note tone="danger" title="التحويل موقوف — الحساب البنكي غير معتمد">
+                    كشوفك تُحتسب وتُعتمد كالمعتاد، لكن لا يمكن تنفيذ التحويل قبل اعتماد حسابك البنكي من فريق تيمات. راجع صفحة
+                    «الحساب البنكي».
+                </Note>
             )}
 
-            <div className="stat-row">
-                <StatCard emoji="✅" label="مصروف إليك (ريال)" value={totals.paid_net} color="#1A7A4A" />
-                <StatCard emoji="🕐" label="معتمد بانتظار الصرف" value={totals.approved_net} color="#1A5FAB" />
-                <StatCard emoji="📝" label="مسودة قيد المراجعة" value={totals.draft_net} color="#B8860A" />
-                <StatCard emoji="⏭️" label="بنود للكشف القادم" value={totals.unstated_net} color="#6B7A99" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard label="حُوِّل إليك" value={totals.paid_net} hint="ريال" tone="success" />
+                <StatCard label="معتمد بانتظار التحويل" value={totals.approved_net} hint="ريال" tone="warning" />
+                <StatCard label="قيد الإعداد" value={totals.draft_net} hint="ريال" />
+                <StatCard label="بنود لم يحن كشفها" value={totals.unstated_net} hint="تدخل الكشف القادم" />
             </div>
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث بالفترة أو مرجع التحويل..."
-                    style={{ flex: 1, minWidth: 200, padding: '9px 14px', background: '#fff', border: '1px solid #EAE4DC', borderRadius: 10, fontSize: 13, color: '#3A2E22', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
-                />
-                <FilterTabs options={statusOptions} current={filters?.status ?? ''} />
-            </div>
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث بالفترة أو مرجع التحويل…" />
+                    <FilterSelect
+                        name="status"
+                        label="حالة الكشف"
+                        value={filters.status ?? ''}
+                        options={[
+                            ['', 'كل الحالات'],
+                            ['draft', 'قيد الإعداد'],
+                            ['approved', 'معتمد'],
+                            ['paid', 'حُوِّل'],
+                        ]}
+                    />
+                </Toolbar>
 
-            <div className="card">
-                <div style={{ overflow: 'auto' }}>
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <SortableHeader label="الفترة" sortKey="period_end" sort={sort} initialDirection="desc" />
-                                <SortableHeader label="الفعاليات" sortKey="items_count" sort={sort} initialDirection="desc" />
-                                <SortableHeader label="الإجمالي" sortKey="gross_amount" sort={sort} initialDirection="desc" />
-                                <SortableHeader label="العمولة" sortKey="commission_amount" sort={sort} initialDirection="desc" />
-                                <SortableHeader label="الصافي" sortKey="net_amount" sort={sort} initialDirection="desc" />
-                                <SortableHeader label="الحالة" sortKey="status" sort={sort} />
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <ListStates
-                                count={statements.data.length}
-                                columns={7}
-                                emptyTitle="لا كشوف بعد"
-                                emptyHint="أول كشف تسوية يُولَّد بعد اكتمال فعالياتك في الفترة. إن كنت تبحث أو تفلتر، وسّع المدى."
-                            />
-                            {statements.data.map((row) => (
-                                <tr key={row.id}>
-                                    <td style={{ fontWeight: 700 }}>
-                                        {row.period_key}
-                                        <div style={{ fontSize: 11, color: '#6B7A99' }}>
-                                            {row.period_start} → {row.period_end}
-                                        </div>
-                                    </td>
-                                    <td>{row.items_count}</td>
-                                    <td>{row.gross_amount} ر</td>
-                                    <td style={{ color: '#C8410A' }}>−{row.commission_amount} ر</td>
-                                    <td style={{ fontWeight: 700 }}>{row.net_amount} ر</td>
-                                    <td>
-                                        <StatusBadge status={row.status} />
-                                    </td>
-                                    <td>
-                                        <Link
-                                            href={`/partner/settlements/${row.id}`}
-                                            style={{ color: '#1A5FAB', fontWeight: 700 }}
-                                        >
-                                            التفاصيل
-                                        </Link>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader label="الفترة" sortKey="period_key" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>البنود</Th>
+                        <Th>الإجمالي</Th>
+                        <Th>العمولة</Th>
+                        <Th>
+                            <SortableHeader label="الصافي" sortKey="net_amount" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
+                        </Th>
+                    </Thead>
+
+                    <Tbody>
+                        {statements.data.map((statement) => (
+                            <Tr key={statement.id}>
+                                <Td>
+                                    <Link
+                                        href={`/partner/settlements/${statement.id}`}
+                                        className="font-extrabold text-ink hover:underline font-mono"
+                                    >
+                                        {statement.period_key}
+                                    </Link>
+                                    <span className="block text-[11px] text-ink/45 font-mono">
+                                        {statement.period_start} → {statement.period_end}
+                                    </span>
+                                </Td>
+                                <Td className="font-mono text-ink/70">{statement.items_count}</Td>
+                                <Td className="font-mono text-ink/85">{statement.gross_amount}</Td>
+                                <Td className="font-mono text-ink/85">− {statement.commission_amount}</Td>
+                                <Td className="font-mono font-black text-ink">{statement.net_amount}</Td>
+                                <Td>
+                                    <Badge tone={STATUS[statement.status]?.tone ?? 'neutral'}>
+                                        {STATUS[statement.status]?.label ?? statement.status}
+                                    </Badge>
+                                    {statement.payout_reference && (
+                                        <span className="block text-[11px] text-ink/45 font-mono mt-1" dir="ltr">
+                                            {statement.payout_reference}
+                                        </span>
+                                    )}
+                                    {statement.status === 'approved' && totals.payouts_blocked && (
+                                        <Badge tone="danger" icon={Ban}>
+                                            بانتظار اعتماد الحساب البنكي
+                                        </Badge>
+                                    )}
+                                </Td>
+                            </Tr>
+                        ))}
+
+                        <ListStates
+                            count={statements.data.length}
+                            colSpan={6}
+                            empty="لا توجد كشوف بعد."
+                            emptyHint="يُنشأ أول كشف بعد اكتمال أول فترة تسوية فيها فعاليات منتهية."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={statements} />
+                    <Pagination page={statements} />
                 </div>
-                <Pagination links={statements.links} />
-            </div>
+            </Card>
+
+            <Note title="كيف يُحسب الصافي؟">
+                الصافي = إجمالي الفعاليات المكتملة − عمولة المنصة. العمولة تُحتسب على كل بند بنسبة عقدك، ولا تتغيّر بأثر رجعي
+                على بند صدر كشفه. <Landmark className="w-3 h-3 inline" aria-hidden="true" />
+            </Note>
         </PartnerLayout>
     );
 }

@@ -1,0 +1,184 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.tsx';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-arabic: 'Almarai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+    /* teamat.ai.studio design tokens */
+    --color-ink: #0a0a0a;
+    --color-lime: #c8ff00;
+    --color-lime-hover: #bcf200;
+    --color-page: #f6f8f5;
+    --color-surface: #ffffff;
+    --color-hairline: rgb(10 10 10 / 0.1);
+    --color-success: #2e7d32;
+    --color-success-bg: #e8f5e9;
+    --color-warning: #c87d00;
+    --color-warning-bg: #fef08a;
+    --color-danger: #d9381e;
+    --color-danger-bright: #ef4444;
+    --color-danger-bg: #fdedec;
+
+    --color-background: #f6f8f5;
+    --color-foreground: #0a0a0a;
+    --color-card: #ffffff;
+    --color-card-foreground: #0a0a0a;
+    --color-popover: #ffffff;
+    --color-popover-foreground: #0a0a0a;
+    --color-primary: #0a0a0a;
+    --color-primary-foreground: #ffffff;
+    --color-secondary: #f6f8f5;
+    --color-secondary-foreground: #0a0a0a;
+    --color-muted: #f6f8f5;
+    --color-muted-foreground: rgb(10 10 10 / 0.55);
+    --color-accent: #c8ff00;
+    --color-accent-foreground: #0a0a0a;
+    --color-destructive: #d9381e;
+    --color-destructive-foreground: #ef4444;
+    --color-border: rgb(10 10 10 / 0.1);
+    --color-input: rgb(10 10 10 / 0.1);
+    --color-ring: #c8ff00;
+    --color-chart-1: oklch(0.646 0.222 41.116);
+    --color-chart-2: oklch(0.6 0.118 184.714);
+    --color-chart-3: oklch(0.398 0.07 227.392);
+    --color-chart-4: oklch(0.828 0.189 84.429);
+    --color-chart-5: oklch(0.769 0.188 70.08);
+    --color-sidebar: #ffffff;
+    --color-sidebar-foreground: #0a0a0a;
+    --color-sidebar-primary: #0a0a0a;
+    --color-sidebar-primary-foreground: #c8ff00;
+    --color-sidebar-accent: rgb(10 10 10 / 0.05);
+    --color-sidebar-accent-foreground: #0a0a0a;
+    --color-sidebar-border: rgb(10 10 10 / 0.1);
+    --color-sidebar-ring: #c8ff00;
+    --radius: 1rem;
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 3rem;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PORTAL COMPONENTS — teamat.ai.studio design language
+   Replaces the previous dark "padel Blade" theme. Class names are
+   kept because 56 pages already use them; only the look changed.
+   Ink #0A0A0A · lime #C8FF00 · page #F6F8F5 · hairline #0A0A0A/10.
+   Borders carry depth here — there are no shadows by design.
+   ══════════════════════════════════════════════════════════════ */
+
+.main{flex:1;padding:24px 22px;overflow-y:auto;background:#F6F8F5;}
+@media(min-width:640px){.main{padding:32px 28px;}}
+
+.page-title{font-size:22px;font-weight:900;margin-bottom:4px;color:#0A0A0A;}
+.page-sub{font-size:13px;margin-bottom:28px;color:rgb(10 10 10/.55);}
+
+/* ── Cards ── */
+.card{background:#fff;border:0.5px solid rgb(10 10 10/.1);border-radius:16px;padding:20px;margin-bottom:16px;transition:border-color .15s;}
+.card-title{font-size:14px;font-weight:900;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;color:#0A0A0A;}
+
+/* ── Stat tiles ── */
+.stat-row{display:flex;gap:14px;margin-bottom:24px;flex-wrap:wrap;}
+.stat{background:#fff;border:0.5px solid rgb(10 10 10/.1);border-radius:16px;padding:20px;flex:1;min-width:140px;transition:border-color .15s;}
+.stat:hover{border-color:rgb(10 10 10/.3);}
+.stat .ico{font-size:22px;margin-bottom:10px;}
+.stat .val{font-size:28px;font-weight:900;margin-bottom:4px;color:#0A0A0A;}
+.stat .lbl{font-size:12px;font-weight:700;color:rgb(10 10 10/.5);}
+.stat .chg{font-size:11px;margin-top:4px;font-weight:700;}
+
+/* ── Status pills ── */
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;border:0.5px solid transparent;white-space:nowrap;}
+.b-active,.b-approved,.b-confirmed,.b-completed,.b-paid,.b-joined{background:#E8F5E9;color:#2E7D32;border-color:rgb(46 125 50/.2);}
+.b-pending,.b-review,.b-open,.b-waiting_partner,.b-maintenance{background:#FEF08A;color:#C87D00;border-color:rgb(200 125 0/.2);}
+.b-rejected,.b-cancelled,.b-unpaid{background:#FDEDEC;color:#D9381E;border-color:rgb(217 56 30/.2);}
+.b-inactive{background:#F6F8F5;color:rgb(10 10 10/.7);border-color:rgb(10 10 10/.1);}
+
+/* ── Action buttons ── */
+.act-btn{padding:6px 12px;border-radius:999px;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;transition:all .15s;border:0.5px solid transparent;}
+.act-btn:focus-visible{outline:none;box-shadow:0 0 0 2px #C8FF00;}
+.btn-approve{background:#E8F5E9;color:#2E7D32;border-color:rgb(46 125 50/.25);}
+.btn-approve:hover{background:#2E7D32;color:#fff;border-color:#2E7D32;}
+.btn-reject{background:#FDEDEC;color:#D9381E;border-color:rgb(217 56 30/.25);}
+.btn-reject:hover{background:#D9381E;color:#fff;border-color:#D9381E;}
+.btn-view{background:#fff;color:#0A0A0A;border-color:rgb(10 10 10/.1);}
+.btn-view:hover{background:#0A0A0A;color:#C8FF00;border-color:#0A0A0A;}
+
+/* ── Filter pills ── */
+.fbtn{padding:7px 14px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-left:6px;margin-bottom:6px;border:0.5px solid rgb(10 10 10/.1);background:#fff;color:#0A0A0A;transition:all .15s;}
+.fbtn:hover{border-color:rgb(10 10 10/.3);background:rgb(10 10 10/.04);}
+.fbtn.on{background:#0A0A0A;color:#C8FF00;border-color:#0A0A0A;}
+
+/* ── Tables ── */
+table.portal-table{width:100%;border-collapse:collapse;background:#fff;}
+table.portal-table th{text-align:right;padding:11px 16px;font-size:11px;font-weight:700;color:rgb(10 10 10/.5);border-bottom:0.5px solid rgb(10 10 10/.1);}
+table.portal-table td{padding:14px 16px;font-size:13px;vertical-align:middle;color:#0A0A0A;border-bottom:0.5px solid rgb(10 10 10/.1);}
+table.portal-table tr:last-child td{border-bottom:none;}
+table.portal-table tbody tr:hover{background:#F6F8F5;}
+
+/* ── Forms ── */
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.fg{margin-bottom:14px;}
+.fg label{display:block;font-size:12px;font-weight:700;margin-bottom:5px;color:rgb(10 10 10/.6);}
+.fg input,.fg select,.fg textarea{width:100%;padding:10px 14px;border-radius:12px;border:0.5px solid rgb(10 10 10/.1);font-size:13px;outline:none;direction:rtl;font-family:inherit;background:#fff;color:#0A0A0A;transition:border-color .15s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:rgb(10 10 10/.3);box-shadow:0 0 0 2px #C8FF00;}
+.fg textarea{resize:vertical;min-height:70px;}
+
+/* ── Slide-over detail panel ── */
+.detail-overlay{display:none;position:fixed;inset:0;background:rgb(10 10 10/.6);z-index:100;}
+.detail-overlay.open{display:block;}
+.detail-panel{position:fixed;top:0;inset-inline-start:0;height:100vh;width:440px;max-width:100%;background:#fff;border-inline-end:0.5px solid rgb(10 10 10/.1);z-index:101;padding:24px;overflow-y:auto;}
+.detail-panel h3{font-size:16px;font-weight:900;margin-bottom:16px;color:#0A0A0A;}
+.detail-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:0.5px solid rgb(10 10 10/.1);font-size:13px;}
+.detail-row:last-of-type{border-bottom:none;}
+.detail-row .k{color:rgb(10 10 10/.55);}
+.detail-row .v{font-weight:700;color:#0A0A0A;}
+.close-btn{background:none;border:none;font-size:18px;cursor:pointer;color:rgb(10 10 10/.5);}
+.close-btn:hover{color:#0A0A0A;}
+.panel-actions{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;}
+
+/* ── Revenue bars ── */
+.rev-bar-wrap{background:rgb(10 10 10/.06);border-radius:999px;height:8px;overflow:hidden;}
+.rev-bar{height:100%;background:#0A0A0A;border-radius:999px;}
+.rev-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;color:rgb(10 10 10/.6);}
+.rev-label span{font-weight:700;color:#0A0A0A;}
+
+/* ── Employee portal wrapper ── */
+.portal-employee{background:#F6F8F5;color:#0A0A0A;display:block;min-height:100vh;width:100%;}
+
+/* ── Registration / activation ── */
+.reg-page,.activate-page,.co-reg-page{min-height:100vh;background:#F6F8F5;color:#0A0A0A;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;}
+.reg-card,.activate-card,.co-reg-card{background:#fff;border:0.5px solid rgb(10 10 10/.1);border-radius:24px;padding:32px;width:580px;max-width:100%;}
+.activate-card,.co-reg-card{width:520px;}
+.reg-section-title,.co-section-label{font-size:13px;font-weight:900;color:#0A0A0A;margin:20px 0 14px;padding-bottom:8px;border-bottom:0.5px solid rgb(10 10 10/.1);}
+.co-reg-logo{text-align:center;margin-bottom:28px;}
+.co-reg-logo-ar{font-size:28px;font-weight:900;color:#0A0A0A;}
+.co-reg-logo-en{font-size:10px;letter-spacing:3px;color:rgb(10 10 10/.4);margin-top:2px;}
+.reg-page .frow,.co-frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.reg-page .fg label,.co-field label{display:block;font-size:12px;font-weight:700;margin-bottom:6px;color:rgb(10 10 10/.6);}
+.co-field{margin-bottom:16px;}
+.reg-page .fg input,.reg-page .fg select,.reg-page .fg textarea,
+.co-field input,.co-field select,.co-field textarea{width:100%;padding:12px 14px;border:0.5px solid rgb(10 10 10/.1);border-radius:12px;font-size:14px;color:#0A0A0A;background:#fff;outline:none;font-family:inherit;direction:rtl;transition:border-color .15s;}
+.reg-page .fg input:focus,.reg-page .fg select:focus,.reg-page .fg textarea:focus,
+.co-field input:focus,.co-field select:focus,.co-field textarea:focus{border-color:rgb(10 10 10/.3);box-shadow:0 0 0 2px #C8FF00;}
+.co-field input[dir="ltr"]{direction:ltr;}
+.reg-page .fg textarea,.co-field textarea{resize:vertical;min-height:80px;}
+.co-submit-btn{width:100%;padding:15px;border:0.5px solid #0A0A0A;border-radius:999px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;background:#0A0A0A;color:#fff;transition:background .15s;margin-bottom:14px;}
+.co-submit-btn:hover{background:#C8FF00;color:#0A0A0A;border-color:#C8FF00;}
+
+@media(max-width:768px){
+  .frow,.reg-page .frow,.co-frow{grid-template-columns:1fr;}
+  .reg-card,.activate-card,.co-reg-card{padding:24px 18px;}
+  .page-title{font-size:18px;}
+  table.portal-table{min-width:600px;}
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

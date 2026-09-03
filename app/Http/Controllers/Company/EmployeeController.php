@@ -47,7 +47,7 @@ class EmployeeController extends Controller
             'company' => $company,
             'employees' => $employees,
             'departments' => $departments,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => CompanyEmployeeService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'activeCount' => $activeCount,
             'totalCount' => $totalCount,

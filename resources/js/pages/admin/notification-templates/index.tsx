@@ -1,326 +1,267 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
+import { FileText, Lock, Pencil } from 'lucide-react';
 import { useState } from 'react';
-import toastr from 'toastr';
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Button, Card, Field, IconButton, INPUT, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import type { NotificationTemplate, PaginatedResult } from '@/types/models';
+import type { Paginated, SortState } from '@/types';
 
-interface Props {
-    templates: PaginatedResult<NotificationTemplate>;
-    groups: string[];
-    stats: { total: number; mandatory: number; optional: number; inactive: number };
-    filters: { search?: string; group?: string; class?: string; sort?: string; dir?: string };
-    sort: SortState;
-}
-
-const GROUP_LABELS: Record<string, string> = {
-    auth: 'الدخول والدعوات',
-    community: 'المجتمعات',
-    events: 'الفعاليات',
-    provider: 'المزوّدون',
-    money: 'المال والتحصيل',
-    billing: 'الفوترة والتسويات',
-    engagement: 'التفاعل',
-    general: 'عام',
+/**
+ * H §19 — قوالب الإشعارات.
+ *
+ * A mandatory template cannot be switched off — not by the user and not by an
+ * admin. These are the messages the platform owes people regardless of
+ * preference: a payment claim, a cancellation, a seat offer. The toggle is
+ * simply absent on those rows rather than present-and-failing.
+ */
+type Template = {
+    id: number;
+    key: string;
+    group: string;
+    audience: string;
+    class: string;
+    title_ar: string;
+    title_en: string | null;
+    body_ar: string;
+    body_en: string | null;
+    channels: string[] | null;
+    whatsapp_template_name: string | null;
+    active: boolean;
 };
 
-function ClassBadge({ value }: { value: string }) {
-    const mandatory = value === 'mandatory';
+export default function NotificationTemplates({
+    templates,
+    groups,
+    stats,
+    filters,
+    sort,
+}: {
+    templates: Paginated<Template>;
+    groups: string[];
+    stats: { total: number; mandatory: number; optional: number; inactive: number };
+    filters: { search?: string; group?: string; class?: string };
+    sort: SortState;
+}) {
+    const [editing, setEditing] = useState<Template | null>(null);
+    const form = useForm({ title_ar: '', title_en: '', body_ar: '', body_en: '', whatsapp_template_name: '', active: true });
 
-    return (
-        <span
-            style={{
-                padding: '3px 10px',
-                borderRadius: 20,
-                fontSize: 12,
-                fontWeight: 700,
-                color: mandatory ? '#E03050' : '#4A9DE0',
-                background: mandatory ? 'rgba(224,48,80,0.12)' : 'rgba(74,157,224,0.12)',
-            }}
-        >
-            {mandatory ? 'إلزامي' : 'اختياري'}
-        </span>
-    );
-}
-
-export default function NotificationTemplatesIndex({ templates, groups, stats, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        group: filters?.group,
-        class: filters?.class,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-    const [editing, setEditing] = useState<NotificationTemplate | null>(null);
-
-    const form = useForm({
-        title_ar: '',
-        title_en: '',
-        body_ar: '',
-        body_en: '',
-        whatsapp_template_name: '',
-        active: true,
-    });
-
-    function openEditor(template: NotificationTemplate) {
-        setEditing(template);
+    function startEditing(template: Template) {
         form.setData({
-            title_ar: template.title_ar ?? '',
+            title_ar: template.title_ar,
             title_en: template.title_en ?? '',
-            body_ar: template.body_ar ?? '',
+            body_ar: template.body_ar,
             body_en: template.body_en ?? '',
             whatsapp_template_name: template.whatsapp_template_name ?? '',
             active: template.active,
         });
+        setEditing(template);
     }
-
-    function submit(e: React.FormEvent) {
-        e.preventDefault();
-        if (!editing) return;
-
-        form.put(`/admin/notification-templates/${editing.id}`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                toastr.success('حُدِّث القالب.');
-                setEditing(null);
-            },
-        });
-    }
-
-    function filterBy(key: 'group' | 'class', value: string) {
-        router.get(
-            '/admin/notification-templates',
-            {
-                search: filters?.search || undefined,
-                group: key === 'group' ? value || undefined : filters?.group || undefined,
-                class: key === 'class' ? value || undefined : filters?.class || undefined,
-                // الترتيب النشط لا يسقط بتغيير الفلتر.
-                sort: filters?.sort || undefined,
-                dir: filters?.dir || undefined,
-            },
-            { preserveState: true, replace: true },
-        );
-    }
-
-    const selectStyle = {
-        padding: '9px 14px',
-        background: '#161B27',
-        border: '1px solid #232A3E',
-        borderRadius: 10,
-        fontSize: 13,
-        color: '#E8EAF0',
-        outline: 'none',
-        direction: 'rtl' as const,
-        fontFamily: 'inherit',
-    };
 
     return (
         <AdminLayout>
             <Head title="قوالب الإشعارات" />
 
-            <div style={{ marginBottom: 4 }}>
-                <div className="page-title">قوالب الإشعارات</div>
-            </div>
-            <div className="page-sub">
-                {stats.total} قالباً — {stats.mandatory} إلزامي، {stats.optional} اختياري، {stats.inactive} معطَّل. نصوص
-                الرسائل تُدار من هنا ولا تُكتب داخل الكود.
-            </div>
+            <PageHeader
+                icon={FileText}
+                title="قوالب الإشعارات"
+                subtitle="نصوص الرسائل التي ترسلها المنصة. القوالب الإلزامية لا تُعطَّل — لا من المستخدم ولا من الأدمن."
+            />
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="ابحث بالمفتاح أو النص..."
-                    style={{ ...selectStyle, minWidth: 240 }}
-                />
-                <select value={filters?.group ?? ''} onChange={(e) => filterBy('group', e.target.value)} style={selectStyle}>
-                    <option value="">كل المجموعات</option>
-                    {groups.map((g) => (
-                        <option key={g} value={g}>
-                            {GROUP_LABELS[g] ?? g}
-                        </option>
-                    ))}
-                </select>
-                <select value={filters?.class ?? ''} onChange={(e) => filterBy('class', e.target.value)} style={selectStyle}>
-                    <option value="">الكل</option>
-                    <option value="mandatory">إلزامي</option>
-                    <option value="optional">اختياري</option>
-                </select>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard label="إجمالي القوالب" value={stats.total} />
+                <StatCard label="إلزامية" value={stats.mandatory} />
+                <StatCard label="اختيارية" value={stats.optional} />
+                <StatCard label="معطّلة" value={stats.inactive} tone={stats.inactive > 0 ? 'warning' : 'success'} />
             </div>
-
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <SortableHeader label="المجموعة" sortKey="group" sort={sort} />
-                                <SortableHeader label="المفتاح" sortKey="key" sort={sort} />
-                                <SortableHeader label="العنوان" sortKey="title_ar" sort={sort} />
-                                <SortableHeader label="المستلم" sortKey="audience" sort={sort} />
-                                <SortableHeader label="التصنيف" sortKey="class" sort={sort} />
-                                <th>القنوات</th>
-                                <SortableHeader label="الحالة" sortKey="active" sort={sort} />
-                                <th>إجراء</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <ListStates
-                                count={templates.data.length}
-                                columns={8}
-                                emptyTitle="لا توجد قوالب مطابقة"
-                                emptyHint="لا قالب إشعار مطابق للبحث والفلاتر الحالية."
-                            />
-                            {templates.data.map((template) => (
-                                <tr key={template.id}>
-                                    <td style={{ fontSize: 12, color: '#C8D0E0', whiteSpace: 'nowrap' }}>
-                                        {GROUP_LABELS[template.group] ?? template.group}
-                                    </td>
-                                    <td style={{ direction: 'ltr', textAlign: 'right', fontSize: 12, color: '#6B7A99' }}>
-                                        {template.key}
-                                    </td>
-                                    <td style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>{template.title_ar}</td>
-                                    <td style={{ color: '#C8D0E0', fontSize: 13 }}>{template.audience ?? '—'}</td>
-                                    <td>
-                                        <ClassBadge value={template.class} />
-                                    </td>
-                                    <td style={{ fontSize: 12, color: '#6B7A99' }}>{(template.channels ?? []).join(' ← ')}</td>
-                                    <td style={{ fontSize: 12, color: template.active ? '#009E82' : '#E03050' }}>
-                                        {template.active ? 'مفعَّل' : 'معطَّل'}
-                                    </td>
-                                    <td>
-                                        <button onClick={() => openEditor(template)} className="act-btn btn-view">
-                                            تحرير
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <Pagination links={templates.links} />
 
             {editing && (
-                <div className="detail-overlay open" onClick={() => setEditing(null)}>
-                    <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
-                        <h3 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            تحرير القالب
-                            <ClassBadge value={editing.class} />
-                        </h3>
-                        <div style={{ direction: 'ltr', textAlign: 'right', fontSize: 12, color: '#6B7A99', marginTop: 4 }}>
-                            {editing.key}
-                        </div>
+                <Card padding="p-4" className="space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                        <h2 className="text-sm font-extrabold text-ink">تعديل القالب</h2>
+                        <span className="font-mono text-[11px] text-ink/50">{editing.key}</span>
+                    </div>
 
-                        {(editing.variables ?? []).length > 0 && (
-                            <div style={{ marginTop: 12, fontSize: 12, color: '#6B7A99' }}>
-                                المتحوّلات المتاحة:{' '}
-                                {(editing.variables ?? []).map((v) => (
-                                    <code
-                                        key={v}
-                                        style={{
-                                            direction: 'ltr',
-                                            display: 'inline-block',
-                                            margin: '0 3px',
-                                            padding: '2px 6px',
-                                            background: '#161B27',
-                                            border: '1px solid #232A3E',
-                                            borderRadius: 6,
-                                            color: '#C8FF00',
-                                        }}
-                                    >
-                                        {`{${v}}`}
-                                    </code>
-                                ))}
-                            </div>
-                        )}
-
-                        <form onSubmit={submit} style={{ marginTop: 16 }}>
-                            {Object.keys(form.errors).length > 0 && (
-                                <div
-                                    style={{
-                                        marginBottom: 12,
-                                        padding: 10,
-                                        borderRadius: 8,
-                                        background: 'rgba(224,48,80,0.12)',
-                                        color: '#E03050',
-                                        fontSize: 13,
-                                    }}
-                                >
-                                    {Object.values(form.errors).map((message) => (
-                                        <div key={message}>{message}</div>
-                                    ))}
-                                </div>
-                            )}
-
-                            <div className="fg">
-                                <label>العنوان (عربي)</label>
-                                <input value={form.data.title_ar} onChange={(e) => form.setData('title_ar', e.target.value)} />
-                            </div>
-                            <div className="fg">
-                                <label>النص (عربي)</label>
-                                <textarea
-                                    rows={4}
-                                    value={form.data.body_ar}
-                                    onChange={(e) => form.setData('body_ar', e.target.value)}
-                                />
-                            </div>
-                            <div className="fg">
-                                <label>العنوان (إنجليزي — اختياري)</label>
+                    <form
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            form.put(`/admin/notification-templates/${editing.id}`, {
+                                preserveScroll: true,
+                                onSuccess: () => setEditing(null),
+                            });
+                        }}
+                        className="space-y-4"
+                    >
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <Field label="العنوان بالعربية" htmlFor="tpl-title-ar" required error={form.errors.title_ar}>
                                 <input
+                                    id="tpl-title-ar"
+                                    type="text"
+                                    required
+                                    value={form.data.title_ar}
+                                    onChange={(event) => form.setData('title_ar', event.target.value)}
+                                    className={INPUT}
+                                />
+                            </Field>
+                            <Field label="العنوان بالإنجليزية" htmlFor="tpl-title-en">
+                                <input
+                                    id="tpl-title-en"
+                                    type="text"
                                     dir="ltr"
                                     value={form.data.title_en}
-                                    onChange={(e) => form.setData('title_en', e.target.value)}
+                                    onChange={(event) => form.setData('title_en', event.target.value)}
+                                    className={`${INPUT} text-right`}
                                 />
-                            </div>
-                            <div className="fg">
-                                <label>النص (إنجليزي — اختياري)</label>
-                                <textarea
-                                    dir="ltr"
-                                    rows={4}
-                                    value={form.data.body_en}
-                                    onChange={(e) => form.setData('body_en', e.target.value)}
-                                />
-                            </div>
-                            <div className="fg">
-                                <label>اسم قالب واتساب المعتمد</label>
+                            </Field>
+                        </div>
+
+                        <Field label="النص بالعربية" htmlFor="tpl-body-ar" required error={form.errors.body_ar}>
+                            <textarea
+                                id="tpl-body-ar"
+                                rows={3}
+                                required
+                                value={form.data.body_ar}
+                                onChange={(event) => form.setData('body_ar', event.target.value)}
+                                className={INPUT}
+                            />
+                        </Field>
+
+                        <Field label="النص بالإنجليزية" htmlFor="tpl-body-en">
+                            <textarea
+                                id="tpl-body-en"
+                                rows={3}
+                                dir="ltr"
+                                value={form.data.body_en}
+                                onChange={(event) => form.setData('body_en', event.target.value)}
+                                className={`${INPUT} text-right`}
+                            />
+                        </Field>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                            <Field label="اسم قالب واتساب المعتمد" htmlFor="tpl-wa">
                                 <input
+                                    id="tpl-wa"
+                                    type="text"
                                     dir="ltr"
-                                    placeholder="يُملأ بعد اعتماد القالب لدى واتساب"
                                     value={form.data.whatsapp_template_name}
-                                    onChange={(e) => form.setData('whatsapp_template_name', e.target.value)}
+                                    onChange={(event) => form.setData('whatsapp_template_name', event.target.value)}
+                                    className={`${INPUT} text-right font-mono`}
                                 />
-                            </div>
+                            </Field>
 
                             {editing.class === 'mandatory' ? (
-                                <div style={{ fontSize: 12, color: '#6B7A99', marginTop: 8 }}>
-                                    قالب إلزامي — لا يمكن تعطيله ولا إيقافه من تفضيلات المستخدم.
+                                <div className="flex items-center gap-2 text-xs text-ink/60 pb-2">
+                                    <Lock className="w-3.5 h-3.5" aria-hidden="true" />
+                                    <span>قالب إلزامي — لا يُعطَّل.</span>
                                 </div>
                             ) : (
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 13 }}>
+                                <label className="flex items-center gap-2 text-xs font-bold text-ink cursor-pointer pb-2">
                                     <input
                                         type="checkbox"
                                         checked={form.data.active}
-                                        onChange={(e) => form.setData('active', e.target.checked)}
+                                        onChange={(event) => form.setData('active', event.target.checked)}
+                                        className="w-4 h-4 accent-lime cursor-pointer"
                                     />
-                                    مفعَّل
+                                    القالب مفعّل
                                 </label>
                             )}
+                        </div>
 
-                            <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-                                <button type="submit" disabled={form.processing} className="act-btn btn-approve">
-                                    حفظ
-                                </button>
-                                <button type="button" onClick={() => setEditing(null)} className="act-btn btn-view">
-                                    إلغاء
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                        <div className="flex items-center gap-2">
+                            <Button type="submit" disabled={form.processing}>
+                                حفظ القالب
+                            </Button>
+                            <Button type="button" tone="soft" onClick={() => setEditing(null)}>
+                                إلغاء
+                            </Button>
+                        </div>
+                    </form>
+                </Card>
             )}
+
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث بالمفتاح أو العنوان…" />
+                    <FilterSelect
+                        name="group"
+                        label="المجموعة"
+                        value={filters.group ?? ''}
+                        options={[['', 'كل المجموعات'], ...groups.map((group): [string, string] => [group, group])]}
+                    />
+                    <FilterSelect
+                        name="class"
+                        label="التصنيف"
+                        value={filters.class ?? ''}
+                        options={[
+                            ['', 'الكل'],
+                            ['mandatory', 'إلزامية'],
+                            ['optional', 'اختيارية'],
+                        ]}
+                    />
+                </Toolbar>
+
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader label="المجموعة" sortKey="group" sort={sort} />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="القالب" sortKey="key" sort={sort} />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="الجمهور" sortKey="audience" sort={sort} />
+                        </Th>
+                        <Th>القنوات</Th>
+                        <Th>
+                            <SortableHeader label="التصنيف" sortKey="class" sort={sort} />
+                        </Th>
+                        <Th className="text-center">تعديل</Th>
+                    </Thead>
+
+                    <Tbody>
+                        {templates.data.map((template) => (
+                            <Tr key={template.id}>
+                                <Td className="text-ink/70">{template.group}</Td>
+                                <Td>
+                                    <span className="font-extrabold text-ink block">{template.title_ar}</span>
+                                    <span className="font-mono text-[10px] text-ink/45">{template.key}</span>
+                                    {!template.active && <Badge tone="neutral">معطّل</Badge>}
+                                </Td>
+                                <Td className="text-ink/70">{template.audience}</Td>
+                                <Td>
+                                    <div className="flex flex-wrap gap-1">
+                                        {(template.channels ?? []).map((channel) => (
+                                            <span key={channel} className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-ink/5 text-ink/70">
+                                                {channel}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </Td>
+                                <Td>
+                                    <Badge tone={template.class === 'mandatory' ? 'warning' : 'neutral'} icon={template.class === 'mandatory' ? Lock : undefined}>
+                                        {template.class === 'mandatory' ? 'إلزامي' : 'اختياري'}
+                                    </Badge>
+                                </Td>
+                                <Td className="text-center">
+                                    <IconButton icon={Pencil} label="تعديل القالب" onClick={() => startEditing(template)} />
+                                </Td>
+                            </Tr>
+                        ))}
+
+                        <ListStates count={templates.data.length} colSpan={6} empty="لا قوالب مطابقة." />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={templates} />
+                    <Pagination page={templates} />
+                </div>
+            </Card>
+
+            <Note title="لماذا لا يمكن تعطيل الإلزامي؟">
+                القوالب الإلزامية هي ما تدين به المنصة للمستخدم بصرف النظر عن تفضيلاته: مطالبة سداد، إلغاء فعالية، عرض مقعد.
+                تعطيلها يعني أن يخسر أحدهم مقعده أو ماله دون أن يُبلَّغ.
+            </Note>
         </AdminLayout>
     );
 }

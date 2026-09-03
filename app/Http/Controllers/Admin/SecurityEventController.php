@@ -81,7 +81,7 @@ class SecurityEventController extends Controller
 
         return Inertia::render('admin/security/events', [
             'events' => $events,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'eventTypes' => collect(SecurityEvent::labels())
                 ->map(fn (string $label, string $key) => ['value' => $key, 'label' => $label])

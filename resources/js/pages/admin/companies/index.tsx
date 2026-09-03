@@ -1,375 +1,238 @@
-import { Head, router, useForm } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
-import toastr from 'toastr';
-import ConfirmModal from '@/components/confirm-modal';
-import FilterTabs from '@/components/filter-tabs';
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import PasswordInput from '@/components/password-input';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import StatusBadge from '@/components/status-badge';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import { Head, Link, router } from '@inertiajs/react';
+import { Building2, CircleCheckBig, KeyRound, Pencil, Plus, X } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, ButtonLink, Card, IconButton, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import { fmtDate } from '@/lib/utils';
-import type { Company, PaginatedResult } from '@/types/models';
+import type { Paginated, SortState } from '@/types';
 
-interface Props {
-    companies: PaginatedResult<Company>;
-    stats: { active: number; pending: number; review: number };
-    filters: { status?: string; search?: string; sort?: string; dir?: string };
+/**
+ * H §16 — الشركات والعقود.
+ *
+ * Approving a company is what opens the platform to its whole workforce, and
+ * rejecting one closes a door someone is waiting behind — both go through a
+ * confirm that names the company and the consequence.
+ */
+type Company = {
+    id: number;
+    name: string;
+    email: string;
+    sector: string | null;
+    city: string | null;
+    status: string;
+    contact_name: string | null;
+    contact_phone: string | null;
+    commercial_registration: string | null;
+    contract_fee_per_activated_employee: string | number | null;
+    event_creation_blocked_at: string | null;
+    created_at: string | null;
+    employees?: unknown[];
+};
+
+export const COMPANY_STATUS: Record<string, { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger' }> = {
+    pending: { label: 'طلب جديد', tone: 'warning' },
+    review: { label: 'قيد المراجعة', tone: 'warning' },
+    active: { label: 'مفعّلة', tone: 'success' },
+    rejected: { label: 'مرفوضة', tone: 'danger' },
+    suspended: { label: 'موقوفة', tone: 'danger' },
+};
+
+export default function AdminCompanies({
+    companies,
+    stats,
+    filters,
+    sort,
+}: {
+    companies: Paginated<Company>;
+    stats: { total: number; pending: number; review: number; active: number; rejected: number };
+    filters: { search?: string; status?: string };
     sort: SortState;
-}
-
-const filterOptions = [
-    { label: 'الكل', value: '' },
-    { label: 'معلق', value: 'pending' },
-    { label: 'نشط', value: 'active' },
-    { label: 'مرفوض', value: 'rejected' },
-];
-
-export default function CompaniesIndex({ companies, stats, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        status: filters?.status,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-    const [showCreate, setShowCreate] = useState(false);
-    const [editingItem, setEditingItem] = useState<Company | null>(null);
-
-    const form = useForm({
-        name: '',
-        email: '',
-        password: '',
-        domain: '',
-        sector: '',
-        contact_name: '',
-        contact_phone: '',
-        city: '',
-        status: 'pending',
-    });
-
-    useEffect(() => {
-        if (editingItem) {
-            form.setData({
-                name: editingItem.name ?? '',
-                email: editingItem.email ?? '',
-                password: '',
-                domain: editingItem.domain ?? '',
-                sector: editingItem.sector ?? '',
-                contact_name: editingItem.contact_name ?? '',
-                contact_phone: editingItem.contact_phone ?? '',
-                city: editingItem.city ?? '',
-                status: editingItem.status ?? 'pending',
-            });
-        } else {
-            form.reset();
-        }
-    }, [editingItem]);
-
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-
-        if (editingItem) {
-            form.put(`/admin/companies/${editingItem.id}`, {
-                onSuccess: () => {
- setEditingItem(null); toastr.success('تم تحديث الشركة بنجاح.'); 
-},
-            });
-        } else {
-            form.post('/admin/companies', {
-                onSuccess: () => {
- setShowCreate(false); form.reset(); toastr.success('تم إنشاء الشركة بنجاح.'); 
-},
-            });
-        }
-    }
-
-    function approve(id: number) {
-        router.post(`/admin/companies/${id}/approve`, {}, { preserveScroll: true, onSuccess: () => toastr.success('تمت الموافقة على الشركة بنجاح.') });
-    }
-
-    function reject(id: number) {
-        router.post(`/admin/companies/${id}/reject`, {}, { preserveScroll: true, onSuccess: () => toastr.success('تم رفض طلب الشركة.') });
-    }
-
-    const [resetTarget, setResetTarget] = useState<{ id: number; email: string } | null>(null);
-
-    function confirmResetPassword() {
-        if (!resetTarget) {
-return;
-}
-
-        const email = resetTarget.email;
-        router.post(`/admin/companies/${resetTarget.id}/reset-password`, {}, {
-            preserveScroll: true,
-            onSuccess: () => toastr.success(`تم إرسال رابط إعادة تعيين كلمة المرور إلى ${email}`),
-        });
-        setResetTarget(null);
-    }
+}) {
+    const [deciding, setDeciding] = useState<{ company: Company; decision: 'approve' | 'reject' } | null>(null);
+    const [reason, setReason] = useState('');
 
     return (
         <AdminLayout>
-            <Head title="إدارة الشركات" />
+            <Head title="الشركات والعقود" />
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <div className="page-title">إدارة الشركات</div>
-                <button onClick={() => setShowCreate(true)} className="act-btn btn-approve">
-                    إضافة شركة
-                </button>
-            </div>
-            <div className="page-sub">
-                {stats.active} شركة مفعّلة · {stats.pending + stats.review} طلبات معلقة
-            </div>
+            <PageHeader
+                icon={Building2}
+                title="الشركات والعقود"
+                subtitle="اعتماد طلبات التسجيل، وضبط شروط العقد التي تُبنى عليها الفوترة الشهرية."
+                actions={
+                    <ButtonLink href="/admin/companies/create" icon={Plus}>
+                        إضافة شركة
+                    </ButtonLink>
+                }
+            />
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث بالاسم..."
-                    style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
-                />
-                <FilterTabs options={filterOptions} current={filters?.status ?? ''} />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard label="إجمالي الشركات" value={stats.total} />
+                <StatCard label="بانتظار الاعتماد" value={stats.pending + stats.review} tone={stats.pending + stats.review > 0 ? 'warning' : 'success'} />
+                <StatCard label="مفعّلة" value={stats.active} tone="success" />
+                <StatCard label="مرفوضة" value={stats.rejected} />
             </div>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث باسم الشركة…" />
+                    <FilterSelect
+                        name="status"
+                        label="حالة الشركة"
+                        value={filters.status ?? ''}
+                        options={[
+                            ['', 'كل الحالات'],
+                            ['pending', 'طلب جديد'],
+                            ['review', 'قيد المراجعة'],
+                            ['active', 'مفعّلة'],
+                            ['rejected', 'مرفوضة'],
+                        ]}
+                    />
+                </Toolbar>
+
+                <TableShell>
+                    <Thead>
+                        <Th>
                             <SortableHeader label="الشركة" sortKey="name" sort={sort} />
+                        </Th>
+                        <Th>
                             <SortableHeader label="القطاع" sortKey="sector" sort={sort} />
-                            <th>الموظفون</th>
-                            <th>المسؤول</th>
-                            <SortableHeader label="تاريخ الطلب" sortKey="created_at" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>مسؤول الحساب</Th>
+                        <Th>الموظفون</Th>
+                        <Th>رسم الموظف</Th>
+                        <Th>
                             <SortableHeader label="الحالة" sortKey="status" sort={sort} />
-                            <th>إجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <ListStates
-                            count={companies.data.length}
-                            columns={7}
-                            emptyTitle="لا توجد شركات"
-                            emptyHint="لا شركة مطابقة للبحث والفلاتر الحالية."
-                        />
+                        </Th>
+                        <Th className="text-center">الإجراءات</Th>
+                    </Thead>
+
+                    <Tbody>
                         {companies.data.map((company) => (
-                            <tr key={company.id}>
-                                <td>
-                                    <div style={{ fontWeight: 700, color: '#fff' }}>{company.name}</div>
-                                    <div style={{ fontSize: '10px', color: '#6B7A99' }}>{company.domain}</div>
-                                </td>
-                                <td style={{ color: '#C8D0E0' }}>{company.sector}</td>
-                                <td>{company.employee_count}</td>
-                                <td>
-                                    <div style={{ fontSize: '12px' }}>{company.contact_name ?? '-'}</div>
-                                    <div style={{ fontSize: '10px', color: '#6B7A99' }}>{company.email ?? '-'}</div>
-                                </td>
-                                <td style={{ fontSize: '12px', color: '#6B7A99' }}>
-                                    {company.status === 'active'
-                                        ? fmtDate(company.approved_at)
-                                        : fmtDate(company.created_at)}
-                                </td>
-                                <td>
-                                    <StatusBadge status={company.status} />
-                                </td>
-                                <td>
-                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                        {['pending', 'review'].includes(company.status) && (
+                            <Tr key={company.id}>
+                                <Td>
+                                    <Link href={`/admin/companies/${company.id}/edit`} className="font-extrabold text-ink hover:underline">
+                                        {company.name}
+                                    </Link>
+                                    <span className="block font-mono text-[11px] text-ink/50" dir="ltr">
+                                        {company.email}
+                                    </span>
+                                    {company.event_creation_blocked_at && <Badge tone="danger">إنشاء الفعاليات موقوف</Badge>}
+                                </Td>
+                                <Td className="text-ink/85">{company.sector ?? '—'}</Td>
+                                <Td>
+                                    <span className="text-ink/85 block">{company.contact_name ?? '—'}</span>
+                                    <span className="font-mono text-[11px] text-ink/50" dir="ltr">
+                                        {company.contact_phone ?? ''}
+                                    </span>
+                                </Td>
+                                <Td className="font-mono font-bold text-ink">{company.employees?.length ?? 0}</Td>
+                                <Td className="font-mono text-ink/80">
+                                    {company.contract_fee_per_activated_employee ?? (
+                                        <span className="text-danger font-bold">بلا عقد</span>
+                                    )}
+                                </Td>
+                                <Td>
+                                    <Badge tone={COMPANY_STATUS[company.status]?.tone ?? 'neutral'}>
+                                        {COMPANY_STATUS[company.status]?.label ?? company.status}
+                                    </Badge>
+                                </Td>
+                                <Td className="text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                        {(company.status === 'pending' || company.status === 'review') && (
                                             <>
-                                                <button
-                                                    className="act-btn btn-approve"
-                                                    onClick={() => approve(company.id)}
-                                                >
-                                                    قبول
-                                                </button>
-                                                <button
-                                                    className="act-btn btn-reject"
-                                                    onClick={() => reject(company.id)}
-                                                >
-                                                    رفض
-                                                </button>
+                                                <IconButton
+                                                    icon={CircleCheckBig}
+                                                    label="اعتماد الشركة"
+                                                    onClick={() => setDeciding({ company, decision: 'approve' })}
+                                                />
+                                                <IconButton
+                                                    icon={X}
+                                                    label="رفض الطلب"
+                                                    tone="danger"
+                                                    onClick={() => {
+                                                        setReason('');
+                                                        setDeciding({ company, decision: 'reject' });
+                                                    }}
+                                                />
                                             </>
                                         )}
-                                        <button
-                                            onClick={() => setEditingItem(company)}
-                                            className="act-btn btn-view"
+                                        <Link
+                                            href={`/admin/companies/${company.id}/edit`}
+                                            title="تعديل الشركة والعقد"
+                                            className="p-1.5 rounded-lg bg-ink/5 hover:bg-ink/10 text-ink transition-colors"
                                         >
-                                            تعديل
-                                        </button>
-                                        {company.status === 'active' && (
-                                            <button
-                                                className="act-btn"
-                                                style={{ background: '#2A1F3D', color: '#A78BFA', borderColor: '#3B2D5A' }}
-                                                onClick={() => setResetTarget({ id: company.id, email: company.email })}
-                                            >
-                                                إعادة كلمة المرور
-                                            </button>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            <Pagination links={companies.links} />
-
-            {/* Create/Edit Modal */}
-            {(showCreate || editingItem) && (
-                <div className="detail-overlay open" onClick={() => {
- setShowCreate(false); setEditingItem(null); 
-}}>
-                    <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
-                        <h3>
-                            {editingItem ? 'تعديل شركة' : 'إضافة شركة'}
-                            <button className="close-btn" onClick={() => {
- setShowCreate(false); setEditingItem(null); 
-}}>×</button>
-                        </h3>
-
-                        {Object.keys(form.errors).length > 0 && (
-                            <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
-                                {Object.values(form.errors).map((error, i) => (
-                                    <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                                ))}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSubmit}>
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>اسم الشركة *</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.name}
-                                        onChange={(e) => form.setData('name', e.target.value)}
-                                        placeholder="مثال: شركة التقنية المتقدمة"
-                                        required
-                                    />
-                                </div>
-                                <div className="fg">
-                                    <label>البريد الإلكتروني *</label>
-                                    <input
-                                        type="email"
-                                        value={form.data.email}
-                                        onChange={(e) => form.setData('email', e.target.value)}
-                                        placeholder="info@company.sa"
-                                        dir="ltr"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>النطاق *</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.domain}
-                                        onChange={(e) => form.setData('domain', e.target.value)}
-                                        placeholder="company.sa"
-                                        dir="ltr"
-                                        required
-                                    />
-                                </div>
-                                {!editingItem ? (
-                                    <div className="fg">
-                                        <label>كلمة المرور *</label>
-                                        <PasswordInput
-                                            value={form.data.password}
-                                            onChange={(e) => form.setData('password', e.target.value)}
-                                            placeholder="••••••"
-                                            dir="ltr"
-                                            required
+                                            <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+                                        </Link>
+                                        <IconButton
+                                            icon={KeyRound}
+                                            label="إرسال رابط إعادة تعيين كلمة المرور"
+                                            onClick={() => router.post(`/admin/companies/${company.id}/reset-password`, {}, { preserveScroll: true })}
                                         />
                                     </div>
-                                ) : (
-                                    <div className="fg" />
-                                )}
-                            </div>
+                                </Td>
+                            </Tr>
+                        ))}
 
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>القطاع *</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.sector}
-                                        onChange={(e) => form.setData('sector', e.target.value)}
-                                        placeholder="تقنية المعلومات"
-                                        required
-                                    />
-                                </div>
-                                <div className="fg">
-                                    <label>المدينة *</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.city}
-                                        onChange={(e) => form.setData('city', e.target.value)}
-                                        placeholder="الرياض"
-                                        required
-                                    />
-                                </div>
-                            </div>
+                        <ListStates
+                            count={companies.data.length}
+                            colSpan={7}
+                            empty="لا توجد شركات مطابقة."
+                            emptyHint="جرّب تغيير حالة التصفية أو مصطلح البحث."
+                        />
+                    </Tbody>
+                </TableShell>
 
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>المسؤول</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.contact_name}
-                                        onChange={(e) => form.setData('contact_name', e.target.value)}
-                                        placeholder="اسم مسؤول الحساب"
-                                    />
-                                </div>
-                                <div className="fg">
-                                    <label>هاتف المسؤول</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.contact_phone}
-                                        onChange={(e) => form.setData('contact_phone', e.target.value)}
-                                        placeholder="05xxxxxxxx"
-                                        dir="ltr"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="frow">
-                                {editingItem ? (
-                                    <div className="fg">
-                                        <label>الحالة</label>
-                                        <select
-                                            value={form.data.status}
-                                            onChange={(e) => form.setData('status', e.target.value)}
-                                        >
-                                            <option value="pending">معلق</option>
-                                            <option value="review">قيد المراجعة</option>
-                                            <option value="active">نشط</option>
-                                            <option value="rejected">مرفوض</option>
-                                        </select>
-                                    </div>
-                                ) : (
-                                    <div className="fg" />
-                                )}
-                            </div>
-
-                            <div className="panel-actions">
-                                <button type="submit" className="pa-approve" disabled={form.processing}>حفظ</button>
-                                <button type="button" className="pa-reject" onClick={() => {
- setShowCreate(false); setEditingItem(null); 
-}}>إلغاء</button>
-                            </div>
-                        </form>
-                    </div>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={companies} />
+                    <Pagination page={companies} />
                 </div>
-            )}
+            </Card>
 
             <ConfirmModal
-                open={!!resetTarget}
-                title="إعادة تعيين كلمة المرور"
-                message={`سيتم إرسال رابط إعادة تعيين كلمة المرور إلى ${resetTarget?.email ?? ''}. هل تريد المتابعة؟`}
-                confirmLabel="إرسال"
-                onConfirm={confirmResetPassword}
-                onCancel={() => setResetTarget(null)}
+                open={deciding !== null}
+                tone={deciding?.decision === 'reject' ? 'danger' : 'default'}
+                title={deciding?.decision === 'approve' ? 'اعتماد الشركة' : 'رفض طلب التسجيل'}
+                message={
+                    deciding?.decision === 'approve'
+                        ? 'يُفتح حساب الشركة ويصل مسؤول الحساب رابط تفعيل. تأكد من ضبط شروط العقد قبل أول دورة فوترة.'
+                        : 'يُبلَّغ مقدّم الطلب بالرفض وسببه، ولا يُفتح الحساب.'
+                }
+                details={
+                    deciding && (
+                        <>
+                            <ConfirmRow label="الشركة" value={deciding.company.name} strong />
+                            <ConfirmRow label="مسؤول الحساب" value={deciding.company.contact_name ?? '—'} />
+                            <ConfirmRow label="السجل التجاري" value={deciding.company.commercial_registration ?? '—'} />
+                            {deciding.decision === 'reject' && (
+                                <div className="pt-2">
+                                    <label htmlFor="reject-reason" className="block text-[11px] font-bold text-ink mb-1">
+                                        سبب الرفض
+                                    </label>
+                                    <textarea
+                                        id="reject-reason"
+                                        rows={2}
+                                        value={reason}
+                                        onChange={(event) => setReason(event.target.value)}
+                                        className="w-full px-3 py-2 rounded-xl border-[0.5px] border-ink/20 text-xs bg-surface focus:outline-none focus:border-ink"
+                                    />
+                                </div>
+                            )}
+                        </>
+                    )
+                }
+                confirmLabel={deciding?.decision === 'approve' ? 'اعتماد وفتح الحساب' : 'تأكيد الرفض'}
+                onConfirm={() => {
+                    router.post(
+                        `/admin/companies/${deciding?.company.id}/${deciding?.decision}`,
+                        deciding?.decision === 'reject' ? { reason } : {},
+                        { preserveScroll: true },
+                    );
+                    setDeciding(null);
+                }}
+                onCancel={() => setDeciding(null)}
             />
         </AdminLayout>
     );

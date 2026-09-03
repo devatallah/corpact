@@ -80,7 +80,7 @@ class InvoiceController extends Controller
         return Inertia::render('company/invoices/index', [
             'company' => $company,
             'invoices' => $invoices,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'summary' => [
                 'outstanding' => Money::format((int) $outstanding),

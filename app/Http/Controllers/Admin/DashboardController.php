@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Console\Commands\WatchdogScheduledJobs;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\JobRun;
 use App\Models\Partner;
 use App\Models\SettlementItem;
+use App\Models\Wallet;
+use App\Models\WalletTransaction;
 use App\Services\Admin\CompanyService;
 use App\Services\Admin\PartnerService;
 use App\Services\Authorization\AuthorizationService;
@@ -37,6 +41,9 @@ class DashboardController extends Controller
         // الواجهة (نفس بوابة /admin/revenue في routes/web.php).
         $user = Auth::guard('admin')->user();
         $canViewRevenue = $user !== null && $this->authorization->can($user, 'revenue.view');
+        // H §20 — صحة المحرّكات التشغيلية ليست رقماً مالياً، فبوابتها الإدارة
+        // لا الإيراد؛ وكيل الدعم لا يراها.
+        $canMonitorOps = $user !== null && $this->authorization->can($user, 'platform.manage');
 
         $companyStats = $this->companyService->dashboardStats();
         $partnerStats = $this->partnerService->dashboardStats();
@@ -111,7 +118,12 @@ class DashboardController extends Controller
             // A12 — H §13: «يجب مراقبة معدل التعديلات بعد الاكتمال كمؤشر
             // إنذار مبكر» للفعالية الشبح. A13 يبني التقرير الكامل فوقه.
             'ghostEventWatch' => $this->ghostEvents->stats(),
+            'canMonitorOps' => $canMonitorOps,
         ];
+
+        if ($canMonitorOps) {
+            $props['jobHealth'] = $this->jobHealth();
+        }
 
         if (! $canViewRevenue) {
             return Inertia::render('admin/dash', $props);
@@ -132,6 +144,7 @@ class DashboardController extends Controller
 
         return Inertia::render('admin/dash', [
             ...$props,
+            'walletReconciliation' => $this->walletReconciliation(),
             'monthlyRevenue' => $monthlyRevenue,
             'revenueGrowth' => $lastMonthRevenue > 0
                 ? round((($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100)
@@ -145,6 +158,78 @@ class DashboardController extends Controller
      * عمولة شهر بالريال للعرض — مصدرها بنود التسوية (هللات) التي لا تُنشأ
      * إلا عند اكتمال الفعالية (H §12.7).
      */
+    /**
+     * H §20 — «الصمت ليس دليل نجاح»: مهمة لم تُنفَّذ خلال ضعف دوريتها متأخرة.
+     * الدوريات تُقرأ من {@see WatchdogScheduledJobs::CADENCES} نفسها حتى لا
+     * يوجد جدولان يتباعدان.
+     *
+     * @return array{jobs: list<array{job: string, cadence_minutes: int, last_run_at: ?string, late: bool}>, late_count: int}
+     */
+    private function jobHealth(): array
+    {
+        $now = Carbon::now();
+        $jobs = [];
+
+        foreach (WatchdogScheduledJobs::CADENCES as $job => $cadenceMinutes) {
+            $lastRunAt = JobRun::lastHeartbeatAt($job);
+            $late = $lastRunAt === null || $lastRunAt->lt($now->copy()->subMinutes($cadenceMinutes * 2));
+
+            $jobs[] = [
+                'job' => $job,
+                'cadence_minutes' => $cadenceMinutes,
+                'last_run_at' => $lastRunAt?->toIso8601String(),
+                'late' => $late,
+            ];
+        }
+
+        return [
+            'jobs' => $jobs,
+            'late_count' => count(array_filter($jobs, static fn (array $job): bool => $job['late'])),
+        ];
+    }
+
+    /**
+     * H §12.5 — الرصيد مشتق من الدفتر لا العكس. نفس معادلة
+     * {@see \App\Console\Commands\ReconcileBalances}: دائن ناقص مدين بالهللة،
+     * مقابل الرصيد المخزَّن. المبالغ هللات صحيحة، والفارق يجب أن يكون صفراً.
+     *
+     * @return array{cached_halalas: int, ledger_halalas: int, difference_halalas: int, wallets: int, mismatched: int}
+     */
+    private function walletReconciliation(): array
+    {
+        $ledgerByWallet = WalletTransaction::query()
+            ->withoutGlobalScopes()
+            ->selectRaw("wallet_id, COALESCE(SUM(CASE WHEN direction = 'credit' THEN amount_halalas ELSE -amount_halalas END), 0) as ledger_balance")
+            ->groupBy('wallet_id')
+            ->pluck('ledger_balance', 'wallet_id');
+
+        $cachedTotal = 0;
+        $ledgerTotal = 0;
+        $wallets = 0;
+        $mismatched = 0;
+
+        foreach (Wallet::query()->withoutGlobalScopes()->cursor() as $wallet) {
+            $cached = (int) $wallet->balance_halalas;
+            $ledger = (int) ($ledgerByWallet[$wallet->id] ?? 0);
+
+            $cachedTotal += $cached;
+            $ledgerTotal += $ledger;
+            $wallets++;
+
+            if ($cached !== $ledger) {
+                $mismatched++;
+            }
+        }
+
+        return [
+            'cached_halalas' => $cachedTotal,
+            'ledger_halalas' => $ledgerTotal,
+            'difference_halalas' => $cachedTotal - $ledgerTotal,
+            'wallets' => $wallets,
+            'mismatched' => $mismatched,
+        ];
+    }
+
     private function commissionForMonth(Carbon $month): float
     {
         $halalas = (int) SettlementItem::query()

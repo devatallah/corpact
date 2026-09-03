@@ -112,7 +112,7 @@ class SupportConsoleController extends Controller
         }
 
         return Inertia::render('admin/support/console', [
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'results' => $results,
             'escalation' => self::escalationRows(),
             'pendingInvitations' => Invitation::query()

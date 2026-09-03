@@ -1,161 +1,148 @@
-import ConfirmModal from '@/components/confirm-modal';
-import AdminLayout from '@/layouts/admin-layout';
 import { Head, useForm } from '@inertiajs/react';
+import { RotateCcw, Settings } from 'lucide-react';
 import { useState } from 'react';
-import toastr from 'toastr';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { Button, Card, INPUT, Note, PageHeader } from '@/components/portal/ui';
+import AdminLayout from '@/layouts/admin-layout';
 
 /**
- * H §16 «الإعدادات: … العتبات والمهل» / G (أدمن تيمات §4):
- * «العتبات والمهل على مستوى المنصة، ومنها مهلة قائمة الانتظار (لا تُضبط من
- * القالب)». A7 تركها قيم config بانتظار هذه الشاشة.
+ * H §16 — الإعدادات المركزية.
+ *
+ * Every field here changes platform-wide behaviour for everyone at once: a
+ * payment window, a correction window, a reminder cadence. The default and
+ * the allowed range travel with each field so an operator can see how far
+ * they are from the value the system was designed around.
  */
-
-interface Field {
+type Field = {
     key: string;
     label: string;
-    unit: string;
+    unit: string | null;
     min: number;
     max: number;
     group: string;
-    hint: string;
+    hint: string | null;
     value: number;
     default: number;
     config_key: string;
-}
-
-interface Props {
-    fields: Field[];
-}
-
-const inputStyle: React.CSSProperties = {
-    padding: '10px 14px',
-    background: '#161B27',
-    border: '1px solid #232A3E',
-    borderRadius: '10px',
-    fontSize: '13px',
-    color: '#E8EAF0',
-    outline: 'none',
-    direction: 'ltr',
-    fontFamily: 'inherit',
-    width: 120,
 };
 
-export default function PlatformSettings({ fields }: Props) {
-    const initial: Record<string, number> = {};
-    fields.forEach((field) => {
-        initial[field.key] = field.value;
-    });
-
-    const form = useForm<{ values: Record<string, number> }>({ values: initial });
+export default function PlatformSettings({ fields }: { fields: Field[] }) {
     const [confirming, setConfirming] = useState(false);
+    const form = useForm<Record<string, number>>(
+        Object.fromEntries(fields.map((field) => [field.key, field.value])),
+    );
 
-    const groups = Array.from(new Set(fields.map((field) => field.group)));
-    const changed = fields.filter((field) => Number(form.data.values[field.key]) !== field.value);
-
-    function save() {
-        setConfirming(false);
-        form.put('/admin/settings/platform', {
-            preserveScroll: true,
-            onSuccess: () => toastr.success('حُفظت عتبات المنصة.'),
-        });
-    }
+    const groups = [...new Set(fields.map((field) => field.group))];
+    const changed = fields.filter((field) => Number(form.data[field.key]) !== field.value);
 
     return (
         <AdminLayout>
             <Head title="إعدادات المنصة" />
 
-            <div className="page-title">إعدادات المنصة — العتبات والمهل</div>
-            <div className="page-sub">
-                تسري على كل الشركات والمجتمعات فوراً. كل تعديل يُسجَّل في سجل التدقيق بقيمته قبل وبعد.
-            </div>
+            <PageHeader
+                icon={Settings}
+                title="الإعدادات المركزية"
+                subtitle="قيم تحكم سلوك المنصة كلها في الوقت نفسه. كل تعديل يُقيَّد في سجل التدقيق."
+                actions={
+                    <Button onClick={() => setConfirming(true)} disabled={changed.length === 0}>
+                        حفظ التغييرات ({changed.length})
+                    </Button>
+                }
+            />
 
-            {Object.keys(form.errors).length > 0 && (
-                <div
-                    style={{
-                        background: 'rgba(224,48,80,.1)',
-                        border: '1px solid rgba(224,48,80,.25)',
-                        borderRadius: '10px',
-                        padding: '12px 16px',
-                        margin: '16px 0',
-                    }}
-                >
-                    {Object.values(form.errors).map((error, i) => (
-                        <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                    ))}
-                </div>
-            )}
+            <Note tone="warning" title="أثر فوري على كل الشركات">
+                لا تُطبَّق هذه القيم على شركة واحدة: تغيير نافذة السداد مثلاً يغيّرها لكل مطالبة قادمة في المنصة. راجع القيمة
+                الافتراضية قبل الابتعاد عنها.
+            </Note>
 
             {groups.map((group) => (
-                <div className="card" key={group} style={{ marginTop: 16 }}>
-                    <h3 style={{ marginTop: 0 }}>{group}</h3>
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <th>الإعداد</th>
-                                <th>القيمة</th>
-                                <th>الافتراضي</th>
-                                <th>الشرح</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {fields
-                                .filter((field) => field.group === group)
-                                .map((field) => (
-                                    <tr key={field.key}>
-                                        <td style={{ fontWeight: 700, color: '#fff' }}>
-                                            {field.label}
-                                            <div dir="ltr" style={{ fontSize: 10, color: '#6B7A99' }}>{field.config_key}</div>
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <input
-                                                    type="number"
-                                                    min={field.min}
-                                                    max={field.max}
-                                                    value={form.data.values[field.key]}
-                                                    onChange={(e) =>
-                                                        form.setData('values', {
-                                                            ...form.data.values,
-                                                            [field.key]: Number(e.target.value),
-                                                        })
-                                                    }
-                                                    style={inputStyle}
-                                                />
-                                                <span style={{ fontSize: 12, color: '#9CA3BC' }}>{field.unit}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ fontSize: 12, color: '#6B7A99' }}>
-                                            {field.default} {field.unit}
-                                        </td>
-                                        <td style={{ fontSize: 12, color: '#9CA3BC', lineHeight: 1.8 }}>{field.hint}</td>
-                                    </tr>
-                                ))}
-                        </tbody>
-                    </table>
-                </div>
-            ))}
+                <Card key={group} padding="p-4" className="space-y-4">
+                    <h2 className="text-sm font-extrabold text-ink">{group}</h2>
 
-            <div style={{ marginTop: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
-                <button className="act-btn btn-approve" disabled={form.processing || changed.length === 0} onClick={() => setConfirming(true)}>
-                    حفظ التغييرات
-                </button>
-                <span style={{ fontSize: 12, color: '#6B7A99' }}>
-                    {changed.length === 0 ? 'لا تغييرات بعد.' : `${changed.length} إعداداً معدّلاً.`}
-                </span>
-            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {fields
+                            .filter((field) => field.group === group)
+                            .map((field) => {
+                                const current = Number(form.data[field.key]);
+                                const isDefault = current === field.default;
+
+                                return (
+                                    <div key={field.key} className="p-3.5 rounded-xl bg-page border-[0.5px] border-ink/10 space-y-2">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <label htmlFor={field.key} className="text-xs font-extrabold text-ink">
+                                                {field.label}
+                                            </label>
+                                            <span className="font-mono text-[10px] text-ink/40">{field.config_key}</span>
+                                        </div>
+
+                                        {field.hint && <p className="text-[11px] text-ink/60 leading-relaxed">{field.hint}</p>}
+
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                id={field.key}
+                                                type="number"
+                                                min={field.min}
+                                                max={field.max}
+                                                value={current}
+                                                onChange={(event) => form.setData(field.key, Number(event.target.value))}
+                                                className={`${INPUT} font-mono`}
+                                            />
+                                            {field.unit && <span className="text-[11px] text-ink/60 shrink-0">{field.unit}</span>}
+                                            {!isDefault && (
+                                                <button
+                                                    type="button"
+                                                    title="إعادة للقيمة الافتراضية"
+                                                    onClick={() => form.setData(field.key, field.default)}
+                                                    className="p-1.5 rounded-lg bg-ink/5 hover:bg-ink/10 text-ink cursor-pointer shrink-0"
+                                                >
+                                                    <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-[10px] text-ink/45 font-mono">
+                                            <span>
+                                                المدى {field.min} — {field.max}
+                                            </span>
+                                            <span className={isDefault ? '' : 'text-warning font-bold'}>
+                                                الافتراضي {field.default}
+                                            </span>
+                                        </div>
+
+                                        {form.errors[field.key] && (
+                                            <p className="text-[11px] font-bold text-danger">{form.errors[field.key]}</p>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                    </div>
+                </Card>
+            ))}
 
             <ConfirmModal
                 open={confirming}
-                title="تطبيق عتبات المنصة"
-                message={
-                    changed.length === 0
-                        ? ''
-                        : `ستسري هذه القيم على كل الفعاليات الجارية فوراً:\n${changed
-                              .map((field) => `${field.label}: ${field.value} ← ${form.data.values[field.key]} ${field.unit}`)
-                              .join(' · ')}`
+                title="حفظ الإعدادات المركزية"
+                message="تسري القيم الجديدة فوراً على كل الشركات والفعاليات القادمة."
+                details={
+                    <>
+                        {changed.map((field) => (
+                            <ConfirmRow
+                                key={field.key}
+                                label={field.label}
+                                value={`${field.value} ← ${form.data[field.key]} ${field.unit ?? ''}`}
+                                strong
+                            />
+                        ))}
+                        {changed.length === 0 && <span className="text-ink/60">لا تغييرات.</span>}
+                    </>
                 }
-                confirmLabel="تطبيق"
-                onConfirm={save}
+                confirmLabel="حفظ وتطبيق"
+                onConfirm={() => {
+                    form.put('/admin/settings/platform', {
+                        preserveScroll: true,
+                        onSuccess: () => setConfirming(false),
+                    });
+                }}
                 onCancel={() => setConfirming(false)}
             />
         </AdminLayout>

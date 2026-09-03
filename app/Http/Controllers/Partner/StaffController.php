@@ -58,7 +58,7 @@ class StaffController extends Controller
         return Inertia::render('partner/staff/index', [
             'partner' => $partner,
             'staff' => $staff,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'roles' => collect(PartnerRole::cases())
                 ->filter(fn ($role) => $role !== PartnerRole::Owner)

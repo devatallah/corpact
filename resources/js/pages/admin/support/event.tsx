@@ -1,14 +1,44 @@
-import { BackLink, ListState } from '@/components/list-states';
-import AdminLayout from '@/layouts/admin-layout';
-import { fmtDateTime } from '@/lib/utils';
 import { Head } from '@inertiajs/react';
+import { Bell, CalendarDays, History, TriangleAlert } from 'lucide-react';
+import { BackLink, ListStates } from '@/components/list-states';
+import { Badge, Card, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import AdminLayout from '@/layouts/admin-layout';
+import { deliveryStatus, eventStatus } from '@/lib/status';
 
 /**
- * G — «قراءة سجل حالات أي فعالية»، و H §9 القاعدة 2: السجل يُقرأ **قبل** أي
- * تدخل يدوي. الشاشة قراءة محضة: لا زر يغيّر حالة، والتصعيد مكتوب.
+ * H §9 rule 2 — reading the state history is the precondition of any manual
+ * intervention, so the support agent gets the whole story on one screen:
+ * every transition with its actor and reason, and every notification the
+ * platform tried to deliver about this event.
+ *
+ * A manual transition is marked as such. That flag is what separates «النظام
+ * فعل ذلك» from «شخص فعل ذلك» when a company disputes an outcome.
  */
+type StatusRow = {
+    id: number;
+    from_status: string | null;
+    to_status: string;
+    is_manual: boolean;
+    reason: string | null;
+    actor_id: number | null;
+    created_at: string | null;
+};
 
-interface Props {
+type NotificationRow = {
+    id: number;
+    template_key: string;
+    channel: string;
+    status: string;
+    reason: string | null;
+    created_at: string | null;
+};
+
+export default function SupportEvent({
+    event,
+    statusHistory,
+    notificationLogs,
+    escalation,
+}: {
     event: {
         id: number;
         title: string;
@@ -22,162 +52,137 @@ interface Props {
         community: { id: number; name: string } | null;
         partner: { id: number; name: string } | null;
     };
-    statusHistory: {
-        id: number;
-        from_status: string | null;
-        to_status: string;
-        is_manual: boolean;
-        reason: string | null;
-        actor_id: number | null;
-        created_at: string | null;
-    }[];
-    notificationLogs: {
-        id: number;
-        template_key: string;
-        channel: string;
-        status: string;
-        reason: string | null;
-        created_at: string | null;
-    }[];
+    statusHistory: StatusRow[];
+    notificationLogs: NotificationRow[];
     escalation: { action: string; label: string; role: string }[];
-}
+}) {
+    const manualCount = statusHistory.filter((row) => row.is_manual).length;
 
-export default function SupportEvent({ event, statusHistory, notificationLogs, escalation }: Props) {
     return (
         <AdminLayout>
-            <Head title={`سجل حالات الفعالية #${event.id}`} />
+            <Head title={`سجل الفعالية ${event.id}`} />
 
             <BackLink href="/admin/support-console" label="العودة إلى مركز الدعم" />
 
-            <div className="page-title">{event.title}</div>
-            <div className="page-sub">
-                فعالية #{event.id} · الحالة الراهنة: {event.status} · {event.company?.name ?? '—'}
-                {event.community ? ` · ${event.community.name}` : ''}
+            <PageHeader
+                icon={CalendarDays}
+                title={event.title}
+                subtitle={`${event.company?.name ?? '—'} · ${event.community?.name ?? '—'}`}
+                actions={<Badge tone={eventStatus(event.status).tone}>{eventStatus(event.status).label}</Badge>}
+            />
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard label="الموعد" value={event.event_date ?? '—'} hint={event.start_time ?? undefined} />
+                <StatCard label="المشاركون" value={`${event.participants_count ?? 0} / ${event.capacity ?? '—'}`} hint={`النصاب ${event.min_participants ?? '—'}`} />
+                <StatCard label="المرفق" value={event.partner?.name ?? '—'} />
+                <StatCard
+                    label="تدخلات يدوية"
+                    value={manualCount}
+                    tone={manualCount > 0 ? 'warning' : 'success'}
+                    hint={manualCount > 0 ? 'راجع الأسباب أدناه' : 'الدورة تلقائية بالكامل'}
+                />
             </div>
 
-            <div className="card" style={{ marginTop: 16 }}>
-                <h3 style={{ marginTop: 0 }}>الحقائق</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
-                    <Fact label="التاريخ" value={event.event_date ?? '—'} />
-                    <Fact label="الوقت" value={event.start_time ?? '—'} />
-                    <Fact label="المشاركون" value={`${event.participants_count ?? 0} / ${event.capacity ?? '—'}`} />
-                    <Fact label="الحد الأدنى" value={String(event.min_participants ?? '—')} />
-                    <Fact label="المزوّد" value={event.partner?.name ?? '—'} />
+            {/* ── سجل الحالات ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <History className="w-4 h-4 text-ink" aria-hidden="true" />
+                    <h2 className="text-sm font-extrabold text-ink">سجل حالات الفعالية</h2>
                 </div>
-            </div>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden', marginTop: 16 }}>
-                <div style={{ padding: '12px 16px', fontWeight: 700, color: '#fff' }}>سجل الانتقالات</div>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <th>الوقت</th>
-                            <th>من</th>
-                            <th>إلى</th>
-                            <th>يدوي؟</th>
-                            <th>السبب</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {statusHistory.length === 0 ? (
-                            <tr>
-                                <td colSpan={5} style={{ padding: 0 }}>
-                                    <ListState tone="empty" title="لا انتقالات مسجَّلة" hint="الفعالية لم تغادر حالتها الأولى بعد." />
-                                </td>
-                            </tr>
-                        ) : (
-                            statusHistory.map((row) => (
-                                <tr key={row.id}>
-                                    <td style={{ fontSize: 12, color: '#6B7A99', whiteSpace: 'nowrap' }}>
-                                        {row.created_at ? fmtDateTime(row.created_at) : '—'}
-                                    </td>
-                                    <td style={{ color: '#9CA3BC' }}>{row.from_status ?? '—'}</td>
-                                    <td style={{ color: '#fff', fontWeight: 700 }}>{row.to_status}</td>
-                                    <td style={{ color: row.is_manual ? '#F5A623' : '#6B7A99', fontWeight: 700 }}>
-                                        {row.is_manual ? 'يدوي' : 'آلي'}
-                                    </td>
-                                    <td style={{ fontSize: 12, color: '#C8D0E0' }}>{row.reason ?? '—'}</td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                <TableShell>
+                    <Thead>
+                        <Th>الوقت</Th>
+                        <Th>من</Th>
+                        <Th>إلى</Th>
+                        <Th>المصدر</Th>
+                        <Th>السبب</Th>
+                    </Thead>
+                    <Tbody>
+                        {statusHistory.map((row) => (
+                            <Tr key={row.id}>
+                                <Td className="font-mono text-[11px] text-ink/70 whitespace-nowrap">
+                                    {row.created_at ? new Date(row.created_at).toLocaleString('ar-SA') : '—'}
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/60">{row.from_status ?? '—'}</Td>
+                                <Td className="font-mono text-[11px] font-bold text-ink">{row.to_status}</Td>
+                                <Td>
+                                    {row.is_manual ? (
+                                        <Badge tone="warning" icon={TriangleAlert}>
+                                            تدخل يدوي
+                                        </Badge>
+                                    ) : (
+                                        <Badge tone="neutral">النظام</Badge>
+                                    )}
+                                </Td>
+                                <Td className="text-ink/70 max-w-xs">{row.reason ?? '—'}</Td>
+                            </Tr>
+                        ))}
+                        <ListStates
+                            count={statusHistory.length}
+                            colSpan={5}
+                            empty="لا انتقالات مسجّلة."
+                            emptyHint="لم تتغيّر حالة هذه الفعالية منذ إنشائها."
+                        />
+                    </Tbody>
+                </TableShell>
+            </Card>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden', marginTop: 16 }}>
-                <div style={{ padding: '12px 16px', fontWeight: 700, color: '#fff' }}>
-                    سجل الإشعارات وحالات التسليم — أول ما يُفحص في شكوى «ما وصلني شيء»
+            {/* ── سجل الإشعارات ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-ink" aria-hidden="true" />
+                    <h2 className="text-sm font-extrabold text-ink">إشعارات هذه الفعالية</h2>
                 </div>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <th>الوقت</th>
-                            <th>القالب</th>
-                            <th>القناة</th>
-                            <th>الحالة</th>
-                            <th>السبب</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {notificationLogs.length === 0 ? (
-                            <tr>
-                                <td colSpan={5} style={{ padding: 0 }}>
-                                    <ListState
-                                        tone="empty"
-                                        title="لا سجلات إشعارات لهذه الفعالية"
-                                        hint="راجع سجل الإشعارات الكامل بحثاً برقم المستلم إن كانت الشكوى عن رسالة غير مرتبطة بالفعالية."
-                                    />
-                                </td>
-                            </tr>
-                        ) : (
-                            notificationLogs.map((log) => (
-                                <tr key={log.id}>
-                                    <td style={{ fontSize: 12, color: '#6B7A99', whiteSpace: 'nowrap' }}>
-                                        {log.created_at ? fmtDateTime(log.created_at) : '—'}
-                                    </td>
-                                    <td dir="ltr" style={{ fontSize: 12, color: '#C8D0E0' }}>{log.template_key}</td>
-                                    <td style={{ fontSize: 12 }}>{log.channel}</td>
-                                    <td style={{ fontSize: 12 }}>{log.status}</td>
-                                    <td style={{ fontSize: 12, color: '#9CA3BC' }}>{log.reason ?? '—'}</td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
 
-            <div className="card" style={{ marginTop: 16 }}>
-                <h3 style={{ marginTop: 0 }}>هذه الشاشة للقراءة فقط</h3>
-                <p style={{ fontSize: 12, color: '#9CA3BC', lineHeight: 1.9 }}>
-                    تغيير حالة الفعالية أو تعديل الحضور بعد النافذة أو أي تصحيح مالي — كلها خارج صلاحية الدعم وتُصعَّد:
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {escalation.map((row) => (
+                <TableShell>
+                    <Thead>
+                        <Th>الوقت</Th>
+                        <Th>القالب</Th>
+                        <Th>القناة</Th>
+                        <Th>التسليم</Th>
+                        <Th>السبب</Th>
+                    </Thead>
+                    <Tbody>
+                        {notificationLogs.map((log) => (
+                            <Tr key={log.id}>
+                                <Td className="font-mono text-[11px] text-ink/70 whitespace-nowrap">
+                                    {log.created_at ? new Date(log.created_at).toLocaleString('ar-SA') : '—'}
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/85">{log.template_key}</Td>
+                                <Td className="text-ink/70">{log.channel}</Td>
+                                <Td>
+                                    <Badge tone={deliveryStatus(log.status).tone}>{deliveryStatus(log.status).label}</Badge>
+                                </Td>
+                                <Td className="text-ink/70 max-w-xs">{log.reason ?? '—'}</Td>
+                            </Tr>
+                        ))}
+                        <ListStates
+                            count={notificationLogs.length}
+                            colSpan={5}
+                            empty="لا إشعارات مسجّلة لهذه الفعالية."
+                            emptyHint="إن كان المستخدم يشتكي من عدم وصول إشعار، فهذا يعني أنه لم يُرسل أصلاً."
+                        />
+                    </Tbody>
+                </TableShell>
+            </Card>
+
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <TriangleAlert className="w-4 h-4 text-warning" aria-hidden="true" />
+                    <h2 className="text-sm font-extrabold text-ink">ما لا تفعله من هنا — يُصعَّد</h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {escalation.slice(0, 8).map((row) => (
                         <span
                             key={row.action}
-                            style={{
-                                fontSize: 11,
-                                color: '#C8D0E0',
-                                background: '#12161F',
-                                border: '1px solid #232A3E',
-                                borderRadius: 8,
-                                padding: '4px 10px',
-                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-warning-tint text-warning border-[0.5px] border-warning/25"
                         >
-                            {row.label} → <b style={{ color: '#F5A623' }}>{row.role}</b>
+                            {row.label} → {row.role}
                         </span>
                     ))}
                 </div>
-            </div>
+            </Card>
         </AdminLayout>
-    );
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-    return (
-        <div>
-            <div style={{ fontSize: 11, color: '#6B7A99' }}>{label}</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#E8EAF0' }}>{value}</div>
-        </div>
     );
 }

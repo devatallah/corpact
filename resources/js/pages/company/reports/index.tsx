@@ -1,388 +1,371 @@
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import StatCard from '@/components/stat-card';
-import CompanyLayout from '@/layouts/company-layout';
-import type { Company, PaginatedResult } from '@/types/models';
 import { Head, Link, router } from '@inertiajs/react';
+import { ChartColumn, Download, FileText } from 'lucide-react';
+import {
+    Pagination,
+    ResultCount,
+    SortableHeader,
+} from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import {
+    Card,
+    Note,
+    PageHeader,
+    StatCard,
+    TableShell,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    Tr,
+} from '@/components/portal/ui';
+import CompanyLayout from '@/layouts/company-layout';
+import { eventStatus } from '@/lib/status';
+import type { Paginated, SortState } from '@/types';
 
-/* A13 — H §15: كل رقم على هذه الصفحة يأتي من قاموس المؤشرات في الخادم.
-   لا معادلة تُحسب في الواجهة، و«معدل التفعيل» هو المؤشر الأول لا عدد
-   المسجلين. حجم التداول والإنفاق حقلان منفصلان لا يُجمعان. */
-
-interface Metric {
+/**
+ * H §15 — تقارير مسؤول الحساب.
+ *
+ * Every figure here comes from the KPI dictionary, and each one is shown with
+ * its own formula. That is the whole design: the same word ("participation",
+ * "attendance") means one thing platform-wide, and the reader can check the
+ * definition without leaving the page.
+ *
+ * Spend and GMV are deliberately separate cards with separate names — GMV is
+ * money collected on providers' behalf, not company money and not revenue.
+ */
+type Kpi = {
     key: string;
     label: string;
     numerator: number;
     denominator: number;
     rate: number;
     formula: string;
-}
+};
 
-interface CommunityRow {
-    id: number;
-    name: string;
-    last_completed_at: string | null;
-    leaderless_dormant: boolean;
-}
-
-interface DepartmentRow {
-    department_id: number | null;
-    department_name: string;
-    attendees: number;
-    employees: number;
-    rate: number;
-}
-
-interface Kpi {
-    period: { key: string; label: string; start: string; end: string };
-    activation_rate: Metric;
-    attendance_rate: Metric;
-    cancellation_rate: Metric;
+type Snapshot = {
+    period: { key: string; label: string };
+    activation_rate: Kpi;
+    attendance_rate: Kpi;
+    cancellation_rate: Kpi;
     cancellation_reasons: Record<string, number>;
-    department_participation: DepartmentRow[];
+    department_participation: {
+        department_id: number | null;
+        department_name: string;
+        attendees: number;
+        employees: number;
+        rate: number;
+    }[];
     communities: {
         window_days: number;
         as_of: string;
-        active: CommunityRow[];
-        dormant: CommunityRow[];
-        metric: Metric;
+        active: unknown[];
+        dormant: unknown[];
+        metric: Kpi;
     };
     completed_events: number;
     created_events: number;
     attendance_count: number;
     company_spend: string;
-    company_spend_halalas: number;
     gmv: string;
-    gmv_halalas: number;
     cost_per_participation: string;
-    cost_per_participation_halalas: number;
-}
-
-interface MonthlyReportRow {
-    id: number;
-    period_key: string;
-    delivered_at: string | null;
-    activation_rate: number;
-    completed_events: number;
-    recommendations_count: number;
-}
-
-interface Props {
-    company: Company;
-    period: { key: string; label: string; start: string; end: string };
-    periodOptions: { key: string; label: string }[];
-    kpi: Kpi;
-    exports: { key: string; title: string }[];
-    monthlyReports: PaginatedResult<MonthlyReportRow>;
-    monthlySort: SortState;
-}
-
-const CANCELLATION_LABELS: Record<string, string> = {
-    cancelled_min_not_met: 'لم يبلغ الحد الأدنى',
-    cancelled_provider: 'إلغاء من المزوّد',
-    cancelled_company: 'إلغاء من الشركة',
-    cancelled_payment_failed: 'فشل التحصيل',
 };
 
-const cardStyle = { padding: 0, overflow: 'hidden' } as const;
-const thStyle = { padding: '10px 14px', fontSize: 12, color: '#666', fontWeight: 600 } as const;
-const tdStyle = { padding: '10px 14px', fontSize: 13 } as const;
-
-function sectionHeader(title: string, sub?: string) {
+export default function CompanyReports({
+    period,
+    periodOptions,
+    kpi,
+    exports,
+    monthlyReports,
+    monthlySort,
+}: {
+    company: { id: number; name: string };
+    period: { key: string; label: string };
+    periodOptions: { key: string; label: string }[];
+    kpi: Snapshot;
+    exports: { key: string; title: string }[];
+    monthlyReports: Paginated<{
+        id: number;
+        period_key: string;
+        delivered_at: string | null;
+        activation_rate: number;
+        completed_events: number;
+        recommendations_count: number;
+    }>;
+    monthlySort: SortState;
+    unreadNotifications: number;
+}) {
     return (
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid #F0EDE8' }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>{title}</div>
-            {sub && <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>{sub}</div>}
-        </div>
+        <CompanyLayout>
+            <Head title="التقارير" />
+
+            <PageHeader
+                icon={ChartColumn}
+                title="التقارير"
+                subtitle="كل رقم هنا معرَّف في قاموس المؤشرات — الصيغة مكتوبة تحته."
+                actions={
+                    <select
+                        aria-label="الدورة"
+                        className="rounded-full border-[0.5px] border-ink/20 bg-surface px-3 py-2 text-xs font-bold text-ink"
+                        value={period.key}
+                        onChange={(event) =>
+                            router.get(
+                                '/company/reports',
+                                { period: event.target.value },
+                                { preserveState: true, replace: true },
+                            )
+                        }
+                    >
+                        {periodOptions.map((option) => (
+                            <option key={option.key} value={option.key}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                }
+            />
+
+            {/* ── المؤشرات بصيغتها ── */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <RateCard kpi={kpi.activation_rate} />
+                <RateCard kpi={kpi.attendance_rate} />
+                <RateCard kpi={kpi.cancellation_rate} invert />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <StatCard label="فعاليات مكتملة" value={kpi.completed_events} />
+                <StatCard label="فعاليات أُنشئت" value={kpi.created_events} />
+                <StatCard label="مشاركات موثّقة" value={kpi.attendance_count} />
+                <StatCard
+                    label="تكلفة المشاركة"
+                    value={kpi.cost_per_participation}
+                    hint="ريال"
+                />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <StatCard
+                    label="إنفاق شركتك"
+                    value={kpi.company_spend}
+                    hint="ريال — ما صُرف فعلاً من محافظك"
+                />
+                <StatCard
+                    label="حجم التداول (GMV)"
+                    value={kpi.gmv}
+                    hint="ريال — قيمة النشاط، ليست إنفاقك ولا إيراد تيمات"
+                />
+            </div>
+
+            {/* ── أسباب الإلغاء ── */}
+            <Card padding="p-4" className="space-y-3">
+                <h2 className="text-sm font-extrabold text-ink">
+                    أسباب الإلغاء
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                    {Object.entries(kpi.cancellation_reasons).map(
+                        ([status, count]) => (
+                            <span
+                                key={status}
+                                className="inline-flex items-center gap-2 rounded-full border-[0.5px] border-ink/12 bg-ink/5 px-3 py-1.5 text-[11px] font-bold"
+                            >
+                                {eventStatus(status).label}
+                                <span className="font-mono font-black text-ink">
+                                    {count}
+                                </span>
+                            </span>
+                        ),
+                    )}
+                </div>
+                <p className="text-[11px] leading-relaxed text-ink/55">
+                    «ألغاها المزوّد» و«ألغتها الشركة» يُحسبان منفصلين لأن أثرهما
+                    على الاسترداد مختلف — الأول يعيد المبلغ كاملاً للمحفظة.
+                </p>
+            </Card>
+
+            {/* ── المشاركة حسب الإدارة ── */}
+            <Card padding="p-4" className="space-y-4">
+                <h2 className="text-sm font-extrabold text-ink">
+                    المشاركة حسب الإدارة
+                </h2>
+                <TableShell>
+                    <Thead>
+                        <Th>الإدارة</Th>
+                        <Th>الموظفون</Th>
+                        <Th>شاركوا</Th>
+                        <Th>النسبة</Th>
+                    </Thead>
+                    <Tbody>
+                        {kpi.department_participation.map((row) => (
+                            <Tr key={row.department_id ?? 'none'}>
+                                <Td className="font-extrabold text-ink">
+                                    {row.department_name}
+                                </Td>
+                                <Td className="font-mono text-ink/70">
+                                    {row.employees}
+                                </Td>
+                                <Td className="font-mono font-bold text-ink">
+                                    {row.attendees}
+                                </Td>
+                                <Td className="font-mono text-ink/70">
+                                    {row.rate}٪
+                                </Td>
+                            </Tr>
+                        ))}
+                        <ListStates
+                            count={kpi.department_participation.length}
+                            colSpan={4}
+                            empty="لا بيانات مشاركة في هذه الدورة."
+                        />
+                    </Tbody>
+                </TableShell>
+            </Card>
+
+            {/* ── التصدير ── */}
+            <Card padding="p-4" className="space-y-3">
+                <h2 className="text-sm font-extrabold text-ink">التصدير</h2>
+                <div className="flex flex-wrap gap-2">
+                    {exports.map((row) => (
+                        <div
+                            key={row.key}
+                            className="inline-flex items-center gap-1.5"
+                        >
+                            <a
+                                href={`/company/reports/export/${row.key}?format=xlsx&period=${period.key}`}
+                                className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-xs font-bold text-lime transition-opacity hover:opacity-90"
+                            >
+                                <Download
+                                    className="h-3.5 w-3.5"
+                                    aria-hidden="true"
+                                />
+                                {row.title} — Excel
+                            </a>
+                            <a
+                                href={`/company/reports/export/${row.key}?format=pdf&period=${period.key}`}
+                                className="inline-flex items-center gap-1.5 rounded-full border-[0.5px] border-ink/12 bg-ink/5 px-3 py-2 text-xs font-bold text-ink transition-colors hover:bg-ink/10"
+                            >
+                                PDF
+                            </a>
+                        </div>
+                    ))}
+                    {exports.length === 0 && (
+                        <p className="text-xs text-ink/55">
+                            لا تصديرات متاحة لدورك.
+                        </p>
+                    )}
+                </div>
+                <Note title="كل تنزيل مسجَّل">
+                    التصدير يحمل بيانات موظفيك، فيُقيَّد في سجل التدقيق باسمك
+                    ووقته ونطاقه — هذا يحميك أنت أيضاً عند أي مساءلة.
+                </Note>
+            </Card>
+
+            {/* ── تقارير المنسّق الشهرية ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-ink" aria-hidden="true" />
+                    <h2 className="text-sm font-extrabold text-ink">
+                        التقارير الشهرية المُسلَّمة
+                    </h2>
+                </div>
+
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader
+                                label="الدورة"
+                                sortKey="period_key"
+                                sort={monthlySort}
+                            />
+                        </Th>
+                        <Th>معدل التفعيل</Th>
+                        <Th>فعاليات مكتملة</Th>
+                        <Th>توصيات</Th>
+                        <Th>
+                            <SortableHeader
+                                label="سُلّم في"
+                                sortKey="delivered_at"
+                                sort={monthlySort}
+                            />
+                        </Th>
+                    </Thead>
+                    <Tbody>
+                        {monthlyReports.data.map((report) => (
+                            <Tr key={report.id}>
+                                <Td>
+                                    <Link
+                                        href={`/company/reports/monthly/${report.id}`}
+                                        className="font-extrabold text-ink hover:underline"
+                                    >
+                                        {report.period_key}
+                                    </Link>
+                                </Td>
+                                <Td className="font-mono font-bold text-ink">
+                                    {report.activation_rate}٪
+                                </Td>
+                                <Td className="font-mono text-ink/80">
+                                    {report.completed_events}
+                                </Td>
+                                <Td className="font-mono text-ink/80">
+                                    {report.recommendations_count}
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/70">
+                                    {report.delivered_at
+                                        ? new Date(
+                                              report.delivered_at,
+                                          ).toLocaleDateString('ar-SA')
+                                        : '—'}
+                                </Td>
+                            </Tr>
+                        ))}
+                        <ListStates
+                            count={monthlyReports.data.length}
+                            colSpan={5}
+                            empty="لا تقارير شهرية مُسلَّمة."
+                            emptyHint="التقرير الشهري خدمة المنسّق المُدار — يظهر هنا بعد تسليمه، لا قبله."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <ResultCount page={monthlyReports} />
+                    <Pagination page={monthlyReports} />
+                </div>
+            </Card>
+        </CompanyLayout>
     );
 }
 
-function fmtDate(value: string | null) {
-    return value ? new Date(value).toLocaleDateString('ar-SA') : '—';
-}
-
-export default function ReportsIndex({ company, period, periodOptions, kpi, exports, monthlyReports, monthlySort }: Props) {
-    const cancellations = Object.entries(kpi.cancellation_reasons);
-    const totalCancelled = cancellations.reduce((sum, [, count]) => sum + count, 0);
-
-    function changePeriod(key: string) {
-        router.get('/company/reports', { period: key }, { preserveScroll: true, preserveState: false });
-    }
+/** المؤشر ومعادلته — نسبة بلا مقام رقمٌ للزينة. */
+function RateCard({ kpi, invert = false }: { kpi: Kpi; invert?: boolean }) {
+    const bar = invert ? 'bg-danger' : 'bg-lime';
 
     return (
-        <CompanyLayout>
-            <Head title="التقارير والمؤشرات" />
-
-            <div style={{ marginBottom: 20 }}>
-                <div className="page-title">التقارير والمؤشرات</div>
-                <div className="page-sub">{company.name} — {period.label} (بتوقيت الرياض)</div>
+        <Card padding="p-5" className="space-y-3">
+            <div className="flex items-baseline justify-between gap-2">
+                <span className="text-sm font-extrabold text-ink">
+                    {kpi.label}
+                </span>
+                <span className="font-mono text-3xl font-black text-ink">
+                    {kpi.rate}٪
+                </span>
             </div>
 
-            <div className="card" style={{ marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div>
-                    <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>الفترة</label>
-                    <select
-                        value={period.key}
-                        onChange={(e) => changePeriod(e.target.value)}
-                        style={{ padding: '8px 10px', border: '1px solid #DDD', borderRadius: 8, minWidth: 160 }}
-                    >
-                        {periodOptions.map((option) => (
-                            <option key={option.key} value={option.key}>{option.label}</option>
-                        ))}
-                    </select>
-                </div>
-                <span style={{ flex: 1 }} />
-                <div>
-                    <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 6 }}>التصدير</label>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        {exports.map((item) => (
-                            <span key={item.key} style={{ display: 'inline-flex', border: '1px solid #DDD', borderRadius: 8, overflow: 'hidden' }}>
-                                <span style={{ padding: '8px 10px', fontSize: 12, background: '#FAFAFA' }}>{item.title}</span>
-                                <a
-                                    href={`/company/reports/export/${item.key}?format=xlsx&period=${period.key}`}
-                                    style={{ padding: '8px 10px', fontSize: 12, borderRight: '1px solid #DDD', color: '#1A56DB' }}
-                                >
-                                    Excel
-                                </a>
-                                <a
-                                    href={`/company/reports/export/${item.key}?format=pdf&period=${period.key}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    style={{ padding: '8px 10px', fontSize: 12, borderRight: '1px solid #DDD', color: '#1A56DB' }}
-                                >
-                                    PDF
-                                </a>
-                            </span>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* المؤشر الأول: معدل التفعيل */}
-            <div className="stat-row">
-                <StatCard
-                    emoji="✅"
-                    label="معدل التفعيل — المؤشر الأول"
-                    value={`${kpi.activation_rate.rate}%`}
-                    change={`${kpi.activation_rate.numerator} من ${kpi.activation_rate.denominator} موظفاً نشطاً`}
-                    color="#059669"
-                />
-                <StatCard
-                    emoji="🎯"
-                    label="معدل الحضور"
-                    value={`${kpi.attendance_rate.rate}%`}
-                    change={`${kpi.attendance_rate.numerator} من ${kpi.attendance_rate.denominator} مقعداً محجوزاً`}
-                    color="#1A56DB"
-                />
-                <StatCard
-                    emoji="🏘️"
-                    label={`المجتمعات النشطة (${kpi.communities.window_days} يوماً)`}
-                    value={`${kpi.communities.active.length}`}
-                    change={`${kpi.communities.dormant.length} خاملاً من ${kpi.communities.metric.denominator}`}
-                    color="#0CA678"
-                />
-                <StatCard
-                    emoji="🚫"
-                    label="معدل الإلغاء"
-                    value={`${kpi.cancellation_rate.rate}%`}
-                    change={`${kpi.cancellation_rate.numerator} ملغاة من ${kpi.cancellation_rate.denominator} منشأة`}
-                    color="#DC2626"
+            <div
+                className="h-2 w-full overflow-hidden rounded-full bg-ink/10"
+                dir="ltr"
+            >
+                <div
+                    className={`h-full ${bar} rounded-full`}
+                    style={{ width: `${Math.min(kpi.rate, 100)}%` }}
                 />
             </div>
 
-            {/* الإنفاق وحجم التداول — بطاقتان منفصلتان صراحةً (H §15) */}
-            <div className="stat-row">
-                <StatCard
-                    emoji="💸"
-                    label="التكلفة لكل مشاركة"
-                    value={`${kpi.cost_per_participation} ر.س`}
-                    change={`إنفاق ${kpi.company_spend} ÷ ${kpi.attendance_count} مشاركة`}
-                    color="#B45309"
-                />
-                <StatCard
-                    emoji="🧾"
-                    label="إنفاق الشركة في الفترة"
-                    value={`${kpi.company_spend} ر.س`}
-                    change="ما خرج فعلاً من محافظ الشركة"
-                    color="#8A7868"
-                />
-                <StatCard
-                    emoji="📊"
-                    label="حجم التداول — ليس ما تدفعه لتيمات"
-                    value={`${kpi.gmv} ر.س`}
-                    change="قيمة الفعاليات المكتملة"
-                    color="#6B7280"
-                />
-                <StatCard
-                    emoji="📅"
-                    label="الفعاليات المكتملة"
-                    value={kpi.completed_events}
-                    change={`${kpi.created_events} فعالية أُنشئت`}
-                    color="#3B5BDB"
-                />
-            </div>
+            <span className="block font-mono text-[11px] text-ink/60">
+                {kpi.numerator} من {kpi.denominator}
+            </span>
 
-            <div className="card" style={{ background: '#FFF8E6', border: '1px solid #F0D9A0', fontSize: 13, marginBottom: 16 }}>
-                ℹ️ «حجم التداول» ليس ما تدفعه لتيمات ولا إيراداً لها. ما تدفعه الشركة هو رسوم النظام + الدعم الذي اخترت
-                تحمّله + خدمة المنسّق إن تعاقدت عليها — وتراه في صفحة الفواتير.
-            </div>
-
-            {/* المشاركة حسب الإدارة */}
-            <div className="card" style={{ ...cardStyle, marginBottom: 16 }}>
-                {sectionHeader('المشاركة حسب الإدارة', 'الحاضرون منسوبون للإدارة وقت الفعالية لا لإدارتهم الحالية')}
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <th style={thStyle}>الإدارة</th>
-                            <th style={thStyle}>حضروا</th>
-                            <th style={thStyle}>موظفو الإدارة</th>
-                            <th style={thStyle}>النسبة</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {kpi.department_participation.length === 0 ? (
-                            <tr>
-                                <td colSpan={4} style={{ ...tdStyle, textAlign: 'center', color: '#888', padding: 24 }}>
-                                    لا توجد إدارات ولا مشاركات في هذه الفترة.
-                                </td>
-                            </tr>
-                        ) : (
-                            kpi.department_participation.map((row) => (
-                                <tr key={row.department_id ?? 'none'}>
-                                    <td style={tdStyle}>{row.department_name}</td>
-                                    <td style={tdStyle}>{row.attendees}</td>
-                                    <td style={tdStyle}>{row.employees}</td>
-                                    <td style={tdStyle}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <div className="bar-wrap" style={{ flex: 1, maxWidth: 160 }}>
-                                                <div className="bar-fill" style={{ width: `${Math.min(100, row.rate)}%`, background: row.rate === 0 ? '#DC2626' : '#059669' }} />
-                                            </div>
-                                            <span style={{ fontSize: 12, fontWeight: 700 }}>{row.rate}%</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                {/* المجتمعات النشطة والخاملة */}
-                <div className="card" style={cardStyle}>
-                    {sectionHeader('المجتمعات النشطة والخاملة', `النشط: أقام فعالية مكتملة خلال ${kpi.communities.window_days} يوماً`)}
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <th style={thStyle}>المجتمع</th>
-                                <th style={thStyle}>الحالة</th>
-                                <th style={thStyle}>آخر فعالية مكتملة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {kpi.communities.active.length === 0 && kpi.communities.dormant.length === 0 ? (
-                                <tr>
-                                    <td colSpan={3} style={{ ...tdStyle, textAlign: 'center', color: '#888', padding: 24 }}>
-                                        لا توجد مجتمعات بعد.
-                                    </td>
-                                </tr>
-                            ) : (
-                                [
-                                    ...kpi.communities.active.map((c) => ({ ...c, active: true })),
-                                    ...kpi.communities.dormant.map((c) => ({ ...c, active: false })),
-                                ].map((row) => (
-                                    <tr key={row.id}>
-                                        <td style={tdStyle}>{row.name}</td>
-                                        <td style={tdStyle}>
-                                            <span className="pill" style={{ background: row.active ? '#D1FAE5' : '#FEE2E2', color: row.active ? '#059669' : '#DC2626' }}>
-                                                {row.active ? 'نشط' : 'خامل'}
-                                            </span>
-                                            {row.leaderless_dormant && (
-                                                <span style={{ fontSize: 11, color: '#B45309', marginRight: 6 }}>بلا قائد</span>
-                                            )}
-                                        </td>
-                                        <td style={tdStyle}>{fmtDate(row.last_completed_at)}</td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* أسباب الإلغاء */}
-                <div className="card" style={cardStyle}>
-                    {sectionHeader('أسباب الإلغاء', 'السبب حالة من آلة الحالات لا نص حر')}
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <th style={thStyle}>السبب</th>
-                                <th style={thStyle}>العدد</th>
-                                <th style={thStyle}>من الملغاة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {totalCancelled === 0 ? (
-                                <tr>
-                                    <td colSpan={3} style={{ ...tdStyle, textAlign: 'center', color: '#888', padding: 24 }}>
-                                        لا إلغاءات في هذه الفترة.
-                                    </td>
-                                </tr>
-                            ) : (
-                                cancellations.map(([status, count]) => (
-                                    <tr key={status}>
-                                        <td style={tdStyle}>{CANCELLATION_LABELS[status] ?? status}</td>
-                                        <td style={tdStyle}>{count}</td>
-                                        <td style={tdStyle}>
-                                            {totalCancelled === 0 ? '0%' : `${Math.round((count / totalCancelled) * 100)}%`}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* التقارير الشهرية المُسلَّمة */}
-            <div className="card" style={cardStyle}>
-                {sectionHeader('التقارير الشهرية', 'تصل آلياً في اليوم الثاني من كل شهر — لقطة ثابتة لا يُعاد حسابها')}
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <SortableHeader label="الدورة" sortKey="period_key" sort={monthlySort} initialDirection="desc" style={thStyle} />
-                            <th style={thStyle}>معدل التفعيل</th>
-                            <th style={thStyle}>فعاليات مكتملة</th>
-                            <th style={thStyle}>توصيات</th>
-                            <SortableHeader label="وصل في" sortKey="delivered_at" sort={monthlySort} initialDirection="desc" style={thStyle} />
-                            <th style={thStyle} />
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <ListStates
-                            count={monthlyReports.data.length}
-                            columns={6}
-                            emptyTitle="لم يصل تقرير شهري بعد"
-                            emptyHint="أول تقرير يصل في اليوم الثاني من الشهر القادم."
-                        />
-                        {monthlyReports.data.map((report) => (
-                            <tr key={report.id}>
-                                <td style={tdStyle}>{report.period_key}</td>
-                                <td style={tdStyle}>{report.activation_rate}%</td>
-                                <td style={tdStyle}>{report.completed_events}</td>
-                                <td style={tdStyle}>{report.recommendations_count}</td>
-                                <td style={tdStyle}>{fmtDate(report.delivered_at)}</td>
-                                <td style={tdStyle}>
-                                    <Link href={`/company/reports/monthly/${report.id}`} style={{ color: '#1A56DB', fontSize: 12 }}>
-                                        عرض التقرير
-                                    </Link>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <Pagination links={monthlyReports.links} />
-            </div>
-        </CompanyLayout>
+            <p className="border-t-[0.5px] border-ink/10 pt-2 text-[11px] leading-relaxed text-ink/55">
+                {kpi.formula}
+            </p>
+        </Card>
     );
 }

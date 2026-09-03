@@ -237,7 +237,16 @@ class OtpService
 
     private function generateCode(): string
     {
-        return str_pad((string) random_int(0, 999999), (int) config('otp.length'), '0', STR_PAD_LEFT);
+        $length = (int) config('otp.length');
+
+        // رمز ثابت للتطوير المحلي وحده — انظر التحذير في config/otp.php.
+        $fixed = config('otp.fixed_code');
+
+        if ($fixed !== null && $fixed !== '' && app()->environment('local')) {
+            return str_pad((string) $fixed, $length, '0', STR_PAD_LEFT);
+        }
+
+        return str_pad((string) random_int(0, 999999), $length, '0', STR_PAD_LEFT);
     }
 
     private function hash(string $phone, string $code): string

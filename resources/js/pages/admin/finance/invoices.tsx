@@ -1,289 +1,250 @@
-import ConfirmModal from '@/components/confirm-modal';
-import FilterTabs from '@/components/filter-tabs';
-import Pagination from '@/components/pagination';
-import { SortBar, type SortState } from '@/components/sortable-header';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
-import AdminLayout from '@/layouts/admin-layout';
-import type { PaginatedResult } from '@/types/models';
 import { Head, Link, router } from '@inertiajs/react';
+import { AlertTriangle, CircleCheckBig, FileWarning, Play, Receipt } from 'lucide-react';
 import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Button, Card, Note, PageHeader, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import AdminLayout from '@/layouts/admin-layout';
+import type { Paginated, SortState } from '@/types';
 
-interface InvoiceRow {
+/**
+ * H §12.8 — فواتير رسوم النظام على الشركات.
+ *
+ * Marking an invoice paid is what lifts a company's block, so the dialog
+ * names the total, the VAT inside it, and that consequence. Companies with
+ * no contract terms are listed up top: they cannot be invoiced at all.
+ */
+type Invoice = {
     id: number;
-    serial: string;
+    serial: string | null;
     company: { id: number; name: string } | null;
     period_key: string;
     status: string;
     issuance_mode: string;
     activated_employees_count: number;
-    departed_activated_count: number;
     subtotal: string;
     vat_amount: string;
     total_amount: string;
+    vat_rate_percent: number;
+    issued_at: string | null;
     due_at: string | null;
+    paid_at: string | null;
     days_overdue: number;
-    reminder_7_sent_at: string | null;
-    reminder_15_sent_at: string | null;
     blocked_at: string | null;
-}
+};
 
-interface Props {
-    invoices: PaginatedResult<InvoiceRow>;
-    filters: { status?: string; search?: string; sort?: string; dir?: string };
+const STATUS: Record<string, { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger' }> = {
+    draft: { label: 'مسودة', tone: 'neutral' },
+    issued: { label: 'صادرة', tone: 'warning' },
+    paid: { label: 'مسددة', tone: 'success' },
+    overdue: { label: 'متأخرة', tone: 'danger' },
+    blocked: { label: 'محجوبة', tone: 'danger' },
+};
+
+export default function AdminInvoices({
+    invoices,
+    filters,
+    sort,
+    cycle,
+    realInvoicesEnabled,
+    missingContracts,
+}: {
+    invoices: Paginated<Invoice>;
+    filters: { status: string; search: string };
+    sort: SortState;
     cycle: { key: string; start: string; end: string };
     realInvoicesEnabled: boolean;
     missingContracts: { id: number; name: string }[];
-    sort: SortState;
-}
-
-const STATUS_LABEL: Record<string, string> = {
-    draft: 'مسودة',
-    issued: 'مُصدَرة',
-    paid: 'مسددة',
-    void: 'ملغاة',
-};
-
-const STATUS_FILTERS = [
-    { label: 'الكل', value: '' },
-    { label: STATUS_LABEL.issued, value: 'issued' },
-    { label: STATUS_LABEL.paid, value: 'paid' },
-];
-
-// H §18 — «كل قائمة: بحث + فلترة + ترتيب + ترقيم صفحات».
-const SORT_OPTIONS = [
-    { key: 'period_key', label: 'الدورة', initialDirection: 'desc' as const },
-    { key: 'total_amount', label: 'الإجمالي', initialDirection: 'desc' as const },
-    { key: 'due_at', label: 'الاستحقاق', initialDirection: 'desc' as const },
-    { key: 'activated_employees_count', label: 'المفعّلون', initialDirection: 'desc' as const },
-    { key: 'status', label: 'الحالة' },
-];
-
-export default function FinanceInvoices({ invoices, filters, cycle, realInvoicesEnabled, missingContracts, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        status: filters?.status,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-    const [payFor, setPayFor] = useState<number | null>(null);
-    const [reference, setReference] = useState('');
-    // H §18: «كل إجراء مالي … يمر بنافذة تأكيد تعرض المبلغ والأثر صراحة».
-    const [payTarget, setPayTarget] = useState<InvoiceRow | null>(null);
-
-    function confirmPay() {
-        if (!payTarget) return;
-        const id = payTarget.id;
-        setPayTarget(null);
-        router.post(
-            `/admin/finance/invoices/${id}/pay`,
-            { payment_reference: reference },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setPayFor(null);
-                    setReference('');
-                },
-            },
-        );
-    }
+}) {
+    const [paying, setPaying] = useState<Invoice | null>(null);
+    const [generating, setGenerating] = useState(false);
+    const [arrears, setArrears] = useState(false);
 
     return (
         <AdminLayout>
-            <Head title="فواتير رسوم النظام" />
+            <Head title="الفواتير" />
 
-            <div className="page-title">فواتير رسوم النظام</div>
-            <div className="page-sub" style={{ marginBottom: 8 }}>
-                دورة ميلادية كاملة · تصدر اليوم الثالث من الشهر التالي · تُستحق خلال 15 يوماً · 15% ضريبة تُضاف على
-                الرسوم · الأساس عدد الموظفين المفعّلين (شارك في فعالية مكتملة ولم يُسجَّل غائباً، مرة واحدة).
-            </div>
+            <PageHeader
+                icon={Receipt}
+                title="فواتير رسوم النظام"
+                subtitle="فاتورة شهرية لكل شركة على الموظفين المفعّلين، بحد أدنى تعاقدي إن وُجد. التأخر يقود إلى الحجب."
+                actions={
+                    <>
+                        <Button tone="soft" icon={AlertTriangle} onClick={() => setArrears(true)}>
+                            تشغيل دورة التأخر
+                        </Button>
+                        <Button icon={Play} onClick={() => setGenerating(true)}>
+                            إصدار فواتير {cycle.key}
+                        </Button>
+                    </>
+                }
+            />
 
             {!realInvoicesEnabled && (
-                <div
-                    style={{
-                        background: 'rgba(224,176,64,0.12)',
-                        border: '1px solid #E0B040',
-                        borderRadius: 12,
-                        padding: 14,
-                        fontSize: 12,
-                        color: '#8A6B10',
-                        marginBottom: 16,
-                    }}
-                >
-                    الفواتير تصدر بوضع <strong>مبدئي</strong>: الأرقام تُحسب وتُخزَّن ولا تُقدَّم مستنداً ضريبياً
-                    نهائياً. إصدار فاتورة حقيقية موقوف بعلم <code>billing.real_invoices_enabled</code> بانتظار مراجعة
-                    محاسب قانوني للصفة الضريبية.
-                </div>
+                <Note tone="warning" title="الفوترة الضريبية الحقيقية معطّلة">
+                    الفواتير تُنشأ بوضع تجريبي (بلا رقم تسلسلي ضريبي معتمد). فعّل <span className="font-mono">real_invoices_enabled</span>{' '}
+                    بعد اعتماد المحاسب القانوني.
+                </Note>
             )}
 
             {missingContracts.length > 0 && (
-                <div
-                    style={{
-                        background: 'rgba(224,48,80,0.10)',
-                        border: '1px solid #E03050',
-                        borderRadius: 12,
-                        padding: 14,
-                        fontSize: 12,
-                        color: '#B0203A',
-                        marginBottom: 16,
-                    }}
-                >
-                    شركات بلا رسم عقد محدد — لا تُفوتر حتى تُدخل قيم عقدها:{' '}
-                    {missingContracts.map((c) => c.name).join('، ')}
-                </div>
+                <Note tone="danger" title={`${missingContracts.length} شركة بلا شروط عقد — لن تُفوتر`}>
+                    {missingContracts.map((company) => company.name).join(' · ')}
+                </Note>
             )}
 
-            <div
-                style={{
-                    background: '#fff',
-                    border: '1px solid #E2E8F4',
-                    borderRadius: 16,
-                    padding: 18,
-                    marginBottom: 20,
-                    display: 'flex',
-                    gap: 10,
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                }}
-            >
-                <div style={{ fontWeight: 800 }}>
-                    الدورة المنتهية: {cycle.key} ({cycle.start} → {cycle.end})
-                </div>
-                <button
-                    type="button"
-                    className="fbtn"
-                    onClick={() => router.post('/admin/finance/invoices/generate', {}, { preserveScroll: true })}
-                >
-                    توليد فواتير الدورة
-                </button>
-                <button
-                    type="button"
-                    className="fbtn"
-                    onClick={() => router.post('/admin/finance/invoices/arrears', {}, { preserveScroll: true })}
-                >
-                    تشغيل سلّم التأخر
-                </button>
-                <Link href="/admin/finance/terms" className="fbtn">
-                    شروط العقود المستقبلية
-                </Link>
-            </div>
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search} placeholder="ابحث بالرقم التسلسلي أو اسم الشركة…" />
+                    <FilterSelect
+                        name="status"
+                        label="حالة الفاتورة"
+                        value={filters.status}
+                        options={[
+                            ['', 'كل الحالات'],
+                            ['draft', 'مسودة'],
+                            ['issued', 'صادرة'],
+                            ['paid', 'مسددة'],
+                            ['overdue', 'متأخرة'],
+                            ['blocked', 'محجوبة'],
+                        ]}
+                    />
+                </Toolbar>
 
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث برقم الفاتورة أو اسم الشركة..."
-                    style={{
-                        padding: '9px 14px',
-                        borderRadius: 10,
-                        border: '1px solid #E2E8F4',
-                        fontSize: 13,
-                        outline: 'none',
-                        direction: 'rtl',
-                        fontFamily: 'inherit',
-                        minWidth: 260,
-                    }}
-                />
-                <FilterTabs options={STATUS_FILTERS} current={filters?.status ?? ''} />
-                <SortBar sort={sort} options={SORT_OPTIONS} />
-            </div>
+                <TableShell>
+                    <Thead>
+                        <Th>الشركة</Th>
+                        <Th>
+                            <SortableHeader label="الرقم التسلسلي" sortKey="serial" sort={sort} />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="الفترة" sortKey="period_key" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>الموظفون المفعّلون</Th>
+                        <Th>
+                            <SortableHeader label="الإجمالي" sortKey="total_amount" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
+                        </Th>
+                        <Th className="text-center">الإجراءات</Th>
+                    </Thead>
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 22 }}>
-                {invoices.data.length === 0 ? (
-                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا فاتورة مطابقة للبحث والفلاتر الحالية.</div>
-                ) : (
-                    invoices.data.map((row, index) => (
-                        <div
-                            key={row.id}
-                            style={{
-                                padding: '14px 0',
-                                ...(index < invoices.data.length - 1 ? { borderBottom: '1px solid #E2E8F4' } : {}),
-                            }}
-                        >
-                            <div
-                                style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}
-                            >
-                                <div>
-                                    <div style={{ fontSize: 14, fontWeight: 800 }}>
-                                        {row.company?.name ?? '—'}
-                                        <span style={{ marginInlineStart: 10, color: '#7A8BA8' }}>{row.serial}</span>
-                                        <span style={{ marginInlineStart: 10, color: '#4A9DE0' }}>
-                                            {STATUS_LABEL[row.status]}
-                                        </span>
-                                        {row.issuance_mode === 'provisional' && (
-                                            <span style={{ marginInlineStart: 10, color: '#E0B040' }}>مبدئية</span>
-                                        )}
-                                    </div>
-                                    <div style={{ fontSize: 12, color: '#7A8BA8', marginTop: 4 }}>
-                                        دورة {row.period_key} · {row.activated_employees_count} موظف مفعّل (منهم{' '}
-                                        {row.departed_activated_count} غادروا خلال الدورة) · رسوم {row.subtotal} +
-                                        ضريبة {row.vat_amount} ={' '}
-                                        <strong style={{ color: '#009E82' }}>{row.total_amount}</strong> ريال
-                                    </div>
-                                    <div style={{ fontSize: 11, color: '#9AA8BE', marginTop: 4 }}>
-                                        الاستحقاق: {row.due_at?.slice(0, 10) ?? '—'}
-                                        {row.days_overdue > 0 && (
-                                            <span style={{ color: '#E03050' }}> · متأخرة {row.days_overdue} يوماً</span>
-                                        )}
-                                        {row.reminder_7_sent_at && ' · نُبّهت (7)'}
-                                        {row.reminder_15_sent_at && ' · نُبّهت (15)'}
-                                        {row.blocked_at && (
-                                            <span style={{ color: '#E03050' }}> · حُجب إنشاء الفعاليات</span>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                                    <Link href={`/admin/finance/invoices/${row.id}`} className="fbtn">
-                                        البنود
+                    <Tbody>
+                        {invoices.data.map((invoice) => (
+                            <Tr key={invoice.id}>
+                                <Td>
+                                    <Link href={`/admin/finance/invoices/${invoice.id}`} className="font-extrabold text-ink hover:underline">
+                                        {invoice.company?.name ?? '—'}
                                     </Link>
-                                    {row.status === 'issued' && (
-                                        <button type="button" className="fbtn" onClick={() => setPayFor(row.id)}>
-                                            تسجيل السداد
-                                        </button>
+                                    {invoice.blocked_at && (
+                                        <Badge tone="danger" icon={FileWarning}>
+                                            محجوبة
+                                        </Badge>
                                     )}
-                                </div>
-                            </div>
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/80">{invoice.serial ?? '—'}</Td>
+                                <Td className="font-mono text-[11px] text-ink/80">{invoice.period_key}</Td>
+                                <Td className="font-mono font-bold text-ink">{invoice.activated_employees_count}</Td>
+                                <Td>
+                                    <span className="font-mono font-black text-ink">{invoice.total_amount}</span>
+                                    <span className="block text-[11px] text-ink/45 font-mono">
+                                        ضريبة {invoice.vat_amount} ({invoice.vat_rate_percent}٪)
+                                    </span>
+                                </Td>
+                                <Td>
+                                    <Badge tone={STATUS[invoice.status]?.tone ?? 'neutral'}>
+                                        {STATUS[invoice.status]?.label ?? invoice.status}
+                                    </Badge>
+                                    {invoice.days_overdue > 0 && (
+                                        <span className="block text-[11px] font-bold text-danger mt-1">
+                                            متأخرة {invoice.days_overdue} يوماً
+                                        </span>
+                                    )}
+                                </Td>
+                                <Td className="text-center">
+                                    {invoice.status !== 'paid' && invoice.status !== 'draft' && (
+                                        <Button tone="soft" icon={CircleCheckBig} onClick={() => setPaying(invoice)}>
+                                            تسجيل السداد
+                                        </Button>
+                                    )}
+                                </Td>
+                            </Tr>
+                        ))}
 
-                            {payFor === row.id && (
-                                <div style={{ marginTop: 12 }}>
-                                    <input
-                                        value={reference}
-                                        onChange={(e) => setReference(e.target.value)}
-                                        placeholder="مرجع السداد (اختياري)"
-                                        style={{
-                                            padding: '9px 14px',
-                                            borderRadius: 10,
-                                            border: '1px solid #E2E8F4',
-                                            minWidth: 280,
-                                        }}
-                                    />
-                                    <button
-                                        type="button"
-                                        className="fbtn"
-                                        style={{ marginInlineStart: 8 }}
-                                        onClick={() => setPayTarget(row)}
-                                    >
-                                        تأكيد
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    ))
-                )}
-                <Pagination links={invoices.links} />
-            </div>
-        <ConfirmModal
-                open={payTarget !== null}
-                title="تسجيل سداد الفاتورة"
-                message={
-                    payTarget
-                        ? `تسجيل سداد الفاتورة ${payTarget.serial} لشركة «${payTarget.company?.name ?? '—'}» عن الدورة ${payTarget.period_key} بمبلغ ${payTarget.total_amount} ريال (منها ${payTarget.vat_amount} ريال ضريبة). الأثر: الفاتورة تنتقل إلى «مسددة»${payTarget.blocked_at ? ' ويُرفع حجب إنشاء الفعاليات عن الشركة' : ''}، ولا تُعدَّل بعدها — التصحيح بحركة عكسية لا بحذف. سجّل السداد بعد التحويل الفعلي فقط.`
-                        : ''
+                        <ListStates
+                            count={invoices.data.length}
+                            colSpan={7}
+                            empty="لا توجد فواتير."
+                            emptyHint="تُصدر الفواتير عن دورة شهرية مغلقة لكل شركة لها شروط عقد."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={invoices} />
+                    <Pagination page={invoices} />
+                </div>
+            </Card>
+
+            <ConfirmModal
+                open={generating}
+                title="إصدار فواتير الدورة"
+                message="ستُصدر فاتورة لكل شركة لها شروط عقد، محسوبة على عدد الموظفين المفعّلين خلال الدورة."
+                details={
+                    <>
+                        <ConfirmRow label="الدورة" value={cycle.key} strong />
+                        <ConfirmRow label="من" value={cycle.start} />
+                        <ConfirmRow label="إلى" value={cycle.end} />
+                        <ConfirmRow label="شركات بلا عقد (تُستثنى)" value={String(missingContracts.length)} />
+                    </>
                 }
-                confirmLabel="تسجيل السداد"
-                onConfirm={confirmPay}
-                onCancel={() => setPayTarget(null)}
+                confirmLabel="إصدار الفواتير"
+                onConfirm={() => {
+                    router.post('/admin/finance/invoices/generate', {}, { preserveScroll: true });
+                    setGenerating(false);
+                }}
+                onCancel={() => setGenerating(false)}
             />
 
+            <ConfirmModal
+                open={arrears}
+                tone="danger"
+                title="تشغيل دورة التأخر والحجب"
+                message="سترسل تذكيرات التأخر المستحقة، وتحجب الشركات التي تجاوزت المهلة التعاقدية. الحجب يوقف إنشاء فعاليات جديدة."
+                confirmLabel="تشغيل الدورة"
+                onConfirm={() => {
+                    router.post('/admin/finance/invoices/arrears', {}, { preserveScroll: true });
+                    setArrears(false);
+                }}
+                onCancel={() => setArrears(false)}
+            />
+
+            {/* H §18 — the total, the VAT inside it, and what paying unblocks. */}
+            <ConfirmModal
+                open={paying !== null}
+                title="تسجيل سداد الفاتورة"
+                message="سجّل السداد بعد وصوله فعلياً. تصبح الفاتورة مسددة ويُرفع الحجب عن الشركة إن كان مفروضاً."
+                details={
+                    paying && (
+                        <>
+                            <ConfirmRow label="الشركة" value={paying.company?.name ?? '—'} />
+                            <ConfirmRow label="الرقم التسلسلي" value={paying.serial ?? '—'} />
+                            <ConfirmRow label="المبلغ قبل الضريبة" value={`${paying.subtotal} ريال`} />
+                            <ConfirmRow label="ضريبة القيمة المضافة (vat_amount)" value={`${paying.vat_amount} ريال`} />
+                            <ConfirmRow label="الإجمالي المسدَّد (total_amount)" value={`${paying.total_amount} ريال`} strong />
+                            <ConfirmRow label="الأثر" value="تصبح الفاتورة مسددة ويُرفع الحجب" />
+                        </>
+                    )
+                }
+                confirmLabel="تأكيد السداد"
+                onConfirm={() => {
+                    router.post(`/admin/finance/invoices/${paying?.id}/pay`, {}, { preserveScroll: true });
+                    setPaying(null);
+                }}
+                onCancel={() => setPaying(null)}
+            />
         </AdminLayout>
     );
 }

@@ -75,6 +75,16 @@ class DatabaseSeeder extends Seeder
         ]);
         $financeAdmin->assignRole(Role::FinanceAdmin);
 
+        // Support agent for testing (read, diagnose, resend — no approvals).
+        // H §16 names three internal roles; without this one the support
+        // screens had no account that could open them.
+        $supportAgent = User::factory()->create([
+            'name' => 'وكيل الدعم',
+            'email' => 'support@teamat.com',
+            'phone' => '966500000003',
+        ]);
+        $supportAgent->assignRole(Role::SupportAgent);
+
         // ╔══════════════════════════════════════════════════════════╗
         // ║  partnerS                                                   ║
         // ╚══════════════════════════════════════════════════════════╝
@@ -480,12 +490,19 @@ class DatabaseSeeder extends Seeder
         // legacy_settlements / legacy_platform_revenue.
         //
         // قيم العقد للتجربة (H §12.8) — أرقام العقد من المالك في الإنتاج.
+        // البنود الثلاثة تُعرض معاً في بطاقة الشركة، والسجل التجاري في ترويستها،
+        // فتُزرع كاملة — بند ناقص هنا يظهر كشرطة في الشاشة لا كبيانات غائبة.
         $company1->forceFill([
+            'commercial_registration' => '1010884921',
             'contract_fee_per_activated_employee' => 30000,   // 300.00 ريال
             'contract_monthly_minimum' => 500000,             // 5,000.00 ريال
+            'contract_coordinator_service' => true,
         ])->save();
         $company2->forceFill([
+            'commercial_registration' => '1010334812',
             'contract_fee_per_activated_employee' => 25000,   // 250.00 ريال
+            'contract_monthly_minimum' => 300000,             // 3,000.00 ريال
+            'contract_coordinator_service' => false,
         ])->save();
 
         // ╔══════════════════════════════════════════════════════════╗

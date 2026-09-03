@@ -1,157 +1,216 @@
 import { Head, useForm } from '@inertiajs/react';
-import type { FormEvent } from 'react';
-import toastr from 'toastr';
+import { Settings } from 'lucide-react';
+import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
+import { Button, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
 
-interface Settings {
-    employee_can_create_event: boolean;
-    default_funding_mode: string;
-    default_subsidy: number;
-    registration_close_hours: number;
-    allow_absence_marking: boolean;
-}
-
-interface Props {
-    settings: Settings;
-    fundingModes: string[];
-}
-
-const fundingModeLabels: Record<string, string> = {
-    community_wallet: 'محفظة المجتمع',
-    employee_paid: 'دفع الموظف',
-    mixed: 'مختلط',
+/**
+ * H §5 — إعدادات الشركة.
+ *
+ * These five switches decide who may spend the company's money and on whose
+ * behalf. `default_subsidy` is stored in halalas — the field converts, and
+ * says the riyal figure back to the reader, because a subsidy entered as 50
+ * when the system expects 5000 is a silent hundred-fold error.
+ */
+const FUNDING_LABELS: Record<string, { label: string; hint: string }> = {
+    community_wallet: {
+        label: 'محفظة المجتمع',
+        hint: 'تُخصم تكلفة الفعالية كاملة من رصيد المجتمع — لا يدفع الموظف شيئاً.',
+    },
+    employee_paid: {
+        label: 'على حساب الموظف',
+        hint: 'يدفع كل مشارك نصيبه بنفسه عبر بوابة الدفع.',
+    },
+    mixed: {
+        label: 'مشترك',
+        hint: 'تدعم الشركة جزءاً من التكلفة، ويدفع الموظف الباقي.',
+    },
 };
 
-export default function CompanySettings({ settings, fundingModes }: Props) {
+export default function CompanySettings({
+    settings,
+    fundingModes,
+}: {
+    settings: {
+        employee_can_create_event: boolean;
+        default_funding_mode: string;
+        default_subsidy: number;
+        registration_close_hours: number;
+        allow_absence_marking: boolean;
+    };
+    fundingModes: string[];
+}) {
     const form = useForm({
         employee_can_create_event: settings.employee_can_create_event,
         default_funding_mode: settings.default_funding_mode,
-        default_subsidy: settings.default_subsidy,
-        registration_close_hours: settings.registration_close_hours,
+        default_subsidy: String(settings.default_subsidy),
+        registration_close_hours: String(settings.registration_close_hours),
         allow_absence_marking: settings.allow_absence_marking,
     });
 
-    function handleSubmit(e: FormEvent) {
-        e.preventDefault();
-        form.put('/company/settings', {
-            onSuccess: () => toastr.success('تم حفظ إعدادات الشركة'),
-        });
-    }
-
-    const rowStyle: React.CSSProperties = {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 16,
-        padding: '16px 0',
-        borderBottom: '1px solid #EEF2F9',
-        flexWrap: 'wrap',
-    };
+    const subsidyRiyals = (
+        Number(form.data.default_subsidy || 0) / 100
+    ).toFixed(2);
 
     return (
         <CompanyLayout>
             <Head title="إعدادات الشركة" />
 
-            <div style={{ marginBottom: 24 }}>
-                <div className="page-title">إعدادات الشركة</div>
-                <div className="page-sub">تُورَّث هذه الإعدادات للفعاليات الجديدة وتُضبط قبل دعوة الموظفين</div>
-            </div>
+            <PageHeader
+                icon={Settings}
+                title="إعدادات الشركة"
+                subtitle="الافتراضات التي تُبنى عليها كل فعالية جديدة في مجتمعاتك."
+            />
 
-            <form onSubmit={handleSubmit}>
-                <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: '8px 24px', maxWidth: 760 }}>
-                    <div style={rowStyle}>
-                        <div>
-                            <div style={{ fontSize: 14, fontWeight: 700 }}>صلاحية الموظف بإنشاء فعالية</div>
-                            <div style={{ fontSize: 12, color: '#7A8BA8', maxWidth: 480 }}>
-                                معطّلاً: اقتراح الموظف يحتاج اعتماد القائد أو المنسّق. مفعّلاً: ينشر الموظف الفعالية مباشرة —
-                                أي أن موظفاً يستطيع إنشاء التزام مالي على محفظة الشركة.
-                            </div>
-                        </div>
-                        <input
-                            type="checkbox"
-                            checked={form.data.employee_can_create_event}
-                            onChange={(e) => form.setData('employee_can_create_event', e.target.checked)}
-                            style={{ width: 18, height: 18 }}
-                        />
-                    </div>
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.put('/company/settings', { preserveScroll: true });
+                }}
+                className="space-y-6"
+            >
+                <FormSection title="من ينشئ الفعاليات">
+                    <Toggle
+                        label="السماح للموظفين بإنشاء الفعاليات"
+                        hint="عند الإيقاف، ينحصر إنشاء الفعاليات في قادة المجتمعات ومسؤول الحساب."
+                        checked={form.data.employee_can_create_event}
+                        onChange={(value) =>
+                            form.setData('employee_can_create_event', value)
+                        }
+                    />
 
-                    <div style={rowStyle}>
-                        <div>
-                            <div style={{ fontSize: 14, fontWeight: 700 }}>مصدر التمويل الافتراضي</div>
-                            <div style={{ fontSize: 12, color: '#7A8BA8' }}>يُورَّث للفعاليات الجديدة وقابل للتجاوز على مستوى القالب والفعالية.</div>
-                        </div>
-                        <select
-                            value={form.data.default_funding_mode}
-                            onChange={(e) => form.setData('default_funding_mode', e.target.value)}
-                            style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, fontFamily: 'inherit' }}
-                        >
-                            {fundingModes.map((mode) => (
-                                <option key={mode} value={mode}>
-                                    {fundingModeLabels[mode] ?? mode}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    <Toggle
+                        label="السماح بتسجيل الغياب"
+                        hint="يمكّن قائد المجتمع من تعليم من لم يحضر — وعليه تُبنى نسبة الحضور في تقاريرك."
+                        checked={form.data.allow_absence_marking}
+                        onChange={(value) =>
+                            form.setData('allow_absence_marking', value)
+                        }
+                    />
+                </FormSection>
 
-                    <div style={rowStyle}>
-                        <div>
-                            <div style={{ fontSize: 14, fontWeight: 700 }}>قيمة الدعم الافتراضية (هللة)</div>
-                            <div style={{ fontSize: 12, color: '#7A8BA8' }}>ما تتحمله محفظة المجتمع من كل فعالية. 100 هللة = ريال.</div>
-                        </div>
-                        <input
-                            type="number"
-                            min={0}
-                            value={form.data.default_subsidy}
-                            onChange={(e) => form.setData('default_subsidy', Number(e.target.value))}
-                            style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, width: 120, fontFamily: 'inherit' }}
-                        />
-                    </div>
-
-                    <div style={rowStyle}>
-                        <div>
-                            <div style={{ fontSize: 14, fontWeight: 700 }}>ساعات إغلاق التسجيل</div>
-                            <div style={{ fontSize: 12, color: '#7A8BA8' }}>كم ساعة قبل بدء الفعالية يُغلق التسجيل ويبدأ التحصيل.</div>
-                        </div>
-                        <input
-                            type="number"
-                            min={1}
-                            max={168}
-                            value={form.data.registration_close_hours}
-                            onChange={(e) => form.setData('registration_close_hours', Number(e.target.value))}
-                            style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, width: 120, fontFamily: 'inherit' }}
-                        />
-                    </div>
-
-                    <div style={{ ...rowStyle, borderBottom: 'none' }}>
-                        <div>
-                            <div style={{ fontSize: 14, fontWeight: 700 }}>السماح بتعديل الحضور</div>
-                            <div style={{ fontSize: 12, color: '#7A8BA8' }}>هل يستطيع القائد تعديل قائمة الحاضرين بعد اكتمال الفعالية.</div>
-                        </div>
-                        <input
-                            type="checkbox"
-                            checked={form.data.allow_absence_marking}
-                            onChange={(e) => form.setData('allow_absence_marking', e.target.checked)}
-                            style={{ width: 18, height: 18 }}
-                        />
-                    </div>
-                </div>
-
-                {Object.keys(form.errors).length > 0 && (
-                    <div style={{ background: '#E0305010', border: '1px solid #E0305033', borderRadius: 10, padding: '10px 14px', marginTop: 16, maxWidth: 760 }}>
-                        {Object.values(form.errors).map((error, i) => (
-                            <p key={i} style={{ fontSize: 12, color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                        ))}
-                    </div>
-                )}
-
-                <button
-                    type="submit"
-                    disabled={form.processing}
-                    style={{ marginTop: 16, background: '#3B5BDB', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: form.processing ? 0.6 : 1 }}
+                <FormSection
+                    title="التمويل الافتراضي"
+                    hint="يمكن لقائد المجتمع تغييره لكل فعالية على حدة — هذا ما يبدأ به."
                 >
-                    حفظ الإعدادات
-                </button>
+                    <FormGrid columns={2}>
+                        <Field
+                            label="مصدر التمويل"
+                            error={form.errors.default_funding_mode}
+                            required
+                        >
+                            <select
+                                className={INPUT}
+                                value={form.data.default_funding_mode}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'default_funding_mode',
+                                        event.target.value,
+                                    )
+                                }
+                            >
+                                {fundingModes.map((mode) => (
+                                    <option key={mode} value={mode}>
+                                        {FUNDING_LABELS[mode]?.label ?? mode}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+
+                        <Field
+                            label="قيمة الدعم (بالهللة)"
+                            error={form.errors.default_subsidy}
+                            hint={`= ${subsidyRiyals} ريال لكل مشارك.`}
+                            required
+                        >
+                            <input
+                                type="number"
+                                min="0"
+                                dir="ltr"
+                                className={INPUT}
+                                value={form.data.default_subsidy}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'default_subsidy',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                        </Field>
+                    </FormGrid>
+
+                    <Note
+                        title={
+                            FUNDING_LABELS[form.data.default_funding_mode]
+                                ?.label ?? 'مصدر التمويل'
+                        }
+                    >
+                        {FUNDING_LABELS[form.data.default_funding_mode]?.hint ??
+                            '—'}
+                    </Note>
+                </FormSection>
+
+                <FormSection title="إغلاق التسجيل">
+                    <Field
+                        label="ساعات الإغلاق قبل الموعد"
+                        error={form.errors.registration_close_hours}
+                        hint="بعدها لا يُقبل تسجيل جديد ولا انسحاب — والحجز عند المرفق يصبح نهائياً. من ساعة إلى 168 ساعة (أسبوع)."
+                        required
+                    >
+                        <input
+                            type="number"
+                            min="1"
+                            max="168"
+                            dir="ltr"
+                            className={INPUT}
+                            value={form.data.registration_close_hours}
+                            onChange={(event) =>
+                                form.setData(
+                                    'registration_close_hours',
+                                    event.target.value,
+                                )
+                            }
+                        />
+                    </Field>
+                </FormSection>
+
+                <FormActions>
+                    <Button type="submit" disabled={form.processing}>
+                        حفظ الإعدادات
+                    </Button>
+                </FormActions>
             </form>
         </CompanyLayout>
+    );
+}
+
+function Toggle({
+    label,
+    hint,
+    checked,
+    onChange,
+}: {
+    label: string;
+    hint: string;
+    checked: boolean;
+    onChange: (value: boolean) => void;
+}) {
+    return (
+        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border-[0.5px] border-ink/12 bg-page p-3.5">
+            <input
+                type="checkbox"
+                checked={checked}
+                onChange={(event) => onChange(event.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-ink/25 accent-ink"
+            />
+            <span className="min-w-0">
+                <span className="block text-xs font-extrabold text-ink">
+                    {label}
+                </span>
+                <span className="block text-[11px] leading-relaxed text-ink/55">
+                    {hint}
+                </span>
+            </span>
+        </label>
     );
 }

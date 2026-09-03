@@ -1,224 +1,236 @@
 import { Head, router } from '@inertiajs/react';
+import { CircleCheckBig, Eye, Landmark, X } from 'lucide-react';
 import { useState } from 'react';
-import ConfirmModal from '@/components/confirm-modal';
-import FilterTabs from '@/components/filter-tabs';
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import { SortBar, type SortState } from '@/components/sortable-header';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Card, IconButton, Money, PageHeader, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import { fmtDateTime } from '@/lib/utils';
-import type { PaginatedResult, TopupRequestStatus } from '@/types/models';
+import type { Paginated, SortState } from '@/types';
 
-interface TopupRow {
+/**
+ * H §12.5 + دليل الأدمن المالي §1 — اعتماد التحويلات البنكية.
+ *
+ * Approving a transfer credits a company wallet with real money, so the
+ * confirm dialog names the amount and where it lands. Self-approval is
+ * blocked in the service, not here.
+ */
+type TopupRequest = {
     id: number;
     company: { id: number; name: string } | null;
     amount: number;
     transfer_date: string | null;
-    sender_account_last4: string;
-    bank_reference: string;
-    status: TopupRequestStatus;
+    sender_account_last4: string | null;
+    bank_reference: string | null;
+    status: string;
     status_label: string;
     creator: { id: number; name: string } | null;
     reviewer: { id: number; name: string } | null;
     reviewed_at: string | null;
     rejection_reason: string | null;
-    unapproval_reason: string | null;
-    receipt_url: string | null;
+    receipt_url: string;
     created_at: string | null;
-}
-
-interface Props {
-    requests: PaginatedResult<TopupRow>;
-    filters: { status?: string; search?: string; sort?: string; dir?: string };
-    sort: SortState;
-}
-
-const STATUS_META: Record<TopupRequestStatus, { color: string; bg: string }> = {
-    submitted: { color: '#E0B040', bg: 'rgba(224,176,64,0.12)' },
-    under_review: { color: '#4A9DE0', bg: 'rgba(74,157,224,0.12)' },
-    approved: { color: '#009E82', bg: 'rgba(0,158,130,0.12)' },
-    rejected: { color: '#E03050', bg: 'rgba(224,48,80,0.12)' },
 };
 
-const STATUS_FILTERS = [
-    { label: 'الكل', value: '' },
-    { label: 'مُقدَّم', value: 'submitted' },
-    { label: 'قيد المراجعة', value: 'under_review' },
-    { label: 'معتمد', value: 'approved' },
-    { label: 'مرفوض', value: 'rejected' },
-];
+const STATUS_TONES: Record<string, 'neutral' | 'success' | 'warning' | 'danger'> = {
+    pending: 'warning',
+    under_review: 'neutral',
+    approved: 'success',
+    rejected: 'danger',
+};
 
-// H §18 — «كل قائمة: بحث + فلترة + ترتيب + ترقيم صفحات».
-const SORT_OPTIONS = [
-    { key: 'created_at', label: 'وقت التقديم', initialDirection: 'desc' as const },
-    { key: 'amount', label: 'المبلغ', initialDirection: 'desc' as const },
-    { key: 'transfer_date', label: 'تاريخ التحويل', initialDirection: 'desc' as const },
-    { key: 'bank_reference', label: 'المرجع' },
-    { key: 'status', label: 'الحالة' },
-];
-
-export default function FinanceTopups({ requests, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        status: filters?.status,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-    const [reasonFor, setReasonFor] = useState<{ id: number; action: 'reject' | 'unapprove' } | null>(null);
+export default function AdminTopups({
+    requests,
+    filters,
+    sort,
+}: {
+    requests: Paginated<TopupRequest>;
+    filters: { status: string; search: string };
+    sort: SortState;
+}) {
+    const [approving, setApproving] = useState<TopupRequest | null>(null);
+    const [rejecting, setRejecting] = useState<TopupRequest | null>(null);
     const [reason, setReason] = useState('');
-    // H §18: «كل إجراء مالي أو إلغائي يمر بنافذة تأكيد تعرض المبلغ والأثر صراحة».
-    const [approveTarget, setApproveTarget] = useState<TopupRow | null>(null);
-
-    function act(row: TopupRow, action: 'start-review' | 'approve') {
-        router.post(`/admin/finance/topups/${row.id}/${action}`, {}, { preserveScroll: true });
-    }
-
-    function confirmApprove() {
-        if (!approveTarget) return;
-        const row = approveTarget;
-        setApproveTarget(null);
-        act(row, 'approve');
-    }
-
-    function submitReason() {
-        if (!reasonFor || !reason.trim()) return;
-        router.post(`/admin/finance/topups/${reasonFor.id}/${reasonFor.action}`, { reason }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setReasonFor(null);
-                setReason('');
-            },
-        });
-    }
 
     return (
         <AdminLayout>
-            <Head title="اعتماد التحويلات البنكية" />
+            <Head title="اعتماد التحويلات" />
 
-            <div className="page-title">اعتماد التحويلات البنكية</div>
-            <div className="page-sub" style={{ marginBottom: 8 }}>
-                طابق المبلغ والمرجع مع كشف البنك قبل أي اعتماد — الاعتماد ينشئ حركة شحن في دفتر المحفظة.
-            </div>
-            <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 20 }}>
-                لا يعتمد أحد طلباً أنشأه بنفسه · قيد فريد على (المرجع + المبلغ) يمنع اعتماد التحويل مرتين · إلغاء اعتماد سابق حركة عكسية بسبب مسجَّل.
-            </div>
+            <PageHeader
+                icon={Landmark}
+                title="اعتماد التحويلات البنكية"
+                subtitle="كل اعتماد هنا يضيف رصيداً حقيقياً إلى محفظة الشركة — راجع صورة الإشعار والمرجع البنكي قبل الاعتماد."
+            />
 
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث بمرجع التحويل أو اسم الشركة..."
-                    style={{
-                        padding: '9px 14px',
-                        borderRadius: 10,
-                        border: '1px solid #E2E8F4',
-                        fontSize: 13,
-                        outline: 'none',
-                        direction: 'rtl',
-                        fontFamily: 'inherit',
-                        minWidth: 260,
-                    }}
-                />
-                <FilterTabs options={STATUS_FILTERS} current={filters?.status ?? ''} />
-                <SortBar sort={sort} options={SORT_OPTIONS} />
-            </div>
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search} placeholder="ابحث بالمرجع البنكي أو اسم الشركة…" />
+                    <FilterSelect
+                        name="status"
+                        label="حالة الطلب"
+                        value={filters.status}
+                        options={[
+                            ['', 'كل الحالات'],
+                            ['pending', 'بانتظار المراجعة'],
+                            ['under_review', 'قيد المراجعة'],
+                            ['approved', 'معتمد'],
+                            ['rejected', 'مرفوض'],
+                        ]}
+                    />
+                </Toolbar>
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 22 }}>
-                {requests.data.length === 0 ? (
-                    <table style={{ width: '100%' }}>
-                        <tbody>
-                            <ListStates
-                                count={0}
-                                columns={1}
-                                emptyTitle="لا توجد طلبات شحن"
-                                emptyHint="لا طلب مطابق للبحث والفلاتر الحالية. يرفع مسؤول الحساب الطلب من بوابة الشركة: المبلغ وتاريخ التحويل وآخر أربعة أرقام والمرجع وصورة الإشعار."
-                            />
-                        </tbody>
-                    </table>
-                ) : requests.data.map((row, index) => {
-                    const meta = STATUS_META[row.status];
+                <TableShell>
+                    <Thead>
+                        <Th>الشركة</Th>
+                        <Th>
+                            <SortableHeader label="المبلغ" sortKey="amount" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="تاريخ التحويل" sortKey="transfer_date" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="المرجع البنكي" sortKey="bank_reference" sort={sort} />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
+                        </Th>
+                        <Th className="text-center">الإجراءات</Th>
+                    </Thead>
 
-                    return (
-                        <div key={row.id} style={{ padding: '14px 0', ...(index < requests.data.length - 1 ? { borderBottom: '1px solid #E2E8F4' } : {}) }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-                                <div>
-                                    <div style={{ fontSize: 14, fontWeight: 800 }}>
-                                        {row.company?.name ?? '—'}
-                                        <span style={{ marginInlineStart: 10, color: '#009E82' }}>{row.amount.toLocaleString()} ريال</span>
-                                    </div>
-                                    <div style={{ fontSize: 12, color: '#7A8BA8', marginTop: 4 }}>
-                                        مرجع: <b>{row.bank_reference}</b> · حساب المُرسِل: ****{row.sender_account_last4} · تاريخ التحويل: {row.transfer_date ?? '—'}
-                                    </div>
-                                    <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 2 }}>
-                                        قُدِّم: {row.created_at ? fmtDateTime(row.created_at) : '—'}
-                                        {row.reviewer ? ` · راجعه: ${row.reviewer.name}` : ''}
-                                    </div>
-                                    {row.rejection_reason && (
-                                        <div style={{ fontSize: 12, color: '#E03050', marginTop: 4 }}>سبب الرفض: {row.rejection_reason}</div>
-                                    )}
-                                    {row.unapproval_reason && (
-                                        <div style={{ fontSize: 12, color: '#D4820A', marginTop: 4 }}>أُلغي اعتماد سابق: {row.unapproval_reason}</div>
-                                    )}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                    <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, color: meta.color, background: meta.bg }}>
-                                        {row.status_label}
+                    <Tbody>
+                        {requests.data.map((request) => (
+                            <Tr key={request.id}>
+                                <Td>
+                                    <div className="font-extrabold text-ink">{request.company?.name ?? '—'}</div>
+                                    <span className="text-[11px] text-ink/50">
+                                        قدّمه {request.creator?.name ?? '—'}
                                     </span>
-                                    {row.receipt_url && (
-                                        <a href={row.receipt_url} target="_blank" rel="noreferrer"
-                                            style={{ fontSize: 12, fontWeight: 700, color: '#4A9DE0', textDecoration: 'none' }}>
-                                            عرض الإشعار ↗
+                                </Td>
+                                <Td>
+                                    <Money amount={request.amount} className="text-ink" />
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/80">{request.transfer_date ?? '—'}</Td>
+                                <Td>
+                                    <div className="font-mono text-[11px] font-bold text-ink">{request.bank_reference ?? '—'}</div>
+                                    {request.sender_account_last4 && (
+                                        <span className="text-[11px] text-ink/50 font-mono">
+                                            •••• {request.sender_account_last4}
+                                        </span>
+                                    )}
+                                </Td>
+                                <Td>
+                                    <Badge tone={STATUS_TONES[request.status] ?? 'neutral'}>{request.status_label}</Badge>
+                                    {request.reviewer && (
+                                        <span className="block text-[11px] text-ink/50 mt-1">راجعه {request.reviewer.name}</span>
+                                    )}
+                                </Td>
+                                <Td className="text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                        <a
+                                            href={request.receipt_url}
+                                            title="عرض إشعار التحويل"
+                                            className="p-1.5 rounded-lg bg-ink/5 hover:bg-ink/10 text-ink transition-colors"
+                                        >
+                                            <Eye className="w-3.5 h-3.5" aria-hidden="true" />
                                         </a>
-                                    )}
-                                    {row.status === 'submitted' && (
-                                        <button className="ac-btn" style={{ fontSize: 12 }} onClick={() => act(row, 'start-review')}>بدء المراجعة</button>
-                                    )}
-                                    {(row.status === 'submitted' || row.status === 'under_review') && (
-                                        <>
-                                            <button className="ac-btn" style={{ fontSize: 12, background: '#009E82' }} onClick={() => setApproveTarget(row)}>اعتماد</button>
-                                            <button className="ac-btn" style={{ fontSize: 12, background: '#E03050' }} onClick={() => { setReasonFor({ id: row.id, action: 'reject' }); setReason(''); }}>رفض</button>
-                                        </>
-                                    )}
-                                    {row.status === 'approved' && (
-                                        <button className="ac-btn" style={{ fontSize: 12, background: '#D4820A' }} onClick={() => { setReasonFor({ id: row.id, action: 'unapprove' }); setReason(''); }}>
-                                            إلغاء الاعتماد (حركة عكسية)
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
+                                        {request.status !== 'approved' && request.status !== 'rejected' && (
+                                            <>
+                                                <IconButton
+                                                    icon={CircleCheckBig}
+                                                    label="اعتماد التحويل"
+                                                    onClick={() => setApproving(request)}
+                                                />
+                                                <IconButton
+                                                    icon={X}
+                                                    label="رفض التحويل"
+                                                    tone="danger"
+                                                    onClick={() => {
+                                                        setReason('');
+                                                        setRejecting(request);
+                                                    }}
+                                                />
+                                            </>
+                                        )}
+                                    </div>
+                                </Td>
+                            </Tr>
+                        ))}
 
-                            {reasonFor?.id === row.id && (
-                                <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-                                    <input
-                                        autoFocus
-                                        dir="rtl"
-                                        placeholder={reasonFor.action === 'reject' ? 'سبب الرفض (إلزامي — يُشعر به مسؤول الحساب)...' : 'سبب إلغاء الاعتماد (إلزامي — يُسجَّل مع الحركة العكسية)...'}
-                                        value={reason}
-                                        onChange={(e) => setReason(e.target.value)}
-                                        style={{ flex: 1, padding: '9px 13px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, background: '#F0F2F8', outline: 'none', direction: 'rtl' }}
-                                    />
-                                    <button className="ac-btn" style={{ fontSize: 12 }} disabled={!reason.trim()} onClick={submitReason}>تأكيد</button>
-                                    <button className="ac-btn" style={{ fontSize: 12, background: '#7A8BA8' }} onClick={() => setReasonFor(null)}>إلغاء</button>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+                        <ListStates
+                            count={requests.data.length}
+                            colSpan={6}
+                            empty="لا توجد طلبات تحويل."
+                            emptyHint="ستظهر هنا إشعارات التحويل التي يرفعها مسؤولو حسابات الشركات."
+                        />
+                    </Tbody>
+                </TableShell>
 
-            <Pagination links={requests.links} />
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={requests} />
+                    <Pagination page={requests} />
+                </div>
+            </Card>
+
+            {/* H §18 — the amount and its effect, spelled out. */}
+            <ConfirmModal
+                open={approving !== null}
+                title="اعتماد التحويل البنكي"
+                message="سيُضاف المبلغ فوراً إلى محفظة الشركة ويصبح متاحاً للصرف على الفعاليات. لا يمكن التراجع إلا بإجراء «إلغاء الاعتماد» الموثّق."
+                details={
+                    approving && (
+                        <>
+                            <ConfirmRow label="الشركة" value={approving.company?.name ?? '—'} />
+                            <ConfirmRow label="المبلغ" value={`${approving.amount.toLocaleString()} ريال`} strong />
+                            <ConfirmRow label="الوجهة" value="المحفظة الرئيسية للشركة" />
+                            <ConfirmRow label="المرجع البنكي" value={approving.bank_reference ?? '—'} />
+                        </>
+                    )
+                }
+                confirmLabel="اعتماد وإضافة الرصيد"
+                onConfirm={() => {
+                    router.post(`/admin/finance/topups/${approving?.id}/approve`, {}, { preserveScroll: true });
+                    setApproving(null);
+                }}
+                onCancel={() => setApproving(null)}
+            />
 
             <ConfirmModal
-                open={approveTarget !== null}
-                title="اعتماد التحويل البنكي"
-                message={
-                    approveTarget
-                        ? `سيُشحن ${approveTarget.amount.toLocaleString()} ريال في المحفظة الرئيسية لـ«${approveTarget.company?.name ?? '—'}» بحركة شحن في الدفتر، ويصبح الرصيد متاحاً للتخصيص فوراً. المرجع ${approveTarget.bank_reference} · حساب المُرسِل ****${approveTarget.sender_account_last4}. طابق المبلغ والمرجع مع كشف البنك قبل التأكيد — إلغاء الاعتماد لاحقاً يتم بحركة عكسية لا بحذف.`
-                        : ''
+                open={rejecting !== null}
+                tone="danger"
+                title="رفض التحويل البنكي"
+                message="لن يُضاف أي رصيد إلى المحفظة، وسيصل السبب إلى مسؤول الحساب في الشركة."
+                details={
+                    rejecting && (
+                        <>
+                            <ConfirmRow label="الشركة" value={rejecting.company?.name ?? '—'} />
+                            <ConfirmRow label="المبلغ المرفوض" value={`${rejecting.amount.toLocaleString()} ريال`} strong />
+                            <ConfirmRow label="أثر الرفض" value="لا يُضاف رصيد للمحفظة الرئيسية" />
+                            <div className="pt-2">
+                                <label htmlFor="reject-reason" className="block text-[11px] font-bold text-ink mb-1">
+                                    سبب الرفض (إلزامي)
+                                </label>
+                                <textarea
+                                    id="reject-reason"
+                                    rows={2}
+                                    value={reason}
+                                    onChange={(event) => setReason(event.target.value)}
+                                    className="w-full px-3 py-2 rounded-xl border-[0.5px] border-ink/20 text-xs bg-surface focus:outline-none focus:border-ink"
+                                />
+                            </div>
+                        </>
+                    )
                 }
-                confirmLabel="اعتماد الشحن"
-                onConfirm={confirmApprove}
-                onCancel={() => setApproveTarget(null)}
+                confirmLabel="تأكيد الرفض"
+                busy={reason.trim() === ''}
+                onConfirm={() => {
+                    router.post(
+                        `/admin/finance/topups/${rejecting?.id}/reject`,
+                        { rejection_reason: reason },
+                        { preserveScroll: true },
+                    );
+                    setRejecting(null);
+                }}
+                onCancel={() => setRejecting(null)}
             />
         </AdminLayout>
     );

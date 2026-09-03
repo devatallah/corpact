@@ -1,0 +1,50 @@
+/*
+ * Employee-portal base rules.
+ *
+ * This file used to carry a pre-port dark sidebar (.sidebar/.logo/.ni/.tog/
+ * .menu-toggle/.topbar/.phone/.bottom-nav/.sc) plus duplicates of .card,
+ * .badge, .fbtn and .field-error that already live in app.css and
+ * employee.css. All of that is gone: nothing rendered it, and the duplicates
+ * only fought the real definitions.
+ *
+ * Two rules in particular were actively breaking the portal and must not come
+ * back:
+ *
+ *   `* { margin:0; padding:0 }` — once scoped to `.portal-employee *` it has
+ *   the same specificity as a Tailwind utility, and this file loads after
+ *   Tailwind, so it silently zeroed every padding, margin and space-y utility in the portal.
+ *   Tailwind's preflight already does this reset; the rule is redundant.
+ *
+ *   `.portal-employee nav { flex:1; padding:12px 8px }` — a leftover from the
+ *   old rail that also matched the new bottom tab bar.
+ */
+
+/* Tables — only two employee screens use one, and they want the portal's
+   right-aligned, dense treatment rather than the browser default. */
+.portal-employee table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.portal-employee th {
+    text-align: right;
+    padding: 12px 16px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.portal-employee td {
+    padding: 14px 16px;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.portal-employee input,
+.portal-employee select {
+    font-family: inherit;
+}
+
+/* Print helper used by the exportable report screens. */
+.no-print {
+    display: none;
+}

@@ -1,186 +1,430 @@
+import { Head, Link } from '@inertiajs/react';
+import { Activity, TrendingUp, UsersRound, Wallet } from 'lucide-react';
+import { ListStates } from '@/components/list-states';
+import {
+    Badge,
+    Card,
+    Note,
+    PageHeader,
+    StatCard,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    TableShell,
+    Tr,
+} from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
-import StatCard from '@/components/stat-card';
-import { fmtDateTime } from '@/lib/utils';
-import type { Company, ActivityLog } from '@/types/models';
-import { Head } from '@inertiajs/react';
 
-/* A13 — H §18: «لوحة الشركة: التفعيل، المشاركة حسب الإدارة، الإنفاق،
-   المجتمعات النشطة والخاملة». **معدل التفعيل هو المؤشر الأول لا عدد
-   المسجلين**، و«نشط» للمجتمع = أقام فعالية مكتملة خلال 30
-   يوماً، لا عدد أعضائه. */
+/**
+ * H §15 — لوحة مسؤول الحساب.
+ *
+ * Two KPIs carry the whole story and both are *ratios with their formula
+ * printed*: activation (did people show up at all) and attendance (did the
+ * seats they booked get used). A rate with no denominator is a vanity number,
+ * so the numerator and denominator are shown next to every percentage.
+ *
+ * Spend is deliberately its own field and never called revenue.
+ *
+ * «إجمالي الأرصدة» here is the sum of the main wallet *and* every community
+ * wallet, which is why it is larger than the figure on /company/wallet — that
+ * screen shows only what is still undistributed. Two different questions, so
+ * two different labels.
+ */
+type Kpi = {
+    key: string;
+    label: string;
+    numerator: number;
+    denominator: number;
+    rate: number;
+    formula: string;
+};
 
-interface Metric { numerator: number; denominator: number; rate: number; formula: string }
+type CommunityRow = {
+    id: number;
+    name: string;
+    members_count?: number;
+    events_count?: number;
+    last_event_at?: string | null;
+    category_name?: string | null;
+};
 
-interface CommunityRow { id: number; name: string; last_completed_at: string | null; leaderless_dormant: boolean }
-
-interface DepartmentRow { department_id: number | null; department_name: string; attendees: number; employees: number; rate: number }
-
-interface LeaderboardEntry { id: number; name: string; avatar?: string | null; department_name?: string | null; events_count: number; }
-interface Leaderboard { top_employees: LeaderboardEntry[]; top_departments: LeaderboardEntry[]; top_communities: LeaderboardEntry[]; }
-
-interface Props {
-    company: Company;
+export default function CompanyDash({
+    stats,
+    communityActivity,
+    departmentParticipation,
+    recentActivity,
+    leaderboard,
+}: {
+    company: { id: number; name: string };
     stats: {
         period: { key: string; label: string };
-        activation: Metric;
-        attendance: Metric;
+        activation: Kpi;
+        attendance: Kpi;
         active_communities: number;
         dormant_communities: number;
         completed_events: number;
         attendance_count: number;
         cost_per_participation: string;
         company_spend: string;
-        company_spend_halalas: number;
         wallet_balance: string;
-        wallet_balance_halalas: number;
         active_employees: number;
     };
-    communityActivity: { window_days: number; active: CommunityRow[]; dormant: CommunityRow[] };
-    departmentParticipation: DepartmentRow[];
-    recentActivity: ActivityLog[];
-    leaderboard: Leaderboard;
-}
-
-const rankColors = ['#D4A017', '#9CA3AF', '#CD7F32'];
-
-export default function HrDashboard({ company, stats, communityActivity, departmentParticipation, recentActivity, leaderboard }: Props) {
+    communityActivity: {
+        window_days: number;
+        active: CommunityRow[];
+        dormant: CommunityRow[];
+    };
+    departmentParticipation: {
+        department_id: number | null;
+        department_name: string;
+        attendees: number;
+        employees: number;
+        rate: number;
+    }[];
+    recentActivity: {
+        id: number;
+        description: string | null;
+        created_at: string | null;
+        actor_name?: string | null;
+    }[];
+    leaderboard: {
+        top_employees: {
+            employee_id: number;
+            name: string | null;
+            events_count: number;
+        }[];
+    };
+}) {
     return (
         <CompanyLayout>
             <Head title="لوحة التحكم" />
 
-            <div className="page-title">لوحة التحكم</div>
-            <div className="page-sub">{company.name} — {stats.period.label}</div>
+            <PageHeader
+                icon={Activity}
+                title="لوحة القيادة"
+                subtitle={`مؤشرات الدورة الحالية — ${stats.period.label}`}
+            />
 
-            <div className="stat-row">
+            {/* ── المؤشران الأساسيان، بصيغتهما ── */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <RateCard kpi={stats.activation} />
+                <RateCard kpi={stats.attendance} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <StatCard
-                    emoji="✅"
-                    label="معدل التفعيل — المؤشر الأول"
-                    value={`${stats.activation.rate}%`}
-                    change={`${stats.activation.numerator} من ${stats.activation.denominator} موظفاً نشطاً`}
-                    color="#059669"
+                    label="فعاليات مكتملة"
+                    value={stats.completed_events}
+                    hint="في الدورة الحالية"
                 />
                 <StatCard
-                    emoji="🏘️"
-                    label={`المجتمعات النشطة (${communityActivity.window_days} يوماً)`}
-                    value={stats.active_communities}
-                    change={`${stats.dormant_communities} خاملاً`}
-                    color="#0CA678"
+                    label="مشاركات موثّقة"
+                    value={stats.attendance_count}
+                    hint="حضور مسجَّل"
                 />
                 <StatCard
-                    emoji="💸"
-                    label="التكلفة لكل مشاركة"
-                    value={`${stats.cost_per_participation} ر`}
-                    change={`إنفاق ${stats.company_spend} ÷ ${stats.attendance_count} مشاركة`}
-                    color="#D4820A"
+                    label="الموظفون النشطون"
+                    value={stats.active_employees}
                 />
                 <StatCard
-                    emoji="💰"
-                    label="الرصيد المتبقي"
-                    value={`${stats.wallet_balance} ر`}
-                    color="#E03050"
+                    label="رصيد المحفظة"
+                    value={stats.wallet_balance}
+                    hint="ريال"
+                    tone="success"
                 />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16 }}>
-                <div className="card" style={{ marginBottom: 0 }}>
-                    <div className="sec-title">المشاركة حسب الإدارة</div>
-                    <div style={{ fontSize: 11, color: '#7A8BA8', marginBottom: 10 }}>
-                        منسوبة للإدارة وقت الفعالية لا للإدارة الحالية
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <StatCard
+                    label="إنفاق الشركة"
+                    value={stats.company_spend}
+                    hint="ريال في الدورة"
+                />
+                <StatCard
+                    label="تكلفة المشاركة الواحدة"
+                    value={stats.cost_per_participation}
+                    hint="الإنفاق ÷ عدد المشاركات الموثّقة"
+                />
+            </div>
+
+            {/* ── المجتمعات: نشطة وخاملة ── */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <Card padding="p-0" className="overflow-hidden">
+                    <div className="flex items-center justify-between border-b-[0.5px] border-ink/10 p-4">
+                        <h2 className="flex items-center gap-2 text-sm font-extrabold text-ink">
+                            <UsersRound
+                                className="h-4 w-4"
+                                aria-hidden="true"
+                            />
+                            مجتمعات نشطة
+                        </h2>
+                        <Badge tone="success">{stats.active_communities}</Badge>
                     </div>
-                    {departmentParticipation.length === 0 ? (
-                        <div style={{ fontSize: 13, color: '#7A8BA8', padding: '16px 0' }}>
-                            لا توجد إدارات ولا مشاركات بعد
-                        </div>
-                    ) : (
-                        departmentParticipation.map((row) => (
-                            <div key={row.department_id ?? 'none'} style={{ marginBottom: 12 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                    <span style={{ fontSize: 13, fontWeight: 700 }}>{row.department_name}</span>
-                                    <span style={{ fontSize: 11, color: '#7A8BA8' }}>
-                                        {row.attendees}/{row.employees}
+                    <div className="divide-y-[0.5px] divide-ink/10">
+                        {communityActivity.active.map((community) => (
+                            <div
+                                key={community.id}
+                                className="flex items-center justify-between gap-2 p-3.5"
+                            >
+                                <span className="truncate text-xs font-extrabold text-ink">
+                                    {community.name}
+                                </span>
+                                <span className="shrink-0 font-mono text-[11px] text-ink/60">
+                                    {community.events_count ?? 0} فعالية
+                                </span>
+                            </div>
+                        ))}
+                        <ListStates
+                            count={communityActivity.active.length}
+                            empty="لا مجتمعات نشطة في هذه المدة."
+                        />
+                    </div>
+                </Card>
+
+                <Card padding="p-0" className="overflow-hidden">
+                    <div className="flex items-center justify-between border-b-[0.5px] border-ink/10 p-4">
+                        <h2 className="text-sm font-extrabold text-ink">
+                            مجتمعات خاملة
+                        </h2>
+                        <Badge
+                            tone={
+                                stats.dormant_communities > 0
+                                    ? 'warning'
+                                    : 'success'
+                            }
+                        >
+                            {stats.dormant_communities}
+                        </Badge>
+                    </div>
+                    <div className="divide-y-[0.5px] divide-ink/10">
+                        {communityActivity.dormant.map((community) => (
+                            <div
+                                key={community.id}
+                                className="flex items-center justify-between gap-2 p-3.5"
+                            >
+                                <span className="truncate text-xs font-extrabold text-ink">
+                                    {community.name}
+                                </span>
+                                <Link
+                                    href={`/company/communities/${community.id}/edit`}
+                                    className="shrink-0 text-[11px] font-bold text-ink hover:underline"
+                                >
+                                    راجعه ←
+                                </Link>
+                            </div>
+                        ))}
+                        <ListStates
+                            count={communityActivity.dormant.length}
+                            empty="لا مجتمعات خاملة."
+                            emptyHint={`كل المجتمعات أقامت فعالية خلال ${communityActivity.window_days} يوماً.`}
+                        />
+                    </div>
+                </Card>
+            </div>
+
+            {/* ── المشاركة حسب الإدارة ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-extrabold text-ink">
+                        المشاركة حسب الإدارة
+                    </h2>
+                    <span className="text-[11px] text-ink/50">
+                        بالإسناد وقت الحدث
+                    </span>
+                </div>
+
+                <TableShell>
+                    <Thead>
+                        <Th>الإدارة</Th>
+                        <Th>الموظفون</Th>
+                        <Th>شاركوا</Th>
+                        <Th>النسبة</Th>
+                    </Thead>
+                    <Tbody>
+                        {departmentParticipation.map((row) => (
+                            <Tr key={row.department_id ?? 'none'}>
+                                <Td className="font-extrabold text-ink">
+                                    {row.department_name}
+                                </Td>
+                                <Td className="font-mono text-ink/70">
+                                    {row.employees}
+                                </Td>
+                                <Td className="font-mono font-bold text-ink">
+                                    {row.attendees}
+                                </Td>
+                                <Td>
+                                    <div className="flex items-center gap-2">
+                                        <div
+                                            className="h-1.5 max-w-[120px] flex-1 overflow-hidden rounded-full bg-ink/10"
+                                            dir="ltr"
+                                        >
+                                            <div
+                                                className="h-full rounded-full bg-lime"
+                                                style={{
+                                                    width: `${Math.min(row.rate, 100)}%`,
+                                                }}
+                                            />
+                                        </div>
+                                        <span className="font-mono text-[11px] text-ink/60">
+                                            {row.rate}٪
+                                        </span>
+                                    </div>
+                                </Td>
+                            </Tr>
+                        ))}
+                        <ListStates
+                            count={departmentParticipation.length}
+                            colSpan={4}
+                            empty="لا بيانات مشاركة بعد."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <Note title="لماذا «بالإسناد وقت الحدث»؟">
+                    نقل موظف بين الإدارات لا يعيد كتابة تاريخه: مشاركاته تبقى
+                    منسوبة للإدارة التي كان فيها يوم الفعالية، فلا تتضخّم أرقام
+                    إدارة على حساب أخرى بمجرد إعادة هيكلة.
+                </Note>
+            </Card>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {/* ── الأكثر نشاطاً ── */}
+                <Card padding="p-0" className="overflow-hidden">
+                    <div className="flex items-center justify-between border-b-[0.5px] border-ink/10 p-4">
+                        <h2 className="flex items-center gap-2 text-sm font-extrabold text-ink">
+                            <TrendingUp
+                                className="h-4 w-4"
+                                aria-hidden="true"
+                            />
+                            الأكثر نشاطاً
+                        </h2>
+                        <span className="text-[11px] text-ink/50">
+                            هذا الشهر
+                        </span>
+                    </div>
+                    <div className="divide-y-[0.5px] divide-ink/10">
+                        {leaderboard.top_employees
+                            .slice(0, 5)
+                            .map((row, index) => (
+                                <div
+                                    key={row.employee_id}
+                                    className="flex items-center gap-3 p-3"
+                                >
+                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-[10px] font-black text-lime">
+                                        {index + 1}
+                                    </span>
+                                    <span className="flex-1 truncate text-xs font-bold text-ink">
+                                        {row.name ?? '—'}
+                                    </span>
+                                    <span className="font-mono text-[11px] text-ink/60">
+                                        {row.events_count} فعالية
                                     </span>
                                 </div>
-                                <div className="bar-w">
-                                    <div className="bar-f" style={{ width: `${Math.min(100, row.rate)}%`, background: row.rate === 0 ? '#E03050' : '#0CA678' }} />
-                                </div>
-                            </div>
-                        ))
-                    )}
-                    {communityActivity.dormant.length > 0 && (
-                        <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid #F0EDE8' }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>مجتمعات خاملة تحتاج تدخلاً</div>
-                            <div style={{ fontSize: 12, color: '#7A8BA8' }}>
-                                {communityActivity.dormant.map((c) => c.name).join(' · ')}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="card" style={{ marginBottom: 0 }}>
-                    <div className="sec-title">آخر النشاطات</div>
-                    {recentActivity.length === 0 ? (
-                        <div style={{ fontSize: 13, color: '#7A8BA8', padding: '16px 0' }}>
-                            لا توجد نشاطات حديثة
-                        </div>
-                    ) : (
-                        recentActivity.map((activity) => (
-                            <div key={activity.id} style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                                <div style={{
-                                    width: 34, height: 34, borderRadius: 10,
-                                    background: '#0CA67818', display: 'flex',
-                                    alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 16, flexShrink: 0
-                                }}>
-                                    📋
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: 12, lineHeight: 1.4 }}>{activity.description}</div>
-                                    <div style={{ fontSize: 10, color: '#7A8BA8', marginTop: 3 }}>
-                                        {fmtDateTime(activity.created_at)}
-                                    </div>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
-            {/* Leaderboard */}
-            {(leaderboard.top_departments.length > 0 || leaderboard.top_employees.length > 0) && (
-                <div style={{ marginTop: 24 }}>
-                    <div className="page-title" style={{ fontSize: 16, marginBottom: 16 }}>ترتيب النشاط هذا الشهر</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                        {/* Departments */}
-                        {leaderboard.top_departments.length > 0 && (
-                            <div className="card">
-                                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>الأقسام</div>
-                                {leaderboard.top_departments.slice(0, 5).map((dept, idx) => (
-                                    <div key={dept.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: idx < leaderboard.top_departments.length - 1 ? '1px solid #F0EDE8' : 'none' }}>
-                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: rankColors[idx] ?? '#E4E9F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
-                                        <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{dept.name}</div>
-                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#8A7868' }}>{dept.events_count}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {/* Employees */}
-                        {leaderboard.top_employees.length > 0 && (
-                            <div className="card">
-                                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>الموظفين الأكثر نشاطا</div>
-                                {leaderboard.top_employees.slice(0, 5).map((emp, idx) => (
-                                    <div key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: idx < leaderboard.top_employees.length - 1 ? '1px solid #F0EDE8' : 'none' }}>
-                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: rankColors[idx] ?? '#E4E9F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</div>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.name}</div>
-                                            {emp.department_name && <div style={{ fontSize: 10, color: '#8A7868' }}>{emp.department_name}</div>}
-                                        </div>
-                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#8A7868' }}>{emp.events_count}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                            ))}
+                        <ListStates
+                            count={leaderboard.top_employees.length}
+                            empty="لا مشاركات موثّقة بعد."
+                        />
                     </div>
+                </Card>
+
+                {/* ── آخر النشاط ── */}
+                <Card padding="p-0" className="overflow-hidden">
+                    <div className="flex items-center justify-between border-b-[0.5px] border-ink/10 p-4">
+                        <h2 className="text-sm font-extrabold text-ink">
+                            آخر النشاط
+                        </h2>
+                        <Link
+                            href="/company/audit"
+                            className="text-[11px] font-bold text-ink/70 hover:text-ink"
+                        >
+                            سجل التدقيق ←
+                        </Link>
+                    </div>
+                    <div className="divide-y-[0.5px] divide-ink/10">
+                        {recentActivity.slice(0, 6).map((log) => (
+                            <div key={log.id} className="p-3">
+                                <p className="text-[11px] leading-relaxed text-ink/80">
+                                    {log.description ?? '—'}
+                                </p>
+                                <span className="font-mono text-[10px] text-ink/45">
+                                    {log.created_at
+                                        ? new Date(
+                                              log.created_at,
+                                          ).toLocaleString('ar-SA')
+                                        : '—'}
+                                </span>
+                            </div>
+                        ))}
+                        <ListStates
+                            count={recentActivity.length}
+                            empty="لا نشاط مسجّل بعد."
+                        />
+                    </div>
+                </Card>
+            </div>
+
+            <Card
+                padding="p-4"
+                className="flex items-center justify-between gap-3"
+            >
+                <div className="flex min-w-0 items-center gap-2">
+                    <Wallet
+                        className="h-4 w-4 shrink-0 text-ink"
+                        aria-hidden="true"
+                    />
+                    <span className="text-xs text-ink/70">
+                        رصيد محفظتك الحالي{' '}
+                        <span className="font-mono font-black text-ink">
+                            {stats.wallet_balance}
+                        </span>{' '}
+                        ر.س
+                    </span>
                 </div>
-            )}
+                <Link
+                    href="/company/wallet"
+                    className="shrink-0 text-xs font-bold text-ink hover:underline"
+                >
+                    إدارة المحفظة ←
+                </Link>
+            </Card>
         </CompanyLayout>
+    );
+}
+
+/** A ratio with its own numerator, denominator and formula — never a bare percentage. */
+function RateCard({ kpi }: { kpi: Kpi }) {
+    return (
+        <Card padding="p-5" className="space-y-3">
+            <div className="flex items-baseline justify-between gap-2">
+                <span className="text-sm font-extrabold text-ink">
+                    {kpi.label}
+                </span>
+                <span className="font-mono text-3xl font-black text-ink">
+                    {kpi.rate}٪
+                </span>
+            </div>
+
+            <div
+                className="h-2 w-full overflow-hidden rounded-full bg-ink/10"
+                dir="ltr"
+            >
+                <div
+                    className="h-full rounded-full bg-lime"
+                    style={{ width: `${Math.min(kpi.rate, 100)}%` }}
+                />
+            </div>
+
+            <div className="flex items-center justify-between font-mono text-[11px] text-ink/60">
+                <span>
+                    {kpi.numerator} من {kpi.denominator}
+                </span>
+            </div>
+
+            <p className="border-t-[0.5px] border-ink/10 pt-2 text-[11px] leading-relaxed text-ink/55">
+                {kpi.formula}
+            </p>
+        </Card>
     );
 }

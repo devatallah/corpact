@@ -1,13 +1,19 @@
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import StatusBadge from '@/components/status-badge';
+import { Head } from '@inertiajs/react';
+import { Scale } from 'lucide-react';
+import { Pagination, ResultCount, SortableHeader } from '@/components/list-controls';
+import { BackLink, ListStates } from '@/components/list-states';
+import { Badge, Card, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
 import PartnerLayout from '@/layouts/partner-layout';
-import { fmtDateTime } from '@/lib/utils';
-import type { PaginatedResult } from '@/types/models';
-import { Head, Link } from '@inertiajs/react';
+import type { Paginated, SortState } from '@/types';
 
-interface ItemRow {
+/**
+ * H §12.7 — reconciling a statement item by item.
+ *
+ * The provider's own books are per event, so the statement has to be readable
+ * that way: one row per completed event with its gross, the commission taken,
+ * and what is left. A correcting item points back at the row it corrects.
+ */
+type Item = {
     id: number;
     type: string;
     status: string;
@@ -21,9 +27,9 @@ interface ItemRow {
     net_amount: string;
     reason: string | null;
     corrects_item_id: number | null;
-}
+};
 
-interface Statement {
+type Statement = {
     id: number;
     period_key: string;
     period_start: string | null;
@@ -36,128 +42,112 @@ interface Statement {
     net_amount: string;
     approved_at: string | null;
     paid_at: string | null;
-    transferred_at: string | null;
     payout_reference: string | null;
-}
+};
 
-interface Props {
+const STATUS: Record<string, { label: string; tone: 'neutral' | 'success' | 'warning' }> = {
+    draft: { label: 'قيد الإعداد', tone: 'neutral' },
+    approved: { label: 'معتمد — بانتظار التحويل', tone: 'warning' },
+    paid: { label: 'حُوِّل', tone: 'success' },
+};
+
+export default function PartnerSettlementShow({
+    statement,
+    items,
+    sort,
+}: {
     statement: Statement;
-    /** بنود الكشف — حمولة مرقّمة 20/صفحة (H §18)، لا مصفوفة بلا حدّ. */
-    items: PaginatedResult<ItemRow>;
+    items: Paginated<Item>;
     sort: SortState;
-}
-
-export default function SettlementShow({ statement, items, sort }: Props) {
+}) {
     return (
         <PartnerLayout>
             <Head title={`كشف ${statement.period_key}`} />
 
-            <div style={{ marginBottom: 16 }}>
-                <Link href="/partner/settlements" style={{ color: '#1A5FAB', fontWeight: 700 }}>
-                    ← كل الكشوف
-                </Link>
+            <BackLink href="/partner/settlements" label="العودة إلى كشوف المستحقات" />
+
+            <PageHeader
+                icon={Scale}
+                title={`كشف الفترة ${statement.period_key}`}
+                subtitle={`من ${statement.period_start ?? '—'} إلى ${statement.period_end ?? '—'} · ${statement.items_count} بند`}
+                actions={
+                    <Badge tone={STATUS[statement.status]?.tone ?? 'neutral'}>
+                        {STATUS[statement.status]?.label ?? statement.status}
+                    </Badge>
+                }
+            />
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard label="إجمالي الفعاليات" value={statement.gross_amount} hint="ريال" />
+                <StatCard label="عمولة المنصة" value={`− ${statement.commission_amount}`} hint="ريال" tone="warning" />
+                <StatCard label="ضريبة القيمة المضافة" value={statement.vat_amount} hint="ريال" />
+                <StatCard label="الصافي المستحق" value={statement.net_amount} hint="ريال" tone="success" />
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-                <div className="page-title">
-                    كشف الفترة {statement.period_key} <StatusBadge status={statement.status} />
-                </div>
-                <div className="page-sub">
-                    {statement.period_start} → {statement.period_end} · {statement.items_count} بند
-                </div>
-            </div>
+            {statement.payout_reference && (
+                <Card padding="p-4">
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                        <span className="text-ink/60">مرجع التحويل البنكي</span>
+                        <span className="font-mono font-bold text-ink" dir="ltr">
+                            {statement.payout_reference}
+                        </span>
+                    </div>
+                </Card>
+            )}
 
-            <div className="card" style={{ marginBottom: 16 }}>
-                <table className="portal-table">
-                    <tbody>
-                        <tr>
-                            <td>قيمة الفعاليات شاملة الضريبة</td>
-                            <td style={{ fontWeight: 700 }}>{statement.gross_amount} ر</td>
-                        </tr>
-                        <tr>
-                            <td>عمولة تيمات (تُقتطع من مستحقاتك)</td>
-                            <td style={{ color: '#C8410A', fontWeight: 700 }}>−{statement.commission_amount} ر</td>
-                        </tr>
-                        <tr>
-                            <td>منها ضريبة القيمة المضافة على العمولة</td>
-                            <td>{statement.vat_amount} ر</td>
-                        </tr>
-                        <tr>
-                            <td style={{ fontWeight: 800 }}>صافي التحويل إليك</td>
-                            <td style={{ fontWeight: 800, color: '#1A7A4A' }}>{statement.net_amount} ر</td>
-                        </tr>
-                        {statement.paid_at && (
-                            <>
-                                <tr>
-                                    <td>تاريخ التحويل</td>
-                                    <td>{fmtDateTime(statement.transferred_at) || '—'}</td>
-                                </tr>
-                                <tr>
-                                    <td>مرجع التحويل</td>
-                                    <td>{statement.payout_reference ?? '—'}</td>
-                                </tr>
-                            </>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+            <Card padding="p-4" className="space-y-4">
+                <h2 className="text-sm font-extrabold text-ink">بنود الكشف</h2>
 
-            <div className="card">
-                <div className="card-title">مطابقة البنود مقابل الفعاليات</div>
-                <div style={{ fontSize: 12, color: '#6B7A99', marginBottom: 12 }}>
-                    كل بند يحفظ نسخة ثابتة من السعر ونسبة العمولة وقت الاحتساب، فلا يتغير كشف قديم بتغيير ملفك لاحقاً.
-                    لا توجد واجهة اعتراض في الإصدار الأول: راجع الأدمن المالي في تيمات، ويُضاف بند تصحيحي في الكشف
-                    التالي — والكشف المدفوع لا يُعدَّل.
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader label="الفعالية" sortKey="event_id" sort={sort} />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="التاريخ" sortKey="event_date" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="الإجمالي" sortKey="gross_amount" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>العمولة</Th>
+                        <Th>
+                            <SortableHeader label="الصافي" sortKey="net_amount" sort={sort} initialDirection="desc" />
+                        </Th>
+                    </Thead>
+
+                    <Tbody>
+                        {items.data.map((item) => (
+                            <Tr key={item.id}>
+                                <Td>
+                                    <span className="font-extrabold text-ink block">{item.event_title ?? `فعالية #${item.event_id}`}</span>
+                                    {item.corrects_item_id !== null && (
+                                        <Badge tone="warning">تصحيح للبند #{item.corrects_item_id}</Badge>
+                                    )}
+                                    {item.reason && <span className="block text-[11px] text-ink/55 mt-0.5">{item.reason}</span>}
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/70">{item.event_date ?? '—'}</Td>
+                                <Td className="font-mono text-ink/85">{item.gross_amount}</Td>
+                                <Td>
+                                    <span className="font-mono text-ink/85">− {item.commission_amount}</span>
+                                    {item.commission_rate_percent !== null && (
+                                        <span className="block text-[11px] text-ink/45 font-mono">
+                                            {item.commission_rate_percent}٪
+                                        </span>
+                                    )}
+                                </Td>
+                                <Td className="font-mono font-black text-ink">{item.net_amount}</Td>
+                            </Tr>
+                        ))}
+
+                        <ListStates count={items.data.length} colSpan={5} empty="لا بنود في هذا الكشف." />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={items} />
+                    <Pagination page={items} />
                 </div>
-                <div style={{ overflow: 'auto' }}>
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <th>الفعالية</th>
-                                <SortableHeader label="التاريخ" sortKey="computed_at" sort={sort} />
-                                <SortableHeader label="الإجمالي" sortKey="gross_amount" sort={sort} initialDirection="desc" />
-                                <th>النسبة</th>
-                                <SortableHeader label="العمولة" sortKey="commission_amount" sort={sort} initialDirection="desc" />
-                                <SortableHeader label="الصافي" sortKey="net_amount" sort={sort} initialDirection="desc" />
-                                <SortableHeader label="النوع" sortKey="type" sort={sort} />
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <ListStates
-                                count={items.data.length}
-                                columns={7}
-                                emptyTitle="لا بنود في هذا الكشف"
-                                emptyHint="يُضاف بند لكل فعالية مكتملة ضمن فترة الكشف."
-                            />
-                            {items.data.map((item) => (
-                                <tr key={item.id}>
-                                    <td style={{ fontWeight: 700 }}>
-                                        {item.event_title ?? `#${item.event_id}`}
-                                        {item.reason && (
-                                            <div style={{ fontSize: 11, color: '#C8410A' }}>
-                                                سبب التصحيح: {item.reason}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td>{item.event_date ?? '—'}</td>
-                                    <td>{item.gross_amount} ر</td>
-                                    <td>{item.commission_rate_percent ?? '—'}%</td>
-                                    <td style={{ color: '#C8410A' }}>{item.commission_amount} ر</td>
-                                    <td style={{ fontWeight: 700 }}>{item.net_amount} ر</td>
-                                    <td>
-                                        {item.type === 'correction' ? (
-                                            <span style={{ color: '#C8410A', fontWeight: 700 }}>بند تصحيحي</span>
-                                        ) : (
-                                            'فعالية'
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                <Pagination links={items.links} />
-            </div>
+            </Card>
         </PartnerLayout>
     );
 }

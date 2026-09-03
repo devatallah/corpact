@@ -1,21 +1,29 @@
 import { createInertiaApp } from '@inertiajs/react';
-import { Toaster } from '@/components/ui/sonner';
-import { TooltipProvider } from '@/components/ui/tooltip';
-// Toast notifications handled by existing Sonner/Toastr
-const appName = import.meta.env.VITE_APP_NAME || 'Teamat';
+import { Toaster } from 'sonner';
+
+const appName = import.meta.env.VITE_APP_NAME || 'تيمات';
 
 createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    title: (title) => (title ? `${title} — ${appName}` : appName),
     strictMode: true,
     withApp(app) {
         return (
-            <TooltipProvider delayDuration={0}>
+            <>
                 {app}
-                <Toaster />
-            </TooltipProvider>
+                <Toaster
+                    dir="rtl"
+                    position="bottom-left"
+                    toastOptions={{
+                        classNames: {
+                            toast: 'font-arabic text-xs rounded-2xl border hairline bg-surface text-ink',
+                        },
+                    }}
+                />
+            </>
         );
     },
     progress: {
-        color: '#009E82',
+        // The one accent, on the one thing that signals "working".
+        color: '#C8FF00',
     },
 });

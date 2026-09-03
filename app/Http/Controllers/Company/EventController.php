@@ -52,7 +52,7 @@ class EventController extends Controller
         return Inertia::render('company/events/index', [
             'company' => $company,
             'events' => $events,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => CompanyEventService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'totalEvents' => $totalEvents,
             'activeEvents' => $activeEvents,

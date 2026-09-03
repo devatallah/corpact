@@ -1,129 +1,185 @@
-import AdminLayout from '@/layouts/admin-layout';
-import FilterTabs from '@/components/filter-tabs';
-import CategoryIcon from '@/components/category-icon';
-import StatusBadge from '@/components/status-badge';
-import Pagination from '@/components/pagination';
-import ListStates from '@/components/list-states';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import { fmtDate, fmtTime } from '@/lib/utils';
-import type { Event, PaginatedResult } from '@/types/models';
 import { Head, Link } from '@inertiajs/react';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import { Calendar } from 'lucide-react';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar, visitWith } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Card, Money, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import AdminLayout from '@/layouts/admin-layout';
+import { eventStatus } from '@/lib/status';
+import type { Paginated, SortState } from '@/types';
 
-interface Props {
-    events: PaginatedResult<Event>;
-    totalEvents: number;
-    filters: { status?: string; search?: string; sort?: string; dir?: string };
-    sort: SortState;
-}
+/**
+ * H §16 — الفعاليات عبر المنصة.
+ *
+ * Teamat watches events rather than runs them: the state machine drives the
+ * lifecycle, and this list is where an operator finds the one event a company
+ * is calling about. Intervention lives on the detail screen, behind a reason.
+ */
+type EventRow = {
+    id: number;
+    title: string;
+    event_date: string | null;
+    start_time: string | null;
+    status: string;
+    capacity: number | null;
+    participants_count: number | null;
+    min_participants: number | null;
+    total_amount: string | number | null;
+    company?: { id: number; name: string } | null;
+    community?: { id: number; name: string } | null;
+    partner?: { id: number; name: string } | null;
+    category?: { id: number; name: string } | null;
+};
 
-const filterOptions = [
-    { label: 'الكل', value: '' },
-    { label: 'مفتوحة', value: 'open' },
-    { label: 'مؤكدة', value: 'confirmed' },
-    { label: 'مكتملة', value: 'completed' },
-    { label: 'ملغية', value: 'cancelled' },
+/**
+ * The statuses an admin may filter by, in lifecycle order. The *labels* come
+ * from `eventStatus()` so this list can never drift from the rest of the app —
+ * it decides which states are worth filtering, not what they are called.
+ */
+export const EVENT_FILTER_STATUSES = [
+    'pending_approval',
+    'open',
+    'booked',
+    'awaiting_payment',
+    'confirmed',
+    'in_progress',
+    'completed',
+    'settled',
+    'cancelled_min_not_met',
+    'cancelled_company',
+    'cancelled_provider',
+    'cancelled_payment_failed',
+    'expired',
 ];
-
-export default function EventsIndex({ events, totalEvents, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        status: filters?.status,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-
+export default function AdminEvents({
+    events,
+    totalEvents,
+    filters,
+    sort,
+}: {
+    events: Paginated<EventRow>;
+    totalEvents: number;
+    filters: { search?: string; status?: string; date_from?: string; date_to?: string };
+    sort: SortState;
+}) {
     return (
         <AdminLayout>
             <Head title="الفعاليات" />
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <div className="page-title">الفعاليات</div>
-                <Link href="/admin/blackouts" className="act-btn" style={{ fontSize: 12, padding: '7px 14px', borderRadius: 8, textDecoration: 'none' }}>
-                    أيام الحظر (الإجازات ورمضان)
-                </Link>
-            </div>
-            <div className="page-sub">
-                {totalEvents.toLocaleString()} فعالية على المنصة
-            </div>
+            <PageHeader
+                icon={Calendar}
+                title="الفعاليات عبر المنصة"
+                subtitle="الدورة تلقائية بالكامل. هذه الشاشة للبحث والتشخيص — التدخل اليدوي يتم من صفحة الفعالية وبسبب موثّق."
+            />
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث بالشريك أو الفئة..."
-                    style={{ padding: '9px 14px', background: '#161B27', border: '1px solid #232A3E', borderRadius: 10, fontSize: 13, color: '#E8EAF0', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <StatCard label="إجمالي الفعاليات" value={totalEvents} />
+                <StatCard label="المعروض بعد التصفية" value={events.total} />
+                <StatCard
+                    label="مكتملة في هذه الصفحة"
+                    value={events.data.filter((event) => event.status === 'completed').length}
+                    tone="success"
                 />
-                <FilterTabs options={filterOptions} current={filters?.status ?? ''} />
             </div>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <th>الفعالية</th>
-                            <th>الشركة</th>
-                            <th>الشريك</th>
-                            <SortableHeader label="التاريخ" sortKey="event_date" sort={sort} initialDirection="desc" />
-                            <SortableHeader label="اللاعبون" sortKey="participants_count" sort={sort} initialDirection="desc" />
-                            <SortableHeader label="المبلغ" sortKey="total_amount" sort={sort} initialDirection="desc" />
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث بالعنوان أو المزوّد أو النشاط…" />
+                    <FilterSelect
+                        name="status"
+                        label="حالة الفعالية"
+                        value={filters.status ?? ''}
+                        options={[
+                            ['', 'كل الحالات'],
+                            ...EVENT_FILTER_STATUSES.map((value): [string, string] => [value, eventStatus(value).label]),
+                        ]}
+                    />
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="date"
+                            aria-label="من تاريخ"
+                            value={filters.date_from ?? ''}
+                            onChange={(event) => visitWith({ date_from: event.target.value })}
+                            className="w-full p-2 rounded-xl border-[0.5px] border-ink/20 text-xs bg-surface focus:outline-none focus:border-ink"
+                        />
+                        <input
+                            type="date"
+                            aria-label="إلى تاريخ"
+                            value={filters.date_to ?? ''}
+                            onChange={(event) => visitWith({ date_to: event.target.value })}
+                            className="w-full p-2 rounded-xl border-[0.5px] border-ink/20 text-xs bg-surface focus:outline-none focus:border-ink"
+                        />
+                    </div>
+                </Toolbar>
+
+                <TableShell>
+                    <Thead>
+                        <Th>الفعالية</Th>
+                        <Th>الشركة والمجتمع</Th>
+                        <Th>المزوّد</Th>
+                        <Th>
+                            <SortableHeader label="الموعد" sortKey="event_date" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="المشاركون" sortKey="participants_count" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="القيمة" sortKey="total_amount" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
                             <SortableHeader label="الحالة" sortKey="status" sort={sort} />
-                            <th>إجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                        </Th>
+                    </Thead>
+
+                    <Tbody>
+                        {events.data.map((event) => (
+                            <Tr key={event.id}>
+                                <Td>
+                                    <Link
+                                        href={`/admin/support-console/events/${event.id}`}
+                                        className="font-extrabold text-ink hover:underline"
+                                    >
+                                        {event.title}
+                                    </Link>
+                                    <span className="block text-[11px] text-ink/50">{event.category?.name ?? '—'}</span>
+                                </Td>
+                                <Td>
+                                    <span className="text-ink/85 block">{event.company?.name ?? '—'}</span>
+                                    <span className="text-[11px] text-ink/50">{event.community?.name ?? '—'}</span>
+                                </Td>
+                                <Td className="text-ink/85">{event.partner?.name ?? '—'}</Td>
+                                <Td>
+                                    <span className="font-mono text-[11px] text-ink/80 block">{event.event_date ?? '—'}</span>
+                                    <span className="font-mono text-[11px] text-ink/45">{event.start_time ?? ''}</span>
+                                </Td>
+                                <Td className="font-mono font-bold text-ink">
+                                    {event.participants_count ?? 0}
+                                    <span className="text-ink/45"> / {event.capacity ?? '—'}</span>
+                                </Td>
+                                <Td>
+                                    <Money amount={event.total_amount} className="text-ink/85" />
+                                </Td>
+                                <Td>
+                                    <Badge tone={eventStatus(event.status).tone}>
+                                        {eventStatus(event.status).label}
+                                    </Badge>
+                                </Td>
+                            </Tr>
+                        ))}
+
                         <ListStates
                             count={events.data.length}
-                            columns={8}
-                            emptyTitle="لا توجد فعاليات"
-                            emptyHint="لا فعالية مطابقة للبحث والفلاتر الحالية."
+                            colSpan={7}
+                            empty="لا توجد فعاليات مطابقة."
+                            emptyHint="جرّب توسيع المدة الزمنية أو إزالة فلتر الحالة."
                         />
-                        {events.data.map((event) => (
-                            <tr key={event.id}>
-                                <td>
-                                    <span style={{ fontWeight: 600, color: '#fff' }}>
-                                        <CategoryIcon icon={event.category?.icon} size={14} /> {event.category?.name ?? '-'}
-                                    </span>
-                                </td>
-                                <td style={{ color: '#C8D0E0' }}>
-                                    {event.company?.name ?? '-'}
-                                </td>
-                                <td style={{ color: '#C8D0E0' }}>{event.partner?.name ?? '-'}</td>
-                                <td style={{ fontSize: '12px', color: '#6B7A99' }}>
-                                    {fmtDate(event.event_date)} · {fmtTime(event.start_time)}
-                                    {event.template_id && (
-                                        <span style={{ marginRight: 6, fontSize: 10, background: '#1A5FAB30', color: '#8AB4F8', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }} title="مولّدة من قالب تكرار">
-                                            قالب
-                                        </span>
-                                    )}
-                                    {event.parent_event_id && (
-                                        <span style={{ marginRight: 4, fontSize: 10, color: '#8AB4F8' }} title="جزء من سلسلة متكررة">🔄</span>
-                                    )}
-                                </td>
-                                <td>{event.participants_count}/{event.capacity}</td>
-                                <td style={{
-                                    color: event.status === 'completed' ? '#009E82' : '#D4820A',
-                                    fontWeight: 700,
-                                }}>
-                                    {event.total_amount.toLocaleString()} ر
-                                </td>
-                                <td>
-                                    <StatusBadge status={event.status} />
-                                </td>
-                                <td>
-                                    <Link
-                                        href={`/admin/events/${event.id}`}
-                                        className="act-btn btn-view"
-                                    >
-                                        عرض
-                                    </Link>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                    </Tbody>
+                </TableShell>
 
-            <Pagination links={events.links} />
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={events} />
+                    <Pagination page={events} />
+                </div>
+            </Card>
         </AdminLayout>
     );
 }

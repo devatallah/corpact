@@ -38,7 +38,7 @@ class CompanyController extends Controller
         return Inertia::render('admin/companies/index', [
             'companies' => $companies,
             'stats' => $stats,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => CompanyService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }

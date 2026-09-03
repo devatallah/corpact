@@ -1,463 +1,970 @@
-import { router, usePage } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
+import {
+    CalendarClock,
+    CalendarOff,
+    Pause,
+    Play,
+    Plus,
+    Repeat,
+    TriangleAlert,
+} from 'lucide-react';
 import { useState } from 'react';
-import ConfirmModal from '@/components/confirm-modal';
-import type { Category, EventTemplate, TemplateOccurrencePreview } from '@/types/models';
-import { fmtDate, fmtTime } from '@/lib/utils';
-import toastr from 'toastr';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { ListStates } from '@/components/list-states';
+import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
+import {
+    Badge,
+    Button,
+    Card,
+    Field,
+    INPUT,
+    Note,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    TableShell,
+    Tr,
+} from '@/components/portal/ui';
+import { eventStatus } from '@/lib/status';
 
 /**
- * A8 — إدارة قوالب التكرار (H §8): مكوّن مشترك بين بوابة الموظف (القائد/
- * المنسّق) وبوابة الشركة (مسؤول الحساب). الإيقاف يوقف التوليد المستقبلي فقط؛
- * التعديل يسري على ما سيُولَّد لاحقاً فقط؛ التوليد قبل 14 يوماً من الموعد.
+ * H §8 — قوالب التكرار.
+ *
+ * One component, two portals: the account manager and the community leader
+ * manage templates identically, so the only difference is `manageUrl`. The
+ * three facts this screen must never let anyone misread:
+ *
+ *  1. Generation happens 14 days before each date — a template is a promise
+ *     about the future, not a batch of events created now.
+ *  2. Editing a template touches only what has yet to be generated. Events
+ *     already on the calendar keep their old terms.
+ *  3. Pausing stops future generation and leaves generated events alone.
+ *
+ * The blackout preview is shown as its own column because "why did this week
+ * disappear?" is the question this feature generates most.
  */
-
-export interface PartnerOption {
+export type TemplatePartner = {
     id: number;
     name: string;
-    units: { id: number; name: string; category_id: number; price: number; default_duration_minutes: number }[];
-}
+    units: {
+        id: number;
+        name: string;
+        category_id: number | null;
+        price: string | number | null;
+        default_duration_minutes: number | null;
+    }[];
+};
 
-interface Props {
-    templates: EventTemplate[];
-    partners: PartnerOption[];
-    categories: Category[];
-    manageUrl: string;
-    eventUrlPrefix: string;
-}
-
-const DAY_LABELS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-const PATTERN_LABELS: Record<string, string> = { weekly: 'أسبوعي', biweekly: 'كل أسبوعين', monthly: 'شهري' };
-
-function patternSummary(t: EventTemplate): string {
-    if (t.recurrence_pattern === 'monthly') {
-        return `شهرياً يوم ${t.day_of_month}${(t.day_of_month ?? 0) >= 29 ? ' (وفي الشهر الأقصر: آخر يوم)' : ''}`;
-    }
-    return `${PATTERN_LABELS[t.recurrence_pattern]} — ${DAY_LABELS[t.day_of_week ?? 0]}`;
-}
-
-interface TemplateFormData {
-    [key: string]: unknown;
-    title: string;
-    partner_id: string;
-    activity_unit_id: string;
-    category_id: string;
-    recurrence_pattern: 'weekly' | 'biweekly' | 'monthly';
-    day_of_week: number;
-    day_of_month: number;
-    starts_from: string;
+export type TemplateRow = {
+    id: number;
+    title: string | null;
+    notes: string | null;
+    status: string;
+    partner_id: number | null;
+    activity_unit_id: number | null;
+    category_id: number | null;
+    recurrence_pattern: string;
+    day_of_week: number | null;
+    day_of_month: number | null;
+    starts_from: string | null;
     start_time: string;
     duration_minutes: number;
     capacity: number;
     min_participants: number;
-    total_amount: string;
-    company_subsidy: string;
-    blackout_behavior: 'skip' | 'shift_week';
-    reschedule_interval_days: number;
+    venues_count: number | null;
+    total_amount: string | number | null;
+    subsidy_type: string | null;
+    subsidy_value: number | null;
+    blackout_behavior: string;
+    reschedule_interval_days: number | null;
+    events_count: number;
+    partner?: { id: number; name: string; trade_name?: string | null } | null;
+    activity_unit?: { id: number; name: string } | null;
+    category?: { id: number; name: string } | null;
+    upcoming: {
+        pattern_date: string;
+        effective_date: string | null;
+        action: string;
+        blackout_name: string | null;
+        shifted: boolean;
+    }[];
+    generated_events: {
+        id: number;
+        event_date: string;
+        start_time: string | null;
+        status: string;
+        participants_count: number | null;
+        min_participants: number | null;
+        reschedule_attempt: number | null;
+    }[];
+};
+
+const PATTERNS: [string, string][] = [
+    ['weekly', 'أسبوعي'],
+    ['biweekly', 'كل أسبوعين'],
+    ['monthly', 'شهري'],
+];
+
+const DAYS = [
+    'الأحد',
+    'الاثنين',
+    'الثلاثاء',
+    'الأربعاء',
+    'الخميس',
+    'الجمعة',
+    'السبت',
+];
+
+type FormShape = {
+    title: string;
     notes: string;
-}
+    partner_id: string;
+    activity_unit_id: string;
+    category_id: string;
+    recurrence_pattern: string;
+    day_of_week: string;
+    day_of_month: string;
+    starts_from: string;
+    start_time: string;
+    duration_minutes: string;
+    capacity: string;
+    min_participants: string;
+    venues_count: string;
+    total_amount: string;
+    subsidy_type: string;
+    subsidy_value: string;
+    blackout_behavior: string;
+    reschedule_interval_days: string;
+};
 
-function TemplateForm({ initial, partners, categories, submitLabel, onSubmit, processing, errors }: {
-    initial: TemplateFormData;
-    partners: PartnerOption[];
-    categories: Category[];
-    submitLabel: string;
-    processing: boolean;
-    errors: Record<string, string>;
-    onSubmit: (data: TemplateFormData) => void;
+const BLANK: FormShape = {
+    title: '',
+    notes: '',
+    partner_id: '',
+    activity_unit_id: '',
+    category_id: '',
+    recurrence_pattern: 'weekly',
+    day_of_week: '0',
+    day_of_month: '',
+    starts_from: '',
+    start_time: '18:00',
+    duration_minutes: '90',
+    capacity: '20',
+    min_participants: '8',
+    venues_count: '1',
+    total_amount: '',
+    subsidy_type: 'percentage',
+    subsidy_value: '100',
+    blackout_behavior: 'skip',
+    reschedule_interval_days: '7',
+};
+
+export default function TemplateManager({
+    community,
+    templates,
+    partners,
+    categories,
+    manageUrl,
+}: {
+    community: { id: number; name: string; status?: string };
+    templates: TemplateRow[];
+    partners: TemplatePartner[];
+    categories: { id: number; name: string }[];
+    manageUrl: string;
 }) {
-    const [data, setDataState] = useState<TemplateFormData>(initial);
-    const set = (patch: Partial<TemplateFormData>) => setDataState((prev) => ({ ...prev, ...patch }));
-    const selectedPartner = partners.find((p) => p.id === Number(data.partner_id));
-    const err = (key: string) => errors[key] && <div style={{ fontSize: 11, color: '#E03050', marginTop: 2 }}>{errors[key]}</div>;
-
-    const label = { fontSize: 12, color: '#666', fontWeight: 600 as const, display: 'block', marginBottom: 4 };
-    const row = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 10 };
-
-    return (
-        <div>
-            <div style={row}>
-                <div>
-                    <label style={label}>اسم القالب (اختياري)</label>
-                    <input value={data.title} onChange={(e) => set({ title: e.target.value })} placeholder="مثال: تدريب الأربعاء" />
-                    {err('title')}
-                </div>
-                <div>
-                    <label style={label}>المزوّد</label>
-                    <select value={data.partner_id} onChange={(e) => set({ partner_id: e.target.value, activity_unit_id: '' })}>
-                        <option value="">اختر المزوّد</option>
-                        {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                    {err('partner_id')}
-                </div>
-                <div>
-                    <label style={label}>وحدة النشاط (للتحقق من التوفر)</label>
-                    <select
-                        value={data.activity_unit_id}
-                        onChange={(e) => {
-                            const unit = selectedPartner?.units.find((u) => u.id === Number(e.target.value));
-                            set({
-                                activity_unit_id: e.target.value,
-                                ...(unit ? { category_id: String(unit.category_id), duration_minutes: unit.default_duration_minutes, total_amount: String(unit.price) } : {}),
-                            });
-                        }}
-                    >
-                        <option value="">بدون وحدة محددة</option>
-                        {(selectedPartner?.units ?? []).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                    </select>
-                    {err('activity_unit_id')}
-                </div>
-                <div>
-                    <label style={label}>النشاط</label>
-                    <select value={data.category_id} onChange={(e) => set({ category_id: e.target.value })}>
-                        <option value="">اختر النشاط</option>
-                        {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                    {err('category_id')}
-                </div>
-            </div>
-
-            <div style={{ marginBottom: 10 }}>
-                <label style={label}>نمط التكرار (أسبوعي · كل أسبوعين · شهري — بداية الأسبوع الأحد)</label>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {(['weekly', 'biweekly', 'monthly'] as const).map((p) => (
-                        <button key={p} type="button" className={`pill${data.recurrence_pattern === p ? ' on' : ''}`} onClick={() => set({ recurrence_pattern: p })}>
-                            {PATTERN_LABELS[p]}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {data.recurrence_pattern !== 'monthly' ? (
-                <div style={{ marginBottom: 10 }}>
-                    <label style={label}>اليوم</label>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {DAY_LABELS.map((d, i) => (
-                            <button key={i} type="button" className={`pill${data.day_of_week === i ? ' on' : ''}`} onClick={() => set({ day_of_week: i })}>{d}</button>
-                        ))}
-                    </div>
-                    {err('day_of_week')}
-                </div>
-            ) : (
-                <div style={{ marginBottom: 10, maxWidth: 220 }}>
-                    <label style={label}>يوم الشهر (31 في شهر أقصر = آخر يوم)</label>
-                    <input type="number" min={1} max={31} value={data.day_of_month} onChange={(e) => set({ day_of_month: Math.min(31, Math.max(1, Number(e.target.value) || 1)) })} />
-                    {err('day_of_month')}
-                </div>
-            )}
-
-            <div style={row}>
-                <div>
-                    <label style={label}>يبدأ من تاريخ</label>
-                    <input type="date" value={data.starts_from} onChange={(e) => set({ starts_from: e.target.value })} />
-                    {err('starts_from')}
-                </div>
-                <div>
-                    <label style={label}>وقت البدء</label>
-                    <input type="time" value={data.start_time} onChange={(e) => set({ start_time: e.target.value })} />
-                    {err('start_time')}
-                </div>
-                <div>
-                    <label style={label}>المدة (دقائق)</label>
-                    <input type="number" min={30} max={480} step={15} value={data.duration_minutes} onChange={(e) => set({ duration_minutes: Number(e.target.value) || 60 })} />
-                    {err('duration_minutes')}
-                </div>
-            </div>
-
-            <div style={row}>
-                <div>
-                    <label style={label}>الحد الأقصى للمشاركين</label>
-                    <input type="number" min={2} value={data.capacity} onChange={(e) => set({ capacity: Math.max(2, Number(e.target.value) || 2) })} />
-                    {err('capacity')}
-                </div>
-                <div>
-                    <label style={label}>الحد الأدنى للمشاركين</label>
-                    <input type="number" min={2} value={data.min_participants} onChange={(e) => set({ min_participants: Math.max(2, Number(e.target.value) || 2) })} />
-                    {err('min_participants')}
-                </div>
-                <div>
-                    <label style={label}>إجمالي التكلفة (ريال)</label>
-                    <input type="number" min={0} step="0.01" value={data.total_amount} onChange={(e) => set({ total_amount: e.target.value })} />
-                    {err('total_amount')}
-                </div>
-                <div>
-                    <label style={label}>دعم الشركة (ريال)</label>
-                    <input type="number" min={0} step="0.01" value={data.company_subsidy} onChange={(e) => set({ company_subsidy: e.target.value })} />
-                    {err('company_subsidy')}
-                </div>
-            </div>
-
-            <div style={row}>
-                <div>
-                    <label style={label}>عند وقوع الموعد في يوم حظر (إجازة/رمضان)</label>
-                    <select value={data.blackout_behavior} onChange={(e) => set({ blackout_behavior: e.target.value as 'skip' | 'shift_week' })}>
-                        <option value="skip">تخطي الفعالية (الافتراضي)</option>
-                        <option value="shift_week">إزاحة أسبوعاً واحداً</option>
-                    </select>
-                </div>
-                <div>
-                    <label style={label}>إعادة الجدولة عند نقص العدد (أيام)</label>
-                    <input type="number" min={1} max={28} value={data.reschedule_interval_days} onChange={(e) => set({ reschedule_interval_days: Math.min(28, Math.max(1, Number(e.target.value) || 7)) })} />
-                    {err('reschedule_interval_days')}
-                </div>
-            </div>
-
-            <div style={{ marginBottom: 10 }}>
-                <label style={label}>ملاحظات (تُنسخ لكل فعالية مولّدة)</label>
-                <input value={data.notes} onChange={(e) => set({ notes: e.target.value })} />
-            </div>
-
-            <button type="button" className="btn btn-primary" disabled={processing || !data.partner_id} onClick={() => onSubmit(data)}>
-                {submitLabel}
-            </button>
-        </div>
-    );
-}
-
-function UpcomingPreview({ rows }: { rows: TemplateOccurrencePreview[] }) {
-    if (rows.length === 0) return null;
+    const [creating, setCreating] = useState(false);
+    const [editing, setEditing] = useState<TemplateRow | null>(null);
+    const [toggling, setToggling] = useState<{
+        template: TemplateRow;
+        action: 'pause' | 'resume';
+    } | null>(null);
 
     return (
-        <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#666', marginBottom: 6 }}>المواعيد القادمة (التوليد قبل 14 يوماً من كل موعد)</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {rows.map((row) => (
-                    <span
-                        key={row.pattern_date}
-                        title={row.blackout_name ? `يقع في «${row.blackout_name}»` : undefined}
-                        style={{
-                            fontSize: 11, padding: '3px 8px', borderRadius: 6, fontWeight: 600,
-                            background: row.action === 'skip_blackout' ? '#E0305012' : row.shifted ? '#D4820A12' : '#009E8212',
-                            color: row.action === 'skip_blackout' ? '#E03050' : row.shifted ? '#B45309' : '#0E7C4A',
-                            textDecoration: row.action === 'skip_blackout' ? 'line-through' : 'none',
-                            border: '1px solid rgba(0,0,0,.06)',
-                        }}
-                    >
-                        {row.action === 'skip_blackout'
-                            ? `${fmtDate(row.pattern_date)} — حظر: ${row.blackout_name ?? ''}`
-                            : row.shifted
-                                ? `${fmtDate(row.pattern_date)} ← ${fmtDate(row.effective_date!)} (إزاحة — ${row.blackout_name ?? 'حظر'})`
-                                : fmtDate(row.pattern_date)}
-                    </span>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-export default function TemplateManager({ templates, partners, categories, manageUrl, eventUrlPrefix }: Props) {
-    const [showCreate, setShowCreate] = useState(false);
-    const [editingId, setEditingId] = useState<number | null>(null);
-    const [processing, setProcessing] = useState(false);
-    // H §18: نافذة تأكيد موحّدة بدل نافذة المتصفح — الإيقاف يوقف التوليد فقط.
-    const [pauseTarget, setPauseTarget] = useState<EventTemplate | null>(null);
-
-    function confirmPause() {
-        if (!pauseTarget) return;
-        const id = pauseTarget.id;
-        setPauseTarget(null);
-        router.post(`${manageUrl}/${id}/pause`, {}, {
-            onSuccess: () => toastr.success('أُوقف القالب'),
-        });
-    }
-    const pageErrors = (usePage().props as { errors?: Record<string, string> }).errors ?? {};
-
-    const emptyForm: TemplateFormData = {
-        title: '', partner_id: '', activity_unit_id: '', category_id: '',
-        recurrence_pattern: 'weekly', day_of_week: 0, day_of_month: 15,
-        starts_from: '', start_time: '20:00', duration_minutes: 90,
-        capacity: 10, min_participants: 4, total_amount: '0', company_subsidy: '0',
-        blackout_behavior: 'skip', reschedule_interval_days: 7, notes: '',
-    };
-
-    const toPayload = (d: TemplateFormData) => ({
-        title: d.title || null,
-        partner_id: d.partner_id ? Number(d.partner_id) : null,
-        activity_unit_id: d.activity_unit_id ? Number(d.activity_unit_id) : null,
-        category_id: d.category_id ? Number(d.category_id) : null,
-        recurrence_pattern: d.recurrence_pattern,
-        day_of_week: d.recurrence_pattern === 'monthly' ? null : d.day_of_week,
-        day_of_month: d.recurrence_pattern === 'monthly' ? d.day_of_month : null,
-        starts_from: d.starts_from || null,
-        start_time: d.start_time,
-        duration_minutes: d.duration_minutes,
-        capacity: d.capacity,
-        min_participants: d.min_participants,
-        total_amount: Number(d.total_amount) || 0,
-        company_subsidy: Number(d.company_subsidy) || 0,
-        blackout_behavior: d.blackout_behavior,
-        reschedule_interval_days: d.reschedule_interval_days,
-        notes: d.notes || null,
-    });
-
-    const submitCreate = (d: TemplateFormData) => {
-        setProcessing(true);
-        router.post(manageUrl, toPayload(d), {
-            onSuccess: () => { setShowCreate(false); toastr.success('أُنشئ القالب — سيولّد فعالياته قبل 14 يوماً من كل موعد'); },
-            onFinish: () => setProcessing(false),
-        });
-    };
-
-    const submitUpdate = (template: EventTemplate) => (d: TemplateFormData) => {
-        setProcessing(true);
-        router.patch(`${manageUrl}/${template.id}`, toPayload(d), {
-            onSuccess: () => { setEditingId(null); toastr.success('عُدّل القالب — يسري على ما سيُولَّد لاحقاً فقط'); },
-            onFinish: () => setProcessing(false),
-        });
-    };
-
-    const editInitial = (t: EventTemplate): TemplateFormData => ({
-        title: t.title ?? '',
-        partner_id: t.partner_id ? String(t.partner_id) : '',
-        activity_unit_id: t.activity_unit_id ? String(t.activity_unit_id) : '',
-        category_id: t.category_id ? String(t.category_id) : '',
-        recurrence_pattern: t.recurrence_pattern,
-        day_of_week: t.day_of_week ?? 0,
-        day_of_month: t.day_of_month ?? 15,
-        starts_from: '',
-        start_time: (t.start_time || '20:00').slice(0, 5),
-        duration_minutes: t.duration_minutes,
-        capacity: t.capacity,
-        min_participants: t.min_participants,
-        total_amount: String(t.total_amount),
-        company_subsidy: String(t.company_subsidy),
-        blackout_behavior: t.blackout_behavior,
-        reschedule_interval_days: t.reschedule_interval_days,
-        notes: t.notes ?? '',
-    });
-
-    return (
-        <div>
-            {/* قواعد H §8 */}
-            <div className="card" style={{ fontSize: 12, color: '#666', lineHeight: 1.9 }}>
-                <b style={{ display: 'block', marginBottom: 2 }}>قواعد القوالب</b>
-                تُولَّد كل فعالية تلقائياً قبل <b>14 يوماً</b> من موعدها · بداية الأسبوع <b>الأحد</b> · «شهرياً يوم 31» في شهر أقصر ينفَّذ آخر يوم ·
-                إيقاف القالب يوقف <b>التوليد المستقبلي فقط</b> ولا يمس فعالية مولّدة · التعديل يسري على ما سيُولَّد لاحقاً فقط ·
-                فعالية لا تبلغ حدها الأدنى عند إغلاق التسجيل تُعاد جدولتها <b>مرة واحدة</b> (+7 أيام) ثم تُلغى — بلا أي استقطاع.
+        <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                    <Repeat className="h-4 w-4 text-ink" aria-hidden="true" />
+                    <h2 className="text-sm font-extrabold text-ink">
+                        قوالب التكرار
+                    </h2>
+                    <Badge tone="neutral">{templates.length}</Badge>
+                </div>
+                <Button
+                    type="button"
+                    icon={Plus}
+                    onClick={() => {
+                        setEditing(null);
+                        setCreating(true);
+                    }}
+                >
+                    قالب جديد
+                </Button>
             </div>
 
-            {/* إنشاء */}
-            {showCreate ? (
-                <div className="card">
-                    <div style={{ fontWeight: 800, marginBottom: 10 }}>قالب جديد</div>
-                    <TemplateForm
-                        initial={emptyForm}
-                        partners={partners}
-                        categories={categories}
-                        submitLabel="إنشاء القالب"
-                        processing={processing}
-                        errors={pageErrors}
-                        onSubmit={submitCreate}
-                    />
-                    <button type="button" className="btn btn-outline" style={{ marginTop: 8 }} onClick={() => setShowCreate(false)}>إلغاء</button>
-                </div>
-            ) : (
-                <button type="button" className="card" style={{ width: '100%', textAlign: 'center', border: '2px dashed #EBEBEB', color: '#18A86B', fontWeight: 700, fontSize: 14, cursor: 'pointer', background: 'transparent' }} onClick={() => setShowCreate(true)}>
-                    + قالب تكرار جديد
-                </button>
+            <Note title="متى تُنشأ الفعاليات؟">
+                القالب لا ينشئ فعالياته دفعةً واحدة: يولّد كل فعالية قبل موعدها
+                بـ14 يوماً. لذلك تعديل القالب لا يمسّ ما وُلِّد فعلاً — يسري على
+                القادم فقط.
+            </Note>
+
+            {(creating || editing) && (
+                <TemplateForm
+                    key={editing?.id ?? 'new'}
+                    template={editing}
+                    partners={partners}
+                    categories={categories}
+                    manageUrl={manageUrl}
+                    onDone={() => {
+                        setCreating(false);
+                        setEditing(null);
+                    }}
+                />
             )}
 
-            {/* القوالب */}
-            {templates.length === 0 && !showCreate && (
-                <div className="card" style={{ textAlign: 'center', color: '#999', fontSize: 13 }}>
-                    لا قوالب بعد — القالب هو ما يجعل الفعاليات تحدث دون أن يتذكر أحد.
-                </div>
-            )}
+            {templates.map((template) => (
+                <Card key={template.id} padding="p-4" className="space-y-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <h3 className="text-sm font-extrabold text-ink">
+                                {template.title ||
+                                    template.activity_unit?.name ||
+                                    'قالب بلا عنوان'}
+                            </h3>
+                            <p className="text-[11px] text-ink/55">
+                                {template.partner?.trade_name ||
+                                    template.partner?.name ||
+                                    '—'}{' '}
+                                ·{' '}
+                                {PATTERNS.find(
+                                    ([key]) =>
+                                        key === template.recurrence_pattern,
+                                )?.[1] ?? template.recurrence_pattern}
+                                {template.recurrence_pattern === 'monthly'
+                                    ? ` · يوم ${template.day_of_month ?? '—'}`
+                                    : ` · ${DAYS[template.day_of_week ?? 0]}`}{' '}
+                                · {template.start_time} ·{' '}
+                                {template.duration_minutes} دقيقة
+                            </p>
+                        </div>
 
-            {templates.map((t) => (
-                <div key={t.id} className="card" style={{ opacity: t.status === 'paused' ? 0.75 : 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <b style={{ fontSize: 15 }}>{t.title || `قالب #${t.id}`}</b>
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: t.status === 'active' ? '#009E8218' : '#99999918', color: t.status === 'active' ? '#0E7C4A' : '#777' }}>
-                            {t.status === 'active' ? 'نشط' : 'موقوف'}
-                        </span>
-                        <span style={{ fontSize: 12, color: '#666' }}>
-                            {patternSummary(t)} · {fmtTime(t.start_time)} · {t.duration_minutes} دقيقة
-                        </span>
-                        <span style={{ marginRight: 'auto', display: 'flex', gap: 6 }}>
-                            <button
-                                type="button"
-                                className="btn btn-outline"
-                                style={{ fontSize: 12 }}
-                                onClick={() => setEditingId(editingId === t.id ? null : t.id)}
+                        <div className="flex shrink-0 items-center gap-2">
+                            <Badge
+                                tone={
+                                    template.status === 'active'
+                                        ? 'success'
+                                        : 'neutral'
+                                }
                             >
-                                {editingId === t.id ? 'إغلاق التعديل' : 'تعديل'}
-                            </button>
-                            <button
+                                {template.status === 'active'
+                                    ? 'يعمل'
+                                    : 'موقوف'}
+                            </Badge>
+                            <Button
                                 type="button"
-                                className="btn btn-outline"
-                                style={{ fontSize: 12, color: t.status === 'active' ? '#E03050' : '#0E7C4A', borderColor: t.status === 'active' ? '#E0305044' : '#009E8244' }}
+                                tone="soft"
                                 onClick={() => {
-                                    if (t.status === 'active') {
-                                        setPauseTarget(t);
-
-                                        return;
-                                    }
-                                    router.post(`${manageUrl}/${t.id}/resume`, {}, {
-                                        onSuccess: () => toastr.success('أُعيد تفعيل القالب'),
-                                    });
+                                    setCreating(false);
+                                    setEditing(template);
                                 }}
                             >
-                                {t.status === 'active' ? 'إيقاف' : 'تفعيل'}
-                            </button>
-                        </span>
+                                تعديل
+                            </Button>
+                            <Button
+                                type="button"
+                                tone="soft"
+                                icon={
+                                    template.status === 'active' ? Pause : Play
+                                }
+                                onClick={() =>
+                                    setToggling({
+                                        template,
+                                        action:
+                                            template.status === 'active'
+                                                ? 'pause'
+                                                : 'resume',
+                                    })
+                                }
+                            >
+                                {template.status === 'active'
+                                    ? 'إيقاف'
+                                    : 'استئناف'}
+                            </Button>
+                        </div>
                     </div>
 
-                    <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
-                        {t.partner ? `المزوّد: ${t.partner.trade_name || t.partner.name}` : 'بلا مزوّد'}
-                        {t.activity_unit ? ` · الوحدة: ${t.activity_unit.name}` : ''}
-                        {` · ${t.min_participants}–${t.capacity} مشاركاً`}
-                        {` · حظر: ${t.blackout_behavior === 'skip' ? 'تخطٍ' : 'إزاحة أسبوع'}`}
-                        {` · فعاليات مولّدة: ${t.events_count ?? 0}`}
-                        {t.ends_on ? ` · ينتهي ${fmtDate(t.ends_on)}` : ''}
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        <Fact label="السعة" value={`${template.capacity}`} />
+                        <Fact
+                            label="النصاب"
+                            value={`${template.min_participants}`}
+                        />
+                        <Fact
+                            label="فعاليات مولَّدة"
+                            value={`${template.events_count}`}
+                        />
+                        <Fact
+                            label="سلوك التعطيل"
+                            value={
+                                template.blackout_behavior === 'skip'
+                                    ? 'تخطّي الموعد'
+                                    : 'تأجيل أسبوعاً'
+                            }
+                        />
                     </div>
 
-                    {editingId === t.id && (
-                        <div style={{ marginTop: 12, borderTop: '1px solid rgba(0,0,0,.06)', paddingTop: 12 }}>
-                            <div style={{ fontSize: 12, color: '#B45309', marginBottom: 8 }}>
-                                التعديل يسري على الفعاليات التي ستُولَّد لاحقاً فقط — المولّدة لا تتغيّر.
-                            </div>
-                            <TemplateForm
-                                initial={editInitial(t)}
-                                partners={partners}
-                                categories={categories}
-                                submitLabel="حفظ التعديل"
-                                processing={processing}
-                                errors={pageErrors}
-                                onSubmit={submitUpdate(t)}
+                    {/* ── المواعيد القادمة ── */}
+                    <div>
+                        <div className="mb-2 flex items-center gap-2">
+                            <CalendarClock
+                                className="h-3.5 w-3.5 text-ink/60"
+                                aria-hidden="true"
                             />
+                            <span className="text-[11px] font-bold text-ink/70">
+                                المواعيد القادمة كما سيولّدها القالب
+                            </span>
+                        </div>
+
+                        <TableShell>
+                            <Thead>
+                                <Th>موعد النمط</Th>
+                                <Th>الموعد الفعلي</Th>
+                                <Th>ما سيحدث</Th>
+                            </Thead>
+                            <Tbody>
+                                {template.upcoming.map((row) => (
+                                    <Tr key={row.pattern_date}>
+                                        <Td className="font-mono text-[11px] text-ink/70">
+                                            {row.pattern_date}
+                                        </Td>
+                                        <Td className="font-mono text-[11px] font-bold text-ink">
+                                            {row.effective_date ?? '—'}
+                                        </Td>
+                                        <Td>
+                                            {row.action === 'skip_blackout' ? (
+                                                <Badge
+                                                    tone="danger"
+                                                    icon={CalendarOff}
+                                                >
+                                                    تُخطّى —{' '}
+                                                    {row.blackout_name ??
+                                                        'فترة تعطيل'}
+                                                </Badge>
+                                            ) : row.shifted ? (
+                                                <Badge tone="warning">
+                                                    أُجّلت —{' '}
+                                                    {row.blackout_name ??
+                                                        'فترة تعطيل'}
+                                                </Badge>
+                                            ) : (
+                                                <Badge tone="success">
+                                                    تُولَّد كما هي
+                                                </Badge>
+                                            )}
+                                        </Td>
+                                    </Tr>
+                                ))}
+                                <ListStates
+                                    count={template.upcoming.length}
+                                    colSpan={3}
+                                    empty="لا مواعيد قادمة ضمن السنة القادمة."
+                                    emptyHint="راجع نمط التكرار وتاريخ البداية."
+                                />
+                            </Tbody>
+                        </TableShell>
+                    </div>
+
+                    {/* ── ما وُلِّد فعلاً ── */}
+                    {template.generated_events.length > 0 && (
+                        <div>
+                            <span className="mb-2 block text-[11px] font-bold text-ink/70">
+                                آخر ما وُلِّد من هذا القالب
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                                {template.generated_events.map((event) => (
+                                    <span
+                                        key={event.id}
+                                        className="inline-flex items-center gap-1.5 rounded-full border-[0.5px] border-ink/12 bg-ink/5 px-2.5 py-1 text-[11px]"
+                                    >
+                                        <span className="font-mono text-ink/70">
+                                            {event.event_date}
+                                        </span>
+                                        <span className="font-bold text-ink">
+                                            {eventStatus(event.status).label}
+                                        </span>
+                                        <span className="font-mono text-ink/50">
+                                            {event.participants_count ?? 0}/
+                                            {event.min_participants ?? '—'}
+                                        </span>
+                                        {(event.reschedule_attempt ?? 0) >
+                                            0 && (
+                                            <TriangleAlert
+                                                className="h-3 w-3 text-warning"
+                                                aria-label="أُعيدت جدولتها"
+                                            />
+                                        )}
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                     )}
-
-                    {t.status === 'active' && <UpcomingPreview rows={t.upcoming ?? []} />}
-
-                    {(t.generated_events?.length ?? 0) > 0 && (
-                        <div style={{ marginTop: 10 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#666', marginBottom: 6 }}>آخر الفعاليات المولّدة</div>
-                            {t.generated_events!.map((e) => (
-                                <a key={e.id} href={`${eventUrlPrefix}${e.id}`} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12, padding: '5px 0', borderBottom: '1px solid rgba(0,0,0,.04)', color: 'inherit', textDecoration: 'none' }}>
-                                    <span>{fmtDate(e.event_date)} · {fmtTime(e.start_time)}</span>
-                                    <span style={{ color: '#888' }}>{e.participants_count}/{e.min_participants}+</span>
-                                    {(e.reschedule_attempt ?? 0) > 0 && <span style={{ color: '#B45309' }}>أُعيدت جدولتها</span>}
-                                    <span style={{ marginRight: 'auto', color: '#666' }}>{e.status}</span>
-                                </a>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                </Card>
             ))}
 
+            {templates.length === 0 && !creating && (
+                <Card padding="p-8" className="text-center">
+                    <p className="mb-1 text-sm font-extrabold text-ink">
+                        لا قوالب تكرار في {community.name}.
+                    </p>
+                    <p className="text-xs text-ink/55">
+                        القالب يوفّر إنشاء الفعالية أسبوعياً باليد — تضبطه مرة،
+                        فيولّد فعالياته قبل كل موعد بـ14 يوماً.
+                    </p>
+                </Card>
+            )}
+
             <ConfirmModal
-                open={pauseTarget !== null}
-                title="إيقاف قالب التكرار"
-                message={
-                    pauseTarget
-                        ? `يتوقّف توليد فعاليات جديدة من هذا القالب من الآن فصاعداً. الفعاليات المولَّدة سابقاً (${pauseTarget.events_count ?? 0}) لا تُمس ولا تُلغى وتكمل دورتها كالمعتاد. تستطيع إعادة تفعيل القالب في أي وقت.`
-                        : ''
+                open={toggling !== null}
+                tone={toggling?.action === 'pause' ? 'danger' : 'default'}
+                title={
+                    toggling?.action === 'pause'
+                        ? 'إيقاف القالب'
+                        : 'استئناف القالب'
                 }
-                confirmLabel="إيقاف القالب"
-                onConfirm={confirmPause}
-                onCancel={() => setPauseTarget(null)}
+                message={
+                    toggling?.action === 'pause'
+                        ? 'يتوقف توليد الفعاليات المستقبلية من هذا القالب. الفعاليات التي وُلِّدت بالفعل لا تُمسّ ولا تُلغى.'
+                        : 'يعود القالب للتوليد من موعده القادم فصاعداً. المواعيد التي فاتت أثناء الإيقاف لا تُعوَّض.'
+                }
+                details={
+                    toggling && (
+                        <>
+                            <ConfirmRow
+                                label="القالب"
+                                value={
+                                    toggling.template.title ||
+                                    toggling.template.activity_unit?.name ||
+                                    '—'
+                                }
+                                strong
+                            />
+                            <ConfirmRow
+                                label="فعاليات مولَّدة"
+                                value={`${toggling.template.events_count} — لن تتأثر`}
+                            />
+                            <ConfirmRow
+                                label="الموعد القادم"
+                                value={
+                                    toggling.template.upcoming[0]
+                                        ?.effective_date ?? '—'
+                                }
+                            />
+                        </>
+                    )
+                }
+                confirmLabel={
+                    toggling?.action === 'pause'
+                        ? 'نعم، أوقف التوليد'
+                        : 'نعم، استأنف'
+                }
+                onConfirm={() => {
+                    router.post(
+                        `${manageUrl}/${toggling?.template.id}/${toggling?.action}`,
+                        {},
+                        { preserveScroll: true },
+                    );
+                    setToggling(null);
+                }}
+                onCancel={() => setToggling(null)}
             />
         </div>
+    );
+}
+
+function Fact({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="rounded-xl border-[0.5px] border-ink/12 bg-page px-3 py-2">
+            <span className="block text-[10px] text-ink/50">{label}</span>
+            <span className="block font-mono text-xs font-extrabold text-ink">
+                {value}
+            </span>
+        </div>
+    );
+}
+
+function TemplateForm({
+    template,
+    partners,
+    categories,
+    manageUrl,
+    onDone,
+}: {
+    template: TemplateRow | null;
+    partners: TemplatePartner[];
+    categories: { id: number; name: string }[];
+    manageUrl: string;
+    onDone: () => void;
+}) {
+    const form = useForm<FormShape>(
+        template
+            ? {
+                  title: template.title ?? '',
+                  notes: template.notes ?? '',
+                  partner_id: template.partner_id
+                      ? String(template.partner_id)
+                      : '',
+                  activity_unit_id: template.activity_unit_id
+                      ? String(template.activity_unit_id)
+                      : '',
+                  category_id: template.category_id
+                      ? String(template.category_id)
+                      : '',
+                  recurrence_pattern: template.recurrence_pattern,
+                  day_of_week:
+                      template.day_of_week === null
+                          ? ''
+                          : String(template.day_of_week),
+                  day_of_month:
+                      template.day_of_month === null
+                          ? ''
+                          : String(template.day_of_month),
+                  starts_from: template.starts_from ?? '',
+                  start_time: template.start_time?.slice(0, 5) ?? '18:00',
+                  duration_minutes: String(template.duration_minutes),
+                  capacity: String(template.capacity),
+                  min_participants: String(template.min_participants),
+                  venues_count: String(template.venues_count ?? 1),
+                  total_amount:
+                      template.total_amount === null
+                          ? ''
+                          : String(template.total_amount),
+                  subsidy_type: template.subsidy_type ?? 'percentage',
+                  subsidy_value:
+                      template.subsidy_value === null
+                          ? ''
+                          : String(template.subsidy_value),
+                  blackout_behavior: template.blackout_behavior,
+                  reschedule_interval_days: String(
+                      template.reschedule_interval_days ?? 7,
+                  ),
+              }
+            : BLANK,
+    );
+
+    const partner = partners.find(
+        (row) => String(row.id) === form.data.partner_id,
+    );
+    const monthly = form.data.recurrence_pattern === 'monthly';
+
+    return (
+        <Card padding="p-5" className="border-ink/25">
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    const options = { preserveScroll: true, onSuccess: onDone };
+
+                    if (template) {
+                        form.patch(`${manageUrl}/${template.id}`, options);
+                    } else {
+                        form.post(manageUrl, options);
+                    }
+                }}
+            >
+                <FormSection
+                    title={template ? 'تعديل القالب' : 'قالب جديد'}
+                    hint="ما تضبطه هنا يسري على الفعاليات التي ستُولَّد لاحقاً — لا على ما وُلِّد."
+                >
+                    <FormGrid>
+                        <Field
+                            label="عنوان القالب"
+                            error={form.errors.title}
+                            hint="اتركه فارغاً ليأخذ اسم النشاط."
+                        >
+                            <input
+                                className={INPUT}
+                                value={form.data.title}
+                                onChange={(event) =>
+                                    form.setData('title', event.target.value)
+                                }
+                            />
+                        </Field>
+
+                        <Field
+                            label="المرفق"
+                            error={form.errors.partner_id}
+                            required
+                        >
+                            <select
+                                className={INPUT}
+                                value={form.data.partner_id}
+                                onChange={(event) => {
+                                    form.setData(
+                                        'partner_id',
+                                        event.target.value,
+                                    );
+                                    form.setData('activity_unit_id', '');
+                                }}
+                            >
+                                <option value="">— اختر المرفق —</option>
+                                {partners.map((row) => (
+                                    <option key={row.id} value={row.id}>
+                                        {row.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+
+                        <Field
+                            label="النشاط"
+                            error={form.errors.activity_unit_id}
+                        >
+                            <select
+                                className={INPUT}
+                                value={form.data.activity_unit_id}
+                                onChange={(event) => {
+                                    form.setData(
+                                        'activity_unit_id',
+                                        event.target.value,
+                                    );
+                                    const unit = partner?.units.find(
+                                        (item) =>
+                                            String(item.id) ===
+                                            event.target.value,
+                                    );
+
+                                    if (unit?.default_duration_minutes) {
+                                        form.setData(
+                                            'duration_minutes',
+                                            String(
+                                                unit.default_duration_minutes,
+                                            ),
+                                        );
+                                    }
+                                }}
+                                disabled={!partner}
+                            >
+                                <option value="">
+                                    {partner
+                                        ? '— اختر النشاط —'
+                                        : 'اختر المرفق أولاً'}
+                                </option>
+                                {(partner?.units ?? []).map((unit) => (
+                                    <option key={unit.id} value={unit.id}>
+                                        {unit.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+
+                        <Field label="الفئة" error={form.errors.category_id}>
+                            <select
+                                className={INPUT}
+                                value={form.data.category_id}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'category_id',
+                                        event.target.value,
+                                    )
+                                }
+                            >
+                                <option value="">— بلا فئة —</option>
+                                {categories.map((category) => (
+                                    <option
+                                        key={category.id}
+                                        value={category.id}
+                                    >
+                                        {category.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+                    </FormGrid>
+                </FormSection>
+
+                <FormSection title="التكرار">
+                    <FormGrid>
+                        <Field
+                            label="النمط"
+                            error={form.errors.recurrence_pattern}
+                            required
+                        >
+                            <select
+                                className={INPUT}
+                                value={form.data.recurrence_pattern}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'recurrence_pattern',
+                                        event.target.value,
+                                    )
+                                }
+                            >
+                                {PATTERNS.map(([key, label]) => (
+                                    <option key={key} value={key}>
+                                        {label}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+
+                        {monthly ? (
+                            <Field
+                                label="يوم الشهر"
+                                error={form.errors.day_of_month}
+                                required
+                            >
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    dir="ltr"
+                                    className={INPUT}
+                                    value={form.data.day_of_month}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'day_of_month',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                            </Field>
+                        ) : (
+                            <Field
+                                label="يوم الأسبوع"
+                                error={form.errors.day_of_week}
+                                required
+                            >
+                                <select
+                                    className={INPUT}
+                                    value={form.data.day_of_week}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'day_of_week',
+                                            event.target.value,
+                                        )
+                                    }
+                                >
+                                    {DAYS.map((day, index) => (
+                                        <option key={day} value={index}>
+                                            {day}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+                        )}
+
+                        <Field
+                            label="وقت البداية"
+                            error={form.errors.start_time}
+                            required
+                        >
+                            <input
+                                type="time"
+                                dir="ltr"
+                                className={INPUT}
+                                value={form.data.start_time}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'start_time',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                        </Field>
+
+                        <Field
+                            label="المدة (دقيقة)"
+                            error={form.errors.duration_minutes}
+                            required
+                        >
+                            <input
+                                type="number"
+                                min="30"
+                                max="480"
+                                dir="ltr"
+                                className={INPUT}
+                                value={form.data.duration_minutes}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'duration_minutes',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                        </Field>
+
+                        <Field
+                            label="يبدأ من"
+                            error={form.errors.starts_from}
+                            hint="اتركه فارغاً ليبدأ من أقرب موعد."
+                        >
+                            <input
+                                type="date"
+                                dir="ltr"
+                                className={INPUT}
+                                value={form.data.starts_from}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'starts_from',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                        </Field>
+
+                        <Field
+                            label="عند فترة التعطيل"
+                            error={form.errors.blackout_behavior}
+                            hint="فترات التعطيل تحددها إدارة تيمات (أعياد، إجازات رسمية)."
+                            required
+                        >
+                            <select
+                                className={INPUT}
+                                value={form.data.blackout_behavior}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'blackout_behavior',
+                                        event.target.value,
+                                    )
+                                }
+                            >
+                                <option value="skip">تخطّي الموعد</option>
+                                <option value="shift_week">
+                                    تأجيله أسبوعاً
+                                </option>
+                            </select>
+                        </Field>
+                    </FormGrid>
+                </FormSection>
+
+                <FormSection title="السعة والتكلفة">
+                    <FormGrid>
+                        <Field
+                            label="السعة"
+                            error={form.errors.capacity}
+                            required
+                        >
+                            <input
+                                type="number"
+                                min="2"
+                                dir="ltr"
+                                className={INPUT}
+                                value={form.data.capacity}
+                                onChange={(event) =>
+                                    form.setData('capacity', event.target.value)
+                                }
+                            />
+                        </Field>
+
+                        <Field
+                            label="النصاب"
+                            error={form.errors.min_participants}
+                            hint="أقل عدد يجعل الفعالية تنعقد."
+                            required
+                        >
+                            <input
+                                type="number"
+                                min="2"
+                                dir="ltr"
+                                className={INPUT}
+                                value={form.data.min_participants}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'min_participants',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                        </Field>
+
+                        <Field
+                            label="إجمالي التكلفة"
+                            error={form.errors.total_amount}
+                        >
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                dir="ltr"
+                                className={INPUT}
+                                value={form.data.total_amount}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'total_amount',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                        </Field>
+
+                        <Field
+                            label="نوع الدعم"
+                            error={form.errors.subsidy_type}
+                        >
+                            <select
+                                className={INPUT}
+                                value={form.data.subsidy_type}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'subsidy_type',
+                                        event.target.value,
+                                    )
+                                }
+                            >
+                                <option value="percentage">نسبة مئوية</option>
+                                <option value="fixed">مبلغ ثابت</option>
+                            </select>
+                        </Field>
+
+                        <Field
+                            label={
+                                form.data.subsidy_type === 'percentage'
+                                    ? 'نسبة الدعم (٪)'
+                                    : 'مبلغ الدعم'
+                            }
+                            error={form.errors.subsidy_value}
+                            hint={
+                                form.data.subsidy_type === 'percentage'
+                                    ? '100 = تتحمل الشركة التكلفة كاملة.'
+                                    : undefined
+                            }
+                        >
+                            <input
+                                type="number"
+                                min="0"
+                                dir="ltr"
+                                className={INPUT}
+                                value={form.data.subsidy_value}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'subsidy_value',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                        </Field>
+                    </FormGrid>
+
+                    <Field label="ملاحظات" error={form.errors.notes}>
+                        <textarea
+                            rows={2}
+                            className={INPUT}
+                            value={form.data.notes}
+                            onChange={(event) =>
+                                form.setData('notes', event.target.value)
+                            }
+                        />
+                    </Field>
+                </FormSection>
+
+                <FormActions>
+                    <Button type="button" tone="soft" onClick={onDone}>
+                        إلغاء
+                    </Button>
+                    <Button type="submit" disabled={form.processing}>
+                        {template ? 'حفظ التعديلات' : 'إنشاء القالب'}
+                    </Button>
+                </FormActions>
+            </form>
+        </Card>
     );
 }

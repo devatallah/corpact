@@ -1,174 +1,169 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import PasswordInput from '@/components/password-input';
+import { Head, useForm } from '@inertiajs/react';
+import { Building2 } from 'lucide-react';
+import { BackLink } from '@/components/list-states';
+import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
+import { Button, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
 
-export default function CompaniesCreate() {
-    const { data, setData, post, processing, errors } = useForm({
+/**
+ * H §16 — إنشاء شركة مباشرة من لوحة الأدمن.
+ *
+ * A company created here is approved on the spot (the platform admin vouched
+ * for it), so the contract terms have to be set right after — a company with
+ * no terms is invisible to the monthly invoicing run.
+ */
+export default function CreateCompany() {
+    const form = useForm({
         name: '',
         email: '',
         password: '',
         domain: '',
         sector: '',
-        employee_count: '',
+        city: '',
         contact_name: '',
         contact_phone: '',
-        city: '',
     });
-
-    function submit(e: React.FormEvent) {
-        e.preventDefault();
-        post('/admin/companies');
-    }
 
     return (
         <AdminLayout>
             <Head title="إضافة شركة" />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                <Link href="/admin/companies" style={{ color: '#6B7A99', textDecoration: 'none', fontSize: '14px' }}>
-                    ← الشركات
-                </Link>
-                <span style={{ color: '#3D4A60' }}>/</span>
-                <span style={{ color: '#fff', fontWeight: 700 }}>إضافة شركة</span>
-            </div>
+            <BackLink href="/admin/companies" label="العودة إلى الشركات" />
 
-            {Object.keys(errors).length > 0 && (
-                <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
-                    {Object.values(errors).map((error, i) => (
-                        <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                    ))}
-                </div>
-            )}
+            <PageHeader
+                icon={Building2}
+                title="إضافة شركة"
+                subtitle="تُعتمد الشركة فور إنشائها من هنا. اضبط شروط العقد بعدها مباشرة من صفحة التعديل."
+            />
 
-            <div className="card" style={{ maxWidth: '600px' }}>
-                <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>إضافة شركة جديدة</div>
-                <form onSubmit={submit}>
-                    <div className="frow">
-                        <div className="fg">
-                            <label>اسم الشركة *</label>
+            <Note tone="warning" title="بعد الإنشاء: شروط العقد">
+                الشركة بلا شروط عقد لا تدخل دورة الفوترة الشهرية إطلاقاً — لن تصدر لها فاتورة ولن يظهر ذلك كخطأ.
+            </Note>
+
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.post('/admin/companies');
+                }}
+                className="space-y-6"
+            >
+                <FormSection title="بيانات الشركة">
+                    <FormGrid>
+                        <Field label="اسم الشركة" htmlFor="company-name" required error={form.errors.name}>
                             <input
+                                id="company-name"
                                 type="text"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                placeholder="مثال: شركة التقنية المتقدمة"
                                 required
+                                value={form.data.name}
+                                onChange={(event) => form.setData('name', event.target.value)}
+                                className={INPUT}
                             />
-                        </div>
-                        <div className="fg">
-                            <label>البريد الإلكتروني *</label>
+                        </Field>
+
+                        <Field label="القطاع" htmlFor="company-sector" required error={form.errors.sector}>
                             <input
+                                id="company-sector"
+                                type="text"
+                                required
+                                value={form.data.sector}
+                                onChange={(event) => form.setData('sector', event.target.value)}
+                                placeholder="مثال: تقنية"
+                                className={INPUT}
+                            />
+                        </Field>
+
+                        <Field label="المدينة" htmlFor="company-city" required error={form.errors.city}>
+                            <input
+                                id="company-city"
+                                type="text"
+                                required
+                                value={form.data.city}
+                                onChange={(event) => form.setData('city', event.target.value)}
+                                className={INPUT}
+                            />
+                        </Field>
+
+                        <Field
+                            label="نطاق البريد المؤسسي"
+                            htmlFor="company-domain"
+                            required
+                            hint="بدونه لا يُطابَق بريد الموظف بشركته"
+                            error={form.errors.domain}
+                        >
+                            <input
+                                id="company-domain"
+                                type="text"
+                                dir="ltr"
+                                required
+                                value={form.data.domain}
+                                onChange={(event) => form.setData('domain', event.target.value)}
+                                placeholder="example.sa"
+                                className={`${INPUT} text-right font-mono`}
+                            />
+                        </Field>
+                    </FormGrid>
+                </FormSection>
+
+                <FormSection title="حساب مسؤول الحساب" hint="بريد الدخول لبوابة الشركة، وبيانات مسؤول الحساب فيها.">
+                    <FormGrid>
+                        <Field label="البريد الإلكتروني" htmlFor="company-email" required error={form.errors.email}>
+                            <input
+                                id="company-email"
                                 type="email"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                placeholder="info@company.sa"
                                 dir="ltr"
                                 required
+                                value={form.data.email}
+                                onChange={(event) => form.setData('email', event.target.value)}
+                                className={`${INPUT} text-right font-mono`}
                             />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>كلمة المرور *</label>
-                            <PasswordInput
-                                value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                                placeholder="••••••"
+                        <Field label="كلمة المرور المبدئية" htmlFor="company-password" required error={form.errors.password}>
+                            <input
+                                id="company-password"
+                                type="password"
+                                required
+                                value={form.data.password}
+                                onChange={(event) => form.setData('password', event.target.value)}
+                                className={INPUT}
+                            />
+                        </Field>
+
+                        <Field label="اسم مسؤول الحساب" htmlFor="company-contact" error={form.errors.contact_name}>
+                            <input
+                                id="company-contact"
+                                type="text"
+                                value={form.data.contact_name}
+                                onChange={(event) => form.setData('contact_name', event.target.value)}
+                                className={INPUT}
+                            />
+                        </Field>
+
+                        <Field
+                            label="جوال مسؤول الحساب"
+                            htmlFor="company-phone"
+                            hint="هوية الدخول برمز التحقق"
+                            error={form.errors.contact_phone}
+                        >
+                            <input
+                                id="company-phone"
+                                type="tel"
                                 dir="ltr"
-                                required
-                            />
-                        </div>
-                        <div className="fg">
-                            <label>النطاق *</label>
-                            <input
-                                type="text"
-                                value={data.domain}
-                                onChange={(e) => setData('domain', e.target.value)}
-                                placeholder="company.sa"
-                                dir="ltr"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="frow">
-                        <div className="fg">
-                            <label>القطاع *</label>
-                            <input
-                                type="text"
-                                value={data.sector}
-                                onChange={(e) => setData('sector', e.target.value)}
-                                placeholder="تقنية المعلومات"
-                                required
-                            />
-                        </div>
-                        <div className="fg">
-                            <label>المدينة *</label>
-                            <input
-                                type="text"
-                                value={data.city}
-                                onChange={(e) => setData('city', e.target.value)}
-                                placeholder="الرياض"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="frow">
-                        <div className="fg">
-                            <label>المسؤول</label>
-                            <input
-                                type="text"
-                                value={data.contact_name}
-                                onChange={(e) => setData('contact_name', e.target.value)}
-                                placeholder="اسم مسؤول الحساب"
-                            />
-                        </div>
-                        <div className="fg">
-                            <label>هاتف المسؤول</label>
-                            <input
-                                type="text"
-                                value={data.contact_phone}
-                                onChange={(e) => setData('contact_phone', e.target.value)}
+                                value={form.data.contact_phone}
+                                onChange={(event) => form.setData('contact_phone', event.target.value)}
                                 placeholder="05xxxxxxxx"
-                                dir="ltr"
+                                className={`${INPUT} text-right font-mono`}
                             />
-                        </div>
-                    </div>
+                        </Field>
+                    </FormGrid>
+                </FormSection>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>عدد الموظفين *</label>
-                            <input
-                                type="number"
-                                value={data.employee_count}
-                                onChange={(e) => setData('employee_count', e.target.value)}
-                                placeholder="50"
-                                min={1}
-                                required
-                            />
-                        </div>
-                        <div className="fg" />
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="act-btn btn-approve"
-                            style={{ flex: 1, padding: '12px' }}
-                        >
-                            حفظ
-                        </button>
-                        <Link
-                            href="/admin/companies"
-                            style={{ padding: '12px 24px', background: '#232A3E', borderRadius: '10px', color: '#6B7A99', fontSize: '14px', fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
-                        >
-                            إلغاء
-                        </Link>
-                    </div>
-                </form>
-            </div>
+                <FormActions cancelHref="/admin/companies">
+                    <Button type="submit" disabled={form.processing}>
+                        إنشاء الشركة واعتمادها
+                    </Button>
+                </FormActions>
+            </form>
         </AdminLayout>
     );
 }

@@ -1,163 +1,321 @@
+import { Head, router, useForm } from '@inertiajs/react';
+import { CalendarClock, Trash2, UserMinus, UsersRound } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { BackLink } from '@/components/list-states';
+import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
+import {
+    Badge,
+    Button,
+    ButtonLink,
+    Field,
+    INPUT,
+    Note,
+    PageHeader,
+} from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
-import CategoryIcon from '@/components/category-icon';
-import type { Community } from '@/types/models';
-import { Head, Link, useForm } from '@inertiajs/react';
-import { useMemo } from 'react';
-import type { FormEvent } from 'react';
-import toastr from 'toastr';
 
-interface CategoryItem {
+/**
+ * H §6 — تعديل المجتمع، والقيادة، والعضوية.
+ *
+ * Removing a member and banning one are different acts with different
+ * consequences — a removed member can rejoin, a banned one cannot — so they
+ * are separate buttons with separate confirmations, and both demand a written
+ * reason that is stored against the membership.
+ */
+type Category = {
     id: number;
-    name: string;
-    icon: string;
     parent_id: number | null;
-    children?: CategoryItem[];
-}
+    name: string;
+    children?: Category[];
+};
 
-interface Props {
-    community: Community & { leader?: { id: number; name: string }; category?: { id: number; name: string; icon: string; parent_id: number | null } };
+export default function CompanyCommunityEdit({
+    community,
+    employees,
+    categories,
+}: {
+    community: {
+        id: number;
+        name: string;
+        description: string | null;
+        category_id: number | null;
+        category?: { id: number; name: string } | null;
+        leader?: { id: number; name: string } | null;
+    };
     employees: { id: number; name: string }[];
-    categories: CategoryItem[];
-}
-
-export default function CommunityEdit({ community, employees, categories }: Props) {
-    const initialParentId = community.category?.parent_id
-        ? String(community.category.parent_id)
-        : String(community.category_id ?? '');
-
+    categories: Category[];
+}) {
     const form = useForm({
         name: community.name,
         description: community.description ?? '',
-        category_id: String(community.category_id ?? ''),
-        parent_category_id: initialParentId,
-        leader_id: String(community.leader?.id ?? ''),
+        category_id: community.category_id ? String(community.category_id) : '',
     });
 
-    const subcategories = useMemo(() => {
-        if (!form.data.parent_category_id) return [];
-        const parent = categories.find((c) => String(c.id) === form.data.parent_category_id);
-        return parent?.children ?? [];
-    }, [form.data.parent_category_id, categories]);
-
-    function handleSubmit(e: FormEvent) {
-        e.preventDefault();
-        form.put(`/company/communities/${community.id}`, {
-            onSuccess: () => toastr.success('تم تعديل المجتمع بنجاح'),
-        });
-    }
+    const leaderForm = useForm({ employee_id: '', is_primary: true });
+    const [removingLeader, setRemovingLeader] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     return (
         <CompanyLayout>
-            <Head title={`تعديل: ${community.name}`} />
+            <Head title={`تعديل ${community.name}`} />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <Link href="/company/communities" style={{ color: '#7A8BA8', textDecoration: 'none', fontSize: 14 }}>
-                    ← المجتمعات
-                </Link>
-                <span style={{ color: '#C8D0E0' }}>/</span>
-                <span style={{ fontWeight: 700 }}>تعديل: {community.name}</span>
-            </div>
+            <BackLink
+                href="/company/communities"
+                label="العودة إلى المجتمعات"
+            />
 
-            {Object.keys(form.errors).length > 0 && (
-                <div style={{ background: '#E0305010', border: '1px solid #E0305033', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
-                    {Object.values(form.errors).map((error, i) => (
-                        <p key={i} style={{ fontSize: 12, color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                    ))}
-                </div>
-            )}
+            <PageHeader
+                icon={UsersRound}
+                title={community.name}
+                subtitle={community.category?.name ?? 'بلا فئة'}
+                actions={
+                    <ButtonLink
+                        href={`/company/communities/${community.id}/templates`}
+                        tone="soft"
+                        icon={CalendarClock}
+                    >
+                        قوالب التكرار
+                    </ButtonLink>
+                }
+            />
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 32, maxWidth: 600 }}>
-                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>تعديل المجتمع</div>
-                <form onSubmit={handleSubmit}>
-                    <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">اسم المجتمع</label>
-                        <input
-                            type="text"
-                            className="fi"
-                            value={form.data.name}
-                            onChange={(e) => form.setData('name', e.target.value)}
-                        />
-                    </div>
-
-                    <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">الوصف</label>
-                        <textarea
-                            className="fi"
-                            rows={3}
-                            value={form.data.description}
-                            onChange={(e) => form.setData('description', e.target.value)}
-                            style={{ resize: 'vertical' }}
-                        />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                        <div className="fg">
-                            <label className="fl">الفئة</label>
-                            <select
-                                className="fi"
-                                value={form.data.parent_category_id}
-                                onChange={(e) => {
-                                    const parentId = e.target.value;
-                                    const parent = categories.find((c) => String(c.id) === parentId);
-                                    const hasChildren = (parent?.children?.length ?? 0) > 0;
-                                    form.setData({
-                                        ...form.data,
-                                        parent_category_id: parentId,
-                                        category_id: hasChildren ? '' : parentId,
-                                    });
-                                }}
-                            >
-                                <option value="">اختر الفئة</option>
-                                {categories.map((cat) => (
-                                    <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="fg">
-                            <label className="fl">الفئة الفرعية</label>
-                            <select
-                                className="fi"
-                                value={form.data.category_id}
-                                onChange={(e) => form.setData('category_id', e.target.value)}
-                                disabled={!form.data.parent_category_id || subcategories.length === 0}
-                            >
-                                <option value="">{form.data.parent_category_id ? 'اختر الفئة الفرعية' : 'اختر الفئة أولاً'}</option>
-                                {subcategories.map((sub) => (
-                                    <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="fg" style={{ marginBottom: 24 }}>
-                        <label className="fl">القائد</label>
-                        <select
-                            className="fi"
-                            value={form.data.leader_id}
-                            onChange={(e) => form.setData('leader_id', e.target.value)}
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.put(`/company/communities/${community.id}`, {
+                        preserveScroll: true,
+                    });
+                }}
+                className="space-y-6"
+            >
+                <FormSection title="بيانات المجتمع">
+                    <FormGrid>
+                        <Field
+                            label="اسم المجتمع"
+                            error={form.errors.name}
+                            required
                         >
-                            <option value="">اختر القائد</option>
-                            {employees.map((emp) => (
-                                <option key={emp.id} value={emp.id}>
-                                    {emp.name}
+                            <input
+                                className={INPUT}
+                                value={form.data.name}
+                                onChange={(event) =>
+                                    form.setData('name', event.target.value)
+                                }
+                            />
+                        </Field>
+
+                        <Field label="الفئة" error={form.errors.category_id}>
+                            <select
+                                className={INPUT}
+                                value={form.data.category_id}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'category_id',
+                                        event.target.value,
+                                    )
+                                }
+                            >
+                                <option value="">— اختر الفئة —</option>
+                                {categories.map((parent) => (
+                                    <optgroup
+                                        key={parent.id}
+                                        label={parent.name}
+                                    >
+                                        <option value={parent.id}>
+                                            {parent.name}
+                                        </option>
+                                        {(parent.children ?? []).map(
+                                            (child) => (
+                                                <option
+                                                    key={child.id}
+                                                    value={child.id}
+                                                >
+                                                    {child.name}
+                                                </option>
+                                            ),
+                                        )}
+                                    </optgroup>
+                                ))}
+                            </select>
+                        </Field>
+                    </FormGrid>
+
+                    <Field label="الوصف" error={form.errors.description}>
+                        <textarea
+                            rows={3}
+                            className={INPUT}
+                            value={form.data.description}
+                            onChange={(event) =>
+                                form.setData('description', event.target.value)
+                            }
+                        />
+                    </Field>
+                </FormSection>
+
+                <FormActions cancelHref="/company/communities">
+                    <Button type="submit" disabled={form.processing}>
+                        حفظ التعديلات
+                    </Button>
+                </FormActions>
+            </form>
+
+            {/* ── القيادة ── */}
+            <FormSection
+                title="قيادة المجتمع"
+                hint="القيادة لا تُستبدل تلقائياً: إزالة قائد تترك المجتمع بلا قيادة حتى تعيّن غيره."
+            >
+                <div className="flex items-center justify-between gap-3 rounded-2xl border-[0.5px] border-ink/12 bg-page p-3.5">
+                    <div className="min-w-0">
+                        <span className="block text-[11px] text-ink/50">
+                            القائد الأساسي الحالي
+                        </span>
+                        <span className="block truncate text-sm font-extrabold text-ink">
+                            {community.leader?.name ?? 'بلا قائد'}
+                        </span>
+                    </div>
+                    {community.leader ? (
+                        <Button
+                            type="button"
+                            tone="danger"
+                            icon={UserMinus}
+                            onClick={() => setRemovingLeader(true)}
+                        >
+                            إزالة القيادة
+                        </Button>
+                    ) : (
+                        <Badge tone="warning">لا تُنشأ فعاليات</Badge>
+                    )}
+                </div>
+
+                <form
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        leaderForm.post(
+                            `/company/communities/${community.id}/leaders`,
+                            {
+                                preserveScroll: true,
+                                onSuccess: () => leaderForm.reset(),
+                            },
+                        );
+                    }}
+                    className="space-y-3"
+                >
+                    <Field
+                        label="تعيين قائد"
+                        error={leaderForm.errors.employee_id}
+                    >
+                        <select
+                            className={INPUT}
+                            value={leaderForm.data.employee_id}
+                            onChange={(event) =>
+                                leaderForm.setData(
+                                    'employee_id',
+                                    event.target.value,
+                                )
+                            }
+                        >
+                            <option value="">— اختر موظفاً —</option>
+                            {employees.map((employee) => (
+                                <option key={employee.id} value={employee.id}>
+                                    {employee.name}
                                 </option>
                             ))}
                         </select>
-                    </div>
+                    </Field>
 
-                    <div style={{ display: 'flex', gap: 10 }}>
-                        <button type="submit" className="ac-btn" style={{ flex: 1 }} disabled={form.processing}>
-                            حفظ التعديلات
-                        </button>
-                        <Link
-                            href="/company/communities"
-                            style={{ padding: '12px 24px', background: '#E2E8F4', borderRadius: 10, color: '#4A5C78', fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
-                        >
-                            إلغاء
-                        </Link>
-                    </div>
+                    <label className="flex items-center gap-2 text-xs text-ink/80">
+                        <input
+                            type="checkbox"
+                            checked={leaderForm.data.is_primary}
+                            onChange={(event) =>
+                                leaderForm.setData(
+                                    'is_primary',
+                                    event.target.checked,
+                                )
+                            }
+                            className="h-4 w-4 rounded border-ink/25 accent-ink"
+                        />
+                        اجعله القائد الأساسي
+                    </label>
+
+                    <Button
+                        type="submit"
+                        disabled={
+                            leaderForm.processing ||
+                            !leaderForm.data.employee_id
+                        }
+                    >
+                        تعيين
+                    </Button>
                 </form>
-            </div>
+
+                <Note title="قيادة متعددة">
+                    يمكن أن يقود المجتمعَ أكثر من موظف، لكن واحداً فقط يكون
+                    «الأساسي» — وهو من تصله تنبيهات المجتمع وتُنسب إليه القرارات
+                    في السجل.
+                </Note>
+            </FormSection>
+
+            <FormSection
+                title="حذف المجتمع"
+                hint="إجراء لا رجعة فيه — الفعاليات المكتملة تبقى في السجل، لكن لا تُنشأ فعاليات جديدة تحته."
+            >
+                <Button
+                    type="button"
+                    tone="danger"
+                    icon={Trash2}
+                    onClick={() => setDeleting(true)}
+                >
+                    حذف المجتمع
+                </Button>
+            </FormSection>
+
+            <ConfirmModal
+                open={removingLeader}
+                tone="danger"
+                title="إزالة قيادة المجتمع"
+                message="يفقد الموظف صلاحية إنشاء الفعاليات وإدارة الأعضاء في هذا المجتمع. لن يُعيَّن بديل تلقائياً — المجتمع يبقى بلا قيادة حتى تعيّن غيره."
+                details={
+                    <>
+                        <ConfirmRow
+                            label="المجتمع"
+                            value={community.name}
+                            strong
+                        />
+                        <ConfirmRow
+                            label="القائد"
+                            value={community.leader?.name ?? '—'}
+                            strong
+                        />
+                    </>
+                }
+                confirmLabel="نعم، أزل القيادة"
+                onConfirm={() => {
+                    router.delete(
+                        `/company/communities/${community.id}/leaders/${community.leader?.id}`,
+                        { preserveScroll: true },
+                    );
+                    setRemovingLeader(false);
+                }}
+                onCancel={() => setRemovingLeader(false)}
+            />
+
+            <ConfirmModal
+                open={deleting}
+                tone="danger"
+                title="حذف المجتمع"
+                message="يُحذف المجتمع وعضوياته وقوالب تكراره. الفعاليات المكتملة تبقى في السجل والتقارير."
+                details={
+                    <ConfirmRow label="المجتمع" value={community.name} strong />
+                }
+                confirmLabel="نعم، احذف المجتمع"
+                onConfirm={() => {
+                    router.delete(`/company/communities/${community.id}`);
+                    setDeleting(false);
+                }}
+                onCancel={() => setDeleting(false)}
+            />
         </CompanyLayout>
     );
 }

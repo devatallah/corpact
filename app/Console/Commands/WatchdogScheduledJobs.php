@@ -21,7 +21,7 @@ class WatchdogScheduledJobs extends Command
      *
      * @var array<string, int>
      */
-    private const CADENCES = [
+    public const CADENCES = [
         'app:generate-template-events' => 1440,
         'app:close-registration' => 5,
         'app:expire-payment-deadlines' => 1,

@@ -1,140 +1,214 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import type { FormEvent } from 'react';
-import toastr from 'toastr';
-import PasswordInput from '@/components/password-input';
+import { Head, useForm } from '@inertiajs/react';
+import { UserCog } from 'lucide-react';
+import { BackLink } from '@/components/list-states';
+import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
+import {
+    Badge,
+    Button,
+    Field,
+    INPUT,
+    Note,
+    PageHeader,
+} from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
-import type { Department, Employee } from '@/types/models';
+import { employeeStatus } from '@/lib/status';
 
-interface Props {
-    employee: Employee;
-    departments: Department[];
-}
-
-export default function EmployeeEdit({ employee, departments }: Props) {
+/**
+ * H §5 — تعديل موظف.
+ *
+ * Moving someone between departments changes their future attribution only —
+ * past participations stay credited to the department they belonged to on the
+ * day of the event, which is why departmental reports don't rewrite
+ * themselves after a reorganisation.
+ */
+export default function CompanyEmployeeEdit({
+    employee,
+    departments,
+}: {
+    employee: {
+        id: number;
+        name: string;
+        email: string;
+        phone: string | null;
+        employee_number: string | null;
+        status: string;
+        department_id: number | null;
+        department?: { id: number; name: string } | null;
+    };
+    departments: { id: number; name: string }[];
+}) {
     const form = useForm({
-        name: employee.name ?? '',
-        email: employee.email ?? '',
-        password: '',
+        name: employee.name,
+        email: employee.email,
         phone: employee.phone ?? '',
-        department_id: String(employee.department_id ?? ''),
-        status: employee.status,
+        employee_number: employee.employee_number ?? '',
+        department_id: employee.department_id
+            ? String(employee.department_id)
+            : '',
+        status: employee.status === 'inactive' ? 'inactive' : 'active',
+        password: '',
     });
-
-    function handleSubmit(e: FormEvent) {
-        e.preventDefault();
-        form.put(`/company/employees/${employee.id}`, {
-            onSuccess: () => toastr.success('تم تعديل بيانات الموظف بنجاح'),
-        });
-    }
 
     return (
         <CompanyLayout>
-            <Head title={`تعديل: ${employee.name}`} />
+            <Head title={`تعديل ${employee.name}`} />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <Link href="/company/employees" style={{ color: '#7A8BA8', textDecoration: 'none', fontSize: 14 }}>
-                    ← الموظفون
-                </Link>
-                <span style={{ color: '#C8D0E0' }}>/</span>
-                <span style={{ fontWeight: 700 }}>تعديل: {employee.name}</span>
-            </div>
+            <BackLink href="/company/employees" label="العودة إلى الموظفين" />
 
-            {Object.keys(form.errors).length > 0 && (
-                <div style={{ background: '#E0305010', border: '1px solid #E0305033', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
-                    {Object.values(form.errors).map((error, i) => (
-                        <p key={i} style={{ fontSize: 12, color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                    ))}
-                </div>
-            )}
+            <PageHeader
+                icon={UserCog}
+                title={employee.name}
+                subtitle={employee.department?.name ?? 'بلا إدارة'}
+                actions={
+                    <Badge tone={employeeStatus(employee.status).tone}>
+                        {employeeStatus(employee.status).label}
+                    </Badge>
+                }
+            />
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 32, maxWidth: 500 }}>
-                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>تعديل بيانات الموظف</div>
-                <form onSubmit={handleSubmit}>
-                    <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">الاسم</label>
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.put(`/company/employees/${employee.id}`, {
+                        preserveScroll: true,
+                    });
+                }}
+                className="space-y-6"
+            >
+                <FormSection title="البيانات الأساسية">
+                    <FormGrid>
+                        <Field label="الاسم" error={form.errors.name} required>
+                            <input
+                                className={INPUT}
+                                value={form.data.name}
+                                onChange={(event) =>
+                                    form.setData('name', event.target.value)
+                                }
+                            />
+                        </Field>
+
+                        <Field
+                            label="البريد الإلكتروني"
+                            error={form.errors.email}
+                            required
+                        >
+                            <input
+                                type="email"
+                                dir="ltr"
+                                className={INPUT}
+                                value={form.data.email}
+                                onChange={(event) =>
+                                    form.setData('email', event.target.value)
+                                }
+                            />
+                        </Field>
+
+                        <Field label="الجوال" error={form.errors.phone}>
+                            <input
+                                dir="ltr"
+                                className={INPUT}
+                                value={form.data.phone}
+                                onChange={(event) =>
+                                    form.setData('phone', event.target.value)
+                                }
+                            />
+                        </Field>
+
+                        <Field
+                            label="الرقم الوظيفي"
+                            error={form.errors.employee_number}
+                        >
+                            <input
+                                dir="ltr"
+                                className={INPUT}
+                                value={form.data.employee_number}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'employee_number',
+                                        event.target.value,
+                                    )
+                                }
+                            />
+                        </Field>
+                    </FormGrid>
+                </FormSection>
+
+                <FormSection
+                    title="القسم والحالة"
+                    hint="نقل الموظف بين الأقسام يغيّر إسناده المستقبلي فقط — مشاركاته السابقة تبقى منسوبة لقسمه وقتها."
+                >
+                    <FormGrid>
+                        <Field label="القسم" error={form.errors.department_id}>
+                            <select
+                                className={INPUT}
+                                value={form.data.department_id}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'department_id',
+                                        event.target.value,
+                                    )
+                                }
+                            >
+                                <option value="">— بلا إدارة —</option>
+                                {departments.map((department) => (
+                                    <option
+                                        key={department.id}
+                                        value={department.id}
+                                    >
+                                        {department.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+
+                        <Field
+                            label="الحالة"
+                            error={form.errors.status}
+                            hint="المفعَّل فقط يدخل في احتساب الفاتورة."
+                            required
+                        >
+                            <select
+                                className={INPUT}
+                                value={form.data.status}
+                                onChange={(event) =>
+                                    form.setData('status', event.target.value)
+                                }
+                            >
+                                <option value="active">مفعّل</option>
+                                <option value="inactive">معطّل</option>
+                            </select>
+                        </Field>
+                    </FormGrid>
+
+                    <Field
+                        label="كلمة مرور جديدة"
+                        error={form.errors.password}
+                        hint="اتركها فارغة لإبقاء كلمة المرور الحالية."
+                    >
                         <input
-                            type="text"
-                            className="fi"
-                            placeholder="اسم الموظف"
-                            value={form.data.name}
-                            onChange={(e) => form.setData('name', e.target.value)}
-                        />
-                    </div>
-
-                    <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">البريد الإلكتروني</label>
-                        <input
-                            type="email"
-                            className="fi"
+                            type="password"
                             dir="ltr"
-                            placeholder="email@example.com"
-                            value={form.data.email}
-                            onChange={(e) => form.setData('email', e.target.value)}
-                        />
-                    </div>
-
-                    <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">كلمة المرور الجديدة</label>
-                        <PasswordInput
-                            className="fi"
-                            dir="ltr"
-                            placeholder="اتركه فارغاً للإبقاء على الحالية"
+                            autoComplete="new-password"
+                            className={INPUT}
                             value={form.data.password}
-                            onChange={(e) => form.setData('password', e.target.value)}
+                            onChange={(event) =>
+                                form.setData('password', event.target.value)
+                            }
                         />
-                    </div>
+                    </Field>
 
-                    <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">رقم الجوال</label>
-                        <input
-                            type="text"
-                            className="fi"
-                            dir="ltr"
-                            placeholder="05xxxxxxxx"
-                            value={form.data.phone}
-                            onChange={(e) => form.setData('phone', e.target.value)}
-                        />
-                    </div>
+                    <Note title="تعطيل ≠ حذف">
+                        تعطيل الحساب ينهي جلسات الموظف ويزيل قياداته، لكن حضوره
+                        ومشاركاته تبقى في تقارير الشركة كما هي.
+                    </Note>
+                </FormSection>
 
-                    <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">القسم</label>
-                        <select
-                            className="fi"
-                            value={form.data.department_id}
-                            onChange={(e) => form.setData('department_id', e.target.value)}
-                        >
-                            <option value="">بدون قسم</option>
-                            {departments.map((d) => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="fg" style={{ marginBottom: 24 }}>
-                        <label className="fl">الحالة</label>
-                        <select
-                            className="fi"
-                            value={form.data.status}
-                            onChange={(e) => form.setData('status', e.target.value)}
-                        >
-                            <option value="active">نشط</option>
-                            <option value="inactive">غير نشط</option>
-                        </select>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 10 }}>
-                        <button type="submit" className="ac-btn" style={{ flex: 1 }} disabled={form.processing}>
-                            حفظ التعديلات
-                        </button>
-                        <Link
-                            href="/company/employees"
-                            style={{ padding: '12px 24px', background: '#E2E8F4', borderRadius: 10, color: '#4A5C78', fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
-                        >
-                            إلغاء
-                        </Link>
-                    </div>
-                </form>
-            </div>
+                <FormActions cancelHref="/company/employees">
+                    <Button type="submit" disabled={form.processing}>
+                        حفظ التعديلات
+                    </Button>
+                </FormActions>
+            </form>
         </CompanyLayout>
     );
 }

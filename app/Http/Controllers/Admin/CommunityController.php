@@ -61,7 +61,7 @@ class CommunityController extends Controller
             'totalCommunities' => Community::count(),
             'companies' => Company::where('status', 'active')->select('id', 'name')->orderBy('name')->get(),
             'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
-            'filters' => $request->only('search', 'company_id', 'category_id', 'sort', 'dir'),
+            'filters' => (object) $request->only('search', 'company_id', 'category_id', 'sort', 'dir'),
             'sort' => self::sort()->state($sortKey, $sortDir),
         ]);
     }

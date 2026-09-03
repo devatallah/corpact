@@ -1,20 +1,38 @@
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import { Head } from '@inertiajs/react';
+import { Coins, ShieldCheck } from 'lucide-react';
+import {
+    FilterSelect,
+    Pagination,
+    ResultCount,
+    SearchInput,
+    SortableHeader,
+    Toolbar,
+    visitWith,
+} from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import {
+    Badge,
+    Card,
+    Note,
+    PageHeader,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    TableShell,
+    Tr,
+} from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
-import { fmtDateTime } from '@/lib/utils';
-import type { PaginatedResult } from '@/types/models';
-import { Head, router } from '@inertiajs/react';
+import type { Paginated, SortState } from '@/types';
 
 /**
- * H §19 — «يرى مسؤول الحساب ملخصاً محدوداً لشركته فقط».
+ * H §19 — the company's own slice of the audit log.
  *
- * ملخص: بلا IP ولا متصفح ولا قيم قبل/بعد خام — تلك للسجل الكامل لدى أدمن
- * تيمات وحده.
+ * Deliberately narrower than the platform view: no IP address, no user agent,
+ * no before/after payloads. An account manager needs to know what happened
+ * inside their company, not to inspect their employees' devices.
  */
-
-interface AuditRow {
+type Log = {
     id: number;
     action: string;
     action_label: string;
@@ -25,118 +43,158 @@ interface AuditRow {
     reason: string | null;
     is_financial: boolean;
     created_at: string | null;
-}
-
-interface Props {
-    company: { id: number; name: string };
-    logs: PaginatedResult<AuditRow>;
-    filters: { search?: string; action?: string; from?: string; to?: string; sort?: string; dir?: string };
-    actions: { value: string; label: string }[];
-    sort: SortState;
-}
-
-const inputStyle: React.CSSProperties = {
-    padding: '10px 14px',
-    background: '#fff',
-    border: '1px solid #E2E8F4',
-    borderRadius: '10px',
-    fontSize: '13px',
-    color: '#1B2437',
-    outline: 'none',
-    direction: 'rtl',
-    fontFamily: 'inherit',
 };
 
-export default function CompanyAudit({ company, logs, filters, actions, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        action: filters?.action,
-        from: filters?.from,
-        to: filters?.to,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-
-    function apply(patch: Record<string, string | undefined>) {
-        router.get(
-            '/company/audit',
-            {
-                search: filters?.search || undefined,
-                action: filters?.action || undefined,
-                from: filters?.from || undefined,
-                to: filters?.to || undefined,
-                sort: filters?.sort || undefined,
-                dir: filters?.dir || undefined,
-                ...patch,
-            },
-            { preserveState: true, replace: true },
-        );
-    }
-
+export default function CompanyAudit({
+    logs,
+    filters,
+    sort,
+    actions,
+}: {
+    company: { id: number; name: string };
+    logs: Paginated<Log>;
+    filters: { search?: string; action?: string; from?: string; to?: string };
+    sort: SortState;
+    actions: { value: string; label: string }[];
+    groups: { value: string; label: string }[];
+}) {
     return (
         <CompanyLayout>
             <Head title="سجل التدقيق" />
 
-            <div className="page-title">سجل التدقيق</div>
-            <div className="page-sub">
-                ملخص الأحداث المسجَّلة على حساب «{company.name}» — سجل تيمات الكامل لدى أدمن المنصة.
-            </div>
+            <PageHeader
+                icon={ShieldCheck}
+                title="سجل التدقيق"
+                subtitle="كل إجراء حسّاس داخل شركتك، باسم فاعله ووقته وسببه — سجل لا يُعدَّل ولا يُحذف."
+            />
 
-            <div style={{ display: 'flex', gap: '10px', margin: '16px 0', flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث بالفاعل أو السبب..."
-                    style={{ ...inputStyle, flex: 1, minWidth: '220px' }}
-                />
-                <select value={filters?.action ?? ''} onChange={(e) => apply({ action: e.target.value || undefined })} style={inputStyle}>
-                    <option value="">كل الإجراءات</option>
-                    {actions.map((a) => (
-                        <option key={a.value} value={a.value}>{a.label}</option>
-                    ))}
-                </select>
-                <input type="date" value={filters?.from ?? ''} onChange={(e) => apply({ from: e.target.value || undefined })} style={inputStyle} />
-                <input type="date" value={filters?.to ?? ''} onChange={(e) => apply({ to: e.target.value || undefined })} style={inputStyle} />
-            </div>
+            <Note title="ما الذي يظهر هنا؟">
+                يعرض هذا السجل الإجراءات المتعلقة بشركتك وحدها: اعتماد
+                المجتمعات، والحركات المالية، وتغييرات الصلاحيات، وتصدير
+                البيانات. بيانات الأجهزة وعناوين الشبكة لا تُعرض لمسؤول الحساب.
+            </Note>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <SortableHeader label="الوقت" sortKey="created_at" sort={sort} initialDirection="desc" />
-                                <SortableHeader label="الإجراء" sortKey="action" sort={sort} />
-                                <SortableHeader label="الفاعل" sortKey="actor_name" sort={sort} />
-                                <SortableHeader label="الكيان" sortKey="entity_type" sort={sort} />
-                                <th>السبب</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <ListStates
-                                count={logs.data.length}
-                                columns={5}
-                                emptyTitle="لا توجد أحداث مسجَّلة"
-                                emptyHint="لم يُسجَّل بعد أي إجراء من الأنواع التي تظهر لمسؤول الحساب على حساب شركتك."
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput
+                        value={filters.search ?? ''}
+                        placeholder="ابحث بالفاعل أو السبب…"
+                    />
+                    <FilterSelect
+                        name="action"
+                        label="الإجراء"
+                        value={filters.action ?? ''}
+                        options={[
+                            ['', 'كل الإجراءات'],
+                            ...actions.map((action): [string, string] => [
+                                action.value,
+                                action.label,
+                            ]),
+                        ]}
+                    />
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="date"
+                            aria-label="من تاريخ"
+                            value={filters.from ?? ''}
+                            onChange={(event) =>
+                                visitWith({ from: event.target.value })
+                            }
+                            className="w-full rounded-xl border-[0.5px] border-ink/20 bg-surface p-2 text-xs focus:border-ink focus:outline-none"
+                        />
+                        <input
+                            type="date"
+                            aria-label="إلى تاريخ"
+                            value={filters.to ?? ''}
+                            onChange={(event) =>
+                                visitWith({ to: event.target.value })
+                            }
+                            className="w-full rounded-xl border-[0.5px] border-ink/20 bg-surface p-2 text-xs focus:border-ink focus:outline-none"
+                        />
+                    </div>
+                </Toolbar>
+
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader
+                                label="الوقت"
+                                sortKey="created_at"
+                                sort={sort}
+                                initialDirection="desc"
                             />
-                            {logs.data.map((log) => (
-                                <tr key={log.id}>
-                                    <td style={{ fontSize: 12, color: '#7A8BA8', whiteSpace: 'nowrap' }}>{fmtDateTime(log.created_at ?? '')}</td>
-                                    <td style={{ fontWeight: 700, color: log.is_financial ? '#0F7A66' : '#1B2437' }}>{log.action_label}</td>
-                                    <td style={{ fontSize: 12, color: '#43506B' }}>
-                                        {log.actor_name ?? 'النظام'}
-                                        {log.actor_role ? ` · ${log.actor_role}` : ''}
-                                    </td>
-                                    <td dir="ltr" style={{ fontSize: 12, color: '#7A8BA8' }}>
-                                        {log.entity_type ? `${log.entity_type}#${log.entity_id}` : '—'}
-                                    </td>
-                                    <td style={{ fontSize: 12, color: '#43506B' }}>{log.reason ?? '—'}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                        </Th>
+                        <Th>
+                            <SortableHeader
+                                label="الإجراء"
+                                sortKey="action"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th>الفاعل</Th>
+                        <Th>الكيان</Th>
+                        <Th>السبب</Th>
+                    </Thead>
 
-            <Pagination links={logs.links} />
+                    <Tbody>
+                        {logs.data.map((log) => (
+                            <Tr key={log.id}>
+                                <Td className="font-mono text-[11px] whitespace-nowrap text-ink/70">
+                                    {log.created_at
+                                        ? new Date(
+                                              log.created_at,
+                                          ).toLocaleString('ar-SA')
+                                        : '—'}
+                                </Td>
+                                <Td>
+                                    <span className="block font-extrabold text-ink">
+                                        {log.action_label}
+                                    </span>
+                                    {log.is_financial && (
+                                        <Badge tone="lime" icon={Coins}>
+                                            مالي
+                                        </Badge>
+                                    )}
+                                </Td>
+                                <Td>
+                                    <span className="block font-bold text-ink">
+                                        {log.actor_name ?? 'النظام'}
+                                    </span>
+                                    <span className="text-[11px] text-ink/50">
+                                        {log.actor_role ?? '—'}
+                                    </span>
+                                </Td>
+                                <Td>
+                                    <span className="text-ink/85">
+                                        {log.entity_type ?? '—'}
+                                    </span>
+                                    {log.entity_id !== null && (
+                                        <span className="font-mono text-[11px] text-ink/45">
+                                            {' '}
+                                            #{log.entity_id}
+                                        </span>
+                                    )}
+                                </Td>
+                                <Td className="max-w-xs text-ink/70">
+                                    {log.reason ?? '—'}
+                                </Td>
+                            </Tr>
+                        ))}
+
+                        <ListStates
+                            count={logs.data.length}
+                            colSpan={5}
+                            empty="لا توجد سجلات مطابقة."
+                            emptyHint="جرّب توسيع المدة الزمنية أو إزالة الفلاتر."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <ResultCount page={logs} />
+                    <Pagination page={logs} />
+                </div>
+            </Card>
         </CompanyLayout>
     );
 }

@@ -1,136 +1,153 @@
-import { Head, useForm } from '@inertiajs/react';
-import toastr from 'toastr';
-import PasswordInput from '@/components/password-input';
+import { Head, useForm, usePage } from '@inertiajs/react';
+import { CircleUser, ShieldCheck } from 'lucide-react';
+import { Badge, Button, Card, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
+import type { SharedProps } from '@/types';
 
-interface Props {
-    admin: {
-        id: number;
-        name: string;
-        email: string;
-        phone: string | null;
-    };
-}
-
-export default function AdminProfile({ admin }: Props) {
+/**
+ * Your own staff account.
+ *
+ * The current password is required for any change here — including a change
+ * of phone, because the phone is where the second factor lands. Letting a
+ * hijacked session move that number would defeat the whole 2FA requirement.
+ */
+export default function AdminProfile({ admin }: { admin: { id: number; name: string; email: string; phone: string | null; status: string } }) {
+    const { auth } = usePage<SharedProps>().props;
     const form = useForm({
-        name: admin.name ?? '',
-        email: admin.email ?? '',
+        name: admin.name,
+        email: admin.email,
         phone: admin.phone ?? '',
         current_password: '',
         password: '',
         password_confirmation: '',
     });
 
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        form.put('/admin/profile', {
-            onSuccess: () => {
-                form.setData('current_password', '');
-                form.setData('password', '');
-                form.setData('password_confirmation', '');
-                toastr.success('تم تحديث الملف الشخصي بنجاح.');
-            },
-        });
-    }
-
     return (
         <AdminLayout>
             <Head title="الملف الشخصي" />
 
-            <div className="page-title">الملف الشخصي</div>
-            <div className="page-sub">تعديل بيانات الحساب وكلمة المرور</div>
+            <PageHeader
+                icon={CircleUser}
+                title="ملفك الشخصي"
+                subtitle="بيانات حسابك في البوابة الداخلية. تغيير أي منها يتطلب كلمة المرور الحالية."
+                actions={<Badge tone="warning">{auth.role_label ?? 'مشرف'}</Badge>}
+            />
 
-            <div className="card" style={{ maxWidth: 600 }}>
-                {Object.keys(form.errors).length > 0 && (
-                    <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
-                        {Object.values(form.errors).map((error, i) => (
-                            <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                        ))}
-                    </div>
-                )}
+            <Note title="لماذا كلمة المرور الحالية إلزامية؟">
+                رقم الجوال هنا هو وجهة رمز التحقق الثنائي. لو أمكن تغييره من جلسة مفتوحة بلا إثبات، لسقط العامل الثاني كله.
+            </Note>
 
-                <form onSubmit={handleSubmit}>
-                    <div className="frow">
-                        <div className="fg">
-                            <label>الاسم *</label>
+            <Card padding="p-5" className="space-y-5">
+                <form
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        form.put('/admin/profile', {
+                            preserveScroll: true,
+                            onSuccess: () => form.reset('current_password', 'password', 'password_confirmation'),
+                        });
+                    }}
+                    className="space-y-5"
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Field label="الاسم" htmlFor="profile-name" required error={form.errors.name}>
                             <input
+                                id="profile-name"
                                 type="text"
+                                required
                                 value={form.data.name}
-                                onChange={(e) => form.setData('name', e.target.value)}
-                                required
+                                onChange={(event) => form.setData('name', event.target.value)}
+                                className={INPUT}
                             />
-                        </div>
-                        <div className="fg">
-                            <label>البريد الإلكتروني *</label>
+                        </Field>
+
+                        <Field label="البريد المؤسسي" htmlFor="profile-email" required error={form.errors.email}>
                             <input
+                                id="profile-email"
                                 type="email"
-                                value={form.data.email}
-                                onChange={(e) => form.setData('email', e.target.value)}
                                 dir="ltr"
                                 required
+                                value={form.data.email}
+                                onChange={(event) => form.setData('email', event.target.value)}
+                                className={`${INPUT} text-right font-mono`}
                             />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>رقم الجوال</label>
+                        <Field
+                            label="رقم الجوال"
+                            htmlFor="profile-phone"
+                            hint="إليه يصل رمز التحقق الثنائي"
+                            error={form.errors.phone}
+                        >
                             <input
-                                type="text"
-                                value={form.data.phone}
-                                onChange={(e) => form.setData('phone', e.target.value)}
-                                placeholder="05xxxxxxxx"
+                                id="profile-phone"
+                                type="tel"
                                 dir="ltr"
+                                value={form.data.phone}
+                                onChange={(event) => form.setData('phone', event.target.value)}
+                                className={`${INPUT} text-right font-mono`}
                             />
-                        </div>
-                        <div className="fg" />
+                        </Field>
                     </div>
 
-                    <div style={{ borderTop: '1px solid #232A3E', margin: '20px 0', paddingTop: '20px' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '16px' }}>تغيير كلمة المرور</div>
-                        <div className="frow">
-                            <div className="fg">
-                                <label>كلمة المرور الحالية *</label>
-                                <PasswordInput
-                                    value={form.data.current_password}
-                                    onChange={(e) => form.setData('current_password', e.target.value)}
-                                    placeholder="أدخل كلمة المرور الحالية"
-                                    dir="ltr"
+                    <div className="pt-4 border-t-[0.5px] border-ink/10 space-y-4">
+                        <div className="flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4 text-ink" aria-hidden="true" />
+                            <h2 className="text-sm font-extrabold text-ink">تغيير كلمة المرور</h2>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <Field
+                                label="كلمة المرور الحالية"
+                                htmlFor="profile-current"
+                                required
+                                hint="مطلوبة لأي تعديل"
+                                error={form.errors.current_password}
+                            >
+                                <input
+                                    id="profile-current"
+                                    type="password"
+                                    required
                                     autoComplete="current-password"
+                                    value={form.data.current_password}
+                                    onChange={(event) => form.setData('current_password', event.target.value)}
+                                    className={INPUT}
                                 />
-                            </div>
-                            <div className="fg" />
-                        </div>
-                        <div className="frow">
-                            <div className="fg">
-                                <label>كلمة المرور الجديدة</label>
-                                <PasswordInput
+                            </Field>
+
+                            <Field
+                                label="كلمة مرور جديدة"
+                                htmlFor="profile-password"
+                                hint="اتركها فارغة للإبقاء عليها"
+                                error={form.errors.password}
+                            >
+                                <input
+                                    id="profile-password"
+                                    type="password"
+                                    autoComplete="new-password"
                                     value={form.data.password}
-                                    onChange={(e) => form.setData('password', e.target.value)}
-                                    placeholder="اتركها فارغة للإبقاء"
-                                    dir="ltr"
-                                    autoComplete="new-password"
+                                    onChange={(event) => form.setData('password', event.target.value)}
+                                    className={INPUT}
                                 />
-                            </div>
-                            <div className="fg">
-                                <label>تأكيد كلمة المرور</label>
-                                <PasswordInput
+                            </Field>
+
+                            <Field label="تأكيد كلمة المرور" htmlFor="profile-confirm">
+                                <input
+                                    id="profile-confirm"
+                                    type="password"
+                                    autoComplete="new-password"
                                     value={form.data.password_confirmation}
-                                    onChange={(e) => form.setData('password_confirmation', e.target.value)}
-                                    placeholder="أعد كتابة كلمة المرور"
-                                    dir="ltr"
-                                    autoComplete="new-password"
+                                    onChange={(event) => form.setData('password_confirmation', event.target.value)}
+                                    className={INPUT}
                                 />
-                            </div>
+                            </Field>
                         </div>
                     </div>
 
-                    <div className="panel-actions">
-                        <button type="submit" className="pa-approve" disabled={form.processing}>حفظ التغييرات</button>
-                    </div>
+                    <Button type="submit" disabled={form.processing}>
+                        حفظ التغييرات
+                    </Button>
                 </form>
-            </div>
+            </Card>
         </AdminLayout>
     );
 }

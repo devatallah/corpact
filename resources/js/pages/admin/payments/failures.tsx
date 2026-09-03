@@ -1,17 +1,26 @@
 import { Head, router } from '@inertiajs/react';
-import FilterTabs from '@/components/filter-tabs';
-import Pagination from '@/components/pagination';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import { AlertTriangle, RefreshCw, Timer, Webhook } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Button, Card, Money, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import { fmtDateTime } from '@/lib/utils';
-import type { PaginatedResult } from '@/types/models';
+import type { Paginated, SortState } from '@/types';
 
-// PaginatedResult carries Laravel's links array for the shared Pagination component.
-
-interface FailedRefundRow {
+/**
+ * H §12.6 — ما لم تستطع بوابة الدفع إنهاءه.
+ *
+ * Three different failures, and conflating them wastes the finance admin's
+ * day: a refund the gateway rejected (money owed and not returned), a claim
+ * whose window expired (a seat lost, no money moved), and a webhook the
+ * platform could not process (the ledger may be behind the gateway).
+ *
+ * Retrying a refund reuses the same idempotency key — never a double refund.
+ */
+type FailedRefund = {
     id: number;
-    event: { id: number; title: string | null; event_date: string } | null;
+    event: { id: number; title: string; event_date: string | null } | null;
     community: { id: number; name: string } | null;
     employee: { id: number; name: string } | null;
     amount: string;
@@ -20,206 +29,243 @@ interface FailedRefundRow {
     refund_last_error: string | null;
     max_auto_retries: number;
     updated_at: string | null;
-}
+};
 
-interface ExpiredIntentRow {
+type ExpiredIntent = {
     id: number;
-    event: { id: number; title: string | null; event_date: string } | null;
+    event: { id: number; title: string; event_date: string | null } | null;
     employee: { id: number; name: string } | null;
     amount: string;
     expires_at: string | null;
-}
+};
 
-interface FailedWebhookRow {
+type FailedWebhook = {
     id: number;
     gateway: string;
     event_type: string | null;
     gateway_reference: string | null;
     error: string | null;
-    created_at: string;
-}
+    created_at: string | null;
+};
 
-interface Props {
-    failedRefunds: PaginatedResult<FailedRefundRow>;
-    expiredIntents: ExpiredIntentRow[];
-    failedWebhooks: FailedWebhookRow[];
-    filters: { search?: string; state?: string; sort?: string; dir?: string };
+export default function PaymentFailures({
+    failedRefunds,
+    expiredIntents,
+    failedWebhooks,
+    filters,
+    sort,
+}: {
+    failedRefunds: Paginated<FailedRefund>;
+    expiredIntents: ExpiredIntent[];
+    failedWebhooks: FailedWebhook[];
+    filters: { search?: string; state?: string };
     sort: SortState;
-}
-
-const STATE_FILTERS = [
-    { label: 'الكل', value: '' },
-    { label: 'استنفد محاولاته', value: 'manual' },
-];
-
-/**
- * قائمة فشل المدفوعات والاستردادات — مسؤولية الأدمن المالي اليومية
- * (A10 — H §12.4): إعادة المحاولة آلية، ولا يُترك فشل بلا معالجة.
- */
-export default function PaymentFailures({ failedRefunds, expiredIntents, failedWebhooks, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        state: filters?.state,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-
-    function retry(id: number) {
-        router.post(`/admin/payments/refunds/${id}/retry`);
-    }
+}) {
+    const [retrying, setRetrying] = useState<FailedRefund | null>(null);
 
     return (
         <AdminLayout>
-            <Head title="فشل المدفوعات والاستردادات" />
+            <Head title="فشل المدفوعات" />
 
-            <div style={{ marginBottom: 20 }}>
-                <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>قائمة فشل المدفوعات والاستردادات</h1>
-                <p style={{ fontSize: 13, color: '#7A8BA8', marginTop: 6 }}>
-                    كل استرداد يعود إلى وسيلة الدفع الأصلية عبر البوابة. إعادة المحاولة آلية كل 15 دقيقة —
-                    وما استنفد محاولاته يبقى هنا حتى تعالجه يدوياً. لا يُترك فشل صامتاً.
-                </p>
+            <PageHeader
+                icon={AlertTriangle}
+                title="فشل المدفوعات والاستردادات"
+                subtitle="ثلاثة أنواع مختلفة من الفشل: استرداد لم ينفَّذ، مطالبة انقضت مهلتها، وويبهوك لم يُعالَج."
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <StatCard
+                    label="استردادات فاشلة"
+                    value={failedRefunds.total}
+                    hint="مال مستحق لم يُعَد"
+                    tone={failedRefunds.total > 0 ? 'danger' : 'success'}
+                />
+                <StatCard
+                    label="مطالبات انقضت مهلتها"
+                    value={expiredIntents.length}
+                    hint="مقاعد سقطت — لا حركة مالية"
+                    tone={expiredIntents.length > 0 ? 'warning' : 'success'}
+                />
+                <StatCard
+                    label="ويبهوكات فاشلة"
+                    value={failedWebhooks.length}
+                    hint="قد يكون الدفتر متأخراً عن البوابة"
+                    tone={failedWebhooks.length > 0 ? 'danger' : 'success'}
+                />
             </div>
 
-            {/* الاستردادات الفاشلة */}
-            <div className="card" style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>استردادات فاشلة ({failedRefunds.total})</div>
-
-                <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="🔍 ابحث باسم الفعالية أو الموظف..."
-                        style={{
-                            padding: '9px 14px',
-                            borderRadius: 10,
-                            border: '1px solid #E2E8F4',
-                            fontSize: 13,
-                            outline: 'none',
-                            direction: 'rtl',
-                            fontFamily: 'inherit',
-                            minWidth: 240,
-                        }}
-                    />
-                    <FilterTabs options={STATE_FILTERS} current={filters?.state ?? ''} paramName="state" />
+            {/* ── الاستردادات الفاشلة ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 text-danger" aria-hidden="true" />
+                    <h2 className="text-sm font-extrabold text-ink">استردادات فاشلة — مال مستحق للموظف</h2>
                 </div>
 
-                {failedRefunds.data.length === 0 ? (
-                    <div style={{ fontSize: 13, color: '#7A8BA8', textAlign: 'center', padding: 20 }}>
-                        {filters?.search || filters?.state
-                            ? 'لا استرداد مطابق للبحث والفلاتر الحالية.'
-                            : 'لا استردادات فاشلة — القائمة نظيفة.'}
-                    </div>
-                ) : (
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                            <thead>
-                                <tr style={{ textAlign: 'right', color: '#7A8BA8' }}>
-                                    <th style={{ padding: 8 }}>الفعالية</th>
-                                    <th style={{ padding: 8 }}>الموظف</th>
-                                    <SortableHeader label="المبلغ" sortKey="amount" sort={sort} initialDirection="desc" style={{ padding: 8 }} />
-                                    <th style={{ padding: 8 }}>السبب</th>
-                                    <SortableHeader label="المحاولات" sortKey="refund_attempts" sort={sort} initialDirection="desc" style={{ padding: 8 }} />
-                                    <th style={{ padding: 8 }}>آخر خطأ</th>
-                                    <SortableHeader label="آخر تحديث" sortKey="updated_at" sort={sort} initialDirection="desc" style={{ padding: 8 }} />
-                                    <th style={{ padding: 8 }}></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {failedRefunds.data.map((row) => (
-                                    <tr key={row.id} style={{ borderTop: '1px solid #E4E9F2' }}>
-                                        <td style={{ padding: 8 }}>
-                                            {row.event ? `#${row.event.id} ${row.event.title ?? ''}` : '—'}
-                                            {row.community && <div style={{ fontSize: 11, color: '#7A8BA8' }}>{row.community.name}</div>}
-                                        </td>
-                                        <td style={{ padding: 8 }}>{row.employee?.name ?? '—'}</td>
-                                        <td style={{ padding: 8, fontWeight: 700 }}>{Number(row.amount).toLocaleString()} ر.س</td>
-                                        <td style={{ padding: 8, maxWidth: 220 }}>{row.refund_reason ?? '—'}</td>
-                                        <td style={{ padding: 8 }}>
-                                            {row.refund_attempts} / {row.max_auto_retries}
-                                            {row.refund_attempts >= row.max_auto_retries && (
-                                                <span style={{ display: 'inline-block', marginRight: 6, fontSize: 11, color: '#E03050', fontWeight: 700 }}>يدوي</span>
-                                            )}
-                                        </td>
-                                        <td style={{ padding: 8, maxWidth: 220, color: '#E03050', fontSize: 12 }}>{row.refund_last_error ?? '—'}</td>
-                                        <td style={{ padding: 8, fontSize: 12, color: '#7A8BA8', whiteSpace: 'nowrap' }}>{fmtDateTime(row.updated_at)}</td>
-                                        <td style={{ padding: 8 }}>
-                                            <button className="btn btn-outline" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => retry(row.id)}>
-                                                أعد المحاولة
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-                <Pagination links={failedRefunds.links} />
-            </div>
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث بالموظف أو الفعالية…" />
+                </Toolbar>
 
-            {/* مطالبات انقضت دون سداد */}
-            <div className="card" style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>مطالبات انقضت مهلتها دون سداد (آخر 50)</div>
-                {expiredIntents.length === 0 ? (
-                    <div style={{ fontSize: 13, color: '#7A8BA8', textAlign: 'center', padding: 20 }}>لا شيء.</div>
-                ) : (
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                            <thead>
-                                <tr style={{ textAlign: 'right', color: '#7A8BA8' }}>
-                                    <th style={{ padding: 8 }}>الفعالية</th>
-                                    <th style={{ padding: 8 }}>الموظف</th>
-                                    <th style={{ padding: 8 }}>المبلغ</th>
-                                    <th style={{ padding: 8 }}>انقضت في</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {expiredIntents.map((row) => (
-                                    <tr key={row.id} style={{ borderTop: '1px solid #E4E9F2' }}>
-                                        <td style={{ padding: 8 }}>{row.event ? `#${row.event.id} ${row.event.title ?? ''}` : '—'}</td>
-                                        <td style={{ padding: 8 }}>{row.employee?.name ?? '—'}</td>
-                                        <td style={{ padding: 8 }}>{Number(row.amount).toLocaleString()} ر.س</td>
-                                        <td style={{ padding: 8 }}>{fmtDateTime(row.expires_at)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
+                <TableShell>
+                    <Thead>
+                        <Th>الموظف والفعالية</Th>
+                        <Th>
+                            <SortableHeader label="المبلغ" sortKey="amount" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="المحاولات" sortKey="refund_attempts" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>آخر خطأ</Th>
+                        <Th className="text-center">الإجراء</Th>
+                    </Thead>
 
-            {/* ويبهوكات فشلت معالجتها */}
-            <div className="card">
-                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>ويبهوكات فشلت معالجتها (آخر 50)</div>
-                {failedWebhooks.length === 0 ? (
-                    <div style={{ fontSize: 13, color: '#7A8BA8', textAlign: 'center', padding: 20 }}>لا شيء.</div>
-                ) : (
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                            <thead>
-                                <tr style={{ textAlign: 'right', color: '#7A8BA8' }}>
-                                    <th style={{ padding: 8 }}>#</th>
-                                    <th style={{ padding: 8 }}>البوابة</th>
-                                    <th style={{ padding: 8 }}>النوع</th>
-                                    <th style={{ padding: 8 }}>المرجع</th>
-                                    <th style={{ padding: 8 }}>الخطأ</th>
-                                    <th style={{ padding: 8 }}>وصل في</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {failedWebhooks.map((row) => (
-                                    <tr key={row.id} style={{ borderTop: '1px solid #E4E9F2' }}>
-                                        <td style={{ padding: 8 }}>{row.id}</td>
-                                        <td style={{ padding: 8 }}>{row.gateway}</td>
-                                        <td style={{ padding: 8 }}>{row.event_type ?? '—'}</td>
-                                        <td style={{ padding: 8, direction: 'ltr', textAlign: 'left', fontSize: 11 }}>{row.gateway_reference ?? '—'}</td>
-                                        <td style={{ padding: 8, color: '#E03050', fontSize: 12, maxWidth: 260 }}>{row.error ?? '—'}</td>
-                                        <td style={{ padding: 8 }}>{fmtDateTime(row.created_at)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
+                    <Tbody>
+                        {failedRefunds.data.map((refund) => {
+                            const exhausted = refund.refund_attempts >= refund.max_auto_retries;
+
+                            return (
+                                <Tr key={refund.id}>
+                                    <Td>
+                                        <span className="font-extrabold text-ink block">{refund.employee?.name ?? '—'}</span>
+                                        <span className="text-[11px] text-ink/60">{refund.event?.title ?? '—'}</span>
+                                        <span className="block text-[11px] text-ink/45">{refund.community?.name ?? ''}</span>
+                                    </Td>
+                                    <Td>
+                                        <Money amount={refund.amount} className="text-ink" />
+                                    </Td>
+                                    <Td>
+                                        <span className="font-mono font-bold text-ink">
+                                            {refund.refund_attempts} / {refund.max_auto_retries}
+                                        </span>
+                                        {exhausted && <Badge tone="danger">استُنفدت المحاولات الآلية</Badge>}
+                                    </Td>
+                                    <Td className="text-[11px] text-danger max-w-xs">{refund.refund_last_error ?? '—'}</Td>
+                                    <Td className="text-center">
+                                        <Button tone="soft" icon={RefreshCw} onClick={() => setRetrying(refund)}>
+                                            إعادة المحاولة
+                                        </Button>
+                                    </Td>
+                                </Tr>
+                            );
+                        })}
+
+                        <ListStates
+                            count={failedRefunds.data.length}
+                            colSpan={5}
+                            empty="لا استردادات فاشلة."
+                            emptyHint="كل ما استُحق ردّه عاد إلى وسيلة الدفع الأصلية."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={failedRefunds} />
+                    <Pagination page={failedRefunds} />
+                </div>
+            </Card>
+
+            {/* ── المطالبات المنتهية ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <Timer className="w-4 h-4 text-warning" aria-hidden="true" />
+                    <h2 className="text-sm font-extrabold text-ink">مطالبات انقضت مهلتها</h2>
+                </div>
+
+                <TableShell>
+                    <Thead>
+                        <Th>الموظف</Th>
+                        <Th>الفعالية</Th>
+                        <Th>الحصة</Th>
+                        <Th>انتهت في</Th>
+                    </Thead>
+                    <Tbody>
+                        {expiredIntents.map((intent) => (
+                            <Tr key={intent.id}>
+                                <Td className="font-extrabold text-ink">{intent.employee?.name ?? '—'}</Td>
+                                <Td className="text-ink/85">{intent.event?.title ?? '—'}</Td>
+                                <Td>
+                                    <Money amount={intent.amount} className="text-ink/85" />
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/70">
+                                    {intent.expires_at ? new Date(intent.expires_at).toLocaleString('ar-SA') : '—'}
+                                </Td>
+                            </Tr>
+                        ))}
+                        <ListStates
+                            count={expiredIntents.length}
+                            colSpan={4}
+                            empty="لا مطالبات منتهية."
+                            emptyHint="لم يفقد أحد مقعده بسبب انقضاء المهلة."
+                        />
+                    </Tbody>
+                </TableShell>
+            </Card>
+
+            {/* ── الويبهوكات ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <Webhook className="w-4 h-4 text-danger" aria-hidden="true" />
+                    <h2 className="text-sm font-extrabold text-ink">ويبهوكات لم تُعالَج</h2>
+                </div>
+
+                <TableShell>
+                    <Thead>
+                        <Th>البوابة</Th>
+                        <Th>النوع</Th>
+                        <Th>المرجع</Th>
+                        <Th>الخطأ</Th>
+                        <Th>الوقت</Th>
+                    </Thead>
+                    <Tbody>
+                        {failedWebhooks.map((webhook) => (
+                            <Tr key={webhook.id}>
+                                <Td className="font-bold text-ink">{webhook.gateway}</Td>
+                                <Td className="font-mono text-[11px] text-ink/80">{webhook.event_type ?? '—'}</Td>
+                                <Td className="font-mono text-[11px] text-ink/60" dir="ltr">
+                                    {webhook.gateway_reference ?? '—'}
+                                </Td>
+                                <Td className="text-[11px] text-danger max-w-xs">{webhook.error ?? '—'}</Td>
+                                <Td className="font-mono text-[11px] text-ink/60">
+                                    {webhook.created_at ? new Date(webhook.created_at).toLocaleString('ar-SA') : '—'}
+                                </Td>
+                            </Tr>
+                        ))}
+                        <ListStates
+                            count={failedWebhooks.length}
+                            colSpan={5}
+                            empty="لا ويبهوكات فاشلة."
+                            emptyHint="الدفتر متزامن مع البوابة."
+                        />
+                    </Tbody>
+                </TableShell>
+            </Card>
+
+            <Note title="لماذا لا تُعاد المحاولة تلقائياً إلى الأبد؟">
+                بعد استنفاد المحاولات الآلية يبقى الاسترداد هنا عمداً: تكرار الفشل يعني مشكلة في وسيلة الدفع نفسها لا في
+                الاتصال، ومعالجتها قرار بشري لا حلقة تكرار صامتة.
+            </Note>
+
+            <ConfirmModal
+                open={retrying !== null}
+                title="إعادة محاولة الاسترداد"
+                message="تُستخدَم نفس مفتاح التفرّد، فلا يمكن أن يُرَدّ المبلغ مرتين مهما تكرّرت المحاولة."
+                details={
+                    retrying && (
+                        <>
+                            <ConfirmRow label="الموظف" value={retrying.employee?.name ?? '—'} />
+                            <ConfirmRow label="الفعالية" value={retrying.event?.title ?? '—'} />
+                            <ConfirmRow label="المبلغ المسترد" value={`${retrying.amount} ريال`} strong />
+                            <ConfirmRow label="الوجهة" value="وسيلة الدفع الأصلية" />
+                            <ConfirmRow label="المحاولات السابقة" value={String(retrying.refund_attempts)} />
+                        </>
+                    )
+                }
+                confirmLabel="إعادة المحاولة"
+                onConfirm={() => {
+                    router.post(`/admin/payments/refunds/${retrying?.id}/retry`, {}, { preserveScroll: true });
+                    setRetrying(null);
+                }}
+                onCancel={() => setRetrying(null)}
+            />
         </AdminLayout>
     );
 }

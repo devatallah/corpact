@@ -1,0 +1,470 @@
+import PageHeader from '@/components/page-header';
+import PartnerLayout from '@/layouts/partner-layout';
+import CategoryIcon from '@/components/category-icon';
+import ConfirmModal from '@/components/confirm-modal';
+import Pagination from '@/components/pagination';
+import { SortBar, type SortState } from '@/components/sortable-header';
+import StatusBadge from '@/components/status-badge';
+import TimePicker from '@/components/time-picker';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import type { Partner, Venue, VenuePricing, Category, PaginatedResult } from '@/types/models';
+import { Head, useForm, router } from '@inertiajs/react';
+import { useState, useEffect, useMemo } from 'react';
+import toastr from 'toastr';
+
+interface PricingFormData {
+    duration_minutes: string;
+    price: string;
+    is_peak: boolean;
+    label: string;
+    start_time: string;
+    end_time: string;
+    days: number[];
+}
+
+interface Props {
+    partner: Partner;
+    venues: PaginatedResult<Venue>;
+    categories: Category[];
+    filters?: { search?: string; sort?: string; dir?: string };
+    sort?: SortState;
+}
+
+const sortOptions = [
+    { key: 'name', label: 'الاسم', initialDirection: 'asc' as const },
+    { key: 'status', label: 'الحالة', initialDirection: 'asc' as const },
+    { key: 'created_at', label: 'الأحدث', initialDirection: 'desc' as const },
+];
+
+const DURATIONS = [60, 90, 120];
+const DAY_LABELS = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+
+function emptyPricingForm(): PricingFormData {
+    return { duration_minutes: '60', price: '', is_peak: false, label: '', start_time: '', end_time: '', days: [] };
+}
+
+/* ── Pricing Form (shared for add & edit) ── */
+function PricingForm({ data, onChange, onSubmit, onCancel, processing, submitLabel }: {
+    data: PricingFormData;
+    onChange: (field: keyof PricingFormData, value: unknown) => void;
+    onSubmit: (e: React.FormEvent) => void;
+    onCancel: () => void;
+    processing: boolean;
+    submitLabel: string;
+}) {
+    function toggleDay(day: number) {
+        const current = data.days;
+        const next = current.includes(day) ? current.filter((d) => d !== day) : [...current, day];
+        onChange('days', next);
+    }
+
+    return (
+        <form onSubmit={onSubmit} style={{ background: '#fff', border: '2px solid #C87D0033', borderRadius: 10, padding: '12px 14px', marginTop: 8 }}>
+            {/* Duration + Price */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <select
+                    value={data.duration_minutes}
+                    onChange={(e) => onChange('duration_minutes', e.target.value)}
+                    style={{ padding: '7px 10px', borderRadius: 8, border: '0.5px solid rgba(10,10,10,.1)', fontSize: 13, background: '#fff', outline: 'none', fontFamily: 'inherit' }}
+                >
+                    {DURATIONS.map((d) => (
+                        <option key={d} value={String(d)}>{d} دقيقة</option>
+                    ))}
+                </select>
+                <input
+                    type="number"
+                    min="0"
+                    placeholder="السعر"
+                    value={data.price}
+                    onChange={(e) => onChange('price', e.target.value)}
+                    required
+                    style={{ width: 100, padding: '7px 10px', borderRadius: 8, border: '0.5px solid rgba(10,10,10,.1)', fontSize: 13, background: '#fff', outline: 'none', textAlign: 'center' }}
+                />
+                <span style={{ fontSize: 12, color: 'rgba(10,10,10,.55)' }}>ريال</span>
+            </div>
+
+            {/* Peak toggle + label */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12 }}>
+                    <input
+                        type="checkbox"
+                        checked={data.is_peak}
+                        onChange={(e) => onChange('is_peak', e.target.checked)}
+                        style={{ width: 16, height: 16, accentColor: '#D9381E', cursor: 'pointer' }}
+                    />
+                    <span style={{ color: data.is_peak ? '#D9381E' : 'rgba(10,10,10,.55)', fontWeight: 600 }}>
+                        {data.is_peak ? 'ذروة' : 'خارج الذروة'}
+                    </span>
+                </label>
+                <input
+                    type="text"
+                    placeholder="تسمية (مثال: ساعات المساء)"
+                    value={data.label}
+                    onChange={(e) => onChange('label', e.target.value)}
+                    style={{ flex: 1, padding: '6px 10px', borderRadius: 6, border: '0.5px solid rgba(10,10,10,.1)', fontSize: 12, background: '#fff', outline: 'none' }}
+                />
+            </div>
+
+            {/* Time range */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', minWidth: 30 }}>من</span>
+                <TimePicker value={data.start_time} onChange={(v) => onChange('start_time', v)} style={{ padding: '6px 8px', borderRadius: 6, border: '0.5px solid rgba(10,10,10,.1)', fontSize: 12 }} />
+                <span style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', minWidth: 30 }}>إلى</span>
+                <TimePicker value={data.end_time} onChange={(v) => onChange('end_time', v)} style={{ padding: '6px 8px', borderRadius: 6, border: '0.5px solid rgba(10,10,10,.1)', fontSize: 12 }} />
+            </div>
+
+            {/* Days */}
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}>
+                {DAY_LABELS.map((label, dayIdx) => {
+                    const isActive = data.days.includes(dayIdx);
+                    return (
+                        <button key={dayIdx} type="button" onClick={() => toggleDay(dayIdx)} style={{ padding: '4px 8px', borderRadius: 6, border: `1px solid ${isActive ? '#C87D00' : '#F6F8F5'}`, background: isActive ? '#C87D00' : '#fff', color: isActive ? '#fff' : 'rgba(10,10,10,.55)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                            {label}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 8 }}>
+                <button type="submit" disabled={processing} style={{ background: '#C87D00', color: '#0A0A0A', border: 'none', borderRadius: 8, padding: '6px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{submitLabel}</button>
+                <button type="button" onClick={onCancel} style={{ background: '#F6F8F5', color: 'rgba(10,10,10,.55)', border: '0.5px solid rgba(10,10,10,.1)', borderRadius: 8, padding: '6px 16px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>إلغاء</button>
+            </div>
+        </form>
+    );
+}
+
+/* ── Main Component ── */
+export default function VenuesIndex({ partner, venues, categories, filters, sort }: Props) {
+    const items = venues?.data ?? [];
+    const [showCreate, setShowCreate] = useState(false);
+    const [editingItem, setEditingItem] = useState<Venue | null>(null);
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
+
+    // Venue form (name, category, status only)
+    const venueForm = useForm({ name: '', category_id: '', parent_category_id: '', status: 'active' });
+
+    // Pricing add/edit state
+    const [addingPricingFor, setAddingPricingFor] = useState<number | null>(null);
+    const [editingPricing, setEditingPricing] = useState<VenuePricing | null>(null);
+    const [pricingForm, setPricingForm] = useState<PricingFormData>(emptyPricingForm());
+    const [pricingProcessing, setPricingProcessing] = useState(false);
+    // H §18: نافذة تأكيد موحّدة بدل نافذة المتصفح، والنص يصف أثر الحذف.
+    const [deletePricingTarget, setDeletePricingTarget] = useState<{ venueId: number; pricing: VenuePricing } | null>(null);
+
+    useEffect(() => {
+        if (editingItem) {
+            const cat = editingItem.category;
+            const parentId = cat?.parent_id ? String(cat.parent_id) : String(editingItem.category_id);
+            venueForm.setData({ name: editingItem.name, category_id: String(editingItem.category_id), parent_category_id: parentId, status: editingItem.status });
+        } else if (!showCreate) {
+            venueForm.reset();
+        }
+    }, [editingItem]);
+
+    const modalSubcategories = useMemo(() => {
+        if (!venueForm.data.parent_category_id) return [];
+        const parent = categories.find((c) => String(c.id) === venueForm.data.parent_category_id);
+        return parent?.children ?? [];
+    }, [venueForm.data.parent_category_id, categories]);
+
+    const handlevenueSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (editingItem) {
+            venueForm.put('/partner/venues/' + editingItem.id, { onSuccess: () => { setEditingItem(null); toastr.success('تم تعديل المرفق بنجاح'); } });
+        } else {
+            venueForm.post('/partner/venues', { onSuccess: () => { setShowCreate(false); venueForm.reset(); toastr.success('تم إضافة المرفق بنجاح'); } });
+        }
+    };
+
+    function startAddPricing(venueId: number) {
+        setAddingPricingFor(venueId);
+        setEditingPricing(null);
+        setPricingForm(emptyPricingForm());
+    }
+
+    function startEditPricing(pricing: VenuePricing) {
+        setEditingPricing(pricing);
+        setAddingPricingFor(null);
+        setPricingForm({
+            duration_minutes: String(pricing.duration_minutes),
+            price: String(pricing.price),
+            is_peak: pricing.is_peak ?? false,
+            label: pricing.label ?? '',
+            start_time: pricing.start_time?.slice(0, 5) ?? '',
+            end_time: pricing.end_time?.slice(0, 5) ?? '',
+            days: pricing.days ?? [],
+        });
+    }
+
+    function cancelPricingForm() {
+        setAddingPricingFor(null);
+        setEditingPricing(null);
+    }
+
+    function updatePricingField(field: keyof PricingFormData, value: unknown) {
+        setPricingForm((prev) => ({ ...prev, [field]: value }));
+    }
+
+    function submitAddPricing(e: React.FormEvent, venueId: number) {
+        e.preventDefault();
+        setPricingProcessing(true);
+        router.visit(`/partner/venues/${venueId}/pricings`, {
+            method: 'post',
+            data: pricingForm as never,
+            preserveScroll: true,
+            onSuccess: () => { setAddingPricingFor(null); setPricingForm(emptyPricingForm()); toastr.success('تم إضافة السعر بنجاح'); },
+            onFinish: () => setPricingProcessing(false),
+        });
+    }
+
+    function submitEditPricing(e: React.FormEvent, venueId: number, pricingId: number) {
+        e.preventDefault();
+        setPricingProcessing(true);
+        router.visit(`/partner/venues/${venueId}/pricings/${pricingId}`, {
+            method: 'put',
+            data: pricingForm as never,
+            preserveScroll: true,
+            onSuccess: () => { setEditingPricing(null); toastr.success('تم تحديث السعر بنجاح'); },
+            onFinish: () => setPricingProcessing(false),
+        });
+    }
+
+    function deletePricing(venueId: number, pricing: VenuePricing) {
+        setDeletePricingTarget({ venueId, pricing });
+    }
+
+    function confirmDeletePricing() {
+        if (!deletePricingTarget) return;
+        const { venueId, pricing } = deletePricingTarget;
+        setDeletePricingTarget(null);
+        router.delete(`/partner/venues/${venueId}/pricings/${pricing.id}`, {
+            preserveScroll: true,
+            onSuccess: () => toastr.success('تم حذف السعر بنجاح'),
+        });
+    }
+
+    return (
+        <PartnerLayout>
+            <Head title="إدارة المرافق" />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <div>
+                    <PageHeader title={<>إدارة المرافق</>} subtitle={<>حدد المرافق وأنواعها وأسعارها</>} />
+                </div>
+                <button
+                    onClick={() => { venueForm.reset(); setShowCreate(true); }}
+                    className="act-btn btn-reject"
+                    style={{ background: '#C87D00', color: '#0A0A0A', borderColor: '#C87D00' }}
+                >
+                    + إضافة مرفق
+                </button>
+            </div>
+
+            {/* H §18: بحث + ترتيب + ترقيم صفحات */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="ابحث باسم المرفق..."
+                    style={{ padding: '9px 14px', borderRadius: 10, border: '0.5px solid rgba(10,10,10,.1)', fontSize: 13, background: '#fff', color: '#0A0A0A', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 220 }}
+                />
+                <SortBar sort={sort} options={sortOptions} />
+            </div>
+
+            <div>
+                {items.length === 0 ? (
+                    <div className="card" style={{ textAlign: 'center', padding: 40, color: 'rgba(10,10,10,.55)' }}>
+                        <div style={{ fontSize: 40, marginBottom: 12 }}>🏟️</div>
+                        <div style={{ fontSize: 15, fontWeight: 700 }}>{search ? 'لا مرفق مطابق لبحثك' : 'لا توجد مرافق مسجلة'}</div>
+                        <div style={{ fontSize: 12, marginTop: 4 }}>أضف مرفقك الأول من الزر أعلاه</div>
+                    </div>
+                ) : (
+                    items.map((venue) => (
+                        <div className="card" style={{ marginBottom: 14 }} key={venue.id}>
+                            {/* Venue header */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <div style={{ width: 48, height: 48, borderRadius: 14, background: '#F6F8F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <CategoryIcon icon={venue.category?.icon} size={26} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: 15, fontWeight: 800 }}>{venue.name}</div>
+                                        <div style={{ fontSize: 12, color: 'rgba(10,10,10,.55)' }}>{venue.category?.name ?? ''}</div>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    <StatusBadge status={venue.status} />
+                                    <button onClick={() => setEditingItem(venue)} style={{ background: '#F6F8F5', border: '0.5px solid rgba(10,10,10,.1)', borderRadius: 8, padding: '5px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>تعديل</button>
+                                </div>
+                            </div>
+
+                            {/* Pricings list */}
+                            {venue.pricings && venue.pricings.length > 0 && (
+                                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    {venue.pricings.map((pricing) => (
+                                        <div key={pricing.id}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: pricing.status === 'inactive' ? '#F6F8F5AA' : '#F6F8F5', border: '0.5px solid rgba(10,10,10,.1)', borderRadius: 8, padding: '6px 10px', fontSize: 11, color: '#0A0A0A', flexWrap: 'wrap', opacity: pricing.status === 'inactive' ? 0.5 : 1 }}>
+                                                <span style={{ fontWeight: 700 }}>{pricing.duration_minutes} دقيقة — {pricing.price.toLocaleString()} ريال</span>
+                                                {pricing.is_peak ? (
+                                                    <span style={{ background: '#D9381E', color: '#0A0A0A', borderRadius: 4, padding: '1px 6px', fontSize: 10 }}>ذروة</span>
+                                                ) : (
+                                                    <span style={{ background: '#2E7D32', color: '#0A0A0A', borderRadius: 4, padding: '1px 6px', fontSize: 10 }}>خارج الذروة</span>
+                                                )}
+                                                {pricing.status === 'inactive' && (
+                                                    <span style={{ background: 'rgba(10,10,10,.55)', color: '#0A0A0A', borderRadius: 4, padding: '1px 6px', fontSize: 10 }}>معطّل</span>
+                                                )}
+                                                {pricing.label && <span style={{ color: 'rgba(10,10,10,.55)' }}>{pricing.label}</span>}
+                                                {pricing.start_time && pricing.end_time && (
+                                                    <span style={{ color: 'rgba(10,10,10,.55)' }}>{pricing.start_time.slice(0, 5)} - {pricing.end_time.slice(0, 5)}</span>
+                                                )}
+                                                {pricing.days && pricing.days.length > 0 && (
+                                                    <span style={{ color: 'rgba(10,10,10,.55)' }}>{pricing.days.map((d) => DAY_LABELS[d]).join('، ')}</span>
+                                                )}
+                                                {/* Action buttons */}
+                                                <div style={{ marginRight: 'auto', display: 'flex', gap: 4 }}>
+                                                    <button
+                                                        onClick={() => router.post(`/partner/venues/${venue.id}/pricings/${pricing.id}/toggle`, {}, { preserveScroll: true })}
+                                                        style={{ background: 'none', border: `1px solid ${pricing.status === 'active' ? '#C87D0033' : '#2E7D3233'}`, borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: pricing.status === 'active' ? '#C87D00' : '#2E7D32' }}
+                                                    >
+                                                        {pricing.status === 'active' ? 'تعطيل' : 'تفعيل'}
+                                                    </button>
+                                                    <button onClick={() => startEditPricing(pricing)} style={{ background: 'none', border: '0.5px solid rgba(10,10,10,.1)', borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: 'rgba(10,10,10,.55)' }}>تعديل</button>
+                                                    <button onClick={() => deletePricing(venue.id, pricing)} style={{ background: 'none', border: '1px solid #D9381E33', borderRadius: 4, padding: '2px 8px', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: '#D9381E' }}>حذف</button>
+                                                </div>
+                                            </div>
+
+                                            {/* Inline edit form */}
+                                            {editingPricing?.id === pricing.id && (
+                                                <PricingForm
+                                                    data={pricingForm}
+                                                    onChange={updatePricingField}
+                                                    onSubmit={(e) => submitEditPricing(e, venue.id, pricing.id)}
+                                                    onCancel={cancelPricingForm}
+                                                    processing={pricingProcessing}
+                                                    submitLabel="حفظ التعديل"
+                                                />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Inline add form */}
+                            {addingPricingFor === venue.id && (
+                                <PricingForm
+                                    data={pricingForm}
+                                    onChange={updatePricingField}
+                                    onSubmit={(e) => submitAddPricing(e, venue.id)}
+                                    onCancel={cancelPricingForm}
+                                    processing={pricingProcessing}
+                                    submitLabel="إضافة"
+                                />
+                            )}
+
+                            {/* Add pricing button */}
+                            {addingPricingFor !== venue.id && (
+                                <button
+                                    onClick={() => startAddPricing(venue.id)}
+                                    style={{ marginTop: 10, width: '100%', background: '#C87D00', color: '#0A0A0A', border: 'none', borderRadius: 8, padding: '8px 0', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+                                >
+                                    + إضافة سعر
+                                </button>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {venues?.links && <Pagination links={venues.links} />}
+
+            {/* Venue Create/Edit Panel (name, category, status only) */}
+            {(showCreate || editingItem) && (
+                <div className="detail-overlay open" onClick={() => { setShowCreate(false); setEditingItem(null); }}>
+                    <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
+                        <h3>
+                            {editingItem ? 'تعديل مرفق' : 'إضافة مرفق'}
+                            <button className="close-btn" onClick={() => { setShowCreate(false); setEditingItem(null); }}>×</button>
+                        </h3>
+                        <form onSubmit={handlevenueSubmit}>
+                            <div className="frow">
+                                <div className="fg">
+                                    <label>اسم المرفق</label>
+                                    <input type="text" value={venueForm.data.name} onChange={(e) => venueForm.setData('name', e.target.value)} required />
+                                    {venueForm.errors.name && <div className="form-error">{venueForm.errors.name}</div>}
+                                </div>
+                                <div className="fg">
+                                    <label>الفئة</label>
+                                    <select
+                                        value={venueForm.data.parent_category_id}
+                                        onChange={(e) => {
+                                            const parentId = e.target.value;
+                                            const parent = categories.find((c) => String(c.id) === parentId);
+                                            const hasChildren = (parent?.children?.length ?? 0) > 0;
+                                            venueForm.setData({
+                                                ...venueForm.data,
+                                                parent_category_id: parentId,
+                                                category_id: hasChildren ? '' : parentId,
+                                            });
+                                        }}
+                                    >
+                                        <option value="">اختر الفئة</option>
+                                        {categories.map((cat) => (
+                                            <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
+                                        ))}
+                                    </select>
+                                    {venueForm.errors.category_id && <div className="form-error">{venueForm.errors.category_id}</div>}
+                                </div>
+                            </div>
+                            <div className="frow">
+                                <div className="fg">
+                                    <label>الفئة الفرعية</label>
+                                    <select
+                                        value={venueForm.data.category_id}
+                                        onChange={(e) => venueForm.setData('category_id', e.target.value)}
+                                        disabled={!venueForm.data.parent_category_id || modalSubcategories.length === 0}
+                                    >
+                                        <option value="">{venueForm.data.parent_category_id ? 'اختر الفئة الفرعية' : 'اختر الفئة أولاً'}</option>
+                                        {modalSubcategories.map((sub) => (
+                                            <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="fg">
+                                    <label>الحالة</label>
+                                    <select value={venueForm.data.status} onChange={(e) => venueForm.setData('status', e.target.value)}>
+                                        <option value="active">نشط</option>
+                                        <option value="closed">مغلق</option>
+                                            <option value="maintenance">صيانة</option>
+                                    </select>
+                                    {venueForm.errors.status && <div className="form-error">{venueForm.errors.status}</div>}
+                                </div>
+                            </div>
+                            <div className="panel-actions">
+                                <button type="submit" className="pa-approve" disabled={venueForm.processing}>حفظ</button>
+                                <button type="button" className="pa-reject" onClick={() => { setShowCreate(false); setEditingItem(null); }}>إلغاء</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            <ConfirmModal
+                open={deletePricingTarget !== null}
+                title="حذف السعر"
+                message={
+                    deletePricingTarget
+                        ? `يُحذف سعر ${Number(deletePricingTarget.pricing.price).toLocaleString()} ريال لمدة ${deletePricingTarget.pricing.duration_minutes} دقيقة من هذا المرفق، فلا يظهر ضمن خيارات التسعير في الفعاليات الجديدة. الفعاليات المؤكدة لا تتأثر — شروطها المالية مجمّدة في لقطتها. لا يمكن التراجع عن الحذف.`
+                        : ''
+                }
+                tone="danger"
+                confirmLabel="حذف السعر"
+                onConfirm={confirmDeletePricing}
+                onCancel={() => setDeletePricingTarget(null)}
+            />
+        </PartnerLayout>
+    );
+}

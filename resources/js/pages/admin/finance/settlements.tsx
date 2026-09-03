@@ -1,14 +1,22 @@
-import ConfirmModal from '@/components/confirm-modal';
-import FilterTabs from '@/components/filter-tabs';
-import Pagination from '@/components/pagination';
-import { SortBar, type SortState } from '@/components/sortable-header';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
-import AdminLayout from '@/layouts/admin-layout';
-import type { PaginatedResult } from '@/types/models';
 import { Head, Link, router } from '@inertiajs/react';
+import { Ban, CircleCheckBig, Play, Scale, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Button, Card, PageHeader, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import AdminLayout from '@/layouts/admin-layout';
+import type { Paginated, SortState } from '@/types';
 
-interface StatementRow {
+/**
+ * H §12.7 — كشوف التسوية مع مزوّدي الخدمة.
+ *
+ * Approving a statement fixes what Teamat owes a provider; paying it moves
+ * the money. Both dialogs state the gross, the commission and the net — the
+ * three numbers a provider will check against their own books. A provider
+ * whose bank details are not approved cannot be paid at all.
+ */
+type Statement = {
     id: number;
     period_key: string;
     period_start: string | null;
@@ -17,268 +25,256 @@ interface StatementRow {
     items_count: number;
     gross_amount: string;
     commission_amount: string;
+    vat_amount: string;
     net_amount: string;
     partner: { id: number; name: string } | null;
     payouts_blocked: boolean;
-    generated_by: { id: number; name: string } | null;
-    approved_by: { id: number; name: string } | null;
-    paid_by: { id: number; name: string } | null;
-}
-
-interface PendingRow {
-    partner_id: number;
-    partner_name: string | null;
-    items: number;
-    net_amount: string;
-}
-
-interface Props {
-    statements: PaginatedResult<StatementRow>;
-    filters: { status?: string; search?: string; sort?: string; dir?: string };
-    nextPeriod: { key: string; start: string; end: string };
-    pendingByPartner: PendingRow[];
-    sort: SortState;
-}
-
-const STATUS_META: Record<string, { label: string; color: string }> = {
-    draft: { label: 'مسودة', color: '#E0B040' },
-    approved: { label: 'معتمد', color: '#4A9DE0' },
-    paid: { label: 'مدفوع', color: '#009E82' },
+    approved_at: string | null;
+    paid_at: string | null;
+    payout_reference: string | null;
 };
 
-const STATUS_FILTERS = [
-    { label: 'الكل', value: '' },
-    { label: STATUS_META.draft.label, value: 'draft' },
-    { label: STATUS_META.approved.label, value: 'approved' },
-    { label: STATUS_META.paid.label, value: 'paid' },
-];
+const STATUS: Record<string, { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger' }> = {
+    draft: { label: 'مسودة', tone: 'neutral' },
+    approved: { label: 'معتمد', tone: 'warning' },
+    paid: { label: 'مدفوع', tone: 'success' },
+};
 
-// H §18 — «كل قائمة: بحث + فلترة + ترتيب + ترقيم صفحات».
-const SORT_OPTIONS = [
-    { key: 'period_end', label: 'الفترة', initialDirection: 'desc' as const },
-    { key: 'net_amount', label: 'الصافي', initialDirection: 'desc' as const },
-    { key: 'gross_amount', label: 'الإجمالي', initialDirection: 'desc' as const },
-    { key: 'commission_amount', label: 'العمولة', initialDirection: 'desc' as const },
-    { key: 'items_count', label: 'البنود', initialDirection: 'desc' as const },
-    { key: 'status', label: 'الحالة' },
-];
-
-export default function FinanceSettlements({ statements, filters, nextPeriod, pendingByPartner, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        status: filters?.status,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-    const [payFor, setPayFor] = useState<number | null>(null);
+export default function AdminSettlements({
+    statements,
+    filters,
+    sort,
+    nextPeriod,
+    pendingByPartner,
+}: {
+    statements: Paginated<Statement>;
+    filters: { status: string; search: string };
+    sort: SortState;
+    nextPeriod: { key: string; start: string; end: string };
+    pendingByPartner: { partner_id: number; partner_name: string | null; items: number; net_amount: string }[];
+}) {
+    const [approving, setApproving] = useState<Statement | null>(null);
+    const [paying, setPaying] = useState<Statement | null>(null);
+    const [generating, setGenerating] = useState(false);
     const [reference, setReference] = useState('');
-    // H §18: «كل إجراء مالي … يمر بنافذة تأكيد تعرض المبلغ والأثر صراحة».
-    const [approveTarget, setApproveTarget] = useState<StatementRow | null>(null);
-
-    function generate() {
-        router.post('/admin/finance/settlements/generate', {}, { preserveScroll: true });
-    }
-
-    function approve(id: number) {
-        router.post(`/admin/finance/settlements/${id}/approve`, {}, { preserveScroll: true });
-    }
-
-    function confirmApprove() {
-        if (!approveTarget) return;
-        const id = approveTarget.id;
-        setApproveTarget(null);
-        approve(id);
-    }
-
-    function submitPayout() {
-        if (!payFor || !reference.trim()) return;
-        router.post(
-            `/admin/finance/settlements/${payFor}/pay`,
-            { payout_reference: reference },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setPayFor(null);
-                    setReference('');
-                },
-            },
-        );
-    }
 
     return (
         <AdminLayout>
-            <Head title="كشوف التسوية" />
+            <Head title="التسويات" />
 
-            <div className="page-title">كشوف التسوية</div>
-            <div className="page-sub" style={{ marginBottom: 8 }}>
-                كشف كل 15 يوماً لكل مزوّد من بنود الفعاليات المكتملة في الفترة — مسودة ← معتمد ← مدفوع.
-            </div>
-            <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 20 }}>
-                لا يعتمد أحد كشفاً ولّده بنفسه · لا صرف قبل اعتماد الحساب البنكي للمزوّد · الصرف يُسجَّل بعد التحويل
-                الفعلي فتنتقل الفعاليات إلى «مسوّاة» · الكشف المدفوع لا يُعدَّل — التصحيح بحركة عكسية وبند تصحيحي في
-                الكشف التالي.
-            </div>
-
-            <div
-                style={{
-                    background: '#fff',
-                    border: '1px solid #E2E8F4',
-                    borderRadius: 16,
-                    padding: 18,
-                    marginBottom: 20,
-                }}
-            >
-                <div style={{ fontWeight: 800, marginBottom: 6 }}>
-                    الفترة المنتهية: {nextPeriod.key} ({nextPeriod.start} → {nextPeriod.end})
-                </div>
-                <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 10 }}>
-                    التوليد آلي يومي 1 و16 الساعة 03:00 — الزر هنا للتشغيل اليدوي وهو idempotent.
-                </div>
-                {pendingByPartner.length > 0 && (
-                    <ul style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 10 }}>
-                        {pendingByPartner.map((row) => (
-                            <li key={row.partner_id}>
-                                {row.partner_name ?? `#${row.partner_id}`}: {row.items} بند معلّق بصافي{' '}
-                                {row.net_amount} ريال
-                            </li>
-                        ))}
-                    </ul>
-                )}
-                <button type="button" onClick={generate} className="fbtn">
-                    توليد كشوف الفترة
-                </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث باسم المزوّد أو الفترة..."
-                    style={{
-                        padding: '9px 14px',
-                        borderRadius: 10,
-                        border: '1px solid #E2E8F4',
-                        fontSize: 13,
-                        outline: 'none',
-                        direction: 'rtl',
-                        fontFamily: 'inherit',
-                        minWidth: 260,
-                    }}
-                />
-                <FilterTabs options={STATUS_FILTERS} current={filters?.status ?? ''} />
-                <SortBar sort={sort} options={SORT_OPTIONS} />
-            </div>
-
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 22 }}>
-                {statements.data.length === 0 ? (
-                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا كشف مطابق للبحث والفلاتر الحالية.</div>
-                ) : (
-                    statements.data.map((row, index) => {
-                        const meta = STATUS_META[row.status];
-
-                        return (
-                            <div
-                                key={row.id}
-                                style={{
-                                    padding: '14px 0',
-                                    ...(index < statements.data.length - 1
-                                        ? { borderBottom: '1px solid #E2E8F4' }
-                                        : {}),
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        gap: 12,
-                                        flexWrap: 'wrap',
-                                    }}
-                                >
-                                    <div>
-                                        <div style={{ fontSize: 14, fontWeight: 800 }}>
-                                            {row.partner?.name ?? '—'}
-                                            <span style={{ marginInlineStart: 10, color: '#7A8BA8' }}>
-                                                {row.period_key}
-                                            </span>
-                                            <span style={{ marginInlineStart: 10, color: meta.color }}>
-                                                {meta.label}
-                                            </span>
-                                        </div>
-                                        <div style={{ fontSize: 12, color: '#7A8BA8', marginTop: 4 }}>
-                                            {row.items_count} بند · إجمالي {row.gross_amount} · عمولة{' '}
-                                            {row.commission_amount} · صافي{' '}
-                                            <strong style={{ color: '#009E82' }}>{row.net_amount}</strong> ريال
-                                        </div>
-                                        <div style={{ fontSize: 11, color: '#9AA8BE', marginTop: 4 }}>
-                                            ولّده: {row.generated_by?.name ?? 'النظام'} · اعتمده:{' '}
-                                            {row.approved_by?.name ?? '—'} · صرفه: {row.paid_by?.name ?? '—'}
-                                        </div>
-                                        {row.payouts_blocked && (
-                                            <div style={{ fontSize: 12, color: '#E03050', marginTop: 4 }}>
-                                                الحساب البنكي للمزوّد غير معتمد — الصرف محجوب.
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                                        <Link href={`/admin/finance/settlements/${row.id}`} className="fbtn">
-                                            البنود
-                                        </Link>
-                                        {row.status === 'draft' && (
-                                            <button type="button" className="fbtn" onClick={() => setApproveTarget(row)}>
-                                                اعتماد
-                                            </button>
-                                        )}
-                                        {row.status === 'approved' && !row.payouts_blocked && (
-                                            <button type="button" className="fbtn" onClick={() => setPayFor(row.id)}>
-                                                تسجيل الصرف
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {payFor === row.id && (
-                                    <div style={{ marginTop: 12 }}>
-                                        <input
-                                            value={reference}
-                                            onChange={(e) => setReference(e.target.value)}
-                                            placeholder="مرجع التحويل البنكي (إلزامي — بعد التحويل الفعلي)"
-                                            style={{
-                                                padding: '9px 14px',
-                                                borderRadius: 10,
-                                                border: '1px solid #E2E8F4',
-                                                fontSize: 13,
-                                                minWidth: 320,
-                                            }}
-                                        />
-                                        <button
-                                            type="button"
-                                            className="fbtn"
-                                            style={{ marginInlineStart: 8 }}
-                                            onClick={submitPayout}
-                                        >
-                                            تأكيد
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })
-                )}
-                <Pagination links={statements.links} />
-            </div>
-        <ConfirmModal
-                open={approveTarget !== null}
-                title="اعتماد كشف التسوية"
-                message={
-                    approveTarget
-                        ? `اعتماد كشف «${approveTarget.partner?.name ?? '—'}» للفترة ${approveTarget.period_key}: إجمالي ${approveTarget.gross_amount} ريال، عمولة تيمات ${approveTarget.commission_amount} ريال، والصافي المستحق للمزوّد ${approveTarget.net_amount} ريال عن ${approveTarget.items_count} بنداً. الاعتماد يقفل الكشف تمهيداً للصرف${approveTarget.payouts_blocked ? ' — تنبيه: الحساب البنكي لهذا المزوّد غير معتمد فالصرف محجوب' : ''}. لا يعتمد أحد كشفاً ولّده بنفسه.`
-                        : ''
+            <PageHeader
+                icon={Scale}
+                title="كشوف التسوية مع مزوّدي الخدمة"
+                subtitle="الكشف يُولَّد عن فترة مغلقة، ويُعتمد، ثم يُدفع. لا يُدفع كشف لمزوّد لم يُعتمد حسابه البنكي."
+                actions={
+                    <Button icon={Play} onClick={() => setGenerating(true)}>
+                        توليد كشوف {nextPeriod.key}
+                    </Button>
                 }
-                confirmLabel="اعتماد الكشف"
-                onConfirm={confirmApprove}
-                onCancel={() => setApproveTarget(null)}
             />
 
+            {pendingByPartner.length > 0 && (
+                <Card padding="p-4" className="space-y-3">
+                    <div className="flex items-center gap-2">
+                        <Wallet className="w-4 h-4 text-ink" aria-hidden="true" />
+                        <h2 className="text-sm font-extrabold text-ink">بنود بانتظار التسوية</h2>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {pendingByPartner.map((row) => (
+                            <div key={row.partner_id} className="p-3 rounded-xl bg-page border-[0.5px] border-ink/10">
+                                <div className="text-xs font-extrabold text-ink truncate">{row.partner_name ?? '—'}</div>
+                                <div className="flex items-center justify-between text-[11px] mt-1">
+                                    <span className="text-ink/55">{row.items} بند</span>
+                                    <span className="font-mono font-bold text-ink">{row.net_amount} ر.س</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+            )}
+
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search} placeholder="ابحث بالفترة أو اسم المزوّد…" />
+                    <FilterSelect
+                        name="status"
+                        label="حالة الكشف"
+                        value={filters.status}
+                        options={[
+                            ['', 'كل الحالات'],
+                            ['draft', 'مسودة'],
+                            ['approved', 'معتمد'],
+                            ['paid', 'مدفوع'],
+                        ]}
+                    />
+                </Toolbar>
+
+                <TableShell>
+                    <Thead>
+                        <Th>المزوّد</Th>
+                        <Th>
+                            <SortableHeader label="الفترة" sortKey="period_key" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>الإجمالي</Th>
+                        <Th>العمولة</Th>
+                        <Th>
+                            <SortableHeader label="الصافي" sortKey="net_amount" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
+                        </Th>
+                        <Th className="text-center">الإجراءات</Th>
+                    </Thead>
+
+                    <Tbody>
+                        {statements.data.map((statement) => (
+                            <Tr key={statement.id}>
+                                <Td>
+                                    <Link
+                                        href={`/admin/finance/settlements/${statement.id}`}
+                                        className="font-extrabold text-ink hover:underline"
+                                    >
+                                        {statement.partner?.name ?? '—'}
+                                    </Link>
+                                    {statement.payouts_blocked && (
+                                        <Badge tone="danger" icon={Ban}>
+                                            الحساب البنكي غير معتمد
+                                        </Badge>
+                                    )}
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/80">
+                                    {statement.period_key}
+                                    <span className="block text-ink/45">{statement.items_count} بند</span>
+                                </Td>
+                                <Td className="font-mono text-ink/85">{statement.gross_amount}</Td>
+                                <Td className="font-mono text-ink/85">{statement.commission_amount}</Td>
+                                <Td className="font-mono font-black text-ink">{statement.net_amount}</Td>
+                                <Td>
+                                    <Badge tone={STATUS[statement.status]?.tone ?? 'neutral'}>
+                                        {STATUS[statement.status]?.label ?? statement.status}
+                                    </Badge>
+                                </Td>
+                                <Td className="text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                        {statement.status === 'draft' && (
+                                            <Button tone="soft" onClick={() => setApproving(statement)}>
+                                                اعتماد
+                                            </Button>
+                                        )}
+                                        {statement.status === 'approved' && (
+                                            <Button
+                                                tone="soft"
+                                                icon={CircleCheckBig}
+                                                disabled={statement.payouts_blocked}
+                                                onClick={() => {
+                                                    setReference('');
+                                                    setPaying(statement);
+                                                }}
+                                            >
+                                                تسجيل الدفع
+                                            </Button>
+                                        )}
+                                    </div>
+                                </Td>
+                            </Tr>
+                        ))}
+
+                        <ListStates
+                            count={statements.data.length}
+                            colSpan={7}
+                            empty="لا توجد كشوف تسوية."
+                            emptyHint="تُولَّد الكشوف عن فترة مكتملة من بنود الفعاليات المنتهية."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={statements} />
+                    <Pagination page={statements} />
+                </div>
+            </Card>
+
+            <ConfirmModal
+                open={generating}
+                title="توليد كشوف التسوية"
+                message={`ستُجمَّع بنود الفترة المغلقة لكل مزوّد في كشف واحد قابل للاعتماد. لا يُنشأ كشف لمزوّد بلا بنود.`}
+                details={
+                    <>
+                        <ConfirmRow label="الفترة" value={nextPeriod.key} strong />
+                        <ConfirmRow label="من" value={nextPeriod.start} />
+                        <ConfirmRow label="إلى" value={nextPeriod.end} />
+                    </>
+                }
+                confirmLabel="توليد الكشوف"
+                onConfirm={() => {
+                    router.post('/admin/finance/settlements/generate', {}, { preserveScroll: true });
+                    setGenerating(false);
+                }}
+                onCancel={() => setGenerating(false)}
+            />
+
+            {/* H §18 — the three numbers a provider will reconcile against. */}
+            <ConfirmModal
+                open={approving !== null}
+                title="اعتماد كشف التسوية"
+                message="الاعتماد يثبّت مستحقات المزوّد عن الفترة ويجعل الكشف جاهزاً للدفع. لا تتغيّر البنود بعده."
+                details={
+                    approving && (
+                        <>
+                            <ConfirmRow label="المزوّد" value={approving.partner?.name ?? '—'} />
+                            <ConfirmRow label="الفترة" value={approving.period_key} />
+                            <ConfirmRow label="الإجمالي (gross_amount)" value={`${approving.gross_amount} ريال`} />
+                            <ConfirmRow label="العمولة (commission_amount)" value={`${approving.commission_amount} ريال`} />
+                            <ConfirmRow label="الصافي المستحق (net_amount)" value={`${approving.net_amount} ريال`} strong />
+                        </>
+                    )
+                }
+                confirmLabel="اعتماد الكشف"
+                onConfirm={() => {
+                    router.post(`/admin/finance/settlements/${approving?.id}/approve`, {}, { preserveScroll: true });
+                    setApproving(null);
+                }}
+                onCancel={() => setApproving(null)}
+            />
+
+            <ConfirmModal
+                open={paying !== null}
+                title="تسجيل دفع الكشف"
+                message="سجّل التحويل بعد تنفيذه فعلياً من البنك. يُوثَّق المرجع في سجل التدقيق ويظهر للمزوّد."
+                details={
+                    paying && (
+                        <>
+                            <ConfirmRow label="المزوّد" value={paying.partner?.name ?? '—'} />
+                            <ConfirmRow label="الإجمالي (gross_amount)" value={`${paying.gross_amount} ريال`} />
+                            <ConfirmRow label="العمولة (commission_amount)" value={`${paying.commission_amount} ريال`} />
+                            <ConfirmRow label="المبلغ المحوَّل (net_amount)" value={`${paying.net_amount} ريال`} strong />
+                            <div className="pt-2">
+                                <label htmlFor="payout-reference" className="block text-[11px] font-bold text-ink mb-1">
+                                    مرجع التحويل البنكي (إلزامي)
+                                </label>
+                                <input
+                                    id="payout-reference"
+                                    dir="ltr"
+                                    value={reference}
+                                    onChange={(event) => setReference(event.target.value)}
+                                    className="w-full px-3 py-2 rounded-xl border-[0.5px] border-ink/20 text-xs font-mono bg-surface focus:outline-none focus:border-ink"
+                                />
+                            </div>
+                        </>
+                    )
+                }
+                confirmLabel="تسجيل الدفع"
+                busy={reference.trim() === ''}
+                onConfirm={() => {
+                    router.post(
+                        `/admin/finance/settlements/${paying?.id}/pay`,
+                        { payout_reference: reference },
+                        { preserveScroll: true },
+                    );
+                    setPaying(null);
+                }}
+                onCancel={() => setPaying(null)}
+            />
         </AdminLayout>
     );
 }

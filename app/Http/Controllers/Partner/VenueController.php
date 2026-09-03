@@ -41,7 +41,7 @@ class VenueController extends Controller
         return Inertia::render('partner/venues/index', [
             'partner' => $partner,
             'venues' => $this->venueService->listForpartner($partner, $filters),
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => VenueService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'categories' => Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
         ]);

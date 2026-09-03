@@ -1,0 +1,341 @@
+import PageHeader from '@/components/page-header';
+import PartnerLayout from '@/layouts/partner-layout';
+import CategoryIcon from '@/components/category-icon';
+import StatusBadge from '@/components/status-badge';
+import type { Venue } from '@/types/models';
+import { Head, Link } from '@inertiajs/react';
+import { Fragment, useState } from 'react';
+
+interface ScheduleEvent {
+    id: number;
+    start_time: string;
+    duration_minutes: number;
+    company_name?: string;
+    category_name?: string;
+    category_icon?: string;
+    status: string;
+    capacity: number;
+    participants_count: number;
+    venue_ids: number[];
+}
+
+interface DayData {
+    date: string;
+    day_name: string;
+    events: ScheduleEvent[];
+}
+
+interface Schedule {
+    venues: Venue[];
+    days: DayData[];
+    week_start: string;
+    week_end: string;
+}
+
+interface Props {
+    schedule: Schedule;
+    date: string;
+}
+
+const HOURS = Array.from({ length: 16 }, (_, i) => i + 8); // 08:00 - 23:00
+
+function formatHour(h: number): string {
+    if (h === 0) return '12 ص';
+    if (h < 12) return `${h} ص`;
+    if (h === 12) return '12 م';
+    return `${h - 12} م`;
+}
+
+function parseTime(time: string): number {
+    const [h, m] = time.split(':').map(Number);
+    return h + m / 60;
+}
+
+function localDate(dateStr: string): Date {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+}
+
+function toDateStr(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function weekOffset(currentWeekStart: string, offset: number): string {
+    const d = localDate(currentWeekStart);
+    d.setDate(d.getDate() + offset * 7);
+    return toDateStr(d);
+}
+
+function todayStr(): string {
+    return toDateStr(new Date());
+}
+
+function isToday(dateStr: string): boolean {
+    return dateStr === todayStr();
+}
+
+function formatDateShort(dateStr: string): string {
+    const d = localDate(dateStr);
+    return `${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+const statusColors: Record<string, string> = {
+    open: '#0A0A0A',
+    pending_provider: '#C87D00',
+    confirmed: '#2E7D32',
+    full: 'rgba(10,10,10,.55)',
+    provider_alternative: '#C87D00',
+    completed: '#2E7D32',
+    cancelled: 'rgba(10,10,10,.55)',
+    rejected: '#D9381E',
+};
+
+export default function PartnerSchedule({ schedule, date }: Props) {
+    const venues = schedule.venues ?? [];
+    const days = schedule.days ?? [];
+    const weekStart = schedule.week_start;
+    const [selectedVenue, setSelectedvenue] = useState<number | null>(null);
+    const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
+
+    const filteredvenues = selectedVenue
+        ? venues.filter((c) => c.id === selectedVenue)
+        : venues;
+
+    return (
+        <PartnerLayout>
+            <Head title="التقويم" />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                    <PageHeader
+                        title={<>تقويم الفعاليات</>}
+                        subtitle={<>
+                        {schedule.week_start} — {schedule.week_end}
+                        </>}
+                    />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <Link
+                        href={`/partner/schedule?date=${weekOffset(weekStart, -1)}`}
+                        style={{ padding: '8px 16px', borderRadius: 10, background: '#fff', border: '0.5px solid rgba(10,10,10,.1)', color: '#0A0A0A', fontSize: 13, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
+                    >
+                        ← الأسبوع السابق
+                    </Link>
+                    <Link
+                        href={`/partner/schedule?date=${todayStr()}`}
+                        style={{ padding: '8px 16px', borderRadius: 10, background: '#C87D00', color: '#0A0A0A', fontSize: 13, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
+                    >
+                        اليوم
+                    </Link>
+                    <Link
+                        href={`/partner/schedule?date=${weekOffset(weekStart, 1)}`}
+                        style={{ padding: '8px 16px', borderRadius: 10, background: '#fff', border: '0.5px solid rgba(10,10,10,.1)', color: '#0A0A0A', fontSize: 13, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
+                    >
+                        الأسبوع التالي →
+                    </Link>
+                </div>
+            </div>
+
+            {/* Venue Filter */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', flexWrap: 'wrap' }}>
+                <button
+                    onClick={() => setSelectedvenue(null)}
+                    className="fbtn"
+                    style={!selectedVenue ? { background: '#C87D00', color: '#fff', borderColor: '#C87D00' } : {}}
+                >
+                    كل المرافق
+                </button>
+                {venues.map((venue) => (
+                    <button
+                        key={venue.id}
+                        onClick={() => setSelectedvenue(venue.id)}
+                        className="fbtn"
+                        style={selectedVenue === venue.id ? { background: '#C87D00', color: '#fff', borderColor: '#C87D00' } : {}}
+                    >
+                        {venue.name}
+                    </button>
+                ))}
+            </div>
+
+            {/* Legend */}
+            <div style={{ display: 'flex', gap: 14, marginBottom: 16, flexWrap: 'wrap' }}>
+                {[
+                    { label: 'مفتوح', color: '#0A0A0A' },
+                    { label: 'بانتظار الشريك', color: '#C87D00' },
+                    { label: 'مؤكد', color: '#2E7D32' },
+                    { label: 'مكتمل العدد', color: 'rgba(10,10,10,.55)' },
+                    { label: 'بديل مقترح', color: '#C87D00' },
+                    { label: 'منتهي', color: '#2E7D32' },
+                    { label: 'ملغي', color: 'rgba(10,10,10,.55)' },
+                    { label: 'مرفوض', color: '#D9381E' },
+                ].map((item) => (
+                    <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: 12, height: 12, borderRadius: 4, background: item.color }} />
+                        <span style={{ fontSize: 12, color: 'rgba(10,10,10,.55)' }}>{item.label}</span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Week Grid */}
+            <div style={{ background: '#fff', border: '0.5px solid rgba(10,10,10,.1)', borderRadius: 16, overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '60px repeat(7, 1fr)', minWidth: 800 }}>
+                        {/* Header Row */}
+                        <div style={{ background: '#F6F8F5', padding: '10px 8px', borderBottom: '0.5px solid rgba(10,10,10,.1)', fontSize: 11, color: 'rgba(10,10,10,.55)', fontWeight: 600, textAlign: 'center' }}>
+                            الوقت
+                        </div>
+                        {days.map((day) => (
+                            <div
+                                key={day.date}
+                                style={{
+                                    background: isToday(day.date) ? '#C87D0010' : '#F6F8F5',
+                                    padding: '8px 4px',
+                                    borderBottom: '0.5px solid rgba(10,10,10,.1)',
+                                    borderRight: '0.5px solid rgba(10,10,10,.1)',
+                                    textAlign: 'center',
+                                }}
+                            >
+                                <div style={{ fontSize: 12, fontWeight: 700, color: isToday(day.date) ? '#C87D00' : '#0A0A0A' }}>
+                                    {day.day_name}
+                                </div>
+                                <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)' }}>
+                                    {formatDateShort(day.date)}
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* Time Rows */}
+                        {HOURS.map((hour) => (
+                            <Fragment key={`row-${hour}`}>
+                                <div
+                                    style={{
+                                        padding: '0 6px',
+                                        fontSize: 10,
+                                        color: 'rgba(10,10,10,.55)',
+                                        fontWeight: 600,
+                                        borderBottom: '0.5px solid rgba(10,10,10,.1)',
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        justifyContent: 'center',
+                                        paddingTop: 4,
+                                        height: 60,
+                                    }}
+                                >
+                                    {formatHour(hour)}
+                                </div>
+                                {days.map((day) => {
+                                    const dayEvents = day.events.filter((ev) => {
+                                        const startH = parseTime(ev.start_time);
+                                        return Math.floor(startH) === hour;
+                                    }).filter((ev) => {
+                                        if (!selectedVenue) return true;
+                                        return ev.venue_ids.includes(selectedVenue);
+                                    });
+
+                                    return (
+                                        <div
+                                            key={`${day.date}-${hour}`}
+                                            style={{
+                                                borderBottom: '0.5px solid rgba(10,10,10,.1)',
+                                                borderRight: '0.5px solid rgba(10,10,10,.1)',
+                                                position: 'relative',
+                                                height: 60,
+                                                background: isToday(day.date) ? '#C87D0005' : 'transparent',
+                                                padding: 2,
+                                            }}
+                                        >
+                                            {dayEvents.map((ev) => {
+                                                const color = statusColors[ev.status] ?? 'rgba(10,10,10,.55)';
+                                                const venueNames = filteredvenues
+                                                    .filter((c) => ev.venue_ids.includes(c.id))
+                                                    .map((c) => c.name)
+                                                    .join(', ');
+
+                                                return (
+                                                    <div
+                                                        key={ev.id}
+                                                        onClick={() => setSelectedEvent(ev)}
+                                                        style={{
+                                                            background: `${color}18`,
+                                                            borderRight: `3px solid ${color}`,
+                                                            borderRadius: 6,
+                                                            padding: '3px 6px',
+                                                            marginBottom: 2,
+                                                            cursor: 'pointer',
+                                                            overflow: 'hidden',
+                                                        }}
+                                                    >
+                                                        <div style={{ fontSize: 10, fontWeight: 700, color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                            <CategoryIcon icon={ev.category_icon} size={14} /> {ev.company_name ?? ev.category_name}
+                                                        </div>
+                                                        <div style={{ fontSize: 9, color: 'rgba(10,10,10,.55)', whiteSpace: 'nowrap' }}>
+                                                            {ev.start_time?.slice(0, 5)} · {ev.duration_minutes}د {venueNames ? `· ${venueNames}` : ''}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })}
+                            </Fragment>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Event Detail Modal */}
+            {selectedEvent && (
+                <div className="detail-overlay open" onClick={() => setSelectedEvent(null)}>
+                    <div className="detail-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400 }}>
+                        <h3>
+                            تفاصيل الفعالية
+                            <button className="close-btn" onClick={() => setSelectedEvent(null)}>×</button>
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 18 }}>
+                                    <CategoryIcon icon={selectedEvent.category_icon} size={14} /> {selectedEvent.category_name}
+                                </span>
+                                <StatusBadge status={selectedEvent.status} />
+                            </div>
+
+                            {selectedEvent.company_name && (
+                                <div>
+                                    <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', marginBottom: 2 }}>الشركة</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedEvent.company_name}</div>
+                                </div>
+                            )}
+
+                            <div className="frow">
+                                <div className="fg">
+                                    <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', marginBottom: 2 }}>الوقت</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedEvent.start_time?.slice(0, 5)}</div>
+                                </div>
+                                <div className="fg">
+                                    <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', marginBottom: 2 }}>المدة</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedEvent.duration_minutes} دقيقة</div>
+                                </div>
+                            </div>
+
+                            <div className="frow">
+                                <div className="fg">
+                                    <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', marginBottom: 2 }}>اللاعبون</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedEvent.participants_count}/{selectedEvent.capacity}</div>
+                                </div>
+                                <div className="fg">
+                                    <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', marginBottom: 2 }}>المرافق</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600 }}>
+                                        {venues.filter((c) => selectedEvent.venue_ids.includes(c.id)).map((c) => c.name).join(', ') || '-'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </PartnerLayout>
+    );
+}

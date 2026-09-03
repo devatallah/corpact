@@ -1,121 +1,285 @@
+import { Head, router, useForm } from '@inertiajs/react';
+import { Bell, BellRing, Check, CheckCheck, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import {
+    Pagination,
+    ResultCount,
+    SortableHeader,
+    Toolbar,
+} from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { FormActions, FormSection } from '@/components/portal/form';
+import {
+    Badge,
+    Button,
+    Card,
+    Field,
+    IconButton,
+    INPUT,
+    PageHeader,
+    StatCard,
+    TableShell,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    Tr,
+} from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
-import Pagination from '@/components/pagination';
-import { SortBar, type SortState } from '@/components/sortable-header';
-import { fmtDateTime } from '@/lib/utils';
-import type { Notification as NotificationModel, PaginatedResult } from '@/types/models';
-import { Head, router } from '@inertiajs/react';
-import toastr from 'toastr';
+import type { Paginated, SortState } from '@/types';
 
-function notificationEmoji(type: string | null) {
-    switch (type) {
-        case 'warning': return '\u26A0\uFE0F';
-        case 'success': return '\u2705';
-        case 'error': return '\uD83D\uDD34';
-        default: return '\uD83D\uDCE2';
-    }
-}
+/**
+ * H §14 — إشعارات الشركة.
+ *
+ * A note written here lands in this company's own inbox — it is a reminder to
+ * the account-management side, not a broadcast to employees. The form says so
+ * plainly, since "send notification" reads like it will reach the workforce.
+ */
+type NotificationRow = {
+    id: string;
+    type: string | null;
+    template_key: string | null;
+    title: string;
+    body: string | null;
+    read_at: string | null;
+    created_at: string | null;
+};
 
-interface Props {
-    notifications: PaginatedResult<NotificationModel>;
-    unreadCount: number;
+export default function CompanyNotifications({
+    notifications,
+    sort,
+    unreadCount,
+}: {
+    company: { id: number; name: string };
+    notifications: Paginated<NotificationRow>;
+    filters: Record<string, unknown>;
     sort: SortState;
-}
-
-export default function NotificationsIndex({ notifications, unreadCount, sort }: Props) {
-    function markAllRead() {
-        router.post('/company/notifications/mark-all-read', {}, {
-            onSuccess: () => toastr.success('تم تحديد جميع الإشعارات كمقروءة'),
-        });
-    }
+    unreadCount: number;
+    unreadNotifications: number;
+}) {
+    const form = useForm({ title: '', body: '', type: 'note' });
+    const [deleting, setDeleting] = useState<NotificationRow | null>(null);
 
     return (
         <CompanyLayout>
             <Head title="الإشعارات" />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                <div>
-                    <div className="page-title">الإشعارات</div>
-                    <div className="page-sub">{unreadCount} غير مقروءة</div>
-                </div>
-                {unreadCount > 0 && (
-                    <button
-                        onClick={markAllRead}
-                        style={{ background: '#EEF2FF', color: '#3B5BDB', border: 'none', borderRadius: 10, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-                    >
-                        تحديد الكل
-                    </button>
-                )}
-            </div>
+            <PageHeader
+                icon={Bell}
+                title="الإشعارات"
+                subtitle="ما يصل شركتك من النظام، وما تسجّله أنت كملاحظة لفريقك."
+                actions={
+                    unreadCount > 0 && (
+                        <Button
+                            type="button"
+                            tone="soft"
+                            icon={CheckCheck}
+                            onClick={() =>
+                                router.post(
+                                    '/company/notifications/mark-all-read',
+                                    {},
+                                    { preserveScroll: true },
+                                )
+                            }
+                        >
+                            تعليم الكل كمقروء
+                        </Button>
+                    )
+                }
+            />
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-                <SortBar
-                    sort={sort}
-                    options={[
-                        { key: 'created_at', label: 'التاريخ', initialDirection: 'desc' },
-                        { key: 'read_at', label: 'غير المقروءة أولاً', initialDirection: 'asc' },
-                        { key: 'title', label: 'العنوان' },
-                    ]}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <StatCard
+                    label="غير مقروءة"
+                    value={unreadCount}
+                    tone={unreadCount > 0 ? 'warning' : 'success'}
                 />
+                <StatCard label="الإجمالي" value={notifications.total} />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {notifications.data.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: 32, color: '#7A8BA8', fontSize: 13 }}>
-                        لا توجد إشعارات
-                    </div>
-                ) : (
-                    notifications.data.map((notification) => {
-                        const isUnread = notification.read_at === null;
+            {/* ── ملاحظة داخلية ── */}
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.post('/company/notifications', {
+                        preserveScroll: true,
+                        onSuccess: () => form.reset(),
+                    });
+                }}
+            >
+                <FormSection
+                    title="تسجيل ملاحظة"
+                    hint="تُحفظ في صندوق شركتك أنت — لا تصل الموظفين ولا المرافق."
+                >
+                    <Field label="العنوان" error={form.errors.title} required>
+                        <input
+                            className={INPUT}
+                            value={form.data.title}
+                            onChange={(event) =>
+                                form.setData('title', event.target.value)
+                            }
+                        />
+                    </Field>
 
-                        return (
-                            <div
-                                key={notification.id}
-                                onClick={() => isUnread && router.post(`/company/notifications/${notification.id}/read`, {}, {
-                                    onSuccess: () => toastr.success('تم تحديد الإشعار كمقروء'),
-                                })}
-                                style={{
-                                    background: '#fff',
-                                    border: isUnread ? '1px solid #E0305044' : '1px solid #E2E8F4',
-                                    ...(isUnread ? { borderRight: '4px solid #E03050' } : {}),
-                                    borderRadius: 14,
-                                    padding: '14px 18px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 14,
-                                    cursor: isUnread ? 'pointer' : 'default',
-                                }}
-                            >
-                                <div style={{
-                                    width: 40, height: 40, borderRadius: 12,
-                                    background: isUnread ? '#E0305018' : '#F0F2F8',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 20, flexShrink: 0,
-                                }}>
-                                    {notificationEmoji(notification.type)}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 13, ...(isUnread ? { fontWeight: 700 } : { color: '#0F1923' }), lineHeight: 1.5 }}>
+                    <Field label="النص" error={form.errors.body} required>
+                        <textarea
+                            rows={2}
+                            className={INPUT}
+                            value={form.data.body}
+                            onChange={(event) =>
+                                form.setData('body', event.target.value)
+                            }
+                        />
+                    </Field>
+
+                    <FormActions>
+                        <Button
+                            type="submit"
+                            disabled={
+                                form.processing ||
+                                !form.data.title.trim() ||
+                                !form.data.body.trim()
+                            }
+                        >
+                            حفظ الملاحظة
+                        </Button>
+                    </FormActions>
+                </FormSection>
+            </form>
+
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <span className="text-[11px] text-ink/50">
+                        أحدث الإشعارات أولاً.
+                    </span>
+                </Toolbar>
+
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader
+                                label="الإشعار"
+                                sortKey="title"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th>
+                            <SortableHeader
+                                label="الوقت"
+                                sortKey="created_at"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th>
+                            <SortableHeader
+                                label="الحالة"
+                                sortKey="read_at"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th className="text-center">الإجراءات</Th>
+                    </Thead>
+
+                    <Tbody>
+                        {notifications.data.map((notification) => (
+                            <Tr key={notification.id}>
+                                <Td>
+                                    <span
+                                        className={`block ${notification.read_at ? 'font-bold text-ink/80' : 'font-extrabold text-ink'}`}
+                                    >
                                         {notification.title}
-                                    </div>
+                                    </span>
                                     {notification.body && (
-                                        <div style={{ fontSize: 12, color: isUnread ? '#4A5C78' : '#7A8BA8', lineHeight: 1.4, marginTop: 2 }}>
+                                        <span className="block max-w-xl text-[11px] leading-relaxed text-ink/55">
                                             {notification.body}
-                                        </div>
+                                        </span>
                                     )}
-                                    <div style={{ fontSize: 11, color: '#7A8BA8', marginTop: 4 }}>
-                                        {fmtDateTime(notification.created_at)}
+                                </Td>
+                                <Td className="font-mono text-[11px] whitespace-nowrap text-ink/70">
+                                    {notification.created_at
+                                        ? new Date(
+                                              notification.created_at,
+                                          ).toLocaleString('ar-SA')
+                                        : '—'}
+                                </Td>
+                                <Td>
+                                    {notification.read_at ? (
+                                        <Badge tone="neutral">مقروء</Badge>
+                                    ) : (
+                                        <Badge tone="warning" icon={BellRing}>
+                                            جديد
+                                        </Badge>
+                                    )}
+                                </Td>
+                                <Td className="text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                        {!notification.read_at && (
+                                            <IconButton
+                                                icon={Check}
+                                                label="تعليم كمقروء"
+                                                onClick={() =>
+                                                    router.post(
+                                                        `/company/notifications/${notification.id}/read`,
+                                                        {},
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    )
+                                                }
+                                            />
+                                        )}
+                                        <IconButton
+                                            icon={Trash2}
+                                            label="حذف الإشعار"
+                                            tone="danger"
+                                            onClick={() =>
+                                                setDeleting(notification)
+                                            }
+                                        />
                                     </div>
-                                </div>
-                                {isUnread && (
-                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#E03050', flexShrink: 0 }} />
-                                )}
-                            </div>
-                        );
-                    })
-                )}
-            </div>
+                                </Td>
+                            </Tr>
+                        ))}
 
-            <Pagination links={notifications.links} />
+                        <ListStates
+                            count={notifications.data.length}
+                            colSpan={4}
+                            empty="لا إشعارات."
+                            emptyHint="ستصلك هنا تنبيهات النظام: طلبات المجتمعات، اعتماد طلبات الشحن، وفواتير الدورة."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <ResultCount page={notifications} />
+                    <Pagination page={notifications} />
+                </div>
+            </Card>
+
+            <ConfirmModal
+                open={deleting !== null}
+                tone="danger"
+                title="حذف الإشعار"
+                message="يُحذف الإشعار من صندوقك نهائياً. إن كان تنبيهاً من النظام فلن يُعاد إرساله."
+                details={
+                    deleting && (
+                        <ConfirmRow
+                            label="الإشعار"
+                            value={deleting.title}
+                            strong
+                        />
+                    )
+                }
+                confirmLabel="نعم، احذفه"
+                onConfirm={() => {
+                    router.delete(`/company/notifications/${deleting?.id}`, {
+                        preserveScroll: true,
+                    });
+                    setDeleting(null);
+                }}
+                onCancel={() => setDeleting(null)}
+            />
         </CompanyLayout>
     );
 }

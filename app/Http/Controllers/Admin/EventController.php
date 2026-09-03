@@ -44,7 +44,7 @@ class EventController extends Controller
         return Inertia::render('admin/events/index', [
             'events' => $events,
             'totalEvents' => $totalEvents,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => AdminEventService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }

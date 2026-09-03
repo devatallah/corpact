@@ -1,23 +1,35 @@
+import { Head, router } from '@inertiajs/react';
+import { CircleCheckBig, Receipt } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { BackLink, ListStates } from '@/components/list-states';
+import { Badge, Button, Card, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import { Head, Link } from '@inertiajs/react';
 
-interface ItemRow {
+/**
+ * H §12.8 / §12.9 — فاتورة رسوم النظام، مفصّلة.
+ *
+ * Each line carries its own tax treatment and issuer, because a single
+ * invoice can mix flows where Teamat is principal with flows where it is
+ * not. Collapsing that into one VAT figure is what makes a return wrong.
+ */
+type Item = {
     id: number;
     type: string;
-    description: string;
+    description: string | null;
     quantity: number;
     unit_amount: string;
     amount: string;
     vat_amount: string;
     total_amount: string;
-    tax_treatment: string;
-    invoice_issuer: string;
-}
+    tax_treatment: string | null;
+    invoice_issuer: string | null;
+};
 
-interface Invoice {
+type Invoice = {
     id: number;
-    serial: string;
-    invoice_uuid: string;
+    serial: string | null;
+    invoice_uuid: string | null;
     company: { id: number; name: string } | null;
     period_key: string;
     period_start: string | null;
@@ -34,145 +46,165 @@ interface Invoice {
     vat_amount: string;
     total_amount: string;
     vat_rate_percent: number;
-    tax_treatment: string;
-    invoice_issuer: string;
     seller_vat_number: string | null;
     buyer_vat_number: string | null;
-    qr_payload: string | null;
     issued_at: string | null;
     due_at: string | null;
     paid_at: string | null;
-    items: ItemRow[];
-}
+    days_overdue: number;
+    blocked_at: string | null;
+    items: Item[];
+};
 
-interface Props {
-    invoice: Invoice;
-}
+const STATUS: Record<string, { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger' }> = {
+    draft: { label: 'مسودة', tone: 'neutral' },
+    issued: { label: 'صادرة', tone: 'warning' },
+    paid: { label: 'مسددة', tone: 'success' },
+    overdue: { label: 'متأخرة', tone: 'danger' },
+    blocked: { label: 'محجوبة', tone: 'danger' },
+};
 
-export default function FinanceInvoiceShow({ invoice }: Props) {
+export default function AdminInvoiceShow({ invoice }: { invoice: Invoice }) {
+    const [paying, setPaying] = useState(false);
+
     return (
         <AdminLayout>
-            <Head title={invoice.serial} />
+            <Head title={`فاتورة ${invoice.serial ?? invoice.id}`} />
 
-            <div style={{ marginBottom: 16 }}>
-                <Link href="/admin/finance/invoices" style={{ color: '#4A9DE0', fontWeight: 700 }}>
-                    ← كل الفواتير
-                </Link>
-            </div>
+            <BackLink href="/admin/finance/invoices" label="العودة إلى الفواتير" />
 
-            <div className="page-title">
-                {invoice.serial} · {invoice.company?.name ?? '—'}
-            </div>
-            <div className="page-sub" style={{ marginBottom: 20 }}>
-                دورة {invoice.period_key} ({invoice.period_start} → {invoice.period_end}) · الإصدار{' '}
-                {invoice.issued_at?.slice(0, 10) ?? '—'} · الاستحقاق {invoice.due_at?.slice(0, 10) ?? '—'}
-                {invoice.issuance_mode === 'provisional' && ' · فاتورة مبدئية (بانتظار اعتماد المحاسب القانوني)'}
-            </div>
-
-            <div
-                style={{
-                    background: '#fff',
-                    border: '1px solid #E2E8F4',
-                    borderRadius: 16,
-                    padding: 22,
-                    marginBottom: 16,
-                }}
-            >
-                <table className="portal-table">
-                    <tbody>
-                        <tr>
-                            <td>الموظفون المفعّلون</td>
-                            <td style={{ fontWeight: 700 }}>
-                                {invoice.activated_employees_count} (منهم {invoice.departed_activated_count} غادروا
-                                خلال الدورة)
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>رسم الموظف المفعّل</td>
-                            <td>{invoice.fee_per_activated_employee} ريال</td>
-                        </tr>
-                        <tr>
-                            <td>مجموع الرسوم</td>
-                            <td>{invoice.fees_subtotal} ريال</td>
-                        </tr>
-                        {invoice.monthly_minimum && (
-                            <tr>
-                                <td>الحد الأدنى الشهري في العقد</td>
-                                <td>
-                                    {invoice.monthly_minimum} ريال (فرق مضاف: {invoice.minimum_adjustment})
-                                </td>
-                            </tr>
+            <PageHeader
+                icon={Receipt}
+                title={`فاتورة ${invoice.serial ?? `#${invoice.id}`}`}
+                subtitle={`${invoice.company?.name ?? '—'} · الفترة ${invoice.period_key}`}
+                actions={
+                    <>
+                        <Badge tone={STATUS[invoice.status]?.tone ?? 'neutral'}>
+                            {STATUS[invoice.status]?.label ?? invoice.status}
+                        </Badge>
+                        {invoice.status !== 'paid' && invoice.status !== 'draft' && (
+                            <Button icon={CircleCheckBig} onClick={() => setPaying(true)}>
+                                تسجيل السداد
+                            </Button>
                         )}
-                        <tr>
-                            <td>الوعاء قبل الضريبة</td>
-                            <td>{invoice.subtotal} ريال</td>
-                        </tr>
-                        <tr>
-                            <td>ضريبة القيمة المضافة {invoice.vat_rate_percent}% (تُضاف على الرسوم)</td>
-                            <td>{invoice.vat_amount} ريال</td>
-                        </tr>
-                        <tr>
-                            <td style={{ fontWeight: 800 }}>الإجمالي</td>
-                            <td style={{ fontWeight: 800, color: '#009E82' }}>{invoice.total_amount} ريال</td>
-                        </tr>
-                    </tbody>
-                </table>
+                    </>
+                }
+            />
+
+            {invoice.days_overdue > 0 && (
+                <Note tone="danger" title={`متأخرة ${invoice.days_overdue} يوماً`}>
+                    {invoice.blocked_at
+                        ? 'حُجب إنشاء الفعاليات على الشركة. يُرفع الحجب تلقائياً عند تسجيل السداد.'
+                        : 'ستُحجب الشركة عن إنشاء فعاليات جديدة عند تجاوز المهلة التعاقدية.'}
+                </Note>
+            )}
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard label="الموظفون المفعّلون" value={invoice.activated_employees_count} hint={`منهم ${invoice.departed_activated_count} غادروا`} />
+                <StatCard label="رسم الموظف" value={invoice.fee_per_activated_employee} hint="ريال" />
+                <StatCard label="قبل الضريبة" value={invoice.subtotal} hint="ريال" />
+                <StatCard label="الإجمالي" value={invoice.total_amount} hint={`شامل ضريبة ${invoice.vat_rate_percent}٪`} />
             </div>
 
-            <div
-                style={{
-                    background: '#fff',
-                    border: '1px solid #E2E8F4',
-                    borderRadius: 16,
-                    padding: 22,
-                    marginBottom: 16,
-                }}
-            >
-                <div className="card-title">بيانات الفوترة الإلكترونية (فاتورة)</div>
-                <div style={{ fontSize: 12, color: '#7A8BA8', lineHeight: 2 }}>
-                    UUID: {invoice.invoice_uuid}
-                    <br />
-                    الرقم الضريبي للبائع: {invoice.seller_vat_number ?? 'غير مضبوط'}
-                    <br />
-                    الرقم الضريبي للمشتري: {invoice.buyer_vat_number ?? 'غير مضبوط'}
-                    <br />
-                    الصفة الضريبية: {invoice.tax_treatment} · جهة الإصدار: {invoice.invoice_issuer}
-                    <br />
-                    حمولة QR: {invoice.qr_payload ? `${invoice.qr_payload.slice(0, 40)}…` : 'بانتظار ضبط الرقم الضريبي'}
-                </div>
-            </div>
+            <Card padding="p-4" className="space-y-4">
+                <h2 className="text-sm font-extrabold text-ink">بنود الفاتورة</h2>
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 22 }}>
-                <div className="card-title">البنود</div>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <th>البند</th>
-                            <th>الكمية</th>
-                            <th>سعر الوحدة</th>
-                            <th>المبلغ</th>
-                            <th>الضريبة</th>
-                            <th>الإجمالي</th>
-                            <th>الصفة</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <TableShell>
+                    <Thead>
+                        <Th>البند</Th>
+                        <Th>الكمية</Th>
+                        <Th>سعر الوحدة</Th>
+                        <Th>المبلغ</Th>
+                        <Th>الضريبة</Th>
+                        <Th>المعاملة الضريبية</Th>
+                    </Thead>
+                    <Tbody>
                         {invoice.items.map((item) => (
-                            <tr key={item.id}>
-                                <td style={{ fontWeight: 700 }}>{item.description}</td>
-                                <td>{item.quantity}</td>
-                                <td>{item.unit_amount}</td>
-                                <td>{item.amount}</td>
-                                <td>{item.vat_amount}</td>
-                                <td style={{ fontWeight: 700 }}>{item.total_amount}</td>
-                                <td style={{ fontSize: 11, color: '#7A8BA8' }}>
-                                    {item.tax_treatment} / {item.invoice_issuer}
-                                </td>
-                            </tr>
+                            <Tr key={item.id}>
+                                <Td>
+                                    <span className="font-bold text-ink block">{item.description ?? item.type}</span>
+                                    <span className="font-mono text-[10px] text-ink/45">{item.type}</span>
+                                </Td>
+                                <Td className="font-mono text-ink/70">{item.quantity}</Td>
+                                <Td className="font-mono text-ink/70">{item.unit_amount}</Td>
+                                <Td className="font-mono font-bold text-ink">{item.amount}</Td>
+                                <Td className="font-mono text-ink/70">{item.vat_amount}</Td>
+                                <Td>
+                                    <Badge tone={item.tax_treatment === 'exempt' ? 'neutral' : 'lime'}>{item.tax_treatment ?? '—'}</Badge>
+                                    <span className="block text-[11px] text-ink/45 mt-0.5">مُصدِر: {item.invoice_issuer ?? '—'}</span>
+                                </Td>
+                            </Tr>
                         ))}
-                    </tbody>
-                </table>
-            </div>
+                        <ListStates count={invoice.items.length} colSpan={6} empty="لا بنود مفصّلة." />
+                    </Tbody>
+                </TableShell>
+
+                <div className="space-y-1.5 pt-3 border-t-[0.5px] border-ink/10 text-xs max-w-sm ms-auto">
+                    <Row label="مجموع الرسوم" value={invoice.fees_subtotal} />
+                    {invoice.monthly_minimum && <Row label="الحد الأدنى التعاقدي" value={invoice.monthly_minimum} />}
+                    {invoice.minimum_adjustment !== '0.00' && <Row label="تسوية الحد الأدنى" value={invoice.minimum_adjustment} />}
+                    <Row label="المجموع قبل الضريبة" value={invoice.subtotal} />
+                    <Row label={`ضريبة القيمة المضافة (${invoice.vat_rate_percent}٪)`} value={invoice.vat_amount} />
+                    <div className="flex items-center justify-between pt-1.5 border-t-[0.5px] border-ink/10">
+                        <span className="font-extrabold text-ink">الإجمالي</span>
+                        <span className="font-mono font-black text-ink">{invoice.total_amount} ر.س</span>
+                    </div>
+                </div>
+            </Card>
+
+            <Card padding="p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                    <Meta label="الرقم التسلسلي" value={invoice.serial} mono />
+                    <Meta label="المعرّف الفريد" value={invoice.invoice_uuid} mono />
+                    <Meta label="الرقم الضريبي للبائع" value={invoice.seller_vat_number} mono />
+                    <Meta label="الرقم الضريبي للمشتري" value={invoice.buyer_vat_number} mono />
+                    <Meta label="صدرت في" value={invoice.issued_at} date />
+                    <Meta label="تستحق في" value={invoice.due_at} date />
+                    <Meta label="سُدِّدت في" value={invoice.paid_at} date />
+                    <Meta label="وضع الإصدار" value={invoice.issuance_mode} />
+                </div>
+            </Card>
+
+            <ConfirmModal
+                open={paying}
+                title="تسجيل سداد الفاتورة"
+                message="سجّل السداد بعد وصوله فعلياً. تصبح الفاتورة مسددة ويُرفع الحجب عن الشركة إن كان مفروضاً."
+                details={
+                    <>
+                        <ConfirmRow label="الشركة" value={invoice.company?.name ?? '—'} />
+                        <ConfirmRow label="المبلغ قبل الضريبة" value={`${invoice.subtotal} ريال`} />
+                        <ConfirmRow label="ضريبة القيمة المضافة" value={`${invoice.vat_amount} ريال`} />
+                        <ConfirmRow label="الإجمالي المسدَّد" value={`${invoice.total_amount} ريال`} strong />
+                        <ConfirmRow label="الأثر" value="تصبح الفاتورة مسددة ويُرفع الحجب" />
+                    </>
+                }
+                confirmLabel="تأكيد السداد"
+                onConfirm={() => {
+                    router.post(`/admin/finance/invoices/${invoice.id}/pay`, {}, { preserveScroll: true });
+                    setPaying(false);
+                }}
+                onCancel={() => setPaying(false)}
+            />
         </AdminLayout>
+    );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="flex items-center justify-between gap-3">
+            <span className="text-ink/60">{label}</span>
+            <span className="font-mono font-bold text-ink">{value} ر.س</span>
+        </div>
+    );
+}
+
+function Meta({ label, value, mono = false, date = false }: { label: string; value: string | null; mono?: boolean; date?: boolean }) {
+    return (
+        <div>
+            <span className="text-[11px] font-bold text-ink/50 block">{label}</span>
+            <span className={`text-ink ${mono ? 'font-mono text-[11px]' : ''}`} dir={mono ? 'ltr' : undefined}>
+                {value ? (date ? new Date(value).toLocaleDateString('ar-SA') : value) : '—'}
+            </span>
+        </div>
     );
 }

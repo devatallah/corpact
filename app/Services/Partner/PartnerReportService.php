@@ -91,13 +91,22 @@ class PartnerReportService
             $months[] = $now->copy()->subMonths($i)->startOfMonth();
         }
 
-        // Fetch aggregated revenue grouped by year-month
+        // Fetch aggregated revenue grouped by year-month.
+        //
+        // DATE_FORMAT is MySQL-only, so this threw «no such function» on sqlite
+        // and the whole report screen 500'd on any sqlite connection. Same
+        // driver switch RevenueService::monthlyCommission() already uses.
+        $driver = DB::connection()->getDriverName();
+        $ymExpression = $driver === 'sqlite'
+            ? "strftime('%Y-%m', event_date)"
+            : "DATE_FORMAT(event_date, '%Y-%m')";
+
         $rows = DB::table('events')
             ->where('partner_id', $partnerId)
             ->whereIn('status', $statuses)
             ->where('event_date', '>=', $months[0]->toDateString())
-            ->selectRaw("DATE_FORMAT(event_date, '%Y-%m') as ym, COALESCE(SUM(total_amount_halalas), 0) / 100.0 as amount")
-            ->groupBy('ym')
+            ->selectRaw("{$ymExpression} as ym, COALESCE(SUM(total_amount_halalas), 0) / 100.0 as amount")
+            ->groupByRaw($ymExpression)
             ->get()
             ->keyBy('ym');
 
@@ -180,12 +189,24 @@ class PartnerReportService
         $statuses = ['confirmed', 'completed'];
 
         // DAYOFWEEK: 1=Sunday, 2=Monday, 3=Tuesday, 4=Wednesday, 5=Thursday, 6=Friday, 7=Saturday
+        //
+        // Both DAYOFWEEK and HOUR are MySQL-only. sqlite's strftime('%w') is
+        // 0=Sunday, so it is shifted by one to keep the 1..7 contract the
+        // $dowToArabic map below depends on.
+        $driver = DB::connection()->getDriverName();
+        $dowExpression = $driver === 'sqlite'
+            ? "(CAST(strftime('%w', event_date) AS INTEGER) + 1)"
+            : 'DAYOFWEEK(event_date)';
+        $hourExpression = $driver === 'sqlite'
+            ? "CAST(strftime('%H', start_time) AS INTEGER)"
+            : 'HOUR(start_time)';
+
         $rows = DB::table('events')
             ->where('partner_id', $partnerId)
             ->whereIn('status', $statuses)
             ->whereBetween('event_date', [$thisMonthStart, $thisMonthEnd])
-            ->selectRaw('DAYOFWEEK(event_date) as dow, HOUR(start_time) as hr, COUNT(*) as cnt')
-            ->groupByRaw('DAYOFWEEK(event_date), HOUR(start_time)')
+            ->selectRaw("{$dowExpression} as dow, {$hourExpression} as hr, COUNT(*) as cnt")
+            ->groupByRaw("{$dowExpression}, {$hourExpression}")
             ->get();
 
         // Slot definitions

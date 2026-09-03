@@ -107,7 +107,7 @@ class GhostEventMonitorController extends Controller
                 ->map(fn ($company) => ['id' => (int) $company->id, 'name' => (string) $company->name])
                 ->all(),
             'recentManualChanges' => $this->recentManualChanges($companyId, $filters),
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }

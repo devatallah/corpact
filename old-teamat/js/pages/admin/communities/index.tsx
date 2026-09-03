@@ -1,0 +1,219 @@
+import PageHeader from '@/components/page-header';
+import AdminLayout from '@/layouts/admin-layout';
+import CategoryIcon from '@/components/category-icon';
+import ListStates from '@/components/list-states';
+import Pagination from '@/components/pagination';
+import SortableHeader, { type SortState } from '@/components/sortable-header';
+import { fmtDate } from '@/lib/utils';
+import type { Community, Company, Category, PaginatedResult } from '@/types/models';
+import { Head, router } from '@inertiajs/react';
+import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import { useState } from 'react';
+
+interface CommunityRow extends Community {
+    company?: Company;
+    members_count?: number;
+    events_count?: number;
+}
+
+interface Props {
+    communities: PaginatedResult<CommunityRow>;
+    totalCommunities: number;
+    companies: { id: number; name: string }[];
+    categories: Category[];
+    filters: { search?: string; company_id?: string; category_id?: string; sort?: string; dir?: string };
+    sort: SortState;
+}
+
+export default function CommunitiesIndex({ communities, totalCommunities, companies, categories, filters, sort }: Props) {
+    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
+        company_id: filters?.company_id,
+        category_id: filters?.category_id,
+        sort: filters?.sort,
+        dir: filters?.dir,
+    });
+    const [detail, setDetail] = useState<CommunityRow | null>(null);
+
+    function handleFilter(key: string, value: string) {
+        router.get('/admin/communities', {
+            search: filters?.search || undefined,
+            company_id: key === 'company_id' ? (value || undefined) : (filters?.company_id || undefined),
+            category_id: key === 'category_id' ? (value || undefined) : (filters?.category_id || undefined),
+            sort: filters?.sort || undefined,
+            dir: filters?.dir || undefined,
+        }, { preserveState: true, replace: true });
+    }
+
+    return (
+        <AdminLayout>
+            <Head title="المجتمعات" />
+
+            <PageHeader
+                title={<>المجتمعات</>}
+                subtitle={<>
+                {totalCommunities} مجتمع على المنصة
+                </>}
+            />
+
+            {/* Filters */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="ابحث بالاسم..."
+                    style={{ padding: '9px 14px', background: '#FFFFFF', border: '0.5px solid rgba(10,10,10,.1)', borderRadius: 10, fontSize: 13, color: '#0A0A0A', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 180 }}
+                />
+                <select
+                    value={filters?.company_id ?? ''}
+                    onChange={(e) => handleFilter('company_id', e.target.value)}
+                    style={{ padding: '9px 14px', background: '#FFFFFF', border: '0.5px solid rgba(10,10,10,.1)', borderRadius: 10, fontSize: 13, color: '#0A0A0A', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
+                >
+                    <option value="">كل الشركات</option>
+                    {companies.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                </select>
+                <select
+                    value={filters?.category_id ?? ''}
+                    onChange={(e) => handleFilter('category_id', e.target.value)}
+                    style={{ padding: '9px 14px', background: '#FFFFFF', border: '0.5px solid rgba(10,10,10,.1)', borderRadius: 10, fontSize: 13, color: '#0A0A0A', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
+                >
+                    <option value="">كل الفئات</option>
+                    {categories.map((cat) =>
+                        cat.children && cat.children.length > 0 ? (
+                            <optgroup key={cat.id} label={cat.name}>
+                                {cat.children.map((sub) => (
+                                    <option key={sub.id} value={sub.id}>{sub.name}</option>
+                                ))}
+                            </optgroup>
+                        ) : (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        )
+                    )}
+                </select>
+            </div>
+
+            {/* Table */}
+            <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+                <table className="portal-table">
+                    <thead>
+                        <tr>
+                            <SortableHeader label="المجتمع" sortKey="name" sort={sort} />
+                            <th>الشركة</th>
+                            <th>الفئة</th>
+                            <th>القائد</th>
+                            <SortableHeader label="الأعضاء" sortKey="members_count" sort={sort} initialDirection="desc" />
+                            <SortableHeader label="الفعاليات" sortKey="events_count" sort={sort} initialDirection="desc" />
+                            <th>الرصيد</th>
+                            <th>إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <ListStates
+                            count={communities.data.length}
+                            columns={8}
+                            emptyTitle="لا توجد مجتمعات"
+                            emptyHint="لا مجتمع مطابق للبحث والفلاتر الحالية — جرّب توسيع نطاق البحث أو إزالة الفلاتر."
+                        />
+                        {communities.data.map((community) => (
+                            <tr key={community.id}>
+                                <td>
+                                    <div style={{ fontWeight: 700, color: '#0A0A0A' }}>{community.name}</div>
+                                </td>
+                                <td style={{ color: '#0A0A0A' }}>{community.company?.name ?? '-'}</td>
+                                <td>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                        <CategoryIcon icon={community.category?.icon} size={16} />
+                                        <span style={{ fontSize: 12 }}>{community.category?.name ?? '-'}</span>
+                                    </span>
+                                </td>
+                                <td style={{ fontSize: 12, color: '#0A0A0A' }}>{community.leader?.name ?? '-'}</td>
+                                <td>{community.members_count ?? 0}</td>
+                                <td>{community.events_count ?? 0}</td>
+                                <td>
+                                    <span style={{ color: Number(community.balance) > 0 ? '#2E7D32' : 'rgba(10,10,10,.55)', fontWeight: 700 }}>
+                                        {Number(community.balance).toLocaleString()} ريال
+                                    </span>
+                                </td>
+                                <td>
+                                    <button
+                                        onClick={() => setDetail(community)}
+                                        className="act-btn btn-view"
+                                    >
+                                        عرض
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            <Pagination links={communities.links} />
+
+            {/* Detail Modal */}
+            {detail && (
+                <div className="detail-overlay open" onClick={() => setDetail(null)}>
+                    <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
+                        <h3>
+                            تفاصيل المجتمع
+                            <button className="close-btn" onClick={() => setDetail(null)}>×</button>
+                        </h3>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+                            <CategoryIcon icon={detail.category?.icon} size={44} />
+                            <div>
+                                <div style={{ fontSize: 18, fontWeight: 800, color: '#0A0A0A' }}>{detail.name}</div>
+                                <div style={{ fontSize: 12, color: 'rgba(10,10,10,.55)' }}>{detail.category?.name ?? '-'}</div>
+                            </div>
+                        </div>
+
+                        {detail.description && (
+                            <div style={{ fontSize: 13, color: 'rgba(10,10,10,.55)', marginBottom: 20, lineHeight: 1.7 }}>
+                                {detail.description}
+                            </div>
+                        )}
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                            <div style={{ background: '#F6F8F5', borderRadius: 12, padding: '16px 18px' }}>
+                                <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', marginBottom: 4 }}>الشركة</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#0A0A0A' }}>{detail.company?.name ?? '-'}</div>
+                            </div>
+                            <div style={{ background: '#F6F8F5', borderRadius: 12, padding: '16px 18px' }}>
+                                <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', marginBottom: 4 }}>القائد</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#0A0A0A' }}>{detail.leader?.name ?? '-'}</div>
+                            </div>
+                            <div style={{ background: '#F6F8F5', borderRadius: 12, padding: '16px 18px' }}>
+                                <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', marginBottom: 4 }}>الأعضاء</div>
+                                <div style={{ fontSize: 22, fontWeight: 800, color: '#0A0A0A' }}>{detail.members_count ?? 0}</div>
+                            </div>
+                            <div style={{ background: '#F6F8F5', borderRadius: 12, padding: '16px 18px' }}>
+                                <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', marginBottom: 4 }}>الفعاليات</div>
+                                <div style={{ fontSize: 22, fontWeight: 800, color: '#0A0A0A' }}>{detail.events_count ?? 0}</div>
+                            </div>
+                            <div style={{ background: '#F6F8F5', borderRadius: 12, padding: '16px 18px', gridColumn: '1 / -1' }}>
+                                <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', marginBottom: 4 }}>رصيد المحفظة</div>
+                                <div style={{ fontSize: 22, fontWeight: 800, color: Number(detail.balance) > 0 ? '#2E7D32' : 'rgba(10,10,10,.55)' }}>
+                                    {Number(detail.balance).toLocaleString()} ريال
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                            <div style={{ background: '#F6F8F5', borderRadius: 12, padding: '16px 18px' }}>
+                                <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', marginBottom: 4 }}>الحالة</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: detail.status === 'active' ? '#2E7D32' : '#D9381E' }}>
+                                    {detail.status === 'active' ? 'نشط' : 'غير نشط'}
+                                </div>
+                            </div>
+                            <div style={{ background: '#F6F8F5', borderRadius: 12, padding: '16px 18px' }}>
+                                <div style={{ fontSize: 11, color: 'rgba(10,10,10,.55)', marginBottom: 4 }}>تاريخ الإنشاء</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#0A0A0A' }}>{fmtDate(detail.created_at)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </AdminLayout>
+    );
+}

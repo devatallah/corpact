@@ -44,7 +44,7 @@ class CommunityRequestController extends Controller
 
         return Inertia::render('company/community-requests/index', [
             'requests' => $requests,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => CommunityRequestService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'pendingCommunityRequests' => $pendingCount,
         ]);

@@ -38,6 +38,7 @@ class CommunityController extends Controller
 
         $filters = $request->validate([
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'category_id' => ['sometimes', 'nullable', 'integer', 'exists:categories,id'],
             // H §18 — الترتيب. القيمة مفتاح من قائمة بيضاء في `ListSort`، لا
             // اسم عمود؛ التحقق هنا يمنع الحشو فقط.
             'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
@@ -49,7 +50,7 @@ class CommunityController extends Controller
         return Inertia::render('company/communities/index', [
             'company' => $company,
             'communities' => $communities,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => CommunityService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
             'unreadNotifications' => $unreadNotifications,

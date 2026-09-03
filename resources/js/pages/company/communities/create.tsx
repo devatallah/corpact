@@ -1,162 +1,157 @@
+import { Head, useForm } from '@inertiajs/react';
+import { UsersRound } from 'lucide-react';
+import { BackLink } from '@/components/list-states';
+import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
+import { Button, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
-import CategoryIcon from '@/components/category-icon';
-import { Head, Link, useForm } from '@inertiajs/react';
-import { useMemo } from 'react';
-import type { FormEvent } from 'react';
-import toastr from 'toastr';
 
-interface CategoryItem {
+/**
+ * H §6 — إنشاء مجتمع.
+ *
+ * The leader is chosen at creation on purpose: a community with no leader is
+ * inert, since events can only be created by one. The field stays optional in
+ * the API, but the form says plainly what happens if it is left empty.
+ */
+type Category = {
     id: number;
-    name: string;
-    icon: string;
     parent_id: number | null;
-    children?: CategoryItem[];
-}
+    name: string;
+    children?: Category[];
+};
 
-interface Props {
+export default function CompanyCommunityCreate({
+    employees,
+    categories,
+}: {
     employees: { id: number; name: string }[];
-    categories: CategoryItem[];
-}
-
-export default function CommunityCreate({ employees, categories }: Props) {
+    categories: Category[];
+}) {
     const form = useForm({
         name: '',
         description: '',
         category_id: '',
-        parent_category_id: '',
         leader_id: '',
     });
 
-    const subcategories = useMemo(() => {
-        if (!form.data.parent_category_id) return [];
-        const parent = categories.find((c) => String(c.id) === form.data.parent_category_id);
-        return parent?.children ?? [];
-    }, [form.data.parent_category_id, categories]);
-
-    function handleSubmit(e: FormEvent) {
-        e.preventDefault();
-        form.post('/company/communities', {
-            onSuccess: () => toastr.success('تم إنشاء المجتمع بنجاح'),
-        });
-    }
-
     return (
         <CompanyLayout>
-            <Head title="إنشاء مجتمع" />
+            <Head title="مجتمع جديد" />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <Link href="/company/communities" style={{ color: '#7A8BA8', textDecoration: 'none', fontSize: 14 }}>
-                    ← المجتمعات
-                </Link>
-                <span style={{ color: '#C8D0E0' }}>/</span>
-                <span style={{ fontWeight: 700 }}>إنشاء مجتمع</span>
-            </div>
+            <BackLink
+                href="/company/communities"
+                label="العودة إلى المجتمعات"
+            />
 
-            {Object.keys(form.errors).length > 0 && (
-                <div style={{ background: '#E0305010', border: '1px solid #E0305033', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
-                    {Object.values(form.errors).map((error, i) => (
-                        <p key={i} style={{ fontSize: 12, color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                    ))}
-                </div>
-            )}
+            <PageHeader
+                icon={UsersRound}
+                title="مجتمع جديد"
+                subtitle="اسم وفئة وقائد — ثم وزّع له رصيداً من المحفظة ليبدأ فعالياته."
+            />
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 32, maxWidth: 600 }}>
-                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>إنشاء مجتمع جديد</div>
-                <form onSubmit={handleSubmit}>
-                    <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">اسم المجتمع *</label>
-                        <input
-                            type="text"
-                            className="fi"
-                            placeholder="مثال: فريق كرة القدم"
-                            value={form.data.name}
-                            onChange={(e) => form.setData('name', e.target.value)}
-                            required
-                        />
-                    </div>
-
-                    <div className="fg" style={{ marginBottom: 16 }}>
-                        <label className="fl">الوصف</label>
-                        <textarea
-                            className="fi"
-                            rows={3}
-                            placeholder="وصف المجتمع..."
-                            value={form.data.description}
-                            onChange={(e) => form.setData('description', e.target.value)}
-                            style={{ resize: 'vertical' }}
-                        />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                        <div className="fg">
-                            <label className="fl">الفئة *</label>
-                            <select
-                                className="fi"
-                                value={form.data.parent_category_id}
-                                onChange={(e) => {
-                                    const parentId = e.target.value;
-                                    const parent = categories.find((c) => String(c.id) === parentId);
-                                    const hasChildren = (parent?.children?.length ?? 0) > 0;
-                                    form.setData({
-                                        ...form.data,
-                                        parent_category_id: parentId,
-                                        category_id: hasChildren ? '' : parentId,
-                                    });
-                                }}
-                                required
-                            >
-                                <option value="">اختر الفئة</option>
-                                {categories.map((cat) => (
-                                    <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="fg">
-                            <label className="fl">الفئة الفرعية *</label>
-                            <select
-                                className="fi"
-                                value={form.data.category_id}
-                                onChange={(e) => form.setData('category_id', e.target.value)}
-                                disabled={!form.data.parent_category_id || subcategories.length === 0}
-                            >
-                                <option value="">{form.data.parent_category_id ? 'اختر الفئة الفرعية' : 'اختر الفئة أولاً'}</option>
-                                {subcategories.map((sub) => (
-                                    <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="fg" style={{ marginBottom: 24 }}>
-                        <label className="fl">القائد *</label>
-                        <select
-                            className="fi"
-                            value={form.data.leader_id}
-                            onChange={(e) => form.setData('leader_id', e.target.value)}
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.post('/company/communities');
+                }}
+                className="space-y-6"
+            >
+                <FormSection title="بيانات المجتمع">
+                    <FormGrid>
+                        <Field
+                            label="اسم المجتمع"
+                            error={form.errors.name}
                             required
                         >
-                            <option value="">اختر القائد</option>
-                            {employees.map((emp) => (
-                                <option key={emp.id} value={emp.id}>
-                                    {emp.name}
+                            <input
+                                className={INPUT}
+                                value={form.data.name}
+                                onChange={(event) =>
+                                    form.setData('name', event.target.value)
+                                }
+                            />
+                        </Field>
+
+                        <Field
+                            label="الفئة"
+                            error={form.errors.category_id}
+                            hint="تحدد الفئة أي المرافق تظهر عند إنشاء الفعاليات."
+                        >
+                            <select
+                                className={INPUT}
+                                value={form.data.category_id}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'category_id',
+                                        event.target.value,
+                                    )
+                                }
+                            >
+                                <option value="">— اختر الفئة —</option>
+                                {categories.map((parent) => (
+                                    <optgroup
+                                        key={parent.id}
+                                        label={parent.name}
+                                    >
+                                        <option value={parent.id}>
+                                            {parent.name}
+                                        </option>
+                                        {(parent.children ?? []).map(
+                                            (child) => (
+                                                <option
+                                                    key={child.id}
+                                                    value={child.id}
+                                                >
+                                                    {child.name}
+                                                </option>
+                                            ),
+                                        )}
+                                    </optgroup>
+                                ))}
+                            </select>
+                        </Field>
+                    </FormGrid>
+
+                    <Field label="الوصف" error={form.errors.description}>
+                        <textarea
+                            rows={3}
+                            className={INPUT}
+                            value={form.data.description}
+                            onChange={(event) =>
+                                form.setData('description', event.target.value)
+                            }
+                        />
+                    </Field>
+
+                    <Field label="القائد الأساسي" error={form.errors.leader_id}>
+                        <select
+                            className={INPUT}
+                            value={form.data.leader_id}
+                            onChange={(event) =>
+                                form.setData('leader_id', event.target.value)
+                            }
+                        >
+                            <option value="">— بلا قائد الآن —</option>
+                            {employees.map((employee) => (
+                                <option key={employee.id} value={employee.id}>
+                                    {employee.name}
                                 </option>
                             ))}
                         </select>
-                    </div>
+                    </Field>
 
-                    <div style={{ display: 'flex', gap: 10 }}>
-                        <button type="submit" className="ac-btn" style={{ flex: 1 }} disabled={form.processing}>
-                            إنشاء
-                        </button>
-                        <Link
-                            href="/company/communities"
-                            style={{ padding: '12px 24px', background: '#E2E8F4', borderRadius: 10, color: '#4A5C78', fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
-                        >
-                            إلغاء
-                        </Link>
-                    </div>
-                </form>
-            </div>
+                    <Note title="بلا قائد = بلا فعاليات">
+                        المجتمع بلا قائد يظهر في القوائم لكنه لا ينشئ فعاليات
+                        ولا يصرف من محفظته. يمكنك تعيين القائد لاحقاً من صفحة
+                        تعديل المجتمع.
+                    </Note>
+                </FormSection>
+
+                <FormActions cancelHref="/company/communities">
+                    <Button type="submit" disabled={form.processing}>
+                        إنشاء المجتمع
+                    </Button>
+                </FormActions>
+            </form>
         </CompanyLayout>
     );
 }

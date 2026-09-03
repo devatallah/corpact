@@ -67,7 +67,7 @@ class BranchController extends Controller
                 'has_price_contract' => (bool) $partner->has_price_contract,
             ],
             'branches' => $branches,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'categories' => Category::query()->orderBy('name')->get(['id', 'name']),
         ]);

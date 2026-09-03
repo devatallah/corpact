@@ -1,80 +1,117 @@
-import EmployeeLayout from '@/layouts/employee-layout';
-import Pagination from '@/components/pagination';
-import { SortBar, type SortState } from '@/components/sortable-header';
 import { Head, Link } from '@inertiajs/react';
-import { fmtDate } from '@/lib/utils';
-import type { PaymentIntent, Event, Community, PaginatedResult } from '@/types/models';
-
-interface Props {
-    intents: PaginatedResult<PaymentIntent & { event?: Event & { community?: Community } }>;
-    sort?: SortState;
-}
-
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-    pending: { label: 'بانتظار الدفع', color: '#D97706' },
-    paid: { label: 'مدفوعة', color: '#18A86B' },
-    expired: { label: 'انتهت المهلة', color: '#EF4444' },
-    cancelled: { label: 'أُلغيت', color: '#999' },
-    refunded: { label: 'مُردّة', color: '#2563EB' },
-};
-
-const sortOptions = [
-    { key: 'created_at', label: 'الأحدث', initialDirection: 'desc' as const },
-    { key: 'amount', label: 'المبلغ', initialDirection: 'desc' as const },
-    { key: 'status', label: 'الحالة', initialDirection: 'asc' as const },
-];
+import { Receipt } from 'lucide-react';
+import { Pagination, ResultCount, SortableHeader } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge } from '@/components/portal/ui';
+import EmployeeLayout from '@/layouts/employee-layout';
+import type { Paginated, SortState } from '@/types';
 
 /**
- * سجل مدفوعات الموظف (A10 — H §12.3): كل مطالبة بحصتها وحالتها — لا محفظة
- * نقدية داخل المنصة، وكل استرداد يعود لوسيلة الدفع الأصلية.
+ * H §12.3 — the employee's own collection history.
+ *
+ * Every row is money this employee was asked for: what it was for, what state
+ * the claim reached, and — while it is still pending — the way back to paying
+ * it before the deadline drops the seat.
  */
-export default function PaymentsIndex({ intents, sort }: Props) {
-    const items = intents?.data ?? [];
+type Intent = {
+    id: number;
+    amount: string;
+    base_amount: string;
+    vat_amount: string;
+    status: string;
+    expires_at: string | null;
+    paid_at: string | null;
+    created_at: string | null;
+    event?: { id: number; title: string; event_date: string | null; start_time: string | null; community?: { id: number; name: string } | null } | null;
+};
 
+const STATUS: Record<string, { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger' }> = {
+    pending: { label: 'بانتظار السداد', tone: 'warning' },
+    paid: { label: 'مسدَّدة', tone: 'success' },
+    expired: { label: 'انتهت المهلة', tone: 'danger' },
+    failed: { label: 'فشل الدفع', tone: 'danger' },
+    refunded: { label: 'مستردة', tone: 'neutral' },
+    cancelled: { label: 'ملغاة', tone: 'neutral' },
+};
+
+export default function EmployeePayments({ intents, sort }: { intents: Paginated<Intent>; sort: SortState }) {
     return (
         <EmployeeLayout>
             <Head title="مدفوعاتي" />
 
-            <div className="section-head" style={{ marginBottom: 16 }}>
-                <div className="section-title">مدفوعاتي</div>
+            <div className="flex items-center justify-between px-1">
+                <h1 className="text-sm font-black text-ink flex items-center gap-1.5">
+                    <Receipt className="w-4 h-4" aria-hidden="true" />
+                    <span>مدفوعاتي</span>
+                </h1>
+                <SortableHeader label="الأحدث" sortKey="created_at" sort={sort} initialDirection="desc" />
             </div>
 
-            {/* H §18: ترتيب ظاهر لكل قائمة */}
-            <div style={{ marginBottom: 14 }}>
-                <SortBar sort={sort} options={sortOptions} />
-            </div>
+            <div className="space-y-2.5">
+                {intents.data.map((intent) => {
+                    const state = STATUS[intent.status] ?? { label: intent.status, tone: 'neutral' as const };
+                    const payable = intent.status === 'pending';
 
-            {items.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', color: '#999', fontSize: 14 }}>
-                    لا مدفوعات بعد — تصلك مطالبة الدفع عند إغلاق تسجيل فعالية انضممت إليها.
-                </div>
-            ) : (
-                items.map((intent) => {
-                    const status = STATUS_LABELS[intent.status] ?? STATUS_LABELS.pending;
-
-                    return (
-                        <Link key={intent.id} href={`/employee/payments/${intent.id}`} className="card" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <div style={{ fontSize: 14, fontWeight: 700 }}>
-                                        {intent.event?.title || intent.event?.community?.name || `فعالية #${intent.event_id}`}
+                    const row = (
+                        <>
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                    <div className="text-[11px] text-ink/60 mb-0.5 truncate">
+                                        {intent.event?.community?.name ?? '—'}
                                     </div>
-                                    <div style={{ fontSize: 12, color: '#999', marginTop: 2 }}>
-                                        {intent.event ? fmtDate(intent.event.event_date) : ''}
-                                        {intent.refund_status === 'refunded' && ' · رُدّ المبلغ لوسيلة الدفع الأصلية'}
-                                    </div>
+                                    <h2 className="text-xs font-black text-ink leading-snug">{intent.event?.title ?? 'فعالية محذوفة'}</h2>
                                 </div>
-                                <div style={{ textAlign: 'left' }}>
-                                    <div style={{ fontSize: 16, fontWeight: 800 }}>{Number(intent.amount).toLocaleString()} ر.س</div>
-                                    <div style={{ fontSize: 12, fontWeight: 600, color: status.color }}>{status.label}</div>
-                                </div>
+                                <Badge tone={state.tone}>{state.label}</Badge>
                             </div>
-                        </Link>
-                    );
-                })
-            )}
 
-            {intents?.links && <Pagination links={intents.links} />}
+                            <div className="flex items-center justify-between pt-1 border-t-[0.5px] border-ink/10">
+                                <span className="font-mono text-[11px] text-ink/60">
+                                    {intent.event?.event_date ?? '—'} · {intent.event?.start_time ?? '—'}
+                                </span>
+                                <span className="font-mono font-black text-ink">
+                                    {intent.amount} <span className="text-[10px] font-normal opacity-70">ر.س</span>
+                                </span>
+                            </div>
+
+                            <div className="flex items-center justify-between text-[10px] text-ink/50">
+                                <span>
+                                    الأساس {intent.base_amount} · الضريبة {intent.vat_amount}
+                                </span>
+                                {payable && <span className="font-bold text-ink">أكمل السداد ←</span>}
+                            </div>
+                        </>
+                    );
+
+                    return payable ? (
+                        <Link
+                            key={intent.id}
+                            href={`/employee/payments/${intent.id}`}
+                            className="block p-3.5 bg-surface rounded-2xl border-[0.5px] border-ink/15 hover:border-ink/30 transition-colors space-y-2"
+                        >
+                            {row}
+                        </Link>
+                    ) : (
+                        <div key={intent.id} className="p-3.5 bg-surface rounded-2xl border-[0.5px] border-ink/15 space-y-2">
+                            {row}
+                        </div>
+                    );
+                })}
+
+                {intents.data.length === 0 && (
+                    <div className="bg-surface rounded-2xl border-[0.5px] border-ink/15">
+                        <ListStates
+                            count={0}
+                            empty="لا توجد مدفوعات بعد."
+                            emptyHint="تظهر هنا حصتك في أي فعالية تختار شركتك فيها مسار دفع الموظف."
+                        />
+                    </div>
+                )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 flex-wrap px-1">
+                <ResultCount page={intents} />
+                <Pagination page={intents} />
+            </div>
         </EmployeeLayout>
     );
 }

@@ -62,7 +62,7 @@ class SupportMessageController extends Controller
                 'in_progress' => SupportMessage::where('status', 'in_progress')->count(),
                 'resolved' => SupportMessage::where('status', 'resolved')->count(),
             ],
-            'filters' => $request->only('search', 'status', 'sort', 'dir'),
+            'filters' => (object) $request->only('search', 'status', 'sort', 'dir'),
             'sort' => self::sort()->state($request->query('sort'), $request->query('dir')),
         ]);
     }

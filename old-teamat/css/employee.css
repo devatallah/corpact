@@ -1,0 +1,85 @@
+/* ─── Employee Portal — New Design System ─── */
+.portal-employee{background:#F6F8F5;color:#0A0A0A;font-family:'Almarai',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:block;}
+.portal-employee{width:100%;min-height:100vh;}
+/* ─── Main Content ─── */
+.emain{max-width:900px;margin:0 auto;padding:24px 24px 80px;}
+/* ─── Mobile Bottom Nav ─── */
+.mob-link.on{color:#0A0A0A;}
+/* ─── Card ─── */
+.card{background:#fff;border:0.5px solid rgba(10,10,10,.15);border-radius:16px;padding:14px;margin-bottom:12px;transition:border-color .15s;}
+.card:hover{border-color:rgba(10,10,10,.3);}
+/* ─── Badge ─── */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;border:0.5px solid transparent;white-space:nowrap;}
+/* ─── Pill / Filter ─── */
+.pill{padding:4px 12px;border-radius:999px;border:0.5px solid rgba(10,10,10,.15);background:#fff;cursor:pointer;font-size:12px;font-family:inherit;font-weight:700;color:rgba(10,10,10,.6);transition:all .15s;}
+.pill:hover{border-color:rgba(10,10,10,.3);}
+.pill.on{background:#0A0A0A;color:#fff;border-color:#0A0A0A;}
+/* H §18 — ضوابط القوائم المشتركة (شريط الترتيب وترقيم الصفحات) تستعمل
+   `.fbtn`، والبوابات الثلاث الأخرى تلوّنها في `app.css`. بوابة الموظف
+   تصمَّم بالـ`.pill`، فتأخذ `.fbtn` مظهرها نفسه بدل زرّ المتصفح الافتراضي. */
+.portal-employee .fbtn{display:inline-block;padding:6px 14px;border-radius:99px;border:0.5px solid rgba(10,10,10,.1);background:#fff;color:rgba(10,10,10,.6);font-weight:500;font-size:13px;text-decoration:none;transition:all .15s;}
+.portal-employee .fbtn:hover{border-color:rgba(10,10,10,.3);}
+.portal-employee .fbtn.on{background:#0A0A0A;color:#fff;border-color:#0A0A0A;}
+/* ─── Bar ─── */
+.bar-wrap{height:6px;background:rgba(10,10,10,.1);border-radius:6px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:6px;background:#0A0A0A;}
+/* ─── Avatar ─── */
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex-shrink:0;background:#F6F8F5;color:rgba(10,10,10,.6);}
+/* ─── Table List (events, leaderboard) ─── */
+.list-card{background:#fff;border:0.5px solid rgba(10,10,10,.15);border-radius:16px;overflow:hidden;}
+.list-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:0.5px solid rgba(10,10,10,.1);transition:background .1s;cursor:pointer;}
+.list-row:last-child{border-bottom:none;}
+.list-row:hover{background:#F6F8F5;}
+/* ─── Section ─── */
+.section{margin-bottom:28px;}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.section-title{font-size:15px;font-weight:900;}
+.section-link{font-size:12px;color:#0A0A0A;text-decoration:none;font-weight:700;}
+.section-link:hover{text-decoration:underline;}
+/* ─── Metric ─── */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px;}
+.metric{background:#fff;border:0.5px solid rgba(10,10,10,.15);border-radius:16px;padding:14px;transition:border-color .15s;}
+.metric:hover{border-color:rgba(10,10,10,.3);}
+.metric .value{font-size:28px;font-weight:700;letter-spacing:-1px;line-height:1;}
+.metric .label{font-size:11px;color:rgba(10,10,10,.5);margin-top:6px;font-weight:500;}
+.metric .change{font-size:11px;color:#0A0A0A;margin-top:4px;font-weight:500;}
+/* ─── Streak ─── */
+.streak-bar{background:#0A0A0A;border-radius:16px;padding:16px 20px;margin-bottom:28px;display:flex;align-items:center;gap:14px;color:#fff;}
+.streak-bar .icon{font-size:28px;}
+.streak-bar .info{flex:1;}
+.streak-bar .num{font-size:20px;font-weight:700;}
+.streak-bar .sub{font-size:12px;color:rgba(255,255,255,.6);}
+.streak-bar .sbadge{background:#C8FF00;color:#0A0A0A;border-radius:999px;padding:5px 14px;font-size:12px;font-weight:700;}
+/* ─── Form inputs ─── */
+.portal-employee input,.portal-employee select,.portal-employee textarea{font-family:inherit;border:0.5px solid rgba(10,10,10,.1);border-radius:12px;padding:10px 14px;font-size:13px;background:#fff;color:#0A0A0A;width:100%;transition:border-color .15s;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:#0A0A0A;}
+.field-error{color:#D9381E;font-size:12px;margin-top:4px;font-weight:500;}
+/* ─── Buttons ─── */
+.btn{border:0.5px solid transparent;border-radius:999px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+.btn-primary{background:#0A0A0A;color:#fff;}
+.btn-primary:hover{background:#0A0A0A;}
+.btn-outline{background:#fff;color:#0A0A0A;border-color:rgba(10,10,10,.15);}
+.btn-outline:hover{border-color:rgba(10,10,10,.3);background:#F6F8F5;}
+.btn-danger{background:#FDEDEC;color:#D9381E;border:1px solid rgba(217,56,30,.25);}
+.btn-danger:hover{background:#FDEDEC;}
+.btn-full{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;}
+/* ─── Status badges ─── */
+.b-confirmed,.b-active{background:#E8F5E9;color:#2E7D32;border-color:rgba(46,125,50,.2);}
+.b-open,.b-pending,.b-waiting_partner{background:#FEF9E0;color:#C87D00;border-color:rgba(200,125,0,.2);}
+.b-completed{background:#F6F8F5;color:rgba(10,10,10,.6);border-color:rgba(10,10,10,.1);}
+.b-cancelled,.b-rejected{background:#FDEDEC;color:#D9381E;border-color:rgba(217,56,30,.2);}
+/* ─── Empty state ─── */
+.empty{text-align:center;padding:40px 20px;color:rgba(10,10,10,.5);}
+.empty .ico{font-size:32px;margin-bottom:8px;}
+.empty .txt{font-size:14px;font-weight:500;}
+/* ─── Modal overlay ─── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:#fff;border-radius:16px;padding:24px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;}
+/* ─── Responsive ─── */
+@media(max-width:640px){
+.metrics{grid-template-columns:repeat(2,1fr);gap:8px;}
+.metric .value{font-size:24px;}
+}
+@media(min-width:641px){
+  
+}

@@ -1,149 +1,122 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import PasswordInput from '@/components/password-input';
+import { Head, useForm } from '@inertiajs/react';
+import { UserRound } from 'lucide-react';
+import { BackLink } from '@/components/list-states';
+import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
+import { Button, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import type { Company } from '@/types/models';
 
-interface Props {
-    companies: Company[];
-}
-
-export default function EmployeesCreate({ companies }: Props) {
-    const { data, setData, post, processing, errors } = useForm({
-        name: '',
-        email: '',
-        password: '',
-        phone: '',
-        company_id: '',
-        department: '',
-    });
-
-    function submit(e: React.FormEvent) {
-        e.preventDefault();
-        post('/admin/employees');
-    }
+/**
+ * Creating an employee from the platform side is the exception, not the path.
+ *
+ * The normal route is an invitation from the company's own account manager,
+ * which binds the phone the employee actually holds. Creating one here is for
+ * support recovery — hence the note.
+ */
+export default function CreateEmployee({ companies }: { companies: { id: number; name: string }[] }) {
+    const form = useForm({ name: '', email: '', password: '', phone: '', company_id: '' });
 
     return (
         <AdminLayout>
             <Head title="إضافة موظف" />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                <Link href="/admin/employees" style={{ color: '#6B7A99', textDecoration: 'none', fontSize: '14px' }}>
-                    ← الموظفون
-                </Link>
-                <span style={{ color: '#3D4A60' }}>/</span>
-                <span style={{ color: '#fff', fontWeight: 700 }}>إضافة موظف</span>
-            </div>
+            <BackLink href="/admin/employees" label="العودة إلى الموظفين" />
 
-            {Object.keys(errors).length > 0 && (
-                <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
-                    {Object.values(errors).map((error, i) => (
-                        <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                    ))}
-                </div>
-            )}
+            <PageHeader
+                icon={UserRound}
+                title="إضافة موظف"
+                subtitle="إنشاء مباشر من لوحة المنصة — للحالات الاستثنائية ومعالجة البلاغات."
+            />
 
-            <div className="card" style={{ maxWidth: '600px' }}>
-                <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>إضافة موظف جديد</div>
-                <form onSubmit={submit}>
-                    <div className="frow">
-                        <div className="fg">
-                            <label>الاسم *</label>
+            <Note tone="warning" title="المسار الطبيعي هو الدعوة">
+                الموظف يُدعى عادةً من مسؤول الحساب في شركته، فيُربط رقم جواله بهويته عند قبوله الدعوة. الإنشاء المباشر من هنا
+                يتجاوز ذلك التحقق.
+            </Note>
+
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.post('/admin/employees');
+                }}
+                className="space-y-6"
+            >
+                <FormSection title="بيانات الموظف">
+                    <FormGrid>
+                        <Field label="الاسم" htmlFor="emp-name" required error={form.errors.name}>
                             <input
+                                id="emp-name"
                                 type="text"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                placeholder="اسم الموظف"
                                 required
+                                value={form.data.name}
+                                onChange={(event) => form.setData('name', event.target.value)}
+                                className={INPUT}
                             />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>البريد الإلكتروني *</label>
-                            <input
-                                type="email"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                placeholder="example@email.com"
-                                dir="ltr"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="frow">
-                        <div className="fg">
-                            <label>كلمة المرور *</label>
-                            <PasswordInput
-                                value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                                placeholder="••••••"
-                                dir="ltr"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="frow">
-                        <div className="fg">
-                            <label>رقم الجوال</label>
-                            <input
-                                type="text"
-                                value={data.phone}
-                                onChange={(e) => setData('phone', e.target.value)}
-                                placeholder="05xxxxxxxx"
-                                dir="ltr"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="frow">
-                        <div className="fg">
-                            <label>الشركة *</label>
+                        <Field label="الشركة" htmlFor="emp-company" required error={form.errors.company_id}>
                             <select
-                                value={data.company_id}
-                                onChange={(e) => setData('company_id', e.target.value)}
+                                id="emp-company"
                                 required
+                                value={form.data.company_id}
+                                onChange={(event) => form.setData('company_id', event.target.value)}
+                                className={`${INPUT} cursor-pointer`}
                             >
-                                <option value="">اختر الشركة</option>
-                                {companies.map((c) => (
-                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                <option value="">اختر الشركة…</option>
+                                {companies.map((company) => (
+                                    <option key={company.id} value={company.id}>
+                                        {company.name}
+                                    </option>
                                 ))}
                             </select>
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>القسم</label>
+                        <Field label="البريد الإلكتروني" htmlFor="emp-email" required error={form.errors.email}>
                             <input
-                                type="text"
-                                value={data.department}
-                                onChange={(e) => setData('department', e.target.value)}
-                                placeholder="مثال: التسويق"
+                                id="emp-email"
+                                type="email"
+                                dir="ltr"
+                                required
+                                value={form.data.email}
+                                onChange={(event) => form.setData('email', event.target.value)}
+                                className={`${INPUT} text-right font-mono`}
                             />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="act-btn btn-approve"
-                            style={{ flex: 1, padding: '12px' }}
+                        <Field
+                            label="رقم الجوال"
+                            htmlFor="emp-phone"
+                            hint="هوية الدخول — بدونه لا يستطيع الموظف الدخول"
+                            error={form.errors.phone}
                         >
-                            حفظ
-                        </button>
-                        <Link
-                            href="/admin/employees"
-                            style={{ padding: '12px 24px', background: '#232A3E', borderRadius: '10px', color: '#6B7A99', fontSize: '14px', fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
-                        >
-                            إلغاء
-                        </Link>
-                    </div>
-                </form>
-            </div>
+                            <input
+                                id="emp-phone"
+                                type="tel"
+                                dir="ltr"
+                                value={form.data.phone}
+                                onChange={(event) => form.setData('phone', event.target.value)}
+                                placeholder="05xxxxxxxx"
+                                className={`${INPUT} text-right font-mono`}
+                            />
+                        </Field>
+
+                        <Field label="كلمة المرور المبدئية" htmlFor="emp-password" required error={form.errors.password}>
+                            <input
+                                id="emp-password"
+                                type="password"
+                                required
+                                value={form.data.password}
+                                onChange={(event) => form.setData('password', event.target.value)}
+                                className={INPUT}
+                            />
+                        </Field>
+                    </FormGrid>
+                </FormSection>
+
+                <FormActions cancelHref="/admin/employees">
+                    <Button type="submit" disabled={form.processing}>
+                        إنشاء الموظف
+                    </Button>
+                </FormActions>
+            </form>
         </AdminLayout>
     );
 }

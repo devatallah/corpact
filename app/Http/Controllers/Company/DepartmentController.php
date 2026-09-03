@@ -48,7 +48,7 @@ class DepartmentController extends Controller
 
         return Inertia::render('company/departments/index', [
             'departments' => $departments,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }

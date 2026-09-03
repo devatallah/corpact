@@ -1,294 +1,348 @@
-import AdminLayout from '@/layouts/admin-layout';
-import StatCard from '@/components/stat-card';
-import StatusBadge from '@/components/status-badge';
-import { fmtDateTime } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/react';
-
-interface RecentRequest {
-    id: number;
-    type: string;
-    type_label: string;
-    name: string;
-    status: string;
-    created_at: string;
-}
-
-interface MonthData {
-    month: string;
-    total: number;
-}
+import { Activity, AlertTriangle, Building2, CircleCheckBig, Clock, TrendingUp, UserRound } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { ListStates } from '@/components/list-states';
+import { Badge, Card, CardTitle, Money, PageHeader, StatCard } from '@/components/portal/ui';
+import AdminLayout from '@/layouts/admin-layout';
 
 /**
- * الشركة هنا إسقاط صريح من الخادم (id + الاسم + العدّادان) لا نموذج كامل —
- * شروط العقد والرقم الضريبي وبيانات التواصل لا تصل هذه الشاشة أصلاً.
+ * H §20 — لوحة التشغيل المركزية. Not a vanity board: every card here answers
+ * «هل المحرّك يعمل؟» — the ledger reconciles, the scheduled jobs ran, and the
+ * ghost-event indicators are inside their bands.
+ *
+ * The numbers are permission-gated on the server, not hidden here: an account
+ * without `revenue.view` is never sent the revenue props at all.
  */
-interface TopCompany {
-    id: number;
-    name: string;
-    employees_count: number;
-    events_count: number;
-}
+type Stats = { total: number; pending: number; review: number; active: number; rejected: number };
 
-interface Props {
-    companyStats: { active: number; pending: number; review: number };
-    partnerStats: { active: number; pending: number };
-    totalEmployees: number;
-    pendingRequests: number;
-    pendingCompanies: number;
-    pendingPartners: number;
-    companiesThisMonth: number;
-    partnersThisMonth: number;
-    employeesThisMonth: number;
-    /**
-     * H §4: أرقام الإيراد تصل فقط لمن يملك `revenue.view` — الخادم يحذف
-     * الخصائص الأربع التالية لغيره، فالشاشة تُبنى بدونها لا تخفيها بـ CSS.
-     */
-    canViewRevenue: boolean;
-    monthlyRevenue?: number;
-    revenueGrowth?: number;
-    last6Months?: MonthData[];
-    maxRevenue?: number;
-    recentRequests: RecentRequest[];
-    topCompanies: TopCompany[];
-    /**
-     * A12 — H §13: مؤشر الإنذار المبكر لـ«الفعالية الشبح». الحضور تلقائي،
-     * فارتفاع معدل التعديل بعد الاكتمال أو التغيير اليدوي للحالة إشارة إلى
-     * فعاليات لم تُقم فعلاً. A13 يبني التقرير الكامل فوق نفس الأرقام.
-     */
-    ghostEventWatch: GhostEventWatch;
-}
-
-interface GhostEventWatch {
+type GhostWatch = {
     completed_events: number;
     post_completion_edited_events: number;
     post_completion_edit_rate: number;
-    absence_marks: number;
     events_created: number;
     manual_state_change_events: number;
     manual_state_change_rate: number;
     locked_without_review: number;
     locked_without_review_rate: number;
-}
+};
 
-export default function AdminDashboard({
+type JobHealth = {
+    jobs: { job: string; cadence_minutes: number; last_run_at: string | null; late: boolean }[];
+    late_count: number;
+};
+
+export default function AdminDash({
     companyStats,
     partnerStats,
     totalEmployees,
-    canViewRevenue,
-    monthlyRevenue,
-    pendingRequests,
-    pendingCompanies,
-    pendingPartners,
     companiesThisMonth,
     partnersThisMonth,
     employeesThisMonth,
+    pendingRequests,
+    pendingCompanies,
+    pendingPartners,
+    recentRequests,
+    topCompanies,
+    canViewRevenue,
+    canMonitorOps,
+    ghostEventWatch,
+    jobHealth,
+    walletReconciliation,
+    monthlyRevenue,
     revenueGrowth,
     last6Months,
     maxRevenue,
-    recentRequests,
-    topCompanies,
-    ghostEventWatch,
-}: Props) {
-    // الرسم يُبنى فقط حين وصلت أرقامه فعلاً؛ غيابها ليس صفراً بل «لا صلاحية».
-    const showRevenue = canViewRevenue && last6Months !== undefined && monthlyRevenue !== undefined;
-
+}: {
+    companyStats: Stats;
+    partnerStats: Stats;
+    totalEmployees: number;
+    companiesThisMonth: number;
+    partnersThisMonth: number;
+    employeesThisMonth: number;
+    pendingRequests: number;
+    pendingCompanies: number;
+    pendingPartners: number;
+    recentRequests: { name: string; type: string; type_label: string; status: string; created_at: string }[];
+    topCompanies: { id: number; name: string; employees_count: number; events_count: number }[];
+    canViewRevenue: boolean;
+    canMonitorOps: boolean;
+    ghostEventWatch: GhostWatch;
+    jobHealth?: JobHealth;
+    walletReconciliation?: { cached_halalas: number; ledger_halalas: number; difference_halalas: number; wallets: number; mismatched: number };
+    monthlyRevenue?: number;
+    revenueGrowth?: number;
+    last6Months?: { month: string; total: number }[];
+    maxRevenue?: number;
+}) {
     return (
         <AdminLayout>
-            <Head title="لوحة التحكم" />
+            <Head title="لوحة التشغيل" />
 
-            <div className="page-title">لوحة التحكم</div>
-            <div className="page-sub">نظرة عامة على المنصة</div>
+            <PageHeader
+                icon={Activity}
+                title="لوحة التشغيل المركزية والمراقبة"
+                subtitle="مراقبة صحة المحركات التشغيلية، ومطابقة سجلات الأرصدة، ومؤشرات الإنذار المبكر."
+            />
 
-            <div className="stat-row">
-                <StatCard
-                    emoji="🏢"
-                    label="شركة مفعّلة"
-                    value={companyStats.active}
-                    change={`+${companiesThisMonth} هذا الشهر`}
-                    color="#009E82"
-                />
-                <StatCard
-                    emoji="🏟️"
-                    label="شريك مفعّل"
-                    value={partnerStats.active}
-                    change={`+${partnersThisMonth} هذا الشهر`}
-                    color="#5B7EFF"
-                />
-                <StatCard
-                    emoji="👥"
-                    label="موظف مسجّل"
-                    value={totalEmployees.toLocaleString()}
-                    change={`+${employeesThisMonth} هذا الشهر`}
-                    color="#D4820A"
-                />
-                {showRevenue && (
+            {/* ── هل المحرّكات تعمل؟ ── */}
+            {canMonitorOps && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {walletReconciliation && <ReconciliationCard reconciliation={walletReconciliation} />}
+                    {jobHealth && <JobHealthCard health={jobHealth} />}
+                    <Card className="space-y-3">
+                        <CardTitle
+                            aside={
+                                <Badge tone={pendingRequests > 0 ? 'warning' : 'success'}>
+                                    {pendingRequests > 0 ? `${pendingRequests} بانتظار المراجعة` : 'لا طلبات معلّقة'}
+                                </Badge>
+                            }
+                        >
+                            طلبات التسجيل
+                        </CardTitle>
+                        <div className="space-y-1.5 pt-1">
+                            <Row label="شركات بانتظار الاعتماد:" value={String(pendingCompanies)} />
+                            <Row label="مزوّدون بانتظار الاعتماد:" value={String(pendingPartners)} />
+                        </div>
+                        <Link href="/admin/companies" className="text-[11px] font-bold text-ink hover:underline block pt-1">
+                            مراجعة الطلبات ←
+                        </Link>
+                    </Card>
+                </div>
+            )}
+
+            {/* ── العدّادات ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard label="الشركات المفعّلة" value={companyStats.active} hint={`+${companiesThisMonth} هذا الشهر`} />
+                <StatCard label="مزوّدو الخدمة" value={partnerStats.active} hint={`+${partnersThisMonth} هذا الشهر`} />
+                <StatCard label="الموظفون" value={totalEmployees} hint={`+${employeesThisMonth} هذا الشهر`} />
+                {canViewRevenue ? (
                     <StatCard
-                        emoji="💰"
-                        label="إيرادات الشهر (ريال)"
-                        value={monthlyRevenue.toLocaleString()}
-                        change={`${(revenueGrowth ?? 0) >= 0 ? '+' : ''}${revenueGrowth ?? 0}% عن الشهر السابق`}
-                        color="#E03050"
+                        label="عمولة الشهر الحالي"
+                        value={<Money amount={monthlyRevenue ?? 0} />}
+                        hint={`${(revenueGrowth ?? 0) >= 0 ? '+' : ''}${revenueGrowth ?? 0}٪ عن الشهر السابق`}
+                        tone={(revenueGrowth ?? 0) >= 0 ? 'success' : 'danger'}
                     />
+                ) : (
+                    <StatCard label="طلبات معلّقة" value={pendingRequests} hint="شركات ومزوّدون" tone={pendingRequests > 0 ? 'warning' : 'ink'} />
                 )}
-                <StatCard
-                    emoji="⏳"
-                    label="طلبات تحتاج مراجعة"
-                    value={pendingRequests}
-                    change={`${pendingCompanies} شركة · ${pendingPartners} شريك`}
-                    color="#C8A600"
-                />
             </div>
 
-            {/* A12 — H §13: «يجب مراقبة معدل التعديلات بعد الاكتمال كمؤشر إنذار مبكر» */}
-            <div className="card" style={{ marginBottom: '16px' }}>
-                <div className="card-title">إنذار مبكر — الفعالية الشبح (آخر 30 يوماً)</div>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 12, lineHeight: 1.7 }}>
-                    الحضور تلقائي بالكامل، فالفعالية التي لم تُقم ولم يبلّغ عنها أحد تُحتسب مكتملة وتدخل
-                    الصرف والفوترة. هذه الأرقام هي المؤشر المتفق عليه لكشف ذلك مبكراً.
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-                    <div>
-                        <div style={{ fontSize: 22, fontWeight: 700 }}>{ghostEventWatch.post_completion_edit_rate}%</div>
-                        <div style={{ fontSize: 12, color: '#666' }}>
-                            تعديل حضور بعد الاكتمال ({ghostEventWatch.post_completion_edited_events} من {ghostEventWatch.completed_events})
+            {/* ── الإيراد على ٦ أشهر ── */}
+            {canViewRevenue && last6Months && last6Months.length > 0 && (
+                <Card padding="p-5" className="space-y-4">
+                    <div className="flex items-center justify-between border-b-[0.5px] border-ink/10 pb-3">
+                        <div className="flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-ink" aria-hidden="true" />
+                            <h2 className="text-sm font-extrabold text-ink">العمولة على الفعاليات المكتملة</h2>
                         </div>
+                        <span className="text-[11px] text-ink/50">آخر ٦ أشهر</span>
                     </div>
-                    <div>
-                        <div style={{ fontSize: 22, fontWeight: 700 }}>{ghostEventWatch.manual_state_change_rate}%</div>
-                        <div style={{ fontSize: 12, color: '#666' }}>
-                            تغيير حالة يدوي ({ghostEventWatch.manual_state_change_events} فعالية)
-                        </div>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: 22, fontWeight: 700 }}>{ghostEventWatch.locked_without_review}</div>
-                        <div style={{ fontSize: 12, color: '#666' }}>
-                            أُقفلت نافذتها بلا مراجعة واحدة ({ghostEventWatch.locked_without_review_rate}%)
-                        </div>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: 22, fontWeight: 700 }}>{ghostEventWatch.absence_marks}</div>
-                        <div style={{ fontSize: 12, color: '#666' }}>حالات غياب مسجَّلة</div>
-                    </div>
-                </div>
-            </div>
 
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: showRevenue ? '1.6fr 1fr' : '1fr',
-                    gap: '16px',
-                    marginBottom: '16px',
-                }}
-            >
-                {showRevenue && (
-                    <div className="card">
-                        <div className="card-title">إيرادات آخر 6 أشهر (ريال)</div>
-                        <div className="rev-bar-wrap">
-                            {last6Months.map((m, i) => {
-                                const height = (maxRevenue ?? 0) > 0
-                                    ? Math.round((m.total / (maxRevenue as number)) * 100)
-                                    : 0;
-                                const isLast = i === last6Months.length - 1;
-                                const isSecondLast = i === last6Months.length - 2;
-                                return (
+                    <div className="flex items-end justify-between gap-2 h-40" dir="ltr">
+                        {last6Months.map((month) => {
+                            const height = Math.round((month.total / (maxRevenue || 1)) * 100);
+
+                            return (
+                                <div key={month.month} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                                    <span className="text-[10px] font-mono text-ink/60">{Math.round(month.total).toLocaleString()}</span>
                                     <div
-                                        key={i}
-                                        className="rev-bar"
-                                        style={{
-                                            height: `${height}%`,
-                                            ...(isLast
-                                                ? { background: 'linear-gradient(180deg, #E03050, #B8001A)' }
-                                                : isSecondLast
-                                                    ? { background: 'linear-gradient(180deg, #D4820A, #A05800)' }
-                                                    : {}),
-                                        }}
+                                        className="w-full rounded-t-lg bg-lime border-[0.5px] border-lime"
+                                        style={{ height: `${Math.max(height, 2)}%` }}
                                     />
-                                );
-                            })}
-                        </div>
-                        <div className="rev-label">
-                            {last6Months.map((m, i) => (
-                                <span key={i}>{m.month}</span>
-                            ))}
-                        </div>
+                                    <span className="text-[10px] font-bold text-ink/70">{month.month}</span>
+                                </div>
+                            );
+                        })}
                     </div>
-                )}
+                </Card>
+            )}
 
-                <div className="card">
-                    <div className="card-title">آخر الطلبات</div>
-                    {recentRequests.length === 0 ? (
-                        <div style={{ padding: '20px', textAlign: 'center', color: '#6B7A99', fontSize: '13px' }}>
-                            لا توجد طلبات معلقة
-                        </div>
-                    ) : (
-                        recentRequests.map((req) => (
-                            <Link
-                                key={req.id}
-                                href={req.type === 'company' ? '/admin/companies' : '/admin/partners'}
-                                style={{
-                                    display: 'block',
-                                    background: '#0F1117',
-                                    border: '1px solid #232A3E',
-                                    borderRight: `3px solid ${
-                                        req.status === 'pending' ? '#D4820A'
-                                            : req.status === 'review' ? '#5B7EFF'
-                                                : '#232A3E'
-                                    }`,
-                                    borderRadius: '10px',
-                                    padding: '10px 12px',
-                                    cursor: 'pointer',
-                                    marginBottom: '8px',
-                                    textDecoration: 'none',
-                                }}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{req.name}</span>
-                                    <StatusBadge status={req.status} />
-                                </div>
-                                <div style={{ fontSize: '11px', color: '#6B7A99' }}>
-                                    {req.type_label} · {fmtDateTime(req.created_at)}
-                                </div>
-                            </Link>
-                        ))
-                    )}
+            {/* ── مؤشرات الإنذار المبكر (H §13) ── */}
+            <Card padding="p-5" className="space-y-4">
+                <div className="flex items-center justify-between border-b-[0.5px] border-ink/10 pb-3">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-ink" aria-hidden="true" />
+                        <h2 className="text-sm font-extrabold text-ink">مؤشرات الإنذار المبكر</h2>
+                    </div>
+                    <span className="text-[11px] text-ink/50">آخر ٣٠ يوماً</span>
                 </div>
-            </div>
 
-            <div className="card">
-                <div className="card-title">أكثر الشركات نشاطاً</div>
-                <div style={{ overflow: 'auto' }}>
-                    <table className="portal-table">
-                        <thead>
-                            <tr>
-                                <th>الشركة</th>
-                                <th>الموظفون</th>
-                                <th>الفعاليات</th>
-                                <th>الحالة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {topCompanies.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} style={{ textAlign: 'center', color: '#6B7A99' }}>
-                                        لا توجد بيانات
-                                    </td>
-                                </tr>
-                            ) : (
-                                topCompanies.map((company) => (
-                                    <tr key={company.id}>
-                                        <td style={{ fontWeight: 700, color: '#fff' }}>{company.name}</td>
-                                        <td>{company.employees_count}</td>
-                                        <td style={{ color: '#009E82', fontWeight: 700 }}>{company.events_count}</td>
-                                        <td>
-                                            <StatusBadge status="active" />
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Indicator
+                        label="تعديلات الحضور بعد الاكتمال"
+                        rate={ghostEventWatch.post_completion_edit_rate}
+                        detail={`${ghostEventWatch.post_completion_edited_events} من ${ghostEventWatch.completed_events} فعالية مكتملة`}
+                        note="ارتفاع التعديل بعد انقضاء نافذة الـ٢٤ ساعة يشير إلى عدم دقة تسجيل الحضور."
+                    />
+                    <Indicator
+                        label="التدخلات اليدوية في الحالات"
+                        rate={ghostEventWatch.manual_state_change_rate}
+                        detail={`${ghostEventWatch.manual_state_change_events} من ${ghostEventWatch.events_created} فعالية`}
+                        note="تغيير الحالات يدوياً بدل الدورة التلقائية يشير إلى خلل تشغيلي."
+                    />
+                    <Indicator
+                        label="أُقفلت بلا مراجعة"
+                        rate={ghostEventWatch.locked_without_review_rate}
+                        detail={`${ghostEventWatch.locked_without_review} فعالية`}
+                        note="الخانة التي تسكنها الفعالية الشبح: اكتملت، أُقفلت، ولم يراجعها أحد."
+                    />
                 </div>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* ── أحدث الطلبات ── */}
+                <Card padding="p-0" className="overflow-hidden">
+                    <div className="p-4 border-b-[0.5px] border-ink/10 flex items-center justify-between">
+                        <h2 className="text-sm font-extrabold text-ink">أحدث طلبات التسجيل</h2>
+                        <Link href="/admin/companies" className="text-[11px] font-bold text-ink/70 hover:text-ink">
+                            الكل ←
+                        </Link>
+                    </div>
+
+                    <div className="divide-y-[0.5px] divide-ink/10">
+                        {recentRequests.map((request, index) => (
+                            <div key={`${request.type}-${index}`} className="p-4 flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-extrabold text-ink truncate">{request.name}</span>
+                                        <Badge tone="neutral">{request.type_label}</Badge>
+                                    </div>
+                                    <span className="text-[11px] text-ink/50">
+                                        {new Date(request.created_at).toLocaleDateString('ar-SA')}
+                                    </span>
+                                </div>
+                                <Badge tone={request.status === 'review' ? 'warning' : 'info'}>
+                                    {request.status === 'review' ? 'قيد المراجعة' : 'جديد'}
+                                </Badge>
+                            </div>
+                        ))}
+                        <ListStates count={recentRequests.length} empty="لا توجد طلبات تسجيل جديدة." />
+                    </div>
+                </Card>
+
+                {/* ── أنشط الشركات ── */}
+                <Card padding="p-0" className="overflow-hidden">
+                    <div className="p-4 border-b-[0.5px] border-ink/10 flex items-center justify-between">
+                        <h2 className="text-sm font-extrabold text-ink">أنشط الشركات</h2>
+                        <span className="text-[11px] text-ink/50">حسب عدد الموظفين</span>
+                    </div>
+
+                    <div className="divide-y-[0.5px] divide-ink/10">
+                        {topCompanies.map((company) => (
+                            <div key={company.id} className="p-4 flex items-center justify-between gap-3">
+                                <span className="text-xs font-extrabold text-ink truncate">{company.name}</span>
+                                <div className="flex items-center gap-3 shrink-0 text-[11px] font-mono text-ink/70">
+                                    <span className="flex items-center gap-1">
+                                        <UserRound className="w-3 h-3" aria-hidden="true" />
+                                        {company.employees_count}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                        <Building2 className="w-3 h-3" aria-hidden="true" />
+                                        {company.events_count}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                        <ListStates count={topCompanies.length} empty="لا توجد شركات مفعّلة بعد." />
+                    </div>
+                </Card>
             </div>
         </AdminLayout>
+    );
+}
+
+function Row({ label, value, tone = 'ink' }: { label: string; value: string; tone?: 'ink' | 'success' | 'danger' }) {
+    const tones = { ink: 'text-ink', success: 'text-success', danger: 'text-danger' };
+
+    return (
+        <div className="flex items-center justify-between text-xs gap-2">
+            <span className="text-ink/60">{label}</span>
+            <span className={`font-mono font-bold ${tones[tone]}`}>{value}</span>
+        </div>
+    );
+}
+
+/** H §12.5 — الرصيد مشتق من الدفتر لا العكس؛ الفارق يجب أن يكون صفراً. */
+function ReconciliationCard({
+    reconciliation,
+}: {
+    reconciliation: { cached_halalas: number; ledger_halalas: number; difference_halalas: number; wallets: number; mismatched: number };
+}) {
+    const balanced = reconciliation.difference_halalas === 0 && reconciliation.mismatched === 0;
+    const riyals = (halalas: number) => (halalas / 100).toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+    return (
+        <Card className="space-y-3">
+            <CardTitle
+                aside={
+                    <Badge tone={balanced ? 'success' : 'danger'} icon={balanced ? CircleCheckBig : AlertTriangle}>
+                        {balanced ? `متطابق (${reconciliation.wallets} محفظة)` : `${reconciliation.mismatched} محفظة غير مطابقة`}
+                    </Badge>
+                }
+            >
+                المطابقة اليومية للمحافظ
+            </CardTitle>
+            <div className="space-y-1.5 pt-1">
+                <Row label="رصيد المحافظ المخزن:" value={`${riyals(reconciliation.cached_halalas)} ر.س`} />
+                <Row label="مجموع حركات دفتر الأستاذ:" value={`${riyals(reconciliation.ledger_halalas)} ر.س`} />
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-ink/40 pt-1 border-t-[0.5px] border-ink/10">
+                <span>الفارق المحاسبي:</span>
+                <span className={`font-mono font-bold ${balanced ? 'text-success' : 'text-danger'}`}>
+                    {riyals(reconciliation.difference_halalas)} ر.س
+                </span>
+            </div>
+        </Card>
+    );
+}
+
+/** H §20 — «الصمت ليس دليل نجاح»: مهمة لم تُنفَّذ خلال ضعف دوريتها متأخرة. */
+function JobHealthCard({ health }: { health: JobHealth }) {
+    const healthy = health.late_count === 0;
+
+    return (
+        <Card className="space-y-3">
+            <CardTitle
+                aside={
+                    <Badge tone={healthy ? 'success' : 'danger'} icon={healthy ? CircleCheckBig : Clock}>
+                        {healthy ? 'كل المهام في وقتها' : `${health.late_count} مهمة متأخرة`}
+                    </Badge>
+                }
+            >
+                المجدول الزمني (Cron Runner)
+            </CardTitle>
+            <p className="text-[11px] text-ink/70 leading-relaxed">
+                «تنبيه إذا لم تُنفَّذ مهمة حرجة خلال ضعف دوريتها — الصمت ليس دليل نجاح.»
+            </p>
+            <div className="space-y-1.5 pt-1 border-t-[0.5px] border-ink/10">
+                {health.jobs.slice(0, 4).map((job) => (
+                    <div key={job.job} className="flex items-center justify-between text-[11px] gap-2">
+                        <span className="text-ink/60 truncate font-mono">{job.job}</span>
+                        <span className={`font-bold shrink-0 ${job.late ? 'text-danger' : 'text-success'}`}>
+                            {job.late ? 'متأخرة' : 'في وقتها'}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </Card>
+    );
+}
+
+function Indicator({ label, rate, detail, note }: { label: string; rate: number; detail: string; note: ReactNode }) {
+    // Bands from H §13: under 5% is normal operation, 5–10% is worth a look.
+    const tone = rate >= 10 ? 'danger' : rate >= 5 ? 'warning' : 'success';
+    const tones = { danger: 'text-danger border-danger/20', warning: 'text-warning border-warning/20', success: 'text-success border-success/20' };
+
+    return (
+        <div className="p-4 rounded-xl bg-page border-[0.5px] border-ink/10 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-ink">{label}</span>
+                <span className={`font-mono font-extrabold text-sm bg-surface px-2 py-0.5 rounded-lg border-[0.5px] ${tones[tone]}`}>
+                    {rate}٪
+                </span>
+            </div>
+            <div className="text-[11px] font-medium text-ink/60">{detail}</div>
+            <p className="text-[11px] text-ink/70 leading-relaxed pt-1 border-t-[0.5px] border-ink/5">{note}</p>
+        </div>
     );
 }

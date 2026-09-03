@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\ProviderOversightController as AdminProviderOvers
 use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
 use App\Http\Controllers\Admin\SecurityEventController;
 use App\Http\Controllers\Admin\SupportConsoleController;
+use App\Http\Controllers\Admin\TaxStatusController;
 use App\Http\Controllers\Admin\TopupRequestController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\CompanyAuthController;
@@ -89,9 +90,9 @@ use App\Http\Controllers\Partner\VenueController as PartnerVenueController;
 use App\Http\Controllers\Payments\TestGatewayController;
 use App\Http\Controllers\Payments\WebhookController as PaymentWebhookController;
 use App\Http\Controllers\SupportMessageController;
-use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::view('/terms', 'legal.terms');
 Route::view('/privacy', 'legal.privacy');
@@ -102,17 +103,39 @@ Route::view('/packages', 'pages.packages');
 Route::view('/about', 'pages.about');
 Route::view('/blog', 'pages.blog');
 
-Route::get('/', function () {
-    return view('welcome');
-});
+/*
+|--------------------------------------------------------------------------
+| Public marketing site
+|--------------------------------------------------------------------------
+| Ported from the teamat.ai.studio prototype. The nav lives in
+| partials/marketing-header.blade.php and its five entries must stay in step
+| with the routes named here.
+*/
+// The public site is Inertia like the rest of the product — one SPA, one shell.
+foreach ([
+    '/' => 'home',
+    '/how-it-works' => 'how-it-works',
+    '/for-companies' => 'for-companies',
+    '/for-providers' => 'for-providers',
+    '/activities' => 'activities',
+    '/model' => 'model',
+    '/contact' => 'contact',
+] as $path => $screen) {
+    Route::get($path, fn () => Inertia::render("marketing/{$screen}"))->name("marketing.{$screen}");
+}
 
-Route::get('/companies', function () {
-    return view('landing.companies');
-});
+// The pre-port audience pages. /companies maps cleanly; /employees has no
+// prototype equivalent — the prototype sells to companies and providers, not
+// to employees directly — so it falls back to the home page.
+Route::redirect('/companies', '/for-companies');
+Route::redirect('/employees', '/');
 
-Route::get('/employees', function () {
-    return view('landing.employees');
-});
+// «دخول المنصة» in the marketing header. The unified phone + OTP login that
+// replaces the four per-portal doors is not built yet, so this stands in.
+// Deliberately unnamed: a route named `login` is what Laravel falls back to
+// for unauthenticated redirects, and this app already sets redirectGuestsTo
+// per guard in bootstrap/app.php.
+Route::redirect('/login', '/employee/login');
 
 // A10 — H §12.6: نقطة ويبهوكات بوابة الدفع — بلا جلسة، CSRF مستثنى في
 // bootstrap/app.php؛ التوقيع والتفرّد في WebhookProcessor.
@@ -132,15 +155,8 @@ Route::redirect('/business/login', '/partner/login');
 Route::redirect('/business/register', '/partner/register');
 Route::redirect('/business', '/partner');
 
-Route::get('/partners', function () {
-    return view('landing.partners', [
-        'categories' => Category::whereNull('parent_id')
-            ->with('children:id,parent_id,name')
-            ->select('id', 'parent_id', 'name')
-            ->orderBy('name')
-            ->get(),
-    ]);
-});
+// The provider-facing landing, now served by the ported prototype page.
+Route::redirect('/partners', '/for-providers');
 
 /*
 |--------------------------------------------------------------------------
@@ -458,6 +474,8 @@ Route::prefix('admin')
             Route::get('/finance/invoices/{invoice}', [FinanceInvoiceController::class, 'show'])->name('finance.invoices.show');
             Route::post('/finance/invoices/{invoice}/pay', [FinanceInvoiceController::class, 'markPaid'])->name('finance.invoices.pay');
             Route::get('/finance/terms', [FinanceTermsController::class, 'index'])->name('finance.terms.index');
+            // H §12.9 — الصفة الضريبية: قراءة فقط، تعرض ما يطبّقه النظام فعلاً.
+            Route::get('/finance/tax-status', [TaxStatusController::class, 'index'])->name('finance.tax-status.index');
             Route::post('/finance/contract-terms', [FinanceTermsController::class, 'storeContractTerms'])->name('finance.contract-terms.store');
         });
 

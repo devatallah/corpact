@@ -91,7 +91,7 @@ class PermissionReviewController extends Controller
 
         return Inertia::render('admin/security/permission-review', [
             'assignments' => $assignments,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'roles' => collect(self::reviewableRoles())
                 ->map(fn (string $role) => ['value' => $role, 'label' => Role::from($role)->label()])

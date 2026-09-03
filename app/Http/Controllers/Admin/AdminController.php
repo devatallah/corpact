@@ -84,7 +84,7 @@ class AdminController extends Controller
             'totalAdmins' => User::query()
                 ->whereHas('roleAssignments', fn ($q) => $q->where('scope_type', RoleAssignment::SCOPE_PLATFORM))
                 ->count(),
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }

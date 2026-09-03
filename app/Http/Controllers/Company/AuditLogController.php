@@ -121,7 +121,7 @@ class AuditLogController extends Controller
         return Inertia::render('company/audit/index', [
             'company' => $company,
             'logs' => $logs,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'actions' => collect(self::visibleActions())
                 ->map(fn (string $action) => ['value' => $action, 'label' => AuditAction::label($action)])

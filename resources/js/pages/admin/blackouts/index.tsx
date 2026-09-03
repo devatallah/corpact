@@ -1,124 +1,220 @@
-import AdminLayout from '@/layouts/admin-layout';
-import ConfirmModal from '@/components/confirm-modal';
-import Pagination from '@/components/pagination';
-import { SortBar, type SortState } from '@/components/sortable-header';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import { Head, router, useForm } from '@inertiajs/react';
+import { CalendarOff, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import type { BlackoutDate, PaginatedResult } from '@/types/models';
-import { fmtDate } from '@/lib/utils';
-import toastr from 'toastr';
-
-interface Props {
-    blackouts: PaginatedResult<BlackoutDate>;
-    totalBlackouts: number;
-    filters: { search?: string | null; sort?: string | null; dir?: string | null };
-    sort: SortState;
-}
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import { Badge, Button, Card, Field, IconButton, INPUT, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import AdminLayout from '@/layouts/admin-layout';
+import type { Paginated, SortState } from '@/types';
 
 /**
- * A8 — أيام الحظر (H §8): يديرها أدمن تيمات (إجازات/رمضان). الفعالية المولَّدة
- * من قالب والواقعة في نطاق حظر تُتخطى افتراضياً أو تُزاح أسبوعاً حسب إعداد
- * القالب. تسري على التوليد القادم فقط — لا تمس فعاليات مولّدة. CRUD أدنى (A15 يوسّعه).
+ * H §16 — أيام التعطيل.
+ *
+ * A blackout range stops event scheduling platform-wide for those dates —
+ * national holidays, Ramadan adjustments, anything the whole network should
+ * not be booking through. Adding one is cheap; removing one silently reopens
+ * dates people had planned around, so deletion confirms with the range.
  */
-export default function BlackoutsIndex({ blackouts, totalBlackouts, filters, sort }: Props) {
-    const [deleting, setDeleting] = useState<BlackoutDate | null>(null);
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        sort: filters?.sort ?? undefined,
-        dir: filters?.dir ?? undefined,
-    });
+type Blackout = {
+    id: number;
+    name: string;
+    starts_on: string;
+    ends_on: string;
+    created_at: string | null;
+};
+
+export default function AdminBlackouts({
+    blackouts,
+    totalBlackouts,
+    filters,
+    sort,
+}: {
+    blackouts: Paginated<Blackout>;
+    totalBlackouts: number;
+    filters: { search?: string | null };
+    sort: SortState;
+}) {
+    const [adding, setAdding] = useState(false);
+    const [removing, setRemoving] = useState<Blackout | null>(null);
     const form = useForm({ name: '', starts_on: '', ends_on: '' });
 
     return (
         <AdminLayout>
-            <Head title="أيام الحظر" />
-            <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>أيام الحظر — الإجازات ورمضان</h1>
-            <div style={{ fontSize: 12, color: '#8A7868', marginBottom: 16 }}>
-                فعالية قالب تقع في نطاق حظر تُتخطى افتراضياً أو تُزاح أسبوعاً حسب إعداد القالب. يسري على التوليد القادم فقط — الفعاليات المولّدة سلفاً لا تُمس.
+            <Head title="أيام التعطيل" />
+
+            <PageHeader
+                icon={CalendarOff}
+                title="أيام التعطيل"
+                subtitle="نطاقات تُمنع فيها جدولة الفعاليات على مستوى المنصة — الأعياد والمناسبات الرسمية."
+                actions={
+                    <Button icon={Plus} onClick={() => setAdding(true)}>
+                        إضافة نطاق
+                    </Button>
+                }
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+                <StatCard label="إجمالي النطاقات" value={totalBlackouts} />
+                <StatCard label="المعروض بعد التصفية" value={blackouts.total} />
             </div>
 
-            <div className="card" style={{ marginBottom: 16 }}>
-                <div style={{ fontWeight: 800, marginBottom: 10 }}>إضافة نطاق حظر</div>
-                <div className="frow">
-                    <div className="fg">
-                        <label>الاسم (مثال: عيد الفطر)</label>
-                        <input value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} />
-                        {form.errors.name && <div style={{ fontSize: 11, color: '#C8410A' }}>{form.errors.name}</div>}
-                    </div>
-                    <div className="fg">
-                        <label>من تاريخ</label>
-                        <input type="date" value={form.data.starts_on} onChange={(e) => form.setData('starts_on', e.target.value)} />
-                        {form.errors.starts_on && <div style={{ fontSize: 11, color: '#C8410A' }}>{form.errors.starts_on}</div>}
-                    </div>
-                    <div className="fg">
-                        <label>إلى تاريخ</label>
-                        <input type="date" value={form.data.ends_on} onChange={(e) => form.setData('ends_on', e.target.value)} />
-                        {form.errors.ends_on && <div style={{ fontSize: 11, color: '#C8410A' }}>{form.errors.ends_on}</div>}
-                    </div>
-                </div>
-                <button
-                    className="act-btn"
-                    style={{ background: '#1A7A4A', color: '#fff', borderColor: '#1A7A4A', padding: '9px 20px', borderRadius: 8, marginTop: 6 }}
-                    disabled={form.processing || !form.data.name || !form.data.starts_on || !form.data.ends_on}
-                    onClick={() => form.post('/admin/blackouts', { onSuccess: () => { form.reset(); toastr.success('أُضيف نطاق الحظر'); } })}
-                >
-                    إضافة
-                </button>
-            </div>
+            {adding && (
+                <Card padding="p-4" className="space-y-4">
+                    <h2 className="text-sm font-extrabold text-ink">نطاق تعطيل جديد</h2>
 
-            <div className="card">
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap' }}>
-                    <div style={{ fontWeight: 800 }}>النطاقات ({totalBlackouts})</div>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="🔍 ابحث بالاسم..."
-                            style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(0,0,0,.12)', fontSize: 13, outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 180 }}
-                        />
-                        <SortBar
-                            sort={sort}
-                            options={[
-                                { key: 'starts_on', label: 'من تاريخ', initialDirection: 'desc' },
-                                { key: 'ends_on', label: 'إلى تاريخ', initialDirection: 'desc' },
-                                { key: 'name', label: 'الاسم' },
-                            ]}
-                        />
-                    </div>
-                </div>
-                {blackouts.data.length === 0 && (
-                    <div style={{ color: '#8A7868', fontSize: 13 }}>
-                        {filters?.search ? 'لا نطاق حظر مطابق للبحث الحالي.' : 'لا نطاقات حظر بعد.'}
-                    </div>
-                )}
-                {blackouts.data.map((b) => (
-                    <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(0,0,0,.08)', borderRadius: 10, padding: '10px 14px', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-                        <div>
-                            <b>{b.name}</b>
-                            <span style={{ fontSize: 12, color: '#8A7868', marginRight: 8 }}>
-                                {fmtDate(b.starts_on)} — {fmtDate(b.ends_on)}
-                            </span>
+                    <form
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            form.post('/admin/blackouts', {
+                                preserveScroll: true,
+                                onSuccess: () => {
+                                    form.reset();
+                                    setAdding(false);
+                                },
+                            });
+                        }}
+                        className="space-y-4"
+                    >
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <Field label="اسم المناسبة" htmlFor="blackout-name" required error={form.errors.name}>
+                                <input
+                                    id="blackout-name"
+                                    type="text"
+                                    required
+                                    value={form.data.name}
+                                    onChange={(event) => form.setData('name', event.target.value)}
+                                    placeholder="مثال: إجازة عيد الفطر"
+                                    className={INPUT}
+                                />
+                            </Field>
+                            <Field label="من تاريخ" htmlFor="blackout-start" required error={form.errors.starts_on}>
+                                <input
+                                    id="blackout-start"
+                                    type="date"
+                                    required
+                                    value={form.data.starts_on}
+                                    onChange={(event) => form.setData('starts_on', event.target.value)}
+                                    className={INPUT}
+                                />
+                            </Field>
+                            <Field label="إلى تاريخ" htmlFor="blackout-end" required error={form.errors.ends_on}>
+                                <input
+                                    id="blackout-end"
+                                    type="date"
+                                    required
+                                    value={form.data.ends_on}
+                                    onChange={(event) => form.setData('ends_on', event.target.value)}
+                                    className={INPUT}
+                                />
+                            </Field>
                         </div>
-                        <button className="act-btn" style={{ color: '#C8410A', borderColor: '#C8410A', padding: '6px 14px', borderRadius: 8, fontSize: 12 }} onClick={() => setDeleting(b)}>
-                            حذف
-                        </button>
-                    </div>
-                ))}
-            </div>
 
-            <Pagination links={blackouts.links} />
+                        <div className="flex items-center gap-2">
+                            <Button type="submit" disabled={form.processing}>
+                                حفظ النطاق
+                            </Button>
+                            <Button
+                                type="button"
+                                tone="soft"
+                                onClick={() => {
+                                    form.reset();
+                                    setAdding(false);
+                                }}
+                            >
+                                إلغاء
+                            </Button>
+                        </div>
+                    </form>
+                </Card>
+            )}
+
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput value={filters.search ?? ''} placeholder="ابحث باسم المناسبة…" />
+                </Toolbar>
+
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader label="المناسبة" sortKey="name" sort={sort} />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="من" sortKey="starts_on" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>
+                            <SortableHeader label="إلى" sortKey="ends_on" sort={sort} initialDirection="desc" />
+                        </Th>
+                        <Th>المدة</Th>
+                        <Th className="text-center">الإجراء</Th>
+                    </Thead>
+
+                    <Tbody>
+                        {blackouts.data.map((blackout) => {
+                            const days =
+                                Math.round(
+                                    (new Date(blackout.ends_on).getTime() - new Date(blackout.starts_on).getTime()) / 86_400_000,
+                                ) + 1;
+
+                            return (
+                                <Tr key={blackout.id}>
+                                    <Td className="font-extrabold text-ink">{blackout.name}</Td>
+                                    <Td className="font-mono text-[11px] text-ink/80">{blackout.starts_on}</Td>
+                                    <Td className="font-mono text-[11px] text-ink/80">{blackout.ends_on}</Td>
+                                    <Td>
+                                        <Badge>{days} يوم</Badge>
+                                    </Td>
+                                    <Td className="text-center">
+                                        <IconButton
+                                            icon={Trash2}
+                                            label="حذف النطاق"
+                                            tone="danger"
+                                            onClick={() => setRemoving(blackout)}
+                                        />
+                                    </Td>
+                                </Tr>
+                            );
+                        })}
+
+                        <ListStates
+                            count={blackouts.data.length}
+                            colSpan={5}
+                            empty="لا توجد نطاقات تعطيل."
+                            emptyHint="أضف نطاقاً لمنع جدولة الفعاليات في الأعياد والمناسبات."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ResultCount page={blackouts} />
+                    <Pagination page={blackouts} />
+                </div>
+            </Card>
+
+            <Note title="ماذا يحدث للفعاليات المجدولة داخل النطاق؟">
+                النطاق يمنع الجدولة الجديدة ولا يلغي فعالية قائمة. الفعاليات التي حُجزت قبل إضافة النطاق تبقى كما هي، وإلغاؤها
+                قرار يُتخذ واحدة واحدة بسياسة الاسترداد المعلنة.
+            </Note>
 
             <ConfirmModal
-                open={deleting !== null}
-                title="حذف نطاق الحظر"
-                message={deleting ? `سيُحذف «${deleting.name}» — التوليد القادم لن يتخطى هذه الأيام بعد الآن.` : ''}
+                open={removing !== null}
+                tone="danger"
+                title="حذف نطاق التعطيل"
+                message="ستُفتح هذه التواريخ للجدولة فوراً على مستوى المنصة."
+                details={
+                    removing && (
+                        <>
+                            <ConfirmRow label="المناسبة" value={removing.name} strong />
+                            <ConfirmRow label="النطاق" value={`${removing.starts_on} → ${removing.ends_on}`} />
+                        </>
+                    )
+                }
+                confirmLabel="حذف النطاق"
                 onConfirm={() => {
-                    if (deleting) {
-                        router.delete(`/admin/blackouts/${deleting.id}`, { onSuccess: () => toastr.success('حُذف نطاق الحظر') });
-                    }
-                    setDeleting(null);
+                    router.delete(`/admin/blackouts/${removing?.id}`, { preserveScroll: true });
+                    setRemoving(null);
                 }}
-                onCancel={() => setDeleting(null)}
+                onCancel={() => setRemoving(null)}
             />
         </AdminLayout>
     );

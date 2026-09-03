@@ -1,310 +1,319 @@
-import CompanyLayout from '@/layouts/company-layout';
-import ConfirmModal from '@/components/confirm-modal';
-import FilterTabs from '@/components/filter-tabs';
-import Pagination from '@/components/pagination';
-import { SortBar, type SortState } from '@/components/sortable-header';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
 import { Head, router } from '@inertiajs/react';
+import { CircleCheckBig, Inbox, X } from 'lucide-react';
 import { useState } from 'react';
-import type { CommunityRequest, PaginatedResult } from '@/types/models';
-import toastr from 'toastr';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import {
+    FilterSelect,
+    Pagination,
+    ResultCount,
+    SearchInput,
+    SortableHeader,
+    Toolbar,
+} from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import {
+    Badge,
+    Card,
+    IconButton,
+    PageHeader,
+    StatCard,
+    TableShell,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    Tr,
+} from '@/components/portal/ui';
+import CompanyLayout from '@/layouts/company-layout';
+import type { Paginated, SortState } from '@/types';
 
-interface Props {
-    requests: PaginatedResult<CommunityRequest>;
-    filters?: { status?: string; search?: string; sort?: string; dir?: string };
-    sort?: SortState;
-    /** عدد الطلبات المعلقة في القائمة كلها — لا في الصفحة الحالية. */
-    pendingCommunityRequests?: number;
-}
+/**
+ * H §6 — طلبات إنشاء المجتمعات.
+ *
+ * Approving is not a rubber stamp: it creates the community *and* makes the
+ * requesting employee its leader in one step. The confirm says both, because
+ * an account manager who expects only the first will be surprised by the
+ * second.
+ */
+type RequestRow = {
+    id: number;
+    name: string;
+    description: string | null;
+    status: string;
+    rejection_reason: string | null;
+    created_at: string | null;
+    reviewed_at: string | null;
+    employee?: { id: number; name: string; email: string } | null;
+    category?: { id: number; name: string } | null;
+    community?: { id: number; name: string } | null;
+};
 
-const statusFilters = [
-    { label: 'الكل', value: '' },
-    { label: 'قيد المراجعة', value: 'pending' },
-    { label: 'تمت الموافقة', value: 'approved' },
-    { label: 'مرفوض', value: 'rejected' },
-];
+const REQUEST_STATUS: Record<
+    string,
+    { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger' }
+> = {
+    pending: { label: 'بانتظار قرارك', tone: 'warning' },
+    approved: { label: 'مقبول', tone: 'success' },
+    rejected: { label: 'مرفوض', tone: 'danger' },
+};
 
-const sortOptions = [
-    { key: 'created_at', label: 'الأحدث', initialDirection: 'desc' as const },
-    { key: 'name', label: 'الاسم', initialDirection: 'asc' as const },
-    { key: 'status', label: 'الحالة', initialDirection: 'asc' as const },
-];
-
-function statusLabel(status: string): { text: string; bg: string; color: string } {
-    switch (status) {
-        case 'pending':
-            return { text: 'قيد المراجعة', bg: '#F59E0B18', color: '#F59E0B' };
-        case 'approved':
-            return { text: 'تمت الموافقة', bg: '#009E8218', color: '#009E82' };
-        case 'rejected':
-            return { text: 'مرفوض', bg: '#E0305018', color: '#E03050' };
-        default:
-            return { text: status, bg: '#7A8BA818', color: '#7A8BA8' };
-    }
-}
-
-export default function CommunityRequestsIndex({ requests, filters, sort, pendingCommunityRequests = 0 }: Props) {
-    const items = requests?.data ?? [];
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        status: filters?.status,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-    const [rejectingId, setRejectingId] = useState<number | null>(null);
-    const [rejectionReason, setRejectionReason] = useState('');
-    const [processing, setProcessing] = useState<number | null>(null);
-    // H §18: نافذة تأكيد موحّدة بدل نافذة المتصفح، والنص يصف أثر الموافقة.
-    const [approveTarget, setApproveTarget] = useState<CommunityRequest | null>(null);
-
-    const pendingCount = pendingCommunityRequests;
-
-    function handleApprove(request: CommunityRequest) {
-        setApproveTarget(request);
-    }
-
-    function confirmApprove() {
-        if (!approveTarget) return;
-        const id = approveTarget.id;
-        setApproveTarget(null);
-        setProcessing(id);
-        router.post(`/company/community-requests/${id}/approve`, {}, {
-            preserveScroll: true,
-            onSuccess: () => toastr.success('تمت الموافقة وتم إنشاء المجتمع'),
-            onFinish: () => setProcessing(null),
-        });
-    }
-
-    function handleReject(id: number) {
-        setProcessing(id);
-        router.post(`/company/community-requests/${id}/reject`, {
-            rejection_reason: rejectionReason,
-        }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                toastr.success('تم رفض الطلب');
-                setRejectingId(null);
-                setRejectionReason('');
-            },
-            onFinish: () => setProcessing(null),
-        });
-    }
+export default function CompanyCommunityRequests({
+    requests,
+    filters,
+    sort,
+    pendingCommunityRequests,
+}: {
+    requests: Paginated<RequestRow>;
+    filters: { search?: string; status?: string };
+    sort: SortState;
+    pendingCommunityRequests: number;
+}) {
+    const [deciding, setDeciding] = useState<{
+        request: RequestRow;
+        decision: 'approve' | 'reject';
+    } | null>(null);
+    const [reason, setReason] = useState('');
 
     return (
         <CompanyLayout>
-            <Head title="طلبات إنشاء مجتمعات" />
+            <Head title="طلبات المجتمعات" />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                <div>
-                    <div className="page-title">طلبات إنشاء مجتمعات</div>
-                    <div className="page-sub">
-                        {pendingCount > 0
-                            ? `${pendingCount} طلب بانتظار المراجعة`
-                            : 'لا توجد طلبات معلقة'}
-                    </div>
-                </div>
-            </div>
+            <PageHeader
+                icon={Inbox}
+                title="طلبات إنشاء المجتمعات"
+                subtitle="يقترحها الموظفون — الموافقة تنشئ المجتمع وتجعل مقدّم الطلب قائده."
+            />
 
-            {/* H §18: بحث + فلترة + ترتيب — كلها على الخادم فتصمد عبر الصفحات */}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث باسم المجتمع..."
-                    style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', fontFamily: 'inherit', minWidth: 200 }}
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <StatCard
+                    label="بانتظار قرارك"
+                    value={pendingCommunityRequests}
+                    tone={pendingCommunityRequests > 0 ? 'warning' : 'success'}
                 />
-                <FilterTabs options={statusFilters} current={filters?.status ?? ''} />
+                <StatCard label="إجمالي الطلبات" value={requests.total} />
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-                <SortBar sort={sort} options={sortOptions} />
-            </div>
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput
+                        value={filters.search ?? ''}
+                        placeholder="ابحث باسم المجتمع المقترح…"
+                    />
+                    <FilterSelect
+                        name="status"
+                        label="الحالة"
+                        value={filters.status ?? ''}
+                        options={[
+                            ['', 'كل الحالات'],
+                            ['pending', 'بانتظار قرارك'],
+                            ['approved', 'مقبول'],
+                            ['rejected', 'مرفوض'],
+                        ]}
+                    />
+                </Toolbar>
 
-            {/* Requests list */}
-            {items.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: 32 }}>
-                    <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا توجد طلبات</div>
-                </div>
-            ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {items.map((req) => {
-                        const s = statusLabel(req.status);
-                        const isRejecting = rejectingId === req.id;
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader
+                                label="المجتمع المقترح"
+                                sortKey="name"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th>مقدّم الطلب</Th>
+                        <Th>الفئة</Th>
+                        <Th>
+                            <SortableHeader
+                                label="تاريخ الطلب"
+                                sortKey="created_at"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th>
+                            <SortableHeader
+                                label="الحالة"
+                                sortKey="status"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th className="text-center">الإجراءات</Th>
+                    </Thead>
 
-                        return (
-                            <div
-                                key={req.id}
-                                style={{
-                                    background: '#fff', borderRadius: 16, overflow: 'hidden',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.03)',
-                                    border: req.status === 'pending' ? '1px solid #F59E0B33' : '1px solid #E2E8F4',
-                                }}
-                            >
-                                <div style={{ padding: '24px 28px' }}>
-                                    {/* Header */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: 18, fontWeight: 800 }}>{req.name}</div>
-                                            <div style={{ fontSize: 13, color: '#94A3B8', marginTop: 4 }}>
-                                                مقدم من: {req.employee?.name ?? '--'}
-                                            </div>
-                                        </div>
-                                        <span style={{
-                                            display: 'inline-block', padding: '4px 12px', borderRadius: 12,
-                                            fontSize: 11, fontWeight: 700, background: s.bg, color: s.color,
-                                        }}>
-                                            {s.text}
+                    <Tbody>
+                        {requests.data.map((request) => (
+                            <Tr key={request.id}>
+                                <Td>
+                                    <span className="block font-extrabold text-ink">
+                                        {request.name}
+                                    </span>
+                                    {request.description && (
+                                        <span className="block max-w-xs truncate text-[11px] text-ink/50">
+                                            {request.description}
                                         </span>
-                                    </div>
-
-                                    {/* Details */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                                        <div>
-                                            <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600 }}>الفئة</div>
-                                            <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>
-                                                {req.category?.name ?? '--'}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600 }}>تاريخ الطلب</div>
-                                            <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>
-                                                {new Date(req.created_at).toLocaleDateString('ar-SA')}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {req.description && (
-                                        <div style={{ marginBottom: 12 }}>
-                                            <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 4 }}>الوصف</div>
-                                            <div style={{ fontSize: 13, color: '#4A5C78', lineHeight: 1.6 }}>
-                                                {req.description}
-                                            </div>
-                                        </div>
                                     )}
-
-                                    {req.reason && (
-                                        <div style={{ marginBottom: 12 }}>
-                                            <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 4 }}>سبب الطلب</div>
-                                            <div style={{ fontSize: 13, color: '#4A5C78', lineHeight: 1.6 }}>
-                                                {req.reason}
-                                            </div>
-                                        </div>
+                                </Td>
+                                <Td>
+                                    <span className="block text-ink/85">
+                                        {request.employee?.name ?? '—'}
+                                    </span>
+                                    <span
+                                        className="block font-mono text-[11px] text-ink/50"
+                                        dir="ltr"
+                                    >
+                                        {request.employee?.email ?? ''}
+                                    </span>
+                                </Td>
+                                <Td className="text-ink/85">
+                                    {request.category?.name ?? '—'}
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/70">
+                                    {request.created_at
+                                        ? new Date(
+                                              request.created_at,
+                                          ).toLocaleDateString('ar-SA')
+                                        : '—'}
+                                </Td>
+                                <Td>
+                                    <Badge
+                                        tone={
+                                            REQUEST_STATUS[request.status]
+                                                ?.tone ?? 'neutral'
+                                        }
+                                    >
+                                        {REQUEST_STATUS[request.status]
+                                            ?.label ?? request.status}
+                                    </Badge>
+                                    {request.rejection_reason && (
+                                        <span className="mt-1 block max-w-xs text-[11px] text-danger">
+                                            {request.rejection_reason}
+                                        </span>
                                     )}
-
-                                    {req.status === 'rejected' && req.rejection_reason && (
-                                        <div style={{
-                                            background: '#E0305008', border: '1px solid #E0305022',
-                                            borderRadius: 10, padding: '10px 14px', marginBottom: 12,
-                                        }}>
-                                            <div style={{ fontSize: 11, color: '#E03050', fontWeight: 600, marginBottom: 2 }}>سبب الرفض</div>
-                                            <div style={{ fontSize: 13, color: '#E03050' }}>{req.rejection_reason}</div>
-                                        </div>
-                                    )}
-
-                                    {/* Actions for pending requests */}
-                                    {req.status === 'pending' && (
-                                        <div>
-                                            {isRejecting ? (
-                                                <div style={{ marginTop: 12 }}>
-                                                    <textarea
-                                                        value={rejectionReason}
-                                                        onChange={(e) => setRejectionReason(e.target.value)}
-                                                        placeholder="سبب الرفض (اختياري)..."
-                                                        rows={2}
-                                                        style={{
-                                                            width: '100%', borderRadius: 10, border: '1px solid #E4E9F2',
-                                                            padding: '8px 12px', fontSize: 13, outline: 'none',
-                                                            fontFamily: 'inherit', resize: 'none', marginBottom: 8,
-                                                            boxSizing: 'border-box',
-                                                        }}
-                                                    />
-                                                    <div style={{ display: 'flex', gap: 8 }}>
-                                                        <button
-                                                            onClick={() => handleReject(req.id)}
-                                                            disabled={processing === req.id}
-                                                            style={{
-                                                                flex: 1, padding: '8px 0', borderRadius: 10, border: 'none',
-                                                                background: '#E03050', color: '#fff', fontSize: 13,
-                                                                fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                                                                opacity: processing === req.id ? 0.6 : 1,
-                                                            }}
-                                                        >
-                                                            تأكيد الرفض
-                                                        </button>
-                                                        <button
-                                                            onClick={() => { setRejectingId(null); setRejectionReason(''); }}
-                                                            style={{
-                                                                padding: '8px 16px', borderRadius: 10, border: '1px solid #E4E9F2',
-                                                                background: '#fff', color: '#64748B', fontSize: 13,
-                                                                fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                                            }}
-                                                        >
-                                                            إلغاء
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-                                                    <button
-                                                        onClick={() => handleApprove(req)}
-                                                        disabled={processing === req.id}
-                                                        style={{
-                                                            flex: 1, padding: '10px 0', borderRadius: 10, border: 'none',
-                                                            background: '#009E82', color: '#fff', fontSize: 13,
-                                                            fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                                                            opacity: processing === req.id ? 0.6 : 1,
-                                                        }}
-                                                    >
-                                                        الموافقة وإنشاء المجتمع
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setRejectingId(req.id)}
-                                                        style={{
-                                                            padding: '10px 20px', borderRadius: 10, border: '1px solid #E0305033',
-                                                            background: '#E0305008', color: '#E03050', fontSize: 13,
-                                                            fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                                                        }}
-                                                    >
-                                                        رفض
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Link to community if approved */}
-                                    {req.status === 'approved' && req.community_id && (
-                                        <div style={{ marginTop: 8 }}>
-                                            <a
-                                                href={`/company/communities/${req.community_id}/edit`}
-                                                style={{
-                                                    fontSize: 12, color: '#3B5BDB', fontWeight: 700,
-                                                    textDecoration: 'none',
+                                </Td>
+                                <Td className="text-center">
+                                    {request.status === 'pending' ? (
+                                        <div className="flex items-center justify-center gap-1.5">
+                                            <IconButton
+                                                icon={CircleCheckBig}
+                                                label="الموافقة وإنشاء المجتمع"
+                                                onClick={() =>
+                                                    setDeciding({
+                                                        request,
+                                                        decision: 'approve',
+                                                    })
+                                                }
+                                            />
+                                            <IconButton
+                                                icon={X}
+                                                label="رفض الطلب"
+                                                tone="danger"
+                                                onClick={() => {
+                                                    setReason('');
+                                                    setDeciding({
+                                                        request,
+                                                        decision: 'reject',
+                                                    });
                                                 }}
-                                            >
-                                                عرض المجتمع &larr;
-                                            </a>
+                                            />
                                         </div>
+                                    ) : (
+                                        <span className="text-[11px] text-ink/45">
+                                            {request.reviewed_at
+                                                ? new Date(
+                                                      request.reviewed_at,
+                                                  ).toLocaleDateString('ar-SA')
+                                                : '—'}
+                                        </span>
                                     )}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
+                                </Td>
+                            </Tr>
+                        ))}
 
-            {requests?.links && <Pagination links={requests.links} />}
+                        <ListStates
+                            count={requests.data.length}
+                            colSpan={6}
+                            empty="لا طلبات مطابقة."
+                            emptyHint="يقترح الموظفون المجتمعات من بوابتهم، فتظهر هنا لقرارك."
+                        />
+                    </Tbody>
+                </TableShell>
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <ResultCount page={requests} />
+                    <Pagination page={requests} />
+                </div>
+            </Card>
 
             <ConfirmModal
-                open={approveTarget !== null}
-                title="الموافقة على طلب إنشاء مجتمع"
-                message={
-                    approveTarget
-                        ? `يُنشأ مجتمع «${approveTarget.name}» في الشركة فوراً بمحفظة رصيدها صفر، ويصبح مُقدِّم الطلب قائده الأساسي. تخصيص رصيد المحفظة خطوة منفصلة من شاشة المالية — لا تُنشأ فعالية ولا يُستقطع أي مبلغ الآن.`
-                        : ''
+                open={deciding !== null}
+                tone={deciding?.decision === 'reject' ? 'danger' : 'default'}
+                title={
+                    deciding?.decision === 'approve'
+                        ? 'الموافقة على الطلب'
+                        : 'رفض الطلب'
                 }
-                confirmLabel="موافقة وإنشاء المجتمع"
-                onConfirm={confirmApprove}
-                onCancel={() => setApproveTarget(null)}
+                message={
+                    deciding?.decision === 'approve'
+                        ? 'يُنشأ المجتمع فوراً، ويصبح مقدّم الطلب قائده الأساسي — بصلاحية إنشاء الفعاليات وإدارة الأعضاء. لن يكون له رصيد حتى توزّع له من المحفظة.'
+                        : 'يُبلَّغ مقدّم الطلب بالرفض. لا يُنشأ المجتمع، ويمكنه التقدّم بطلب جديد لاحقاً.'
+                }
+                details={
+                    deciding && (
+                        <>
+                            <ConfirmRow
+                                label="المجتمع المقترح"
+                                value={deciding.request.name}
+                                strong
+                            />
+                            <ConfirmRow
+                                label="مقدّم الطلب"
+                                value={deciding.request.employee?.name ?? '—'}
+                            />
+                            {deciding.decision === 'approve' && (
+                                <ConfirmRow
+                                    label="سيصبح"
+                                    value="القائد الأساسي للمجتمع"
+                                    strong
+                                />
+                            )}
+                            {deciding.decision === 'reject' && (
+                                <div className="pt-2">
+                                    <label
+                                        htmlFor="reject-reason"
+                                        className="mb-1 block text-[11px] font-bold text-ink"
+                                    >
+                                        سبب الرفض
+                                    </label>
+                                    <textarea
+                                        id="reject-reason"
+                                        rows={2}
+                                        value={reason}
+                                        onChange={(event) =>
+                                            setReason(event.target.value)
+                                        }
+                                        className="w-full rounded-xl border-[0.5px] border-ink/20 bg-surface px-3 py-2 text-xs focus:border-ink focus:outline-none"
+                                    />
+                                </div>
+                            )}
+                        </>
+                    )
+                }
+                confirmLabel={
+                    deciding?.decision === 'approve'
+                        ? 'نعم، أنشئ المجتمع'
+                        : 'تأكيد الرفض'
+                }
+                onConfirm={() => {
+                    router.post(
+                        `/company/community-requests/${deciding?.request.id}/${deciding?.decision}`,
+                        deciding?.decision === 'reject'
+                            ? { rejection_reason: reason }
+                            : {},
+                        { preserveScroll: true },
+                    );
+                    setDeciding(null);
+                }}
+                onCancel={() => setDeciding(null)}
             />
         </CompanyLayout>
     );

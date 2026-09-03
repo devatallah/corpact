@@ -1,258 +1,541 @@
-import CompanyLayout from '@/layouts/company-layout';
-import CategoryIcon from '@/components/category-icon';
-import { fmtDateTime } from '@/lib/utils';
-import type { Community, Wallet, WalletTopupRequest, WalletTransaction } from '@/types/models';
 import { Head, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
-import toastr from 'toastr';
+import { ArrowDownLeft, ArrowUpRight, Landmark, Wallet } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { ListStates } from '@/components/list-states';
+import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
+import {
+    Badge,
+    Button,
+    Card,
+    Field,
+    INPUT,
+    Money,
+    Note,
+    PageHeader,
+    StatCard,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    TableShell,
+    Tr,
+} from '@/components/portal/ui';
+import CompanyLayout from '@/layouts/company-layout';
+import { topupStatus } from '@/lib/status';
 
-interface Props {
-    wallet: Wallet | null;
-    walletData: Record<string, unknown>;
-    communities: Community[];
-    transactions: WalletTransaction[];
-    topupRequests: WalletTopupRequest[];
-}
-
-const STATUS_COLORS: Record<string, string> = {
-    submitted: '#D4820A',
-    under_review: '#3B5BDB',
-    approved: '#0CA678',
-    rejected: '#E03050',
+/**
+ * H §12.5 — المحفظة.
+ *
+ * There is no instant self-service top-up on this screen and that is the
+ * point: the balance moves only by a ledger entry, so the company files a
+ * bank-transfer request with its receipt and the finance admin approves it.
+ * Anything else would let a number on this page disagree with the ledger.
+ *
+ * Distribution to a community is real money leaving the main wallet, so it
+ * confirms with the amount and the destination named.
+ */
+type CommunityRow = {
+    id: number;
+    name: string;
+    category?: { id: number; name: string } | null;
+    wallet?: { id: number; balance: number } | null;
 };
 
-const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #E2E8F4',
-    fontSize: 14, background: '#F0F2F8', outline: 'none', direction: 'rtl',
+type Transaction = {
+    id: number;
+    type: string;
+    type_label: string;
+    direction: string;
+    amount: number;
+    note: string | null;
+    occurred_at: string | null;
 };
 
-export default function WalletIndex({ wallet, communities, transactions, topupRequests }: Props) {
-    const [showTopup, setShowTopup] = useState(false);
-    const topupForm = useForm<{
-        amount: string;
-        transfer_date: string;
-        sender_account_last4: string;
-        bank_reference: string;
-        receipt: File | null;
-    }>({ amount: '', transfer_date: '', sender_account_last4: '', bank_reference: '', receipt: null });
-    const distForm = useForm({ community_id: communities[0]?.id?.toString() ?? '', amount: '' });
-    const [selectedCommunity, setSelectedCommunity] = useState<number | null>(communities[0]?.id ?? null);
+type TopupRow = {
+    id: number;
+    amount: string | number;
+    transfer_date: string | null;
+    sender_account_last4: string | null;
+    bank_reference: string | null;
+    status: string;
+    status_label: string;
+    rejection_reason: string | null;
+    created_at: string | null;
+};
 
-    const COLORS = ['#0CA678', '#D4820A', '#5B3FCC', '#3B5BDB', '#E03050', '#8B5CF6'];
-
-    function handleTopup(e: FormEvent) {
-        e.preventDefault();
-        topupForm.post('/company/wallet/topup', {
-            forceFormData: true,
-            onSuccess: () => {
-                topupForm.reset();
-                setShowTopup(false);
-                toastr.success('تم رفع طلب الشحن — يُضاف الرصيد بعد اعتماد الأدمن المالي');
-            },
-        });
-    }
-
-    function handleDistribute(e: FormEvent) {
-        e.preventDefault();
-        distForm.post('/company/wallet/distribute', {
-            onSuccess: () => {
-                distForm.reset('amount');
-                toastr.success('تم تخصيص الرصيد للمجتمع بنجاح');
-            },
-        });
-    }
-
-    function selectCommunity(id: number) {
-        setSelectedCommunity(id);
-        distForm.setData('community_id', id.toString());
-    }
-
-    const topupErrors = Object.values(topupForm.errors);
+export default function CompanyWallet({
+    wallet,
+    communities,
+    transactions,
+    topupRequests,
+}: {
+    company: { id: number; name: string };
+    wallet: { id: number; balance: number };
+    walletData: { wallet_id: number; balance: number };
+    communities: CommunityRow[];
+    transactions: Transaction[];
+    topupRequests: TopupRow[];
+}) {
+    const allocated = communities.reduce(
+        (sum, community) => sum + Number(community.wallet?.balance ?? 0),
+        0,
+    );
+    const pendingTopups = topupRequests.filter(
+        (row) => row.status === 'pending' || row.status === 'under_review',
+    );
 
     return (
         <CompanyLayout>
             <Head title="المحفظة" />
 
-            <div className="page-title">المحفظة والدعم</div>
-            <div className="page-sub" style={{ marginBottom: 24 }}>إدارة الميزانية وتخصيص رصيد المجتمعات — كل حركة تُسجَّل في الدفتر</div>
+            <PageHeader
+                icon={Wallet}
+                title="المحفظة"
+                subtitle="الرصيد لا يتحرك إلا بقيد دفتر — الشحن بتحويل بنكي يعتمده الأدمن المالي."
+            />
 
-            {/* Balance Card */}
-            <div style={{ background: 'linear-gradient(135deg,#1A2035,#252D45)', borderRadius: 20, padding: '24px 28px', marginBottom: 20, color: '#fff' }}>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', letterSpacing: 1, marginBottom: 4 }}>رصيد المحفظة المتاح</div>
-                <div style={{ fontSize: 40, fontWeight: 900 }}>
-                    {(wallet?.balance ?? 0).toLocaleString()} <span style={{ fontSize: 18 }}>ريال</span>
-                </div>
-                <div style={{ marginTop: 16, textAlign: 'left' }}>
-                    <button
-                        onClick={() => setShowTopup(!showTopup)}
-                        style={{ background: 'rgba(255,255,255,.2)', color: '#fff', border: '1px solid rgba(255,255,255,.3)', borderRadius: 10, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-                    >
-                        + طلب شحن (تحويل بنكي)
-                    </button>
-                </div>
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <StatCard
+                    label="الرصيد الرئيسي"
+                    value={Number(wallet.balance).toFixed(2)}
+                    hint="ريال"
+                    tone="success"
+                />
+                <StatCard
+                    label="موزَّع على المجتمعات"
+                    value={allocated.toFixed(2)}
+                    hint="ريال"
+                />
+                <StatCard label="المجتمعات" value={communities.length} />
+                <StatCard
+                    label="طلبات شحن معلّقة"
+                    value={pendingTopups.length}
+                    tone={pendingTopups.length > 0 ? 'warning' : 'success'}
+                    hint={
+                        pendingTopups.length > 0
+                            ? 'بانتظار الأدمن المالي'
+                            : 'لا شيء معلّق'
+                    }
+                />
             </div>
 
-            {/* Bank-transfer top-up request form */}
-            {showTopup && (
-                <div style={{ background: '#fff', border: '1px solid #3B5BDB44', borderRadius: 16, padding: 20, marginBottom: 16 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>طلب شحن بتحويل بنكي</div>
-                    <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 14 }}>
-                        حوّل المبلغ إلى حساب تيمات ثم ارفع الطلب — يُضاف الرصيد بعد مطابقة الأدمن المالي واعتماده.
-                    </div>
-                    <form onSubmit={handleTopup}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 10 }}>
-                            <div>
-                                <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>المبلغ (ريال)</label>
-                                <input type="number" min={1} dir="rtl" value={topupForm.data.amount}
-                                    onChange={(e) => topupForm.setData('amount', e.target.value)} style={inputStyle} />
-                            </div>
-                            <div>
-                                <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>تاريخ التحويل</label>
-                                <input type="date" dir="rtl" value={topupForm.data.transfer_date}
-                                    onChange={(e) => topupForm.setData('transfer_date', e.target.value)} style={inputStyle} />
-                            </div>
-                            <div>
-                                <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>آخر 4 أرقام من حساب المُرسِل</label>
-                                <input type="text" maxLength={4} inputMode="numeric" dir="rtl" value={topupForm.data.sender_account_last4}
-                                    onChange={(e) => topupForm.setData('sender_account_last4', e.target.value.replace(/\D/g, ''))} style={inputStyle} />
-                            </div>
-                            <div>
-                                <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>مرجع العملية</label>
-                                <input type="text" dir="rtl" value={topupForm.data.bank_reference}
-                                    onChange={(e) => topupForm.setData('bank_reference', e.target.value)} style={inputStyle} />
-                            </div>
-                        </div>
-                        <div style={{ marginBottom: 12 }}>
-                            <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>صورة إشعار التحويل (jpg / png / pdf)</label>
-                            <input type="file" accept=".jpg,.jpeg,.png,.pdf"
-                                onChange={(e) => topupForm.setData('receipt', e.target.files?.[0] ?? null)}
-                                style={{ fontSize: 13 }} />
-                        </div>
-                        <button type="submit" className="ac-btn" disabled={topupForm.processing}>رفع الطلب</button>
-                    </form>
-                    {topupErrors.length > 0 && (
-                        <div style={{ marginTop: 10, padding: 10, background: '#E0305018', border: '1px solid #E0305033', borderRadius: 10, fontSize: 13, color: '#E03050', fontWeight: 600 }}>
-                            {topupErrors.map((error, i) => <div key={i}>{error}</div>)}
-                        </div>
-                    )}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <TopupForm />
+                <DistributeForm
+                    communities={communities}
+                    balance={Number(wallet.balance)}
+                />
+            </div>
+
+            {/* ── طلبات الشحن ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <Landmark className="h-4 w-4 text-ink" aria-hidden="true" />
+                    <h2 className="text-sm font-extrabold text-ink">
+                        طلبات الشحن
+                    </h2>
                 </div>
-            )}
 
-            {/* Top-up requests */}
-            {topupRequests.length > 0 && (
-                <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 22, marginBottom: 16 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>طلبات الشحن</div>
-                    {topupRequests.map((request, index) => (
-                        <div key={request.id} style={{ padding: '10px 0', ...(index < topupRequests.length - 1 ? { borderBottom: '1px solid #E2E8F4' } : {}) }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <div style={{ fontSize: 13, fontWeight: 700 }}>
-                                        {request.amount.toLocaleString()} ريال
-                                        <span style={{ fontSize: 11, color: '#7A8BA8', fontWeight: 500 }}> — مرجع {request.bank_reference} · حساب ****{request.sender_account_last4}</span>
-                                    </div>
-                                    <div style={{ fontSize: 11, color: '#7A8BA8' }}>تاريخ التحويل: {request.transfer_date ?? '—'}</div>
-                                </div>
-                                <span style={{
-                                    fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 999,
-                                    color: STATUS_COLORS[request.status] ?? '#7A8BA8',
-                                    background: `${STATUS_COLORS[request.status] ?? '#7A8BA8'}18`,
-                                }}>
-                                    {request.status_label}
-                                </span>
-                            </div>
-                            {request.status === 'rejected' && request.rejection_reason && (
-                                <div style={{ marginTop: 6, fontSize: 12, color: '#E03050' }}>سبب الرفض: {request.rejection_reason}</div>
-                            )}
-                        </div>
-                    ))}
+                <TableShell>
+                    <Thead>
+                        <Th>المبلغ</Th>
+                        <Th>تاريخ التحويل</Th>
+                        <Th>حساب المُرسِل</Th>
+                        <Th>مرجع العملية</Th>
+                        <Th>الحالة</Th>
+                    </Thead>
+                    <Tbody>
+                        {topupRequests.map((row) => (
+                            <Tr key={row.id}>
+                                <Td>
+                                    <Money amount={row.amount} />
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/70">
+                                    {row.transfer_date ?? '—'}
+                                </Td>
+                                <Td
+                                    className="font-mono text-[11px] text-ink/70"
+                                    dir="ltr"
+                                >
+                                    ****{row.sender_account_last4 ?? '—'}
+                                </Td>
+                                <Td
+                                    className="font-mono text-[11px] text-ink/70"
+                                    dir="ltr"
+                                >
+                                    {row.bank_reference ?? '—'}
+                                </Td>
+                                <Td>
+                                    <Badge tone={topupStatus(row.status).tone}>
+                                        {row.status_label}
+                                    </Badge>
+                                    {row.rejection_reason && (
+                                        <span className="mt-1 block text-[11px] text-danger">
+                                            {row.rejection_reason}
+                                        </span>
+                                    )}
+                                </Td>
+                            </Tr>
+                        ))}
+                        <ListStates
+                            count={topupRequests.length}
+                            colSpan={5}
+                            empty="لا طلبات شحن بعد."
+                            emptyHint="ارفع طلبك الأول من النموذج أعلاه بعد إتمام التحويل البنكي."
+                        />
+                    </Tbody>
+                </TableShell>
+            </Card>
+
+            {/* ── دفتر الحركات ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-extrabold text-ink">
+                        آخر الحركات
+                    </h2>
+                    <span className="text-[11px] text-ink/50">
+                        آخر 20 قيداً
+                    </span>
                 </div>
-            )}
 
-            {/* Community Allocation */}
-            <div style={{ background: '#fff', border: '2px solid #3B5BDB33', borderRadius: 16, padding: 22, marginBottom: 16 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>تخصيص رصيد لمجتمع</div>
-                <div style={{ fontSize: 12, color: '#7A8BA8', marginBottom: 16 }}>اختر المجتمع وحدد المبلغ — قيد تخصيص من المحفظة الرئيسية إلى محفظة المجتمع الفرعية</div>
-                <form onSubmit={handleDistribute}>
-                    {communities.length === 0 ? (
-                        <div style={{ fontSize: 13, color: '#7A8BA8' }}>لا توجد مجتمعات</div>
-                    ) : (
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                            {communities.map((community, index) => {
-                                const color = community.color ?? COLORS[index % COLORS.length];
-                                const isSelected = selectedCommunity === community.id;
+                <TableShell>
+                    <Thead>
+                        <Th>التاريخ</Th>
+                        <Th>النوع</Th>
+                        <Th>البيان</Th>
+                        <Th>المبلغ</Th>
+                    </Thead>
+                    <Tbody>
+                        {transactions.map((tx) => {
+                            const isCredit =
+                                tx.direction === 'credit' ||
+                                tx.direction === 'in';
 
-                                return (
-                                    <div
-                                        key={community.id}
-                                        onClick={() => selectCommunity(community.id)}
-                                        style={{
-                                            display: 'flex', alignItems: 'center', gap: 6,
-                                            padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
-                                            border: `2px solid ${isSelected ? color : '#E2E8F4'}`,
-                                            background: isSelected ? `${color}12` : '#F0F2F8',
-                                        }}
-                                    >
-                                        <CategoryIcon icon={community.category?.icon} size={20} />
-                                        <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? color : '#4A5C78' }}>
-                                            {community.name}
+                            return (
+                                <Tr key={tx.id}>
+                                    <Td className="font-mono text-[11px] whitespace-nowrap text-ink/70">
+                                        {tx.occurred_at
+                                            ? new Date(
+                                                  tx.occurred_at,
+                                              ).toLocaleDateString('ar-SA')
+                                            : '—'}
+                                    </Td>
+                                    <Td className="text-ink/85">
+                                        {tx.type_label}
+                                    </Td>
+                                    <Td className="max-w-xs text-ink/70">
+                                        {tx.note ?? '—'}
+                                    </Td>
+                                    <Td>
+                                        <span
+                                            className={`inline-flex items-center gap-1 font-mono font-bold ${isCredit ? 'text-success' : 'text-ink'}`}
+                                        >
+                                            {isCredit ? (
+                                                <ArrowDownLeft
+                                                    className="h-3.5 w-3.5"
+                                                    aria-hidden="true"
+                                                />
+                                            ) : (
+                                                <ArrowUpRight
+                                                    className="h-3.5 w-3.5"
+                                                    aria-hidden="true"
+                                                />
+                                            )}
+                                            {Number(tx.amount).toFixed(2)}
                                         </span>
-                                        <span style={{ fontSize: 11, color: '#7A8BA8' }}>
-                                            {Number(community.balance ?? 0).toLocaleString()} ر
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                                    </Td>
+                                </Tr>
+                            );
+                        })}
+                        <ListStates
+                            count={transactions.length}
+                            colSpan={4}
+                            empty="لا حركات على المحفظة."
+                            emptyHint="أول قيد يظهر هنا بعد اعتماد أول طلب شحن."
+                        />
+                    </Tbody>
+                </TableShell>
+            </Card>
+        </CompanyLayout>
+    );
+}
+
+/** طلب شحن بتحويل بنكي — بإشعار التحويل، لأن الرصيد لا يُنشأ من فراغ. */
+function TopupForm() {
+    const form = useForm<{
+        amount: string;
+        transfer_date: string;
+        sender_account_last4: string;
+        bank_reference: string;
+        receipt: File | null;
+    }>({
+        amount: '',
+        transfer_date: '',
+        sender_account_last4: '',
+        bank_reference: '',
+        receipt: null,
+    });
+
+    return (
+        <form
+            onSubmit={(event) => {
+                event.preventDefault();
+                form.post('/company/wallet/topup', {
+                    forceFormData: true,
+                    preserveScroll: true,
+                    onSuccess: () => form.reset(),
+                });
+            }}
+        >
+            <FormSection
+                title="طلب شحن المحفظة"
+                hint="حوِّل إلى حساب تيمات البنكي ثم ارفع إشعار التحويل هنا. يُضاف الرصيد بعد اعتماد الأدمن المالي — لا قبله."
+            >
+                <FormGrid>
+                    <Field
+                        label="المبلغ (ريال)"
+                        error={form.errors.amount}
+                        required
+                    >
                         <input
                             type="number"
-                            placeholder="المبلغ..."
-                            dir="rtl"
-                            value={distForm.data.amount}
-                            onChange={(e) => distForm.setData('amount', e.target.value)}
-                            style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 15, fontWeight: 700, background: '#F0F2F8', outline: 'none', direction: 'rtl' }}
+                            min="1"
+                            step="0.01"
+                            dir="ltr"
+                            className={INPUT}
+                            value={form.data.amount}
+                            onChange={(event) =>
+                                form.setData('amount', event.target.value)
+                            }
                         />
-                        <button type="submit" className="ac-btn" disabled={distForm.processing}>
-                            تخصيص ←
-                        </button>
-                    </div>
-                    {distForm.errors.amount && (
-                        <div style={{ marginTop: 10, padding: 10, background: '#E0305018', border: '1px solid #E0305033', borderRadius: 10, fontSize: 13, color: '#E03050', fontWeight: 600 }}>
-                            {distForm.errors.amount}
-                        </div>
-                    )}
-                </form>
-            </div>
+                    </Field>
 
-            {/* Ledger */}
-            {transactions.length > 0 && (
-                <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 22 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 2 }}>دفتر الحركات</div>
-                    <div style={{ fontSize: 11, color: '#7A8BA8', marginBottom: 12 }}>الرصيد = مجموع الحركات — لا تعديل ولا حذف؛ التصحيح بحركة عكسية مرتبطة</div>
-                    {transactions.map((tx, index) => (
-                        <div
-                            key={tx.id}
-                            style={{
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                padding: '10px 0',
-                                ...(index < transactions.length - 1 ? { borderBottom: '1px solid #E2E8F4' } : {}),
-                            }}
-                        >
-                            <div>
-                                <div style={{ fontSize: 13, fontWeight: 600 }}>
-                                    {tx.type_label}
-                                    {tx.note ? ` — ${tx.note}` : ''}
-                                </div>
-                                <div style={{ fontSize: 11, color: '#7A8BA8' }}>{tx.occurred_at ? fmtDateTime(tx.occurred_at) : ''}</div>
-                            </div>
-                            <div style={{ fontSize: 14, fontWeight: 800, color: tx.direction === 'credit' ? '#0CA678' : '#E03050' }}>
-                                {tx.direction === 'credit' ? '+' : '-'}{tx.amount.toLocaleString()} ر
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </CompanyLayout>
+                    <Field
+                        label="تاريخ التحويل"
+                        error={form.errors.transfer_date}
+                        required
+                    >
+                        <input
+                            type="date"
+                            dir="ltr"
+                            className={INPUT}
+                            value={form.data.transfer_date}
+                            onChange={(event) =>
+                                form.setData(
+                                    'transfer_date',
+                                    event.target.value,
+                                )
+                            }
+                        />
+                    </Field>
+
+                    <Field
+                        label="آخر 4 أرقام من حساب المُرسِل"
+                        error={form.errors.sender_account_last4}
+                        hint="لمطابقة التحويل بكشف البنك."
+                        required
+                    >
+                        <input
+                            inputMode="numeric"
+                            maxLength={4}
+                            dir="ltr"
+                            className={INPUT}
+                            value={form.data.sender_account_last4}
+                            onChange={(event) =>
+                                form.setData(
+                                    'sender_account_last4',
+                                    event.target.value,
+                                )
+                            }
+                        />
+                    </Field>
+
+                    <Field
+                        label="مرجع العملية"
+                        error={form.errors.bank_reference}
+                        required
+                    >
+                        <input
+                            dir="ltr"
+                            className={INPUT}
+                            value={form.data.bank_reference}
+                            onChange={(event) =>
+                                form.setData(
+                                    'bank_reference',
+                                    event.target.value,
+                                )
+                            }
+                        />
+                    </Field>
+                </FormGrid>
+
+                <Field
+                    label="إشعار التحويل"
+                    error={form.errors.receipt}
+                    hint="صورة jpg/png أو PDF، بحد أقصى 5 ميجابايت."
+                    required
+                >
+                    <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        className="w-full text-xs text-ink/80 file:me-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-ink file:px-3 file:py-2 file:text-[11px] file:font-bold file:text-lime"
+                        onChange={(event) =>
+                            form.setData(
+                                'receipt',
+                                event.target.files?.[0] ?? null,
+                            )
+                        }
+                    />
+                </Field>
+
+                <FormActions>
+                    <Button type="submit" disabled={form.processing}>
+                        رفع طلب الشحن
+                    </Button>
+                </FormActions>
+            </FormSection>
+        </form>
+    );
+}
+
+/** توزيع الرصيد على مجتمع — مال يغادر المحفظة الرئيسية، فيمرّ بتأكيد يسمّي المبلغ والوجهة. */
+function DistributeForm({
+    communities,
+    balance,
+}: {
+    communities: CommunityRow[];
+    balance: number;
+}) {
+    const form = useForm({ community_id: '', amount: '' });
+    const [confirming, setConfirming] = useState(false);
+
+    const target = communities.find(
+        (community) => String(community.id) === form.data.community_id,
+    );
+    const amount = Number(form.data.amount || 0);
+    const remaining = balance - amount;
+
+    return (
+        <>
+            <FormSection
+                title="توزيع الرصيد على مجتمع"
+                hint="ينتقل المبلغ من المحفظة الرئيسية إلى محفظة المجتمع، فيصرف منه قائد المجتمع على فعالياته."
+            >
+                <Field
+                    label="المجتمع"
+                    error={form.errors.community_id}
+                    required
+                >
+                    <select
+                        className={INPUT}
+                        value={form.data.community_id}
+                        onChange={(event) =>
+                            form.setData('community_id', event.target.value)
+                        }
+                    >
+                        <option value="">— اختر المجتمع —</option>
+                        {communities.map((community) => (
+                            <option key={community.id} value={community.id}>
+                                {community.name}
+                                {community.category?.name
+                                    ? ` — ${community.category.name}`
+                                    : ''}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
+
+                <Field
+                    label="المبلغ (ريال)"
+                    error={form.errors.amount}
+                    required
+                >
+                    <input
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        dir="ltr"
+                        className={INPUT}
+                        value={form.data.amount}
+                        onChange={(event) =>
+                            form.setData('amount', event.target.value)
+                        }
+                    />
+                </Field>
+
+                {target && (
+                    <Note title="رصيد هذا المجتمع الآن">
+                        <span className="font-mono font-bold">
+                            {Number(target.wallet?.balance ?? 0).toFixed(2)}
+                        </span>{' '}
+                        ر.س — يصبح{' '}
+                        <span className="font-mono font-bold">
+                            {(
+                                Number(target.wallet?.balance ?? 0) + amount
+                            ).toFixed(2)}
+                        </span>{' '}
+                        ر.س بعد التوزيع.
+                    </Note>
+                )}
+
+                {remaining < 0 && (
+                    <p className="text-[11px] font-bold text-danger">
+                        المبلغ يتجاوز رصيد المحفظة الرئيسية.
+                    </p>
+                )}
+                <FormActions>
+                    <Button
+                        type="button"
+                        disabled={
+                            form.processing ||
+                            !form.data.community_id ||
+                            amount <= 0 ||
+                            remaining < 0
+                        }
+                        onClick={() => setConfirming(true)}
+                    >
+                        توزيع الرصيد
+                    </Button>
+                </FormActions>
+            </FormSection>
+
+            <ConfirmModal
+                open={confirming}
+                title="تأكيد توزيع الرصيد"
+                message="ينتقل المبلغ فوراً من المحفظة الرئيسية إلى محفظة المجتمع بقيد دفتر. لسحبه لاحقاً راجع فريق تيمات."
+                details={
+                    <>
+                        <ConfirmRow
+                            label="المجتمع"
+                            value={target?.name ?? '—'}
+                            strong
+                        />
+                        <ConfirmRow
+                            label="المبلغ"
+                            value={`${amount.toFixed(2)} ر.س`}
+                            strong
+                        />
+                        <ConfirmRow
+                            label="رصيد المحفظة قبل"
+                            value={`${balance.toFixed(2)} ر.س`}
+                        />
+                        <ConfirmRow
+                            label="رصيد المحفظة بعد"
+                            value={`${remaining.toFixed(2)} ر.س`}
+                        />
+                    </>
+                }
+                confirmLabel="نعم، وزِّع المبلغ"
+                onConfirm={() => {
+                    form.post('/company/wallet/distribute', {
+                        preserveScroll: true,
+                        onSuccess: () => form.reset(),
+                    });
+                    setConfirming(false);
+                }}
+                onCancel={() => setConfirming(false)}
+            />
+        </>
     );
 }

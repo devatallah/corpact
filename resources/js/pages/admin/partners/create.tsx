@@ -1,138 +1,184 @@
+import { Head, useForm } from '@inertiajs/react';
+import { Users } from 'lucide-react';
+import { BackLink } from '@/components/list-states';
+import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
+import { Button, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { CategoryPicker } from '@/pages/admin/partners/edit';
 
-export default function PartnersCreate() {
-    const { data, setData, post, processing, errors } = useForm({
+/**
+ * H §17 — إضافة مزوّد خدمة.
+ *
+ * A provider added here is active immediately, but its bank details still
+ * have to be approved separately before anything can be transferred to it —
+ * the two approvals are deliberately not the same act.
+ */
+export default function CreatePartner({
+    categories,
+}: {
+    categories: { id: number; name: string; children?: { id: number; name: string }[] }[];
+}) {
+    const form = useForm<{
+        name: string;
+        email: string;
+        password: string;
+        city: string;
+        district: string;
+        contact_phone: string;
+        commission_rate: string;
+        category_ids: number[];
+    }>({
         name: '',
+        email: '',
+        password: '',
         city: '',
         district: '',
-        email: '',
         contact_phone: '',
-        commission_rate: '15',
+        commission_rate: '',
+        category_ids: [],
     });
-
-    function submit(e: React.FormEvent) {
-        e.preventDefault();
-        post('/admin/partners');
-    }
 
     return (
         <AdminLayout>
-            <Head title="إضافة شريك" />
+            <Head title="إضافة مزوّد" />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                <Link href="/admin/partners" style={{ color: '#6B7A99', textDecoration: 'none', fontSize: '14px' }}>
-                    ← الشركاء
-                </Link>
-                <span style={{ color: '#3D4A60' }}>/</span>
-                <span style={{ color: '#fff', fontWeight: 700 }}>إضافة شريك</span>
-            </div>
+            <BackLink href="/admin/partners" label="العودة إلى المزوّدين" />
 
-            {Object.keys(errors).length > 0 && (
-                <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
-                    {Object.values(errors).map((error, i) => (
-                        <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                    ))}
-                </div>
-            )}
+            <PageHeader
+                icon={Users}
+                title="إضافة مزوّد خدمة"
+                subtitle="يُفعَّل المزوّد فور إنشائه. اعتماد حسابه البنكي إجراء منفصل من صفحة إشراف المزوّدين."
+            />
 
-            <div className="card" style={{ maxWidth: '600px' }}>
-                <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px' }}>إضافة شريك جديد</div>
-                <form onSubmit={submit}>
-                    <div className="frow">
-                        <div className="fg">
-                            <label>اسم الشريك *</label>
+            <Note tone="warning" title="التفعيل لا يعني القابلية للصرف">
+                المزوّد المفعّل يستقبل مجموعات الشركات فوراً، لكن كشوف مستحقاته تبقى غير قابلة للتحويل حتى يُعتمد حسابه البنكي.
+            </Note>
+
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.post('/admin/partners');
+                }}
+                className="space-y-6"
+            >
+                <FormSection title="بيانات المرفق">
+                    <FormGrid>
+                        <Field label="اسم المزوّد" htmlFor="partner-name" required error={form.errors.name}>
                             <input
+                                id="partner-name"
                                 type="text"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                placeholder="مثال: شريك الرياض"
                                 required
+                                value={form.data.name}
+                                onChange={(event) => form.setData('name', event.target.value)}
+                                className={INPUT}
                             />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div className="fg">
-                            <label>المدينة *</label>
+                        <Field label="المدينة" htmlFor="partner-city" required error={form.errors.city}>
                             <input
+                                id="partner-city"
                                 type="text"
-                                value={data.city}
-                                onChange={(e) => setData('city', e.target.value)}
-                                placeholder="الرياض"
                                 required
+                                value={form.data.city}
+                                onChange={(event) => form.setData('city', event.target.value)}
+                                className={INPUT}
                             />
-                        </div>
-                        <div className="fg">
-                            <label>الحي *</label>
-                            <input
-                                type="text"
-                                value={data.district}
-                                onChange={(e) => setData('district', e.target.value)}
-                                placeholder="العليا"
-                                required
-                            />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div className="fg">
-                            <label>البريد الإلكتروني *</label>
+                        <Field label="الحي" htmlFor="partner-district" required error={form.errors.district}>
                             <input
-                                type="email"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                placeholder="info@partner.com"
-                                dir="ltr"
-                                required
-                            />
-                        </div>
-                        <div className="fg">
-                            <label>رقم الهاتف *</label>
-                            <input
+                                id="partner-district"
                                 type="text"
-                                value={data.contact_phone}
-                                onChange={(e) => setData('contact_phone', e.target.value)}
-                                placeholder="05xxxxxxxx"
-                                dir="ltr"
                                 required
+                                value={form.data.district}
+                                onChange={(event) => form.setData('district', event.target.value)}
+                                className={INPUT}
                             />
-                        </div>
-                    </div>
+                        </Field>
 
-                    <div className="frow">
-                        <div className="fg">
-                            <label>نسبة العمولة (%) *</label>
+                        <Field
+                            label="نسبة العمولة"
+                            htmlFor="partner-commission"
+                            required
+                            hint="النسبة التي تقتطعها المنصة من كل فعالية"
+                            error={form.errors.commission_rate}
+                        >
                             <input
+                                id="partner-commission"
                                 type="number"
-                                value={data.commission_rate}
-                                onChange={(e) => setData('commission_rate', e.target.value)}
+                                step="0.01"
                                 min={0}
                                 max={100}
-                                step={0.1}
                                 required
+                                value={form.data.commission_rate}
+                                onChange={(event) => form.setData('commission_rate', event.target.value)}
+                                className={`${INPUT} font-mono`}
                             />
-                        </div>
-                    </div>
+                        </Field>
+                    </FormGrid>
+                </FormSection>
 
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="act-btn btn-approve"
-                            style={{ flex: 1, padding: '12px' }}
+                <FormSection title="حساب الدخول">
+                    <FormGrid>
+                        <Field label="البريد الإلكتروني" htmlFor="partner-email" required error={form.errors.email}>
+                            <input
+                                id="partner-email"
+                                type="email"
+                                dir="ltr"
+                                required
+                                value={form.data.email}
+                                onChange={(event) => form.setData('email', event.target.value)}
+                                className={`${INPUT} text-right font-mono`}
+                            />
+                        </Field>
+
+                        <Field label="كلمة المرور المبدئية" htmlFor="partner-password" required error={form.errors.password}>
+                            <input
+                                id="partner-password"
+                                type="password"
+                                required
+                                value={form.data.password}
+                                onChange={(event) => form.setData('password', event.target.value)}
+                                className={INPUT}
+                            />
+                        </Field>
+
+                        <Field
+                            label="جوال التواصل"
+                            htmlFor="partner-phone"
+                            required
+                            hint="هوية الدخول برمز التحقق"
+                            error={form.errors.contact_phone}
                         >
-                            حفظ
-                        </button>
-                        <Link
-                            href="/admin/partners"
-                            style={{ padding: '12px 24px', background: '#232A3E', borderRadius: '10px', color: '#6B7A99', fontSize: '14px', fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
-                        >
-                            إلغاء
-                        </Link>
-                    </div>
-                </form>
-            </div>
+                            <input
+                                id="partner-phone"
+                                type="tel"
+                                dir="ltr"
+                                required
+                                value={form.data.contact_phone}
+                                onChange={(event) => form.setData('contact_phone', event.target.value)}
+                                placeholder="05xxxxxxxx"
+                                className={`${INPUT} text-right font-mono`}
+                            />
+                        </Field>
+                    </FormGrid>
+                </FormSection>
+
+                <FormSection title="الأنشطة" hint="ما يقدّمه المرفق — عليها يطابقه محرك الاقتراحات باهتمامات المجتمعات.">
+                    <CategoryPicker
+                        categories={categories}
+                        selected={form.data.category_ids}
+                        onChange={(ids) => form.setData('category_ids', ids)}
+                        error={form.errors.category_ids}
+                    />
+                </FormSection>
+
+                <FormActions cancelHref="/admin/partners">
+                    <Button type="submit" disabled={form.processing || form.data.category_ids.length === 0}>
+                        إنشاء المزوّد وتفعيله
+                    </Button>
+                </FormActions>
+            </form>
         </AdminLayout>
     );
 }

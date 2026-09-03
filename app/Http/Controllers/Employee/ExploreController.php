@@ -32,7 +32,7 @@ class ExploreController extends Controller
 
         return Inertia::render('employee/explore/index', [
             'communities' => $this->exploreService->availableCommunities($employee, $filters),
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => ExploreService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
         ]);
     }

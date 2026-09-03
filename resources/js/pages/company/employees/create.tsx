@@ -1,68 +1,70 @@
+import { Head, useForm } from '@inertiajs/react';
+import { UserPlus } from 'lucide-react';
+import { BackLink } from '@/components/list-states';
+import { FormActions, FormSection } from '@/components/portal/form';
+import { Button, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
-import { Head, Link, useForm } from '@inertiajs/react';
-import type { FormEvent } from 'react';
-import toastr from 'toastr';
 
-export default function EmployeeCreate() {
+/**
+ * H §5 — دعوة موظف.
+ *
+ * The company never sets a password for an employee: it sends an invitation
+ * and the employee activates their own account. That is why this form asks
+ * for an email and nothing else — everything else is filled in by the person
+ * it belongs to.
+ */
+export default function CompanyEmployeeCreate() {
     const form = useForm({ email: '' });
-
-    function handleSubmit(e: FormEvent) {
-        e.preventDefault();
-        form.post('/company/employees', {
-            onSuccess: () => toastr.success('تم إرسال الدعوة بنجاح'),
-        });
-    }
 
     return (
         <CompanyLayout>
             <Head title="دعوة موظف" />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <Link href="/company/employees" style={{ color: '#7A8BA8', textDecoration: 'none', fontSize: 14 }}>
-                    ← الموظفون
-                </Link>
-                <span style={{ color: '#C8D0E0' }}>/</span>
-                <span style={{ fontWeight: 700 }}>دعوة موظف جديد</span>
-            </div>
+            <BackLink href="/company/employees" label="العودة إلى الموظفين" />
 
-            {Object.keys(form.errors).length > 0 && (
-                <div style={{ background: '#E0305010', border: '1px solid #E0305033', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
-                    {Object.values(form.errors).map((error, i) => (
-                        <p key={i} style={{ fontSize: 12, color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                    ))}
-                </div>
-            )}
+            <PageHeader
+                icon={UserPlus}
+                title="دعوة موظف"
+                subtitle="يصل الموظف رابط تفعيل صالح لمدة محدودة، ويكمل بياناته بنفسه."
+            />
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, padding: 32, maxWidth: 500 }}>
-                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>دعوة موظف</div>
-                <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 20 }}>سيصل الموظف رابط دعوة للانضمام للمنصة</div>
-                <form onSubmit={handleSubmit}>
-                    <div className="fg" style={{ marginBottom: 24 }}>
-                        <label className="fl">البريد الإلكتروني *</label>
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.post('/company/employees');
+                }}
+                className="space-y-6"
+            >
+                <FormSection title="بيانات الدعوة">
+                    <Field
+                        label="البريد الإلكتروني للموظف"
+                        error={form.errors.email}
+                        required
+                    >
                         <input
                             type="email"
                             dir="ltr"
-                            className="fi"
-                            placeholder="employee@company.com"
+                            className={INPUT}
                             value={form.data.email}
-                            onChange={(e) => form.setData('email', e.target.value)}
-                            required
+                            onChange={(event) =>
+                                form.setData('email', event.target.value)
+                            }
                         />
-                    </div>
+                    </Field>
 
-                    <div style={{ display: 'flex', gap: 10 }}>
-                        <button type="submit" style={{ flex: 1, padding: 12, background: '#3B5BDB', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }} disabled={form.processing}>
-                            إرسال الدعوة
-                        </button>
-                        <Link
-                            href="/company/employees"
-                            style={{ padding: '12px 24px', background: '#E2E8F4', borderRadius: 10, color: '#4A5C78', fontSize: 14, fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}
-                        >
-                            إلغاء
-                        </Link>
-                    </div>
-                </form>
-            </div>
+                    <Note title="لماذا لا نطلب كلمة مرور؟">
+                        حساب الموظف ملكه لا ملك الشركة: هو من يضع كلمة مروره
+                        ويؤكد بياناته عبر رابط الدعوة. الشركة تدير التفعيل
+                        والقسم والحالة فقط.
+                    </Note>
+                </FormSection>
+
+                <FormActions cancelHref="/company/employees">
+                    <Button type="submit" disabled={form.processing}>
+                        إرسال الدعوة
+                    </Button>
+                </FormActions>
+            </form>
         </CompanyLayout>
     );
 }

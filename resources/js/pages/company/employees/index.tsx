@@ -1,299 +1,321 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { useState, useEffect  } from 'react';
-import type {FormEvent} from 'react';
-import toastr from 'toastr';
-import CategoryIcon from '@/components/category-icon';
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import PasswordInput from '@/components/password-input';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import StatusBadge from '@/components/status-badge';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
+import { Head, Link, router } from '@inertiajs/react';
+import { Pencil, Upload, UserPlus, UserX, Users } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import {
+    FilterSelect,
+    Pagination,
+    ResultCount,
+    SearchInput,
+    SortableHeader,
+    Toolbar,
+} from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import {
+    Badge,
+    ButtonLink,
+    Card,
+    IconButton,
+    PageHeader,
+    StatCard,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    TableShell,
+    Tr,
+} from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
-import { fmtDate } from '@/lib/utils';
-import type { Department, Employee, PaginatedResult } from '@/types/models';
+import { employeeStatus } from '@/lib/status';
+import type { Paginated, SortState } from '@/types';
 
-interface Props {
-    employees: PaginatedResult<Employee>;
-    departments: Department[];
-    filters: { search?: string; status?: string; department_id?: string; sort?: string; dir?: string };
+/**
+ * H §5 — ملف الموظفين.
+ *
+ * Departure is deactivation, never deletion: the confirm says so, because the
+ * cascade behind it (sessions revoked, leaderships dropped, unconfirmed
+ * participations cancelled) surprises people who expect a soft "hide".
+ * History stays, and the membership keeps its `left_at` for the cycle invoice.
+ */
+type Employee = {
+    id: number;
+    name: string;
+    email: string;
+    phone: string | null;
+    employee_number: string | null;
+    status: string;
+    events_count: number;
+    department?: { id: number; name: string } | null;
+    communities?: {
+        id: number;
+        name: string;
+        category?: { id: number; name: string } | null;
+    }[];
+};
+
+export default function CompanyEmployees({
+    employees,
+    departments,
+    filters,
+    sort,
+    activeCount,
+    totalCount,
+}: {
+    company: { id: number; name: string };
+    employees: Paginated<Employee>;
+    departments: { id: number; name: string }[];
+    filters: {
+        search?: string;
+        status?: string;
+        department_id?: string | number;
+    };
+    sort: SortState;
     activeCount: number;
     totalCount: number;
-    sort: SortState;
-}
-
-export default function EmployeesIndex({ employees, departments, filters, activeCount, totalCount, sort }: Props) {
-    const [showInvite, setShowInvite] = useState(false);
-    const [editingItem, setEditingItem] = useState<Employee | null>(null);
-    const inviteForm = useForm({ email: '' });
-    const editForm = useForm({ name: '', email: '', password: '', phone: '', department_id: '', status: 'active' });
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        status: filters?.status,
-        department_id: filters?.department_id,
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-
-    useEffect(() => {
-        if (editingItem) {
-            editForm.setData({
-                name: editingItem.name ?? '',
-                email: editingItem.email ?? '',
-                password: '',
-                phone: editingItem.phone ?? '',
-                department_id: String(editingItem.department_id ?? ''),
-                status: editingItem.status ?? 'active',
-            });
-        }
-    }, [editingItem]);
-
-    function handleInvite(e: FormEvent) {
-        e.preventDefault();
-        inviteForm.post('/company/employees', {
-            onSuccess: () => {
-                inviteForm.reset();
-                setShowInvite(false);
-                toastr.success('تم إرسال الدعوة بنجاح');
-            },
-        });
-    }
-
-    function handleEdit(e: FormEvent) {
-        e.preventDefault();
-
-        if (!editingItem) {
-return;
-}
-
-        editForm.put(`/company/employees/${editingItem.id}`, {
-            onSuccess: () => {
-                setEditingItem(null);
-                toastr.success('تم تعديل بيانات الموظف بنجاح');
-            },
-        });
-    }
+    unreadNotifications: number;
+}) {
+    const [deactivating, setDeactivating] = useState<Employee | null>(null);
 
     return (
         <CompanyLayout>
             <Head title="الموظفون" />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 10 }}>
-                <div>
-                    <div className="page-title">الموظفون</div>
-                    <div className="page-sub">{activeCount} نشط من {totalCount}</div>
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                    <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="🔍 ابحث..."
-                        style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F4', fontSize: 13, background: '#fff', outline: 'none', direction: 'rtl', width: 180, fontFamily: 'inherit' }}
-                    />
-                    <Link
-                        href="/company/employees/import"
-                        style={{ background: '#EEF2F9', color: '#3B5BDB', border: '1px solid #E2E8F4', borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
-                    >
-                        ⬆ استيراد ملف
-                    </Link>
-                    <button
-                        onClick={() => setShowInvite(!showInvite)}
-                        style={{ background: '#3B5BDB', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-                    >
-                        + دعوة موظف
-                    </button>
-                </div>
+            <PageHeader
+                icon={Users}
+                title="الموظفون"
+                subtitle="الفوترة على الموظف المفعَّل — الموظف المعطَّل لا يُحتسب في الدورة القادمة."
+                actions={
+                    <>
+                        <ButtonLink
+                            href="/company/employees/import"
+                            tone="soft"
+                            icon={Upload}
+                        >
+                            استيراد ملف
+                        </ButtonLink>
+                        <ButtonLink
+                            href="/company/employees/create"
+                            icon={UserPlus}
+                        >
+                            دعوة موظف
+                        </ButtonLink>
+                    </>
+                }
+            />
+
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <StatCard label="إجمالي الموظفين" value={totalCount} />
+                <StatCard
+                    label="مفعّلون"
+                    value={activeCount}
+                    tone="success"
+                    hint="أساس احتساب الفاتورة"
+                />
+                <StatCard
+                    label="غير مفعّلين"
+                    value={totalCount - activeCount}
+                />
+                <StatCard label="الأقسام" value={departments.length} />
             </div>
 
-            {showInvite && (
-                <div className="detail-overlay open" onClick={() => setShowInvite(false)}>
-                    <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
-                        <h3>
-                            دعوة موظف جديد
-                            <button className="close-btn" onClick={() => setShowInvite(false)}>×</button>
-                        </h3>
-                        <div style={{ fontSize: 13, color: '#7A8BA8', marginBottom: 16 }}>سيصله إيميل دعوة للانضمام للمنصة</div>
-                        <form onSubmit={handleInvite}>
-                            <div className="fg" style={{ marginBottom: 16 }}>
-                                <label>البريد الإلكتروني</label>
-                                <input
-                                    type="email"
-                                    dir="ltr"
-                                    placeholder="email@company.com"
-                                    value={inviteForm.data.email}
-                                    onChange={(e) => inviteForm.setData('email', e.target.value)}
-                                />
-                                {inviteForm.errors.email && <div className="field-error">{inviteForm.errors.email}</div>}
-                            </div>
-                            <div className="panel-actions">
-                                <button type="submit" className="pa-approve" disabled={inviteForm.processing}>إرسال الدعوة</button>
-                                <button type="button" className="pa-reject" onClick={() => setShowInvite(false)}>إلغاء</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput
+                        value={filters.search ?? ''}
+                        placeholder="ابحث بالاسم أو البريد…"
+                    />
+                    <FilterSelect
+                        name="status"
+                        label="الحالة"
+                        value={filters.status ?? ''}
+                        options={[
+                            ['', 'كل الحالات'],
+                            ['active', 'مفعّل'],
+                            ['pending_verification', 'بانتظار التفعيل'],
+                            ['inactive', 'معطّل'],
+                        ]}
+                    />
+                    <FilterSelect
+                        name="department_id"
+                        label="القسم"
+                        value={String(filters.department_id ?? '')}
+                        options={[
+                            ['', 'كل الأقسام'],
+                            ...departments.map(
+                                (department) =>
+                                    [
+                                        String(department.id),
+                                        department.name,
+                                    ] as [string, string],
+                            ),
+                        ]}
+                    />
+                </Toolbar>
 
-            <div style={{ background: '#fff', border: '1px solid #E2E8F4', borderRadius: 16, overflow: 'auto' }}>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <SortableHeader label="الموظف" sortKey="name" sort={sort} />
-                            <th>القسم</th>
-                            <th>المجتمعات</th>
-                            <th>الفعاليات</th>
-                            <SortableHeader label="تاريخ الإضافة" sortKey="created_at" sort={sort} initialDirection="desc" />
-                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader
+                                label="الموظف"
+                                sortKey="name"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th>القسم</Th>
+                        <Th>المجتمعات</Th>
+                        <Th>المشاركات</Th>
+                        <Th>
+                            <SortableHeader
+                                label="الحالة"
+                                sortKey="status"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th className="text-center">الإجراءات</Th>
+                    </Thead>
+
+                    <Tbody>
+                        {employees.data.map((employee) => (
+                            <Tr key={employee.id}>
+                                <Td>
+                                    <Link
+                                        href={`/company/employees/${employee.id}/edit`}
+                                        className="font-extrabold text-ink hover:underline"
+                                    >
+                                        {employee.name}
+                                    </Link>
+                                    <span
+                                        className="block font-mono text-[11px] text-ink/50"
+                                        dir="ltr"
+                                    >
+                                        {employee.email}
+                                    </span>
+                                </Td>
+                                <Td className="text-ink/85">
+                                    {employee.department?.name ?? 'بلا إدارة'}
+                                </Td>
+                                <Td>
+                                    <div className="flex flex-wrap gap-1">
+                                        {(employee.communities ?? [])
+                                            .slice(0, 2)
+                                            .map((community) => (
+                                                <Badge
+                                                    key={community.id}
+                                                    tone="neutral"
+                                                >
+                                                    {community.name}
+                                                </Badge>
+                                            ))}
+                                        {(employee.communities?.length ?? 0) >
+                                            2 && (
+                                            <span className="text-[11px] text-ink/50">
+                                                +
+                                                {(employee.communities
+                                                    ?.length ?? 0) - 2}
+                                            </span>
+                                        )}
+                                        {(employee.communities?.length ?? 0) ===
+                                            0 && (
+                                            <span className="text-ink/40">
+                                                —
+                                            </span>
+                                        )}
+                                    </div>
+                                </Td>
+                                <Td className="font-mono font-bold text-ink">
+                                    {employee.events_count}
+                                </Td>
+                                <Td>
+                                    <Badge
+                                        tone={
+                                            employeeStatus(employee.status).tone
+                                        }
+                                    >
+                                        {employeeStatus(employee.status).label}
+                                    </Badge>
+                                </Td>
+                                <Td className="text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                        <Link
+                                            href={`/company/employees/${employee.id}/edit`}
+                                            title="تعديل الموظف"
+                                            className="rounded-lg bg-ink/5 p-1.5 text-ink transition-colors hover:bg-ink/10"
+                                        >
+                                            <Pencil
+                                                className="h-3.5 w-3.5"
+                                                aria-hidden="true"
+                                            />
+                                        </Link>
+                                        {employee.status !== 'inactive' && (
+                                            <IconButton
+                                                icon={UserX}
+                                                label="تعطيل الحساب"
+                                                tone="danger"
+                                                onClick={() =>
+                                                    setDeactivating(employee)
+                                                }
+                                            />
+                                        )}
+                                    </div>
+                                </Td>
+                            </Tr>
+                        ))}
+
                         <ListStates
                             count={employees.data.length}
-                            columns={7}
-                            emptyTitle="لا يوجد موظفون بعد"
-                            emptyHint="ارفع ملف الدعوات أو أضف موظفاً لبدء التفعيل."
+                            colSpan={6}
+                            empty="لا موظفين مطابقين."
+                            emptyHint="ادعُ موظفاً واحداً، أو ارفع ملف الموظفين دفعة واحدة."
                         />
-                        {employees.data.map((employee) => (
-                            <tr key={employee.id}>
-                                <td>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#3B5BDB18', color: '#3B5BDB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
-                                            {employee.name.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <div style={{ fontSize: 13, fontWeight: 600 }}>{employee.name}</div>
-                                            <div style={{ fontSize: 11, color: '#7A8BA8' }} dir="ltr">{employee.email}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td style={{ color: '#7A8BA8', fontSize: 12 }}>
-                                    {employee.department?.name ?? '\u2014'}
-                                </td>
-                                <td>
-                                    {employee.communities && employee.communities.length > 0 ? (
-                                        employee.communities.map((c) => (
-                                            <span
-                                                key={c.id}
-                                                className="badge"
-                                                style={{ background: '#0CA67818', color: '#0CA678', marginLeft: 4 }}
-                                            >
-                                                <CategoryIcon icon={c.category?.icon} size={14} /> {c.name}
-                                            </span>
-                                        ))
-                                    ) : (
-                                        <span style={{ color: '#7A8BA8', fontSize: 12 }}>{'\u2014'}</span>
-                                    )}
-                                </td>
-                                <td style={{ fontWeight: 700, ...(employee.events_count === 0 ? { color: '#7A8BA8' } : {}) }}>
-                                    {employee.events_count ?? 0}
-                                </td>
-                                <td style={{ color: '#7A8BA8', fontSize: 12, whiteSpace: 'nowrap' }}>
-                                    {fmtDate(employee.created_at)}
-                                </td>
-                                <td>
-                                    <StatusBadge status={employee.status} />
-                                </td>
-                                <td>
-                                    <button
-                                        onClick={() => setEditingItem(employee)}
-                                        style={{ background: '#3B5BDB18', color: '#3B5BDB', border: '1px solid #3B5BDB33', borderRadius: 8, padding: '5px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-                                    >
-                                        تعديل
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                    </Tbody>
+                </TableShell>
 
-            <Pagination links={employees.links} />
-
-            {editingItem && (
-                <div className="detail-overlay open" onClick={() => setEditingItem(null)}>
-                    <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
-                        <h3>
-                            تعديل الموظف
-                            <button className="close-btn" onClick={() => setEditingItem(null)}>×</button>
-                        </h3>
-                        <form onSubmit={handleEdit}>
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>الاسم</label>
-                                    <input
-                                        type="text"
-                                        value={editForm.data.name}
-                                        onChange={(e) => editForm.setData('name', e.target.value)}
-                                    />
-                                    {editForm.errors.name && <div className="field-error">{editForm.errors.name}</div>}
-                                </div>
-                                <div className="fg">
-                                    <label>البريد الإلكتروني</label>
-                                    <input
-                                        type="email"
-                                        dir="ltr"
-                                        value={editForm.data.email}
-                                        onChange={(e) => editForm.setData('email', e.target.value)}
-                                    />
-                                    {editForm.errors.email && <div className="field-error">{editForm.errors.email}</div>}
-                                </div>
-                            </div>
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>كلمة المرور الجديدة</label>
-                                    <PasswordInput
-                                        dir="ltr"
-                                        placeholder="اتركه فارغاً للإبقاء على الحالية"
-                                        value={editForm.data.password}
-                                        onChange={(e) => editForm.setData('password', e.target.value)}
-                                    />
-                                    {editForm.errors.password && <div className="field-error">{editForm.errors.password}</div>}
-                                </div>
-                                <div className="fg">
-                                    <label>رقم الجوال</label>
-                                    <input
-                                        type="text"
-                                        dir="ltr"
-                                        value={editForm.data.phone}
-                                        onChange={(e) => editForm.setData('phone', e.target.value)}
-                                    />
-                                    {editForm.errors.phone && <div className="field-error">{editForm.errors.phone}</div>}
-                                </div>
-                            </div>
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>القسم</label>
-                                    <select
-                                        value={editForm.data.department_id}
-                                        onChange={(e) => editForm.setData('department_id', e.target.value)}
-                                    >
-                                        <option value="">بدون قسم</option>
-                                        {departments.map((d) => (
-                                            <option key={d.id} value={d.id}>{d.name}</option>
-                                        ))}
-                                    </select>
-                                    {editForm.errors.department_id && <div className="field-error">{editForm.errors.department_id}</div>}
-                                </div>
-                                <div className="fg">
-                                    <label>الحالة</label>
-                                    <select
-                                        value={editForm.data.status}
-                                        onChange={(e) => editForm.setData('status', e.target.value)}
-                                    >
-                                        <option value="active">نشط</option>
-                                        <option value="inactive">غير نشط</option>
-                                    </select>
-                                    {editForm.errors.status && <div className="field-error">{editForm.errors.status}</div>}
-                                </div>
-                            </div>
-                            <div className="panel-actions">
-                                <button type="submit" className="pa-approve" disabled={editForm.processing}>حفظ</button>
-                                <button type="button" className="pa-reject" onClick={() => setEditingItem(null)}>إلغاء</button>
-                            </div>
-                        </form>
-                    </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <ResultCount page={employees} />
+                    <Pagination page={employees} />
                 </div>
-            )}
+            </Card>
+
+            <ConfirmModal
+                open={deactivating !== null}
+                tone="danger"
+                title="تعطيل حساب الموظف"
+                message="لا يُحذف الموظف — يُعطَّل. تُنهى جلساته فوراً، وتُزال قياداته للمجتمعات، وتُلغى مشاركاته غير المؤكدة. سجله وحضوره السابق يبقى في التقارير."
+                details={
+                    deactivating && (
+                        <>
+                            <ConfirmRow
+                                label="الموظف"
+                                value={deactivating.name}
+                                strong
+                            />
+                            <ConfirmRow
+                                label="القسم"
+                                value={
+                                    deactivating.department?.name ?? 'بلا إدارة'
+                                }
+                            />
+                            <ConfirmRow
+                                label="مجتمعاته"
+                                value={`${deactivating.communities?.length ?? 0} مجتمعاً يخرج منها`}
+                            />
+                            <ConfirmRow
+                                label="أثر الفوترة"
+                                value="لا يُحتسب ضمن الموظفين المفعَّلين في الدورة القادمة"
+                                strong
+                            />
+                        </>
+                    )
+                }
+                confirmLabel="نعم، عطّل الحساب"
+                onConfirm={() => {
+                    router.delete(`/company/employees/${deactivating?.id}`, {
+                        preserveScroll: true,
+                    });
+                    setDeactivating(null);
+                }}
+                onCancel={() => setDeactivating(null)}
+            />
         </CompanyLayout>
     );
 }

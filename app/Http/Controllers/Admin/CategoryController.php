@@ -213,7 +213,7 @@ class CategoryController extends Controller
             'categories' => $categories,
             'parentCategories' => $parentCategories,
             'totalSports' => $totalSports,
-            'filters' => $request->only('search', 'parent_id', 'sort', 'dir'),
+            'filters' => (object) $request->only('search', 'parent_id', 'sort', 'dir'),
             // `key: ''` تعني «الشجرة» — لا عمود نشط.
             'sort' => self::sort()->allows($sortKey)
                 ? self::sort()->state($sortKey, $sortDir)

@@ -38,7 +38,7 @@ class NotificationController extends Controller
         return Inertia::render('company/notifications/index', [
             'company' => $company,
             'notifications' => $notifications,
-            'filters' => $filters,
+            'filters' => (object) $filters,
             'sort' => CompanyNotificationService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'unreadCount' => $unreadCount,
             'unreadNotifications' => $unreadCount,

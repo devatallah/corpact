@@ -1,177 +1,284 @@
+import { Head, router, useForm } from '@inertiajs/react';
+import { Building, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import {
+    Pagination,
+    ResultCount,
+    SearchInput,
+    SortableHeader,
+    Toolbar,
+} from '@/components/list-controls';
+import { ListStates } from '@/components/list-states';
+import {
+    Button,
+    Card,
+    IconButton,
+    INPUT,
+    Note,
+    PageHeader,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    TableShell,
+    Tr,
+} from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
-import ConfirmModal from '@/components/confirm-modal';
-import ListStates from '@/components/list-states';
-import Pagination from '@/components/pagination';
-import SortableHeader, { type SortState } from '@/components/sortable-header';
-import { useDebouncedSearch } from '@/hooks/use-debounced-search';
-import type { PaginatedResult } from '@/types/models';
-import { Head, useForm, router } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
-import toastr from 'toastr';
+import type { Paginated, SortState } from '@/types';
 
-interface Department {
+/**
+ * H §5 — الأقسام.
+ *
+ * Departments exist to slice participation reports, so deleting one is
+ * refused while it still holds employees or sits in an active league — the
+ * server enforces both, and the confirm names which one would break.
+ */
+type Department = {
     id: number;
     name: string;
     employees_count: number;
-    created_at: string;
-}
+    created_at: string | null;
+};
 
-interface Props {
-    departments: PaginatedResult<Department>;
-    filters: { search?: string; sort?: string; dir?: string };
+export default function CompanyDepartments({
+    departments,
+    filters,
+    sort,
+}: {
+    departments: Paginated<Department>;
+    filters: { search?: string };
     sort: SortState;
-}
-
-export default function DepartmentsIndex({ departments, filters, sort }: Props) {
-    const [search, setSearch] = useDebouncedSearch(filters?.search ?? '', {
-        sort: filters?.sort,
-        dir: filters?.dir,
-    });
-    const [showCreate, setShowCreate] = useState(false);
-    const [editingItem, setEditingItem] = useState<Department | null>(null);
-    const [deleteTarget, setDeleteTarget] = useState<Department | null>(null);
-
-    const form = useForm({ name: '' });
-
-    useEffect(() => {
-        if (editingItem) {
-            form.setData('name', editingItem.name ?? '');
-        } else {
-            form.reset();
-        }
-    }, [editingItem]);
-
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        if (editingItem) {
-            form.put(`/company/departments/${editingItem.id}`, {
-                onSuccess: () => { setEditingItem(null); toastr.success('تم تحديث القسم بنجاح.'); },
-            });
-        } else {
-            form.post('/company/departments', {
-                onSuccess: () => { setShowCreate(false); form.reset(); toastr.success('تم إنشاء القسم بنجاح.'); },
-            });
-        }
-    }
-
-    function confirmDelete() {
-        if (!deleteTarget) return;
-        router.delete(`/company/departments/${deleteTarget.id}`, {
-            preserveScroll: true,
-            onSuccess: () => toastr.success('تم حذف القسم بنجاح.'),
-        });
-        setDeleteTarget(null);
-    }
+}) {
+    const createForm = useForm({ name: '' });
+    const [editing, setEditing] = useState<Department | null>(null);
+    const [editName, setEditName] = useState('');
+    const [deleting, setDeleting] = useState<Department | null>(null);
 
     return (
         <CompanyLayout>
             <Head title="الأقسام" />
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <div className="page-title">إدارة الأقسام</div>
-                <button onClick={() => { setShowCreate(true); setEditingItem(null); form.reset(); }} className="act-btn btn-approve">
-                    إضافة قسم
-                </button>
-            </div>
-            <div className="page-sub">
-                {departments.total} قسم مسجّل
-            </div>
+            <PageHeader
+                icon={Building}
+                title="الأقسام"
+                subtitle="عليها تُبنى تقارير المشاركة وبطولات الإدارات."
+            />
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-                <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="🔍 ابحث باسم القسم..."
-                    style={{ flex: 1, minWidth: 200, padding: '9px 14px', background: '#fff', border: '1px solid #E2E8F4', borderRadius: 10, fontSize: 13, color: '#2A3550', outline: 'none', direction: 'rtl', fontFamily: 'inherit' }}
-                />
-            </div>
+            {/* ── إضافة قسم ── */}
+            <Card padding="p-4">
+                <form
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        createForm.post('/company/departments', {
+                            preserveScroll: true,
+                            onSuccess: () => createForm.reset(),
+                        });
+                    }}
+                    className="flex flex-wrap items-end gap-3"
+                >
+                    <div className="min-w-[220px] flex-1">
+                        <label
+                            htmlFor="new-department"
+                            className="mb-1.5 block text-[11px] font-bold text-ink"
+                        >
+                            اسم القسم
+                        </label>
+                        <input
+                            id="new-department"
+                            className={INPUT}
+                            value={createForm.data.name}
+                            onChange={(event) =>
+                                createForm.setData('name', event.target.value)
+                            }
+                        />
+                        {createForm.errors.name && (
+                            <p className="mt-1 text-[11px] text-danger">
+                                {createForm.errors.name}
+                            </p>
+                        )}
+                    </div>
+                    <Button
+                        type="submit"
+                        icon={Plus}
+                        disabled={
+                            createForm.processing ||
+                            !createForm.data.name.trim()
+                        }
+                    >
+                        إضافة قسم
+                    </Button>
+                </form>
+            </Card>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <table className="portal-table">
-                    <thead>
-                        <tr>
-                            <SortableHeader label="اسم القسم" sortKey="name" sort={sort} />
-                            <SortableHeader label="عدد الموظفين" sortKey="employees_count" sort={sort} initialDirection="desc" />
-                            <th>إجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <Card padding="p-4" className="space-y-4">
+                <Toolbar>
+                    <SearchInput
+                        value={filters.search ?? ''}
+                        placeholder="ابحث باسم القسم…"
+                    />
+                </Toolbar>
+
+                <TableShell>
+                    <Thead>
+                        <Th>
+                            <SortableHeader
+                                label="القسم"
+                                sortKey="name"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th>
+                            <SortableHeader
+                                label="الموظفون"
+                                sortKey="employees_count"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th>
+                            <SortableHeader
+                                label="أُنشئ في"
+                                sortKey="created_at"
+                                sort={sort}
+                            />
+                        </Th>
+                        <Th className="text-center">الإجراءات</Th>
+                    </Thead>
+
+                    <Tbody>
+                        {departments.data.map((department) => (
+                            <Tr key={department.id}>
+                                <Td>
+                                    {editing?.id === department.id ? (
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                className={INPUT}
+                                                value={editName}
+                                                onChange={(event) =>
+                                                    setEditName(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                aria-label="اسم القسم"
+                                            />
+                                            <Button
+                                                type="button"
+                                                onClick={() => {
+                                                    router.put(
+                                                        `/company/departments/${department.id}`,
+                                                        { name: editName },
+                                                        {
+                                                            preserveScroll: true,
+                                                            onSuccess: () =>
+                                                                setEditing(
+                                                                    null,
+                                                                ),
+                                                        },
+                                                    );
+                                                }}
+                                            >
+                                                حفظ
+                                            </Button>
+                                            <IconButton
+                                                icon={X}
+                                                label="إلغاء التعديل"
+                                                onClick={() => setEditing(null)}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <span className="font-extrabold text-ink">
+                                            {department.name}
+                                        </span>
+                                    )}
+                                </Td>
+                                <Td className="font-mono font-bold text-ink">
+                                    {department.employees_count}
+                                </Td>
+                                <Td className="font-mono text-[11px] text-ink/70">
+                                    {department.created_at
+                                        ? new Date(
+                                              department.created_at,
+                                          ).toLocaleDateString('ar-SA')
+                                        : '—'}
+                                </Td>
+                                <Td className="text-center">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                        <IconButton
+                                            icon={Pencil}
+                                            label="تعديل اسم القسم"
+                                            onClick={() => {
+                                                setEditName(department.name);
+                                                setEditing(department);
+                                            }}
+                                        />
+                                        <IconButton
+                                            icon={Trash2}
+                                            label="حذف القسم"
+                                            tone="danger"
+                                            onClick={() =>
+                                                setDeleting(department)
+                                            }
+                                        />
+                                    </div>
+                                </Td>
+                            </Tr>
+                        ))}
+
                         <ListStates
                             count={departments.data.length}
-                            columns={3}
-                            emptyTitle="لا توجد أقسام بعد"
-                            emptyHint="أضف أول قسم لتوزيع الموظفين عليه في التقارير والمؤشرات."
+                            colSpan={4}
+                            empty="لا أقسام بعد."
+                            emptyHint="أضف أقسامك لتظهر المشاركة موزّعة عليها في لوحة القيادة والتقارير."
                         />
-                        {departments.data.map((dept) => (
-                            <tr key={dept.id}>
-                                <td style={{ fontWeight: 700 }}>{dept.name}</td>
-                                <td>{dept.employees_count}</td>
-                                <td>
-                                    <div style={{ display: 'flex', gap: '6px' }}>
-                                        <button
-                                            onClick={() => { setEditingItem(dept); setShowCreate(false); }}
-                                            className="act-btn btn-view"
-                                        >
-                                            تعديل
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                    </Tbody>
+                </TableShell>
 
-            <Pagination links={departments.links} />
-
-            {/* Create/Edit Modal */}
-            {(showCreate || editingItem) && (
-                <div className="detail-overlay open" onClick={() => { setShowCreate(false); setEditingItem(null); }}>
-                    <div className="detail-panel" onClick={(e) => e.stopPropagation()}>
-                        <h3>
-                            {editingItem ? 'تعديل قسم' : 'إضافة قسم'}
-                            <button className="close-btn" onClick={() => { setShowCreate(false); setEditingItem(null); }}>×</button>
-                        </h3>
-
-                        {Object.keys(form.errors).length > 0 && (
-                            <div style={{ background: 'rgba(224,48,80,.1)', border: '1px solid rgba(224,48,80,.25)', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
-                                {Object.values(form.errors).map((error, i) => (
-                                    <p key={i} style={{ fontSize: '12px', color: '#E03050', margin: '0 0 4px' }}>{error}</p>
-                                ))}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSubmit}>
-                            <div className="frow">
-                                <div className="fg">
-                                    <label>اسم القسم *</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.name}
-                                        onChange={(e) => form.setData('name', e.target.value)}
-                                        placeholder="مثال: التسويق"
-                                        required
-                                    />
-                                </div>
-                                <div className="fg" />
-                            </div>
-
-                            <div className="panel-actions">
-                                <button type="submit" className="pa-approve" disabled={form.processing}>حفظ</button>
-                                <button type="button" className="pa-reject" onClick={() => { setShowCreate(false); setEditingItem(null); }}>إلغاء</button>
-                            </div>
-                        </form>
-                    </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <ResultCount page={departments} />
+                    <Pagination page={departments} />
                 </div>
-            )}
+            </Card>
+
+            <Note title="حذف القسم مشروط">
+                لا يُحذف قسم فيه موظفون، ولا قسم مشترك في بطولة نشطة. انقل
+                الموظفين أولاً أو انتظر انتهاء البطولة.
+            </Note>
 
             <ConfirmModal
-                open={!!deleteTarget}
-                title="حذف قسم"
-                message={`هل أنت متأكد من حذف القسم "${deleteTarget?.name ?? ''}"؟ سيتم إزالة القسم من جميع الموظفين المرتبطين.`}
-                confirmLabel="حذف"
-                onConfirm={confirmDelete}
-                onCancel={() => setDeleteTarget(null)}
+                open={deleting !== null}
+                tone="danger"
+                title="حذف القسم"
+                message="يُحذف القسم من قائمة الأقسام. مشاركات الموظفين السابقة تبقى منسوبة إليه في التقارير التاريخية."
+                details={
+                    deleting && (
+                        <>
+                            <ConfirmRow
+                                label="القسم"
+                                value={deleting.name}
+                                strong
+                            />
+                            <ConfirmRow
+                                label="الموظفون فيه"
+                                value={String(deleting.employees_count)}
+                            />
+                            {deleting.employees_count > 0 && (
+                                <ConfirmRow
+                                    label="تنبيه"
+                                    value="سيُرفض الحذف — انقل الموظفين إلى قسم آخر أولاً"
+                                    strong
+                                />
+                            )}
+                        </>
+                    )
+                }
+                confirmLabel="نعم، احذف القسم"
+                onConfirm={() => {
+                    router.delete(`/company/departments/${deleting?.id}`, {
+                        preserveScroll: true,
+                    });
+                    setDeleting(null);
+                }}
+                onCancel={() => setDeleting(null)}
             />
         </CompanyLayout>
     );

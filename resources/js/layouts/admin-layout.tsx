@@ -1,90 +1,111 @@
-import PortalSidebar from '@/components/portal-sidebar';
-import type { NavItem } from '@/components/portal-sidebar';
-import type { Auth } from '@/types/auth';
 import { usePage } from '@inertiajs/react';
+import {
+    Activity,
+    AlertTriangle,
+    Bell,
+    Building2,
+    Calendar,
+    CalendarOff,
+    CircleUser,
+    ClipboardList,
+    Compass,
+    FileSpreadsheet,
+    FileText,
+    Ghost,
+    Headphones,
+    KeyRound,
+    Landmark,
+    MessageSquare,
+    Receipt,
+    Ruler,
+    Scale,
+    ScrollText,
+    SearchCheck,
+    Settings,
+    Shield,
+    ShieldCheck,
+    Siren,
+    Tags,
+    TrendingUp,
+    UserRound,
+    Users,
+    UsersRound,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
+import type { NavItem } from '@/components/portal-sidebar';
+import PortalShell from '@/layouts/portal-shell';
+import type { SharedProps } from '@/types';
 
 /**
  * H §16 — لوحة أدمن تيمات، وفصل الأدوار: `platform_admin` (كل شيء عدا
  * الاعتماد المالي) · `finance_admin` (الاعتمادات المالية) · `support_agent`
  * (قراءة وتدخل محدود).
  *
- * A15 fix: every `permission` below is a real string from
- * `App\Enums\Role::permissions()`, and matches the middleware on the route it
- * links to. The previous list used a pre-A3 vocabulary
- * (`manage_companies`, `manage_categories`, `manage_notifications`,
- * `manage_admins`, `view_revenue`, …) that exists nowhere in the backend, so
- * those entries rendered **for nobody** — Companies, Partners, Employees,
- * Communities, Categories, Events, Revenue, Support and Admins were all
- * silently hidden from a platform admin even though the routes worked.
+ * Every `permission` below is a real string from `App\Enums\Role::permissions()`
+ * and matches the middleware on the route it links to — a nav gated on a
+ * permission the backend never grants renders for nobody, which is exactly
+ * how the pre-A3 vocabulary hid nine working screens.
  */
 const allNavItems: (NavItem & { permission?: string })[] = [
-    { label: 'لوحة التحكم', href: '/admin/dash', emoji: '📊' },
+    { label: 'لوحة التحكم', href: '/admin/dash', icon: Activity },
 
     // الشركات والعقود · المزوّدون · الفعاليات (H §16)
-    { label: 'الشركات والعقود', href: '/admin/companies', emoji: '🏢', permission: 'platform.manage' },
-    { label: 'المزوّدون', href: '/admin/partners', emoji: '🏟️', permission: 'platform.manage' },
-    { label: 'إشراف المزوّدين', href: '/admin/providers/oversight', emoji: '🧭', permission: 'platform.manage' },
-    { label: 'الموظفون', href: '/admin/employees', emoji: '👥', permission: 'platform.manage' },
-    { label: 'المجتمعات', href: '/admin/communities', emoji: '👫', permission: 'platform.manage' },
-    { label: 'الفعاليات', href: '/admin/events', emoji: '📅', permission: 'platform.manage' },
-    { label: 'مراقبة الفعاليات الشبح', href: '/admin/monitoring/ghost-events', emoji: '👻', permission: 'platform.manage' },
-    // A13's coordinator report lives outside /admin on purpose (its own group,
-    // no platform permissions). H §15 gives أدمن تيمات a copy, so the link is
-    // gated on `platform.manage`; the coordinator's own shell is still to come.
-    { label: 'تقارير المنسّق المُدار', href: '/coordinator/reports', emoji: '🗒️', permission: 'platform.manage' },
+    { label: 'الشركات والعقود', href: '/admin/companies', icon: Building2, permission: 'platform.manage' },
+    { label: 'المزوّدون', href: '/admin/partners', icon: Users, permission: 'platform.manage' },
+    { label: 'إشراف المزوّدين', href: '/admin/providers/oversight', icon: Compass, permission: 'platform.manage' },
+    { label: 'الموظفون', href: '/admin/employees', icon: UserRound, permission: 'platform.manage' },
+    { label: 'المجتمعات', href: '/admin/communities', icon: UsersRound, permission: 'platform.manage' },
+    { label: 'الفعاليات', href: '/admin/events', icon: Calendar, permission: 'platform.manage' },
+    { label: 'مراقبة الفعاليات الشبح', href: '/admin/monitoring/ghost-events', icon: Ghost, permission: 'platform.manage' },
+    { label: 'تقارير المنسّق المُدار', href: '/coordinator/reports', icon: ClipboardList, permission: 'platform.manage' },
 
     // المالية (H §16) — الأدمن المالي
-    { label: 'الإيرادات', href: '/admin/revenue', emoji: '💰', permission: 'revenue.view' },
-    { label: 'اعتماد التحويلات', href: '/admin/finance/topups', emoji: '🏦', permission: 'wallet.topup.approve' },
-    { label: 'فشل المدفوعات', href: '/admin/payments/failures', emoji: '⚠️', permission: 'payments.failures.view' },
-    { label: 'التسويات', href: '/admin/finance/settlements', emoji: '📑', permission: 'settlement.approve' },
-    { label: 'الفواتير', href: '/admin/finance/invoices', emoji: '🧾', permission: 'invoice.approve' },
-    { label: 'شروط العقود', href: '/admin/finance/terms', emoji: '📐', permission: 'invoice.approve' },
+    { label: 'الإيرادات', href: '/admin/revenue', icon: TrendingUp, permission: 'revenue.view' },
+    { label: 'اعتماد التحويلات', href: '/admin/finance/topups', icon: Landmark, permission: 'wallet.topup.approve' },
+    { label: 'فشل المدفوعات', href: '/admin/payments/failures', icon: AlertTriangle, permission: 'payments.failures.view' },
+    { label: 'التسويات', href: '/admin/finance/settlements', icon: Scale, permission: 'settlement.approve' },
+    { label: 'الفواتير', href: '/admin/finance/invoices', icon: Receipt, permission: 'invoice.approve' },
+    { label: 'شروط العقود', href: '/admin/finance/terms', icon: Ruler, permission: 'invoice.approve' },
+    { label: 'الصفة الضريبية', href: '/admin/finance/tax-status', icon: FileSpreadsheet, permission: 'invoice.approve' },
 
     // الدعم وسجل التدقيق (H §16 + §19)
-    { label: 'مركز الدعم', href: '/admin/support-console', emoji: '🎧', permission: 'support.search' },
-    { label: 'رسائل الدعم', href: '/admin/support', emoji: '💬', permission: 'support.messages.manage' },
-    { label: 'سجل التدقيق', href: '/admin/audit', emoji: '🧾', permission: 'audit.view' },
-    { label: 'الأحداث الأمنية', href: '/admin/security/events', emoji: '🛡️', permission: 'security.events.view' },
-    { label: 'مراجعة الصلاحيات', href: '/admin/security/permission-review', emoji: '🔍', permission: 'admins.manage' },
-    { label: 'سجل الإشعارات', href: '/admin/notification-logs', emoji: '📜', permission: 'notifications.logs.view' },
+    { label: 'مركز الدعم', href: '/admin/support-console', icon: Headphones, permission: 'support.search' },
+    { label: 'رسائل الدعم', href: '/admin/support', icon: MessageSquare, permission: 'support.messages.manage' },
+    { label: 'سجل التدقيق', href: '/admin/audit', icon: ShieldCheck, permission: 'audit.view' },
+    { label: 'الأحداث الأمنية', href: '/admin/security/events', icon: Shield, permission: 'security.events.view' },
+    { label: 'مراجعة الصلاحيات', href: '/admin/security/permission-review', icon: SearchCheck, permission: 'admins.manage' },
+    { label: 'سجل الإشعارات', href: '/admin/notification-logs', icon: ScrollText, permission: 'notifications.logs.view' },
 
     // الإعدادات (H §16)
-    { label: 'الفئات والأنشطة', href: '/admin/categories', emoji: '⚽', permission: 'catalog.manage' },
-    { label: 'أيام التعطيل', href: '/admin/blackouts', emoji: '🚫', permission: 'platform.manage' },
-    { label: 'إعدادات المنصة', href: '/admin/settings/platform', emoji: '🎚️', permission: 'platform.manage' },
-    { label: 'قوالب الإشعارات', href: '/admin/notification-templates', emoji: '📝', permission: 'platform.manage' },
-    { label: 'الإشعارات', href: '/admin/notifs', emoji: '🔔', permission: 'platform.manage' },
-    { label: 'التنبيهات الحرجة', href: '/admin/alerts', emoji: '🚨', permission: 'platform.manage' },
-    { label: 'المشرفون', href: '/admin/admins', emoji: '🛡️', permission: 'admins.manage' },
+    { label: 'الفئات والأنشطة', href: '/admin/categories', icon: Tags, permission: 'catalog.manage' },
+    { label: 'أيام التعطيل', href: '/admin/blackouts', icon: CalendarOff, permission: 'platform.manage' },
+    { label: 'إعدادات المنصة', href: '/admin/settings/platform', icon: Settings, permission: 'platform.manage' },
+    { label: 'قوالب الإشعارات', href: '/admin/notification-templates', icon: FileText, permission: 'platform.manage' },
+    { label: 'الإشعارات', href: '/admin/notifs', icon: Bell, permission: 'platform.manage' },
+    { label: 'التنبيهات الحرجة', href: '/admin/alerts', icon: Siren, permission: 'platform.manage' },
+    { label: 'المشرفون', href: '/admin/admins', icon: KeyRound, permission: 'admins.manage' },
 
-    { label: 'الملف الشخصي', href: '/admin/profile', emoji: '👤' },
+    { label: 'الملف الشخصي', href: '/admin/profile', icon: CircleUser },
 ];
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { auth } = usePage<{ auth: Auth }>().props;
+export default function AdminLayout({ children }: { children: ReactNode }) {
+    const { auth } = usePage<SharedProps>().props;
     const permissions = auth.permissions ?? [];
 
     const navItems: NavItem[] = allNavItems
         .filter((item) => !item.permission || permissions.includes(item.permission))
-        .map(({ permission: _, ...rest }) => rest);
-
-    const roleLabel = auth.role_label ?? 'مشرف';
+        .map((item): NavItem => ({ label: item.label, href: item.href, icon: item.icon, badge: item.badge }));
 
     return (
-        <div className="portal-admin" dir="rtl">
-            <PortalSidebar
-                portalTag="ADMIN"
-                userLabel={auth.user?.name ?? 'مشرف النظام'}
-                userSub={roleLabel}
-                userAvatar="م"
-                userAvatarStyle={{ background: 'linear-gradient(135deg,#E03050,#B8001A)' }}
-                navItems={navItems}
-                logoutUrl="/admin/logout"
-                infoStyle="admin"
-            />
-            <div className="main">{children}</div>
-        </div>
+        <PortalShell
+            navItems={navItems}
+            logoutUrl="/admin/logout"
+            userLabel={auth.user?.name ?? 'مشرف النظام'}
+            userSub={auth.role_label ?? 'مشرف'}
+            notificationsUrl="/admin/notifs"
+        >
+            {children}
+        </PortalShell>
     );
 }
 
