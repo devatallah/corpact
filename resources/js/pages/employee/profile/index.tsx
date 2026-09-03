@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { BellRing, Flame, UserRound } from 'lucide-react';
+import { BellRing, Building2, Flame, Lock, ShieldCheck, UserRound } from 'lucide-react';
 import { ListStates } from '@/components/list-states';
 import { FormActions, FormSection } from '@/components/portal/form';
 import {
@@ -232,7 +232,7 @@ export default function EmployeeProfile({
                     {groups.map((group) => (
                         <div key={group} className="space-y-1.5">
                             <span className="block text-[11px] font-bold text-ink/60">
-                                {group}
+                                {GROUP_LABELS[group] ?? group}
                             </span>
                             {notificationPreferences
                                 .filter((pref) => pref.group === group)
@@ -275,6 +275,16 @@ export default function EmployeeProfile({
                         empty="لا تفضيلات قابلة للتعديل."
                     />
 
+                    <div className="rounded-xl border-[0.5px] border-ink/12 bg-page p-3">
+                        <span className="block text-[11px] font-extrabold text-ink mb-1">إشعارات إلزامية — غير قابلة للإيقاف</span>
+                        <span className="block text-[10px] text-ink/65 leading-relaxed">
+                            تأكيد الحجز · إلغاء الفعالية · مطالبات السداد · الفواتير
+                        </span>
+                        <span className="block text-[9px] text-ink/45 mt-1">
+                            إشعارات تشغيلية ومالية ملزمة لسلامة حسابك وحجزك.
+                        </span>
+                    </div>
+
                     <Note title="لماذا لا ترى كل الإشعارات هنا؟">
                         إشعارات مثل «فعاليتك أُلغيت» أو «سدادك مستحق» لا يمكن
                         إيقافها — إخفاؤها يضرّك أنت. لذلك لا تُعرض بمفتاح
@@ -292,6 +302,48 @@ export default function EmployeeProfile({
                     </Button>
                 </FormActions>
             </form>
+
+            {/* ── بطاقة الخصوصية ── */}
+            <Card padding="p-4" className="space-y-2.5">
+                <h2 className="text-sm font-extrabold text-ink flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4" aria-hidden="true" />
+                    بطاقة الخصوصية وحماية بياناتك
+                </h2>
+
+                <div className="rounded-xl border-[0.5px] border-success/25 bg-success-tint p-3">
+                    <span className="flex items-center gap-1.5 text-[11px] font-extrabold text-success mb-1">
+                        <Lock className="w-3 h-3 shrink-0" aria-hidden="true" />
+                        حجب بياناتك عن مزوّد الخدمة
+                    </span>
+                    <p className="text-[10px] text-ink/70 leading-relaxed">
+                        المرفق الذي تلعب فيه لا يرى اسمك ولا رقم جوالك إطلاقاً — يصله عدد المشاركين فقط. الاستثناء الوحيد أن تكون
+                        أنت منشئ الفعالية، فتظهر بياناتك بصفتك جهة الاتصال للتنسيق وحدها.
+                    </p>
+                </div>
+
+                <div className="rounded-xl border-[0.5px] border-ink/12 bg-page p-3">
+                    <span className="flex items-center gap-1.5 text-[11px] font-extrabold text-ink mb-1">
+                        <Building2 className="w-3 h-3 shrink-0" aria-hidden="true" />
+                        المتحكّم والمعالِج
+                    </span>
+                    <p className="text-[10px] text-ink/70 leading-relaxed">
+                        {employee.company?.name ?? 'شركتك'} هي المتحكّم الرسمي في بياناتك الوظيفية (Data Controller)، ومنصة تيمات
+                        معالِج معتمد (Data Processor) وفق نظام حماية البيانات الشخصية السعودي (PDPL).
+                    </p>
+                </div>
+            </Card>
+
+            {/* ── مشكلات شائعة ── */}
+            <Card padding="p-4" className="space-y-2">
+                <h2 className="text-sm font-extrabold text-ink">مشكلات شائعة وإرشادات فورية</h2>
+
+                {COMMON_ISSUES.map((issue) => (
+                    <details key={issue.q} className="rounded-xl border-[0.5px] border-ink/12 bg-page p-2.5">
+                        <summary className="text-[11px] font-bold text-ink cursor-pointer">{issue.q}</summary>
+                        <p className="text-[10px] text-ink/65 leading-relaxed mt-1.5">{issue.a}</p>
+                    </details>
+                ))}
+            </Card>
 
             {/* ── مجتمعاتي ── */}
             <Card padding="p-4" className="space-y-2">
@@ -348,3 +400,49 @@ export default function EmployeeProfile({
         </EmployeeLayout>
     );
 }
+
+/**
+ * المشكلات الخمس التي يفتح الموظف الدعم بسببها.
+ *
+ * Answering them here is cheaper for everyone than a support ticket, and each
+ * answer states the rule rather than promising a fix — «انتهت مهلة الدفع» has
+ * a definite outcome, and hiding it produces a second ticket.
+ */
+/**
+ * أسماء مجموعات الإشعارات بالعربية.
+ *
+ * The registry groups templates by an English slug for its own bookkeeping.
+ * Printing that slug as a section heading in an Arabic interface is the same
+ * leak as an untranslated status — the reader sees the schema, not the
+ * product.
+ */
+const GROUP_LABELS: Record<string, string> = {
+    events: 'الفعاليات',
+    community: 'المجتمعات',
+    engagement: 'التفاعل والتذكيرات',
+    provider: 'المرافق والمزوّدون',
+    finance: 'المالية',
+};
+
+const COMMON_ISSUES = [
+    {
+        q: 'لم يصلني رمز الدخول؟',
+        a: 'تأكد أن الرقم هو المسجَّل لدى شركتك، وانتظر دقيقة قبل طلب رمز جديد — الطلب المتكرر السريع يوقف الإرسال مؤقتاً حمايةً لك. إن تكرّر، راجع مسؤول الحساب في شركتك.',
+    },
+    {
+        q: 'أُقفل حسابي مؤقتاً؟',
+        a: 'الإقفال المؤقت يقع بعد محاولات دخول كثيرة متتالية، وينتهي من تلقاء نفسه. لا يعني حذف حسابك ولا فقدان تسجيلاتك.',
+    },
+    {
+        q: 'انتهت مهلة الدفع؟',
+        a: 'المقعد يُحرَّر ويُعرض على قائمة الانتظار. لا يُخصم منك شيء، ويمكنك التسجيل مجدداً إن بقي مقعد شاغر.',
+    },
+    {
+        q: 'دفعت المبلغ ولم تتحدّث حالتي فوراً؟',
+        a: 'تأكيد البوابة قد يتأخر دقائق. لا تدفع مرة أخرى — افتح صفحة السداد وستجد الحالة محدَّثة، وإن بقيت معلّقة بعد ساعة راجع الدعم بمرجع العملية.',
+    },
+    {
+        q: 'أُلغيت الفعالية من الشركة أو المزوّد؟',
+        a: 'يُردّ ما دفعته كاملاً إلى وسيلة الدفع نفسها تلقائياً. إلغاء المزوّد وإلغاء الشركة كلاهما استرداد كامل — الفرق بينهما في أثره على المرفق لا عليك.',
+    },
+];

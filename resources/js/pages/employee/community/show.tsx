@@ -11,6 +11,8 @@ import {
     Trophy,
     UserPlus,
     UsersRound,
+    Star,
+    Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
@@ -76,6 +78,19 @@ type Member = {
     name: string;
     email: string;
     department?: { id: number; name: string } | null;
+    completed_events?: number;
+    attendance_rate?: number | null;
+};
+
+type LedgerRow = {
+    id: number;
+    type_label: string;
+    signed_amount: number;
+    balance_after: number;
+    reference: string | null;
+    actor_name: string | null;
+    note: string | null;
+    occurred_at: string | null;
 };
 
 type Poll = {
@@ -113,7 +128,9 @@ export default function EmployeeCommunityShow({
     leaderIds,
     primaryLeaderId,
     invitableEmployees,
+    walletLedger,
 }: {
+    walletLedger: { balance: number; transactions: LedgerRow[] } | null;
     community: {
         id: number;
         name: string;
@@ -625,6 +642,12 @@ export default function EmployeeCommunityShow({
                                 <span className="block text-[10px] text-ink/50">
                                     {member.department?.name ?? 'بلا إدارة'}
                                 </span>
+                                <span className="block font-mono text-[10px] text-ink/45">
+                                    {member.attendance_rate === null ||
+                                    member.attendance_rate === undefined
+                                        ? 'لا مشاركات بعد'
+                                        : `حضور ${member.attendance_rate}٪ · ${member.completed_events} فعالية`}
+                                </span>
                             </div>
 
                             <div className="flex shrink-0 items-center gap-1.5">
@@ -636,6 +659,37 @@ export default function EmployeeCommunityShow({
                                 {member.id !== primaryLeaderId &&
                                     leaderIds.includes(member.id) && (
                                         <Badge tone="neutral">قائد</Badge>
+                                    )}
+                                {isPrimaryLeader &&
+                                    member.id !== primaryLeaderId && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                router.post(
+                                                    `/employee/community/${community.id}/leaders`,
+                                                    {
+                                                        employee_id: member.id,
+                                                        is_primary: false,
+                                                    },
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                            title={
+                                                leaderIds.includes(member.id)
+                                                    ? 'نائب بالفعل'
+                                                    : 'تعيين نائباً للقائد'
+                                            }
+                                            aria-label="تعيين نائباً"
+                                            disabled={leaderIds.includes(
+                                                member.id,
+                                            )}
+                                            className="rounded-lg bg-lead-tint p-1 text-lead transition-colors hover:bg-lead/20 disabled:opacity-40"
+                                        >
+                                            <Star
+                                                className="h-3 w-3"
+                                                aria-hidden="true"
+                                            />
+                                        </button>
                                     )}
                                 {isLeader && member.id !== primaryLeaderId && (
                                     <button
@@ -659,6 +713,64 @@ export default function EmployeeCommunityShow({
                     <ListStates count={members.length} empty="لا أعضاء بعد." />
                 </div>
             </Card>
+
+            {/* ── دفتر محفظة المجتمع ── */}
+            {walletLedger && (
+                <Card padding="p-4" className="space-y-3">
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div>
+                            <h2 className="text-sm font-extrabold text-ink flex items-center gap-1.5">
+                                <Wallet className="w-4 h-4" aria-hidden="true" />
+                                حركات محفظة المجتمع
+                            </h2>
+                            <p className="text-[10px] text-ink/55">سجل تراكمي لكل تغطية حجز واسترداد — لا يُعدَّل ولا يُحذف.</p>
+                        </div>
+                        <div className="rounded-xl bg-panel px-3 py-1.5 text-end shrink-0">
+                            <span className="block text-[9px] text-white/60">الرصيد</span>
+                            <span className="block font-mono text-sm font-black text-lime">
+                                {Number(walletLedger.balance).toFixed(2)} ر.س
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        {walletLedger.transactions.map((tx) => (
+                            <div key={tx.id} className="rounded-xl border-[0.5px] border-ink/10 bg-page p-2.5">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <span className="block text-[11px] font-bold text-ink">{tx.type_label}</span>
+                                        <span className="block text-[10px] text-ink/60 leading-relaxed">{tx.note ?? '—'}</span>
+                                    </div>
+                                    <span
+                                        className={`font-mono text-xs font-black shrink-0 ${
+                                            tx.signed_amount >= 0 ? 'text-success' : 'text-ink'
+                                        }`}
+                                        dir="ltr"
+                                    >
+                                        {tx.signed_amount >= 0 ? '+' : ''}
+                                        {tx.signed_amount.toFixed(2)}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between gap-2 mt-1 text-[9px] text-ink/45 font-mono">
+                                    <span dir="ltr">
+                                        {tx.occurred_at ? new Date(tx.occurred_at).toLocaleDateString('ar-SA') : '—'}
+                                        {tx.reference ? ` · ${tx.reference}` : ''}
+                                    </span>
+                                    <span>
+                                        {tx.actor_name ?? 'محرك تيمات الآلي'} · الرصيد {tx.balance_after.toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+
+                        <ListStates
+                            count={walletLedger.transactions.length}
+                            empty="لا حركات على محفظة المجتمع."
+                            emptyHint="أول حركة تظهر بعد أن يخصّص مسؤول الحساب رصيداً، أو بعد أول فعالية مغطّاة."
+                        />
+                    </div>
+                </Card>
+            )}
 
             {/* ── القيادة والخروج ── */}
             {isPrimaryLeader ? (

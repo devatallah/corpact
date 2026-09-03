@@ -18,6 +18,7 @@ use App\Services\Employee\CommunityDetailService;
 use App\Services\Employee\ExploreService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -119,6 +120,12 @@ class CommunityController extends Controller
             'leaderIds' => $leaderIds,
             'primaryLeaderId' => $primaryLeaderId,
             'invitableEmployees' => $invitableEmployees,
+            // H §6/§12 — دفتر محفظة المجتمع للقائد وحده.
+            //
+            // القائد يصرف من هذه المحفظة، وكان يرى رصيدها دون أن يرى ما صُرف
+            // منه: رقم بلا سبب. الدفتر يجيب «أين ذهب؟» بنفس أعمدة دفتر
+            // الشركة — بالمرجع والمنفّذ والرصيد بعد كل حركة.
+            'walletLedger' => $isLeader ? $this->communityWalletLedger($community) : null,
         ]);
     }
 
@@ -327,5 +334,45 @@ class CommunityController extends Controller
         $this->communityDetailService->closePoll($community, $employee, $poll);
 
         return back()->with('success', 'تم إغلاق التصويت.');
+    }
+
+    /**
+     * دفتر محفظة المجتمع — أحدث 20 حركة برصيد جارٍ مبنيّ من كامل الدفتر.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function communityWalletLedger(Community $community): ?array
+    {
+        $wallet = $community->wallet()->withoutGlobalScopes()->first();
+
+        if ($wallet === null) {
+            return null;
+        }
+
+        $running = 0;
+        $rows = [];
+
+        foreach ($wallet->transactions()->with('actor:id,name')->orderBy('occurred_at')->orderBy('id')->get() as $tx) {
+            $signed = $tx->direction === 'credit' ? $tx->amount_halalas : -$tx->amount_halalas;
+            $running += $signed;
+
+            $rows[] = [
+                'id' => $tx->id,
+                'type_label' => $tx->type->label(),
+                'signed_amount' => $signed / 100,
+                'balance_after' => $running / 100,
+                'reference' => $tx->reference_type === null
+                    ? null
+                    : strtoupper(Str::snake(class_basename($tx->reference_type), '-')).'-'.$tx->reference_id,
+                'actor_name' => $tx->actor?->name,
+                'note' => $tx->note,
+                'occurred_at' => $tx->occurred_at?->toIso8601String(),
+            ];
+        }
+
+        return [
+            'balance' => $wallet->balance,
+            'transactions' => array_slice(array_reverse($rows), 0, 20),
+        ];
     }
 }

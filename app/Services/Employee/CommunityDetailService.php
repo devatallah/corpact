@@ -2,6 +2,7 @@
 
 namespace App\Services\Employee;
 
+use App\Enums\EventStatus;
 use App\Models\Community;
 use App\Models\CommunityAnnouncement;
 use App\Models\CommunityPoll;
@@ -14,6 +15,7 @@ use App\Support\Notify;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class CommunityDetailService
 {
@@ -78,10 +80,38 @@ class CommunityDetailService
      */
     public function members(Community $community): Collection
     {
-        return $community->members()
+        $members = $community->members()
             ->with('department')
             ->orderByPivot('joined_at', 'asc')
             ->get();
+
+        /*
+         * حضور كل عضو داخل هذا المجتمع.
+         *
+         * القائد يقرر على أساسه من يرشّح نائباً ومن يذكّره — والاسم وحده لا
+         * يقول شيئاً. تُحسب مرة واحدة لكل الأعضاء لا استعلاماً لكل صف.
+         */
+        $stats = DB::table('event_participants')
+            ->join('events', 'events.id', '=', 'event_participants.event_id')
+            ->where('events.community_id', $community->id)
+            ->where('events.status', EventStatus::Completed->value)
+            ->whereIn('event_participants.employee_id', $members->pluck('id'))
+            ->where('event_participants.seat_status', 'reserved')
+            ->selectRaw('event_participants.employee_id, COUNT(*) as booked, SUM(CASE WHEN event_participants.attendance_status = ? THEN 1 ELSE 0 END) as attended', ['attended'])
+            ->groupBy('event_participants.employee_id')
+            ->get()
+            ->keyBy('employee_id');
+
+        foreach ($members as $member) {
+            $row = $stats[$member->id] ?? null;
+            $booked = (int) ($row->booked ?? 0);
+            $attended = (int) ($row->attended ?? 0);
+
+            $member->setAttribute('completed_events', $attended);
+            $member->setAttribute('attendance_rate', $booked === 0 ? null : (int) round($attended / $booked * 100));
+        }
+
+        return $members;
     }
 
     /**
