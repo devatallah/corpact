@@ -24,20 +24,26 @@ export function Card({ children, className = '', padding = 'p-4' }: { children: 
 export function PageHeader({
     icon: Icon,
     title,
+    badge,
     subtitle,
     actions,
 }: {
     icon?: LucideIcon;
     title: string;
+    /** A count that belongs to the title — «7 موظفاً مسجلاً» — not a status. */
+    badge?: string;
     subtitle?: string;
     actions?: ReactNode;
 }) {
     return (
         <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${CARD} p-5`}>
             <div className="min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                     {Icon && <Icon className="w-5 h-5 text-ink shrink-0" aria-hidden="true" />}
                     <h1 className="text-xl font-extrabold text-ink">{title}</h1>
+                    {badge && (
+                        <span className="px-2.5 py-1 rounded-full bg-ink text-lime text-[11px] font-bold shrink-0">{badge}</span>
+                    )}
                 </div>
                 {subtitle && <p className="text-xs text-ink/60 leading-relaxed">{subtitle}</p>}
             </div>
@@ -81,14 +87,15 @@ export function StatCard({
 
 /* ── Status ─────────────────────────────────────────────────────────────── */
 
-export type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'lime';
+export type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'lead' | 'lime';
 
 const BADGE_TONES: Record<BadgeTone, string> = {
     neutral: 'bg-ink/5 text-ink/70 border-ink/10',
     success: 'bg-success-tint text-success border-success/25',
     warning: 'bg-warning-tint text-warning border-warning/25',
     danger: 'bg-danger-tint text-danger border-danger/25',
-    info: 'bg-ink/[0.04] text-ink border-ink/15',
+    info: 'bg-info-tint text-info border-info/25',
+    lead: 'bg-lead-tint text-lead border-lead/25',
     lime: 'bg-lime/20 text-ink border-lime/40',
 };
 
@@ -119,9 +126,18 @@ export function Money({ amount, className = '' }: { amount: number | string | nu
  * The prototype's side-ruled note. Used wherever a screen states a rule the
  * user is expected to act on rather than a value they can change.
  */
-export function Note({ tone = 'ink', title, children }: { tone?: 'ink' | 'warning' | 'danger'; title?: string; children: ReactNode }) {
+export function Note({
+    tone = 'ink',
+    title,
+    children,
+}: {
+    tone?: 'ink' | 'info' | 'warning' | 'danger';
+    title?: string;
+    children: ReactNode;
+}) {
     const tones = {
         ink: 'border-r-ink bg-ink/5 text-ink',
+        info: 'border-r-info bg-info-tint text-ink',
         warning: 'border-r-warning bg-warning-tint text-ink',
         danger: 'border-r-danger bg-danger-tint text-ink',
     };
@@ -241,8 +257,8 @@ export function Tbody({ children }: { children: ReactNode }) {
     return <tbody className="divide-y-[0.5px] divide-ink/10">{children}</tbody>;
 }
 
-export function Tr({ children }: { children: ReactNode }) {
-    return <tr className="hover:bg-ink/[0.02] transition-colors">{children}</tr>;
+export function Tr({ children, className = '' }: { children: ReactNode; className?: string }) {
+    return <tr className={`hover:bg-ink/[0.02] transition-colors ${className}`}>{children}</tr>;
 }
 
 export function Th({ children, className = '' }: { children?: ReactNode; className?: string }) {

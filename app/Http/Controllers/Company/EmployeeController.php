@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
+use App\Enums\Role;
 use App\Http\Requests\Company\IndexEmployeeRequest;
 use App\Http\Requests\Company\StoreEmployeeRequest;
 use App\Http\Requests\Company\UpdateEmployeeRequest;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\Invitation;
 use App\Models\Notification;
+use App\Models\RoleAssignment;
 use App\Services\Company\CompanyEmployeeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -41,12 +44,44 @@ class EmployeeController extends Controller
         $activeCount = Employee::where('company_id', $company->id)->where('status', 'active')->count();
         $totalCount = Employee::where('company_id', $company->id)->count();
 
-        $departments = Department::where('company_id', $company->id)->orderBy('name')->get(['id', 'name']);
+        // العدّاد بجانب اسم كل إدارة في المُنتقي — يوفّر فتح القائمة لمعرفة
+        // أيّها فارغة.
+        $departments = Department::where('company_id', $company->id)
+            ->withCount('employees')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        // الدعوة لا تُنشئ صف موظف — تُنشئ دعوة. من دُعي ولم يفعّل حسابه بعد
+        // ليس في هذا الجدول إطلاقاً، فيبدو لمسؤول الحساب أن دعوته ضاعت.
+        // الشاشة اسمها «الموظفون والدعوات» لأنها سجل واحد للاثنين معاً.
+        $pendingInvitations = Invitation::query()
+            ->where('company_id', $company->id)
+            ->whereIn('status', ['pending', 'expired'])
+            ->with('department:id,name')
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get(['id', 'email', 'name', 'phone', 'employee_number', 'department_id', 'status', 'expires_at', 'send_count', 'last_sent_at']);
+
+        // «قائد مجتمع» يغيّر ما يستطيع الموظف فعله، فيُعرض بجانب اسمه بدل أن
+        // يُكتشف من صفحة المجتمع.
+        $leaderEmployeeIds = RoleAssignment::query()
+            ->where('role', Role::CommunityLeader->value)
+            ->where('scope_type', RoleAssignment::SCOPE_COMMUNITY)
+            ->whereIn('user_id', $employees->pluck('user_id')->filter())
+            ->pluck('user_id')
+            ->unique();
+
+        $leaderIds = $employees
+            ->filter(fn (Employee $employee) => $employee->user_id !== null && $leaderEmployeeIds->contains($employee->user_id))
+            ->pluck('id')
+            ->values();
 
         return Inertia::render('company/employees/index', [
             'company' => $company,
             'employees' => $employees,
             'departments' => $departments,
+            'pendingInvitations' => $pendingInvitations,
+            'leaderIds' => $leaderIds,
             'filters' => (object) $filters,
             'sort' => CompanyEmployeeService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'activeCount' => $activeCount,

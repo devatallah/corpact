@@ -17,6 +17,7 @@ import {
     INPUT,
     Note,
     PageHeader,
+    StatCard,
     Tbody,
     Td,
     Th,
@@ -41,14 +42,29 @@ type Department = {
     created_at: string | null;
 };
 
+type Participation = Record<
+    string,
+    { department_id: number | null; attendees: number; employees: number; rate: number }
+>;
+
 export default function CompanyDepartments({
     departments,
     filters,
     sort,
+    participation,
+    stats,
 }: {
     departments: Paginated<Department>;
     filters: { search?: string };
     sort: SortState;
+    participation: Participation;
+    stats: {
+        total: number;
+        assigned_employees: number;
+        total_employees: number;
+        assigned_share: number;
+        average_activation: number;
+    };
 }) {
     const createForm = useForm({ name: '' });
     const [editing, setEditing] = useState<Department | null>(null);
@@ -61,9 +77,30 @@ export default function CompanyDepartments({
 
             <PageHeader
                 icon={Building}
-                title="الأقسام"
-                subtitle="عليها تُبنى تقارير المشاركة وبطولات الإدارات."
+                title="شجرة الإدارات والهيكل التنظيمي"
+                badge={`${stats.total} إدارات معتمدة`}
+                subtitle="تحديد الهيكل الإداري لربط الموظفين والفعاليات والتقارير التاريخية."
             />
+
+            <Note tone="warning" title="قاعدة أساسية قبل رفع ملف الموظفين">
+                «التقارير كلها تُبنى على الإدارات، وإنشاؤها لاحقاً يعني بيانات ناقصة.» تأكد من مطابقة أسماء الإدارات هنا مع
+                عمود الإدارة في ملف الموظفين لتفادي أخطاء التحقق عند الرفع.
+            </Note>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <StatCard label="إجمالي الإدارات" value={stats.total} hint="تغطي قطاعات المنشأة" />
+                <StatCard
+                    label="الموظفون المنسوبون"
+                    value={stats.assigned_employees}
+                    hint={`${stats.assigned_share}٪ من ${stats.total_employees} موظفاً منسوبون لإدارات`}
+                    tone={stats.assigned_share === 100 ? 'success' : undefined}
+                />
+                <StatCard
+                    label="متوسط معدل التفعيل"
+                    value={`${stats.average_activation}٪`}
+                    hint="نسبة المشاركة في الفعاليات"
+                />
+            </div>
 
             {/* ── إضافة قسم ── */}
             <Card padding="p-4">
@@ -135,9 +172,10 @@ export default function CompanyDepartments({
                                 sort={sort}
                             />
                         </Th>
+                        <Th>معدل التفعيل</Th>
                         <Th>
                             <SortableHeader
-                                label="أُنشئ في"
+                                label="تاريخ الإنشاء"
                                 sortKey="created_at"
                                 sort={sort}
                             />
@@ -191,8 +229,22 @@ export default function CompanyDepartments({
                                         </span>
                                     )}
                                 </Td>
-                                <Td className="font-mono font-bold text-ink">
-                                    {department.employees_count}
+                                <Td>
+                                    <span className="font-mono font-bold text-ink">
+                                        {department.employees_count}
+                                    </span>
+                                    <span className="block text-[10px] text-ink/50">
+                                        موظفاً
+                                    </span>
+                                </Td>
+                                <Td>
+                                    <ActivationRate
+                                        rate={
+                                            participation[
+                                                String(department.id)
+                                            ]?.rate
+                                        }
+                                    />
                                 </Td>
                                 <Td className="font-mono text-[11px] text-ink/70">
                                     {department.created_at
@@ -226,7 +278,7 @@ export default function CompanyDepartments({
 
                         <ListStates
                             count={departments.data.length}
-                            colSpan={4}
+                            colSpan={5}
                             empty="لا أقسام بعد."
                             emptyHint="أضف أقسامك لتظهر المشاركة موزّعة عليها في لوحة القيادة والتقارير."
                         />
@@ -281,5 +333,27 @@ export default function CompanyDepartments({
                 onCancel={() => setDeleting(null)}
             />
         </CompanyLayout>
+    );
+}
+
+/**
+ * معدل تفعيل الإدارة.
+ *
+ * Departments created this cycle have no measurement yet, and «0٪» would read
+ * as "nobody showed up" rather than "nothing to measure" — so an absent rate
+ * says so in words.
+ */
+function ActivationRate({ rate }: { rate?: number }) {
+    if (rate === undefined) {
+        return <span className="text-[11px] text-ink/40">لا قياس بعد</span>;
+    }
+
+    return (
+        <div className="flex items-center gap-2">
+            <div className="flex-1 h-1.5 rounded-full bg-ink/10 overflow-hidden max-w-[80px]" dir="ltr">
+                <div className="h-full bg-lime rounded-full" style={{ width: `${Math.min(rate, 100)}%` }} />
+            </div>
+            <span className="font-mono text-[11px] font-bold text-ink">{rate}٪</span>
+        </div>
     );
 }

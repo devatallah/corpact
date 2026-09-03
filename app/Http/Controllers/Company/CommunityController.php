@@ -14,6 +14,7 @@ use App\Services\Community\CommunityActor;
 use App\Services\Community\LeadershipService;
 use App\Services\Community\MembershipService;
 use App\Services\Company\CommunityService;
+use App\Services\Reporting\KpiDictionary;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -47,9 +48,16 @@ class CommunityController extends Controller
 
         $communities = $this->communityService->listForCompany($company, $filters);
 
+        // «خامل» ليس عموداً في الجدول — هو غياب فعالية خلال النافذة، ويعرّفه
+        // قاموس المؤشرات وحده حتى لا يختلف تعريف الخمول بين شاشتين.
+        $activity = app(KpiDictionary::class)->communityActivity($company, now());
+        $dormantIds = collect($activity['dormant'])->pluck('id')->all();
+
         return Inertia::render('company/communities/index', [
             'company' => $company,
             'communities' => $communities,
+            'dormantIds' => $dormantIds,
+            'dormantWindowDays' => $activity['window_days'],
             'filters' => (object) $filters,
             'sort' => CommunityService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),

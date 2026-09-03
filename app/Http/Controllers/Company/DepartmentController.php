@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\League;
+use App\Services\Reporting\KpiDictionary;
+use App\Services\Reporting\ReportPeriod;
 use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,10 +49,26 @@ class DepartmentController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        // معدل التفعيل لكل إدارة من قاموس المؤشرات — لا معادلة محسوبة هنا،
+        // فالرقم نفسه يظهر في لوحة القيادة والتقارير.
+        $participation = collect(app(KpiDictionary::class)->participationByDepartment($company, ReportPeriod::currentMonth()))
+            ->keyBy('department_id');
+
+        $assigned = Employee::where('company_id', $company->id)->whereNotNull('department_id')->count();
+        $totalEmployees = Employee::where('company_id', $company->id)->count();
+
         return Inertia::render('company/departments/index', [
             'departments' => $departments,
             'filters' => (object) $filters,
             'sort' => self::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
+            'participation' => $participation,
+            'stats' => [
+                'total' => Department::where('company_id', $company->id)->count(),
+                'assigned_employees' => $assigned,
+                'total_employees' => $totalEmployees,
+                'assigned_share' => $totalEmployees === 0 ? 0.0 : round($assigned / $totalEmployees * 100, 1),
+                'average_activation' => round((float) $participation->avg('rate'), 1),
+            ],
         ]);
     }
 

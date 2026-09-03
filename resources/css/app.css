@@ -25,13 +25,30 @@
     --color-sand: #f0ede6;
     --color-panel: #141414;
 
-    /* status — green / amber / red, each with its tint. this design has no blue. */
+    /* status — green / amber / red, each with its tint */
     --color-success: #2e7d32;
     --color-success-tint: #e8f5e9;
     --color-warning: #c87d00;
     --color-warning-tint: #fef9e0;
     --color-danger: #d9381e;
     --color-danger-tint: #fdedec;
+
+    /*
+     * Two semantics the marketing pages never needed and the portal does.
+     *
+     * `info` is not a fourth severity — it marks a statement that is neither
+     * good nor bad news but *procedural*: a link was sent and is waiting, an
+     * account is linked across companies. Painting those amber would read as
+     * a problem the reader must fix.
+     *
+     * `lead` marks community leadership wherever a person appears, so the one
+     * attribute that changes what someone may do is never mistaken for a
+     * status. The internal portals (admin, finance, support) use neither.
+     */
+    --color-info: #1d4ed8;
+    --color-info-tint: #eff6ff;
+    --color-lead: #6b21a8;
+    --color-lead-tint: #f3e8ff;
 }
 
 /*
