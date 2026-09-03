@@ -35,6 +35,14 @@ use Inertia\Response;
  */
 class SupportConsoleController extends Controller
 {
+    /**
+     * نفس حدّ `RateLimiter::for('otp')` في AppServiceProvider.
+     *
+     * مكرّر عمداً كثابت معروض بدل تخمين رقم في الواجهة؛ تغييره في مكان واحد
+     * دون الآخر يجعل الشاشة تَعِد بما لا يفي به الخادم.
+     */
+    public const OTP_LIMIT_PER_MINUTE = 10;
+
     public function __construct(
         private InvitationService $invitations,
         private OtpService $otp,
@@ -115,6 +123,12 @@ class SupportConsoleController extends Controller
             'filters' => (object) $filters,
             'results' => $results,
             'escalation' => self::escalationRows(),
+            // الحدّ مقروء من نفس الحدّ المطبَّق (AppServiceProvider) لا مكتوباً
+            // في الواجهة — رقم على الشاشة يخالف ما يفرضه الخادم أسوأ من غيابه.
+            'resendLimit' => [
+                'per_minute' => self::OTP_LIMIT_PER_MINUTE,
+                'note' => 'الحدّ محسوب بالجوال وعنوان الشبكة معاً، حمايةً للمستلم من الإغراق.',
+            ],
             'pendingInvitations' => Invitation::query()
                 ->with('company:id,name')
                 ->where('status', 'pending')

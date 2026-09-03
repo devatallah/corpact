@@ -4,7 +4,7 @@ import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import { FilterSelect, SearchInput, Toolbar } from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
-import { Badge, Button, Card, Note, PageHeader, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import { Badge, Button, Card, Note, PageHeader, TableShell, Tbody, Td, Th, Thead, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
 import { companyStatus, employeeStatus, eventStatus } from '@/lib/status';
 
@@ -34,11 +34,13 @@ type Invitation = {
 };
 
 export default function SupportConsole({
+    resendLimit,
     filters,
     results,
     escalation,
     pendingInvitations,
 }: {
+    resendLimit: { per_minute: number; note: string };
     filters: { search?: string; scope?: string };
     results: Results;
     escalation: { action: string; label: string; role: string }[];
@@ -57,6 +59,10 @@ export default function SupportConsole({
                 title="مركز الدعم — البحث والاستعلام"
                 subtitle="ابحث عن فعالية أو موظف أو شركة لتشخيص بلاغ. كل عملية بحث تُقيَّد في سجل التدقيق باسمك."
             />
+
+            <Note tone="info" title="إعادة الإرسال محدودة بقصد">
+                {`الحدّ الأقصى ${resendLimit.per_minute} رسائل لكل رقم في الدقيقة. ${resendLimit.note}`}
+            </Note>
 
             <Note title="حدود صلاحيتك">
                 تقرأ وتشخّص وتعيد الإرسال ضمن الحدود. أي تغيير في حالة أو مال أو صلاحية يُصعَّد إلى الدور المختص أدناه — لا
@@ -273,6 +279,10 @@ export default function SupportConsole({
                             <ConfirmRow label="المدعو" value={resending.email} />
                             <ConfirmRow label="الشركة" value={resending.company?.name ?? '—'} />
                             <ConfirmRow label="مرات الإرسال السابقة" value={String(resending.send_count)} strong />
+                            <ConfirmRow
+                                label="حدّ الحماية"
+                                value={`${resendLimit.per_minute} رسائل لكل رقم في الدقيقة`}
+                            />
                         </>
                     )
                 }
