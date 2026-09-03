@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { FileSpreadsheet, ShieldCheck, TriangleAlert } from 'lucide-react';
-import { Badge, Card, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import { Badge, Card, Note, PageHeader, StatCard, TableShell, Tbody, Td, Th, Thead, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
 
 /**
@@ -39,9 +39,44 @@ export default function TaxStatus({
 
             <PageHeader
                 icon={FileSpreadsheet}
-                title="الصفة الضريبية لمسارات الأموال"
+                title="الصفة الضريبية ومصفوفة الفوترة (ZATCA)"
                 subtitle="كيف تُعامل كل حركة مالية ضريبياً، ومن يصدر الفاتورة عنها. هذه الشاشة للقراءة — التغيير قرار تعاقدي يُضبط في الإعدادات."
             />
+
+            <Note tone="danger" title="بند غير محسوم — يحتاج مراجعة محاسب قانوني ومستشار ضريبي">
+                تعتمد المعالجة الضريبية للمنصة على تصنيف نموذج عمل تيمات أمام هيئة الزكاة والضريبة والجمارك: وكيل وسيط بالعمولة
+                (Agent) أم أصيل بائع للخدمة (Principal). الجدول أدناه يقارن الأثر المحاسبي لكل نموذج — لا يقرّره.
+            </Note>
+
+            <Card padding="p-4" className="space-y-4">
+                <h2 className="text-sm font-extrabold text-ink">مصفوفة المعالجة الضريبية المقارنة</h2>
+
+                <TableShell>
+                    <Thead>
+                        <Th>عنصر المعالجة</Th>
+                        <Th>النموذج أ: وكيل وسيط بالعمولة (Agent)</Th>
+                        <Th>النموذج ب: أصيل مشترٍ وبائع (Principal)</Th>
+                    </Thead>
+                    <Tbody>
+                        {TAX_MODELS.map((row) => (
+                            <Tr key={row.item}>
+                                <Td className="font-extrabold text-ink">{row.item}</Td>
+                                <Td className="text-[11px] text-ink/75 max-w-xs">{row.agent}</Td>
+                                <Td className="text-[11px] text-ink/75 max-w-xs">{row.principal}</Td>
+                            </Tr>
+                        ))}
+                        <Tr>
+                            <Td className="font-extrabold text-ink">الوضع التشغيلي الحالي</Td>
+                            <Td>
+                                <Badge tone="success">النموذج المعتمد افتراضياً</Badge>
+                            </Td>
+                            <Td>
+                                <Badge tone="neutral">نموذج بديل قيد الدراسة القانونية</Badge>
+                            </Td>
+                        </Tr>
+                    </Tbody>
+                </TableShell>
+            </Card>
 
             {!realInvoicesEnabled && (
                 <Note tone="warning" title="الفوترة الضريبية الحقيقية غير مفعّلة">
@@ -123,3 +158,29 @@ export default function TaxStatus({
         </AdminLayout>
     );
 }
+
+/**
+ * المقارنة بين النموذجين الضريبيين.
+ *
+ * Kept as data on the screen rather than pulled from config, because nothing
+ * in the system decides this — it is a legal classification pending an
+ * accountant's ruling, and the table exists to frame that decision rather
+ * than to reflect a setting.
+ */
+const TAX_MODELS = [
+    {
+        item: 'مصدر فاتورة حجز الفعالية',
+        agent: 'مزوّد الخدمة يصدر الفاتورة باسم الشركة المشتركة مباشرة.',
+        principal: 'تيمات تصدر فاتورة الفعالية باسم الشركة المشتركة.',
+    },
+    {
+        item: 'فاتورة رسوم تيمات',
+        agent: 'فاتورة عمولة وساطة على المزوّد + فاتورة رسوم النظام على الشركة (+15٪ ضريبة).',
+        principal: 'فاتورة مجمّعة بقيمة الخدمة الإجمالية شاملة هامش الربح والضريبة.',
+    },
+    {
+        item: 'إقرار ضريبة القيمة المضافة',
+        agent: 'تيمات تُقرّ بالضريبة المحصَّلة عن عمولاتها ورسوم الموظف المفعَّل فقط.',
+        principal: 'تيمات تُقرّ بإجمالي المبيعات وتقدّم فواتير المزوّدين كمدخلات ضريبية.',
+    },
+];

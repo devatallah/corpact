@@ -224,12 +224,27 @@ class DashboardController extends Controller
             }
         }
 
+        // رصيد سالب ليس اختلال مطابقة — الدفتر متسق مع نفسه — لكنه يعني
+        // شركة صُرف من محفظتها أكثر مما غُذّيت، وإنشاء فعالياتها موقوف.
+        $negative = Wallet::query()
+            ->withoutGlobalScopes()
+            ->where('balance_halalas', '<', 0)
+            ->with('owner:id,name')
+            ->get()
+            ->map(fn (Wallet $wallet) => [
+                'id' => $wallet->id,
+                'owner' => $wallet->owner?->name,
+                'balance' => Money::format((int) $wallet->balance_halalas),
+            ])
+            ->all();
+
         return [
             'cached_halalas' => $cachedTotal,
             'ledger_halalas' => $ledgerTotal,
             'difference_halalas' => $cachedTotal - $ledgerTotal,
             'wallets' => $wallets,
             'mismatched' => $mismatched,
+            'negative' => $negative,
         ];
     }
 

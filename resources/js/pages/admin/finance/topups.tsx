@@ -4,7 +4,7 @@ import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
-import { Badge, Card, IconButton, Money, PageHeader, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import { Badge, Card, IconButton, Money, Note, PageHeader, TableShell, Tbody, Td, Th, Thead, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
 import type { Paginated, SortState } from '@/types';
 
@@ -49,6 +49,7 @@ export default function AdminTopups({
     sort: SortState;
 }) {
     const [approving, setApproving] = useState<TopupRequest | null>(null);
+    const [reconciled, setReconciled] = useState(false);
     const [rejecting, setRejecting] = useState<TopupRequest | null>(null);
     const [reason, setReason] = useState('');
 
@@ -58,9 +59,17 @@ export default function AdminTopups({
 
             <PageHeader
                 icon={Landmark}
-                title="اعتماد التحويلات البنكية"
-                subtitle="كل اعتماد هنا يضيف رصيداً حقيقياً إلى محفظة الشركة — راجع صورة الإشعار والمرجع البنكي قبل الاعتماد."
+                title="اعتماد التحويلات البنكية للمحافظ"
+                subtitle="تدقيق إيصالات الحوالات الصادرة من الشركات، ومطابقتها بكشف الحساب الفعلي، وتغذية المحفظة بقيد دفتر."
             />
+
+            <Note tone="warning" title="قواعد الحوكمة المالية الصارمة">
+                <ul className="space-y-1 mt-1">
+                    <li>· يُحظر على أي شخص اعتماد حوالة أنشأها بنفسه — فصل الصلاحيات مفروض على الخادم لا على الشاشة.</li>
+                    <li>· لا يُفعَّل زر الاعتماد قبل الإقرار بمطابقة الحوالة مع كشف حساب تيمات البنكي.</li>
+                    <li>· الاعتماد يولّد قيداً في دفتر الأستاذ لا يُحذف أبداً — التصحيح بقيد عكسي موثَّق السبب.</li>
+                </ul>
+            </Note>
 
             <Card padding="p-4" className="space-y-4">
                 <Toolbar>
@@ -183,15 +192,39 @@ export default function AdminTopups({
                             <ConfirmRow label="المبلغ" value={`${approving.amount.toLocaleString()} ريال`} strong />
                             <ConfirmRow label="الوجهة" value="المحفظة الرئيسية للشركة" />
                             <ConfirmRow label="المرجع البنكي" value={approving.bank_reference ?? '—'} />
+                            <ConfirmRow label="مقدّم الطلب" value={approving.creator?.name ?? '—'} />
+
+                            <label className="flex items-start gap-2 pt-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={reconciled}
+                                    onChange={(event) => setReconciled(event.target.checked)}
+                                    className="w-4 h-4 mt-0.5 rounded border-ink/25 accent-ink shrink-0"
+                                />
+                                <span className="text-[11px] font-bold text-ink leading-relaxed">
+                                    أقرّ بمطابقة هذا المبلغ ورقمه المرجعي مع كشف الحساب البنكي الفعلي لتيمات.
+                                </span>
+                            </label>
+
+                            {!reconciled && (
+                                <p className="text-[10px] text-warning font-bold">
+                                    يجب الإقرار بالمطابقة قبل تفعيل الاعتماد — هذا ما يفصل التدقيق عن الختم الآلي.
+                                </p>
+                            )}
                         </>
                     )
                 }
-                confirmLabel="اعتماد وإضافة الرصيد"
+                confirmDisabled={!reconciled}
+                confirmLabel="اعتماد وتغذية المحفظة"
                 onConfirm={() => {
                     router.post(`/admin/finance/topups/${approving?.id}/approve`, {}, { preserveScroll: true });
                     setApproving(null);
+                    setReconciled(false);
                 }}
-                onCancel={() => setApproving(null)}
+                onCancel={() => {
+                    setApproving(null);
+                    setReconciled(false);
+                }}
             />
 
             <ConfirmModal

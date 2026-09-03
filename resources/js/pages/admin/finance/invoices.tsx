@@ -4,7 +4,7 @@ import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
-import { Badge, Button, Card, Note, PageHeader, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import { Badge, Button, Card, Note, PageHeader, TableShell, Tbody, Td, Th, Thead, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
 import type { Paginated, SortState } from '@/types';
 
@@ -80,6 +80,16 @@ export default function AdminInvoices({
                     </>
                 }
             />
+
+            <Note tone="warning" title="تسلسل إجراءات التأخر عن السداد">
+                <ul className="mt-1 space-y-1">
+                    <li>· تأخر 7 أيام: إشعار تذكيري لمسؤول الحساب والإدارة المالية في الشركة.</li>
+                    <li>· تأخر 15 يوماً: إنذار رسمي، وإيقاف شحن محافظ المجتمعات.</li>
+                    <li>
+                        · تأخر 30 يوماً: تجميد إنشاء الفعاليات الجديدة — دون تعطيل دخول الموظفين ولا إلغاء فعالياتهم المؤكدة.
+                    </li>
+                </ul>
+            </Note>
 
             {!realInvoicesEnabled && (
                 <Note tone="warning" title="الفوترة الضريبية الحقيقية معطّلة">

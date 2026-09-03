@@ -275,7 +275,14 @@ function Row({ label, value, tone = 'ink' }: { label: string; value: string; ton
 function ReconciliationCard({
     reconciliation,
 }: {
-    reconciliation: { cached_halalas: number; ledger_halalas: number; difference_halalas: number; wallets: number; mismatched: number };
+    reconciliation: {
+        cached_halalas: number;
+        ledger_halalas: number;
+        difference_halalas: number;
+        wallets: number;
+        mismatched: number;
+        negative?: { id: number; owner: string | null; balance: string }[];
+    };
 }) {
     const balanced = reconciliation.difference_halalas === 0 && reconciliation.mismatched === 0;
     const riyals = (halalas: number) => (halalas / 100).toLocaleString('en-US', { minimumFractionDigits: 2 });
@@ -301,6 +308,26 @@ function ReconciliationCard({
                     {riyals(reconciliation.difference_halalas)} ر.س
                 </span>
             </div>
+
+            {(reconciliation.negative?.length ?? 0) > 0 && (
+                <div className="rounded-lg border-[0.5px] border-danger/25 bg-danger-tint p-2 space-y-1">
+                    <span className="flex items-center gap-1.5 text-[10px] font-extrabold text-danger">
+                        <AlertTriangle className="w-3 h-3 shrink-0" aria-hidden="true" />
+                        أرصدة سالبة — إنشاء الفعاليات موقوف تلقائياً
+                    </span>
+                    {reconciliation.negative?.map((wallet) => (
+                        <span key={wallet.id} className="flex items-center justify-between gap-2 text-[10px]">
+                            <span className="text-ink/75 truncate">{wallet.owner ?? `محفظة #${wallet.id}`}</span>
+                            <span className="font-mono font-bold text-danger" dir="ltr">
+                                {wallet.balance} ر.س
+                            </span>
+                        </span>
+                    ))}
+                    <p className="text-[9px] text-ink/55 leading-relaxed">
+                        الدفتر متسق مع نفسه — الرصيد السالب يعني صرفاً سبق التغذية، غالباً استرداداً نُفِّذ قبل وصول تحويل الشركة.
+                    </p>
+                </div>
+            )}
         </Card>
     );
 }

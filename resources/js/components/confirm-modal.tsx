@@ -16,6 +16,7 @@ export default function ConfirmModal({
     message,
     details,
     confirmLabel = 'تأكيد',
+    confirmDisabled = false,
     cancelLabel = 'إلغاء',
     tone = 'default',
     busy = false,
@@ -28,6 +29,13 @@ export default function ConfirmModal({
     /** The amount and its effect, laid out as label/value rows. */
     details?: ReactNode;
     confirmLabel?: string;
+    /**
+     * Gate the confirm on something the dialog itself collects — an
+     * acknowledgement the server cannot verify, like "I matched this against
+     * the bank statement". Not a substitute for a server check; a way to stop
+     * a dialog becoming a rubber stamp.
+     */
+    confirmDisabled?: boolean;
     cancelLabel?: string;
     tone?: 'default' | 'danger';
     busy?: boolean;
@@ -95,7 +103,7 @@ export default function ConfirmModal({
                         ref={confirmRef}
                         type="button"
                         onClick={onConfirm}
-                        disabled={busy}
+                        disabled={busy || confirmDisabled}
                         className={`min-w-24 px-5 py-2 rounded-full text-xs font-bold border-[0.5px] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime ${
                             tone === 'danger'
                                 ? 'bg-danger text-white border-danger hover:bg-[#c0301a]'
