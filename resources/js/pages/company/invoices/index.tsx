@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Ban, Receipt } from 'lucide-react';
+import { Ban, Receipt, ShieldCheck } from 'lucide-react';
 import {
     FilterSelect,
     Pagination,
@@ -9,19 +9,7 @@ import {
     Toolbar,
 } from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
-import {
-    Badge,
-    Card,
-    Note,
-    PageHeader,
-    StatCard,
-    Tbody,
-    Td,
-    Th,
-    Thead,
-    TableShell,
-    Tr,
-} from '@/components/portal/ui';
+import { Badge, Card, Note, PageHeader, StatCard, TableShell, Tbody, Td, Th, Thead, Tr } from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
 import type { Paginated, SortState } from '@/types';
 
@@ -83,9 +71,55 @@ export default function CompanyInvoices({
 
             <PageHeader
                 icon={Receipt}
-                title="فواتير رسوم النظام"
-                subtitle="فاتورة شهرية محسوبة على عدد الموظفين المفعّلين خلال الدورة، بحد أدنى تعاقدي إن وُجد."
+                title="الفوترة الشهرية والرسوم النظامية"
+                badge="دورة شهرية ميلادية"
+                subtitle="تصدر الفاتورة في اليوم الثالث من الشهر التالي · تستحق خلال 15 يوماً · ضريبة القيمة المضافة 15٪ على رسوم النظام."
             />
+
+            <Note title="«حجم التداول ليس ما تدفعه لتيمات»">
+                ما تدفعه الشركة لتيمات هو رسوم النظام عن كل موظف مفعَّل، مضافاً إليها ضريبة القيمة المضافة، وخدمة المنسّق المُدار
+                إن تعاقدت عليها. أما الدعم الذي اخترت تحمّله لفعالياتك فيُصرف من محفظتك للمرافق — لا لتيمات. وحجم التداول رقم
+                للمطابقة فقط.
+            </Note>
+
+            <Note tone="info" title="تعريف «الموظف المفعَّل» المحتسب في الفاتورة">
+                من شارك في فعالية واحدة على الأقل اكتملت خلال الدورة ولم يُسجَّل غائباً — ويُحتسب مرة واحدة مهما تعددت فعالياته.
+                الموظف المدعو الذي لم يشارك لا يُحتسب.
+            </Note>
+
+            {/* ── مسار التنبيهات عند التأخر ── */}
+            <Card padding="p-4" className="space-y-3">
+                <h2 className="text-sm font-extrabold text-ink">مسار تنبيهات التأخر في السداد</h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                    <EscalationStep
+                        step="١"
+                        after="بعد 7 أيام من الاستحقاق"
+                        effect="إشعار تذكيري أولي لمسؤول الحساب والإدارة المالية."
+                        tone="info"
+                    />
+                    <EscalationStep
+                        step="٢"
+                        after="بعد 15 يوماً"
+                        effect="تنبيه تصعيدي، وإيقاف شحن محافظ المجتمعات الفرعية."
+                        tone="warning"
+                    />
+                    <EscalationStep
+                        step="٣"
+                        after="بعد 30 يوماً"
+                        effect="إيقاف إنشاء فعاليات جديدة فقط."
+                        tone="danger"
+                    />
+                </div>
+
+                <div className="rounded-xl bg-success-tint border-[0.5px] border-success/25 p-3 flex items-start gap-2">
+                    <ShieldCheck className="w-4 h-4 text-success shrink-0 mt-0.5" aria-hidden="true" />
+                    <p className="text-[11px] font-bold text-success leading-relaxed">
+                        «لا يتوقف دخول الموظفين ولا تُلغى فعالياتهم المؤكدة.» التصعيد يمسّ الإنفاق الجديد وحده — لا ما التزمت به
+                        الشركة تجاه موظفيها بالفعل.
+                    </p>
+                </div>
+            </Card>
 
             {summary.event_creation_blocked && (
                 <Note tone="danger" title="إنشاء الفعاليات موقوف">
@@ -240,5 +274,36 @@ export default function CompanyInvoices({
                 </div>
             </Card>
         </CompanyLayout>
+    );
+}
+
+/** خطوة في سلّم التصعيد — الأثر مكتوب لأن «تنبيه» وحدها لا تقول ماذا يتوقف. */
+function EscalationStep({
+    step,
+    after,
+    effect,
+    tone,
+}: {
+    step: string;
+    after: string;
+    effect: string;
+    tone: 'info' | 'warning' | 'danger';
+}) {
+    const tones = {
+        info: 'border-info/25 bg-info-tint',
+        warning: 'border-warning/25 bg-warning-tint',
+        danger: 'border-danger/25 bg-danger-tint',
+    };
+
+    return (
+        <div className={`rounded-xl border-[0.5px] p-3 ${tones[tone]}`}>
+            <span className="flex items-center gap-1.5 text-[11px] font-extrabold text-ink">
+                <span className="w-4 h-4 rounded-full bg-ink text-lime text-[9px] font-black flex items-center justify-center shrink-0">
+                    {step}
+                </span>
+                {after}
+            </span>
+            <p className="text-[10px] text-ink/70 leading-relaxed mt-1">{effect}</p>
+        </div>
     );
 }

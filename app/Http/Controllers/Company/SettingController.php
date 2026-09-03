@@ -25,6 +25,15 @@ class SettingController extends Controller
         return Inertia::render('company/settings/index', [
             'settings' => $company->getSettings(),
             'fundingModes' => CompanySetting::FUNDING_MODES,
+            // البيانات الرسمية تُعرض ولا تُحرَّر من هنا: النطاق البريدي يفتح
+            // التسجيل المباشر لكل من يملك بريداً عليه، وتغييره صلاحية أدمن
+            // تيمات وحده (H §5).
+            'official' => [
+                'name' => $company->name,
+                'commercial_registration' => $company->commercial_registration,
+                'vat_number' => $company->vat_number,
+                'domain' => $company->domain,
+            ],
         ]);
     }
 

@@ -71,6 +71,7 @@ type Snapshot = {
 };
 
 export default function CompanyReports({
+    company,
     period,
     periodOptions,
     kpi,
@@ -100,8 +101,9 @@ export default function CompanyReports({
 
             <PageHeader
                 icon={ChartColumn}
-                title="التقارير"
-                subtitle="كل رقم هنا معرَّف في قاموس المؤشرات — الصيغة مكتوبة تحته."
+                title="تقارير الأداء والمؤشرات التحليلية"
+                badge={`خاص بـ${company.name}`}
+                subtitle="مؤشرات التفعيل، ونسبة الحضور، والتكلفة لكل مشاركة، وتحليل الإدارات — كل رقم بصيغته."
                 actions={
                     <select
                         aria-label="الدورة"

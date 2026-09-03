@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Coins, ShieldCheck } from 'lucide-react';
+import { Coins, Lock, ShieldCheck } from 'lucide-react';
 import {
     FilterSelect,
     Pagination,
@@ -64,9 +64,18 @@ export default function CompanyAudit({
 
             <PageHeader
                 icon={ShieldCheck}
-                title="سجل التدقيق"
-                subtitle="كل إجراء حسّاس داخل شركتك، باسم فاعله ووقته وسببه — سجل لا يُعدَّل ولا يُحذف."
+                title="سجل التدقيق والحوكمة الشامل"
+                badge={`${logs.total} عملية موثّقة`}
+                subtitle="سجل دائم غير قابل للتعديل أو المسح، يوثّق الإجراءات الحساسة وأسبابها وأصحابها."
             />
+
+            <div className="rounded-xl border-[0.5px] border-success/25 bg-success-tint p-3 flex items-start gap-2">
+                <Lock className="w-4 h-4 text-success shrink-0 mt-0.5" aria-hidden="true" />
+                <p className="text-[11px] font-bold text-success leading-relaxed">
+                    «سجل غير قابل للتعديل أو المسح» — لأغراض الحوكمة والامتثال الداخلي والخارجي. لا يملك أحد في تيمات ولا في شركتك
+                    صلاحية تحرير صف منه.
+                </p>
+            </div>
 
             <Note title="ما الذي يظهر هنا؟">
                 يعرض هذا السجل الإجراءات المتعلقة بشركتك وحدها: اعتماد
@@ -131,9 +140,9 @@ export default function CompanyAudit({
                                 sort={sort}
                             />
                         </Th>
-                        <Th>الفاعل</Th>
-                        <Th>الكيان</Th>
-                        <Th>السبب</Th>
+                        <Th>المنفّذ</Th>
+                        <Th>المستهدف</Th>
+                        <Th>السبب الموثَّق / الأثر</Th>
                     </Thead>
 
                     <Tbody>
