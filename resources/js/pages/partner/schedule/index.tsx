@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import {
     Badge,
     Button,
@@ -71,8 +71,9 @@ export default function PartnerSchedule({
 
             <PageHeader
                 icon={CalendarDays}
-                title="جدول الأسبوع"
-                subtitle="ما التزمت بتقديمه فعلاً — الفعاليات المؤكدة على مرفقك."
+                title="سجل الفعاليات والحجوزات المؤكدة"
+                badge="أسبوعي"
+                subtitle="استعراض الفعاليات المجدولة والمنفَّذة في مرافقك، مع حماية خصوصية منسوبي الشركات."
             />
 
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -179,6 +180,43 @@ export default function PartnerSchedule({
                     </Card>
                 ))}
             </div>
+
+            {/* ── حدود البيانات ── */}
+            <Card padding="p-4" className="space-y-3">
+                <h2 className="text-sm font-extrabold text-ink">حدود البيانات والخصوصية في تيمات</h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="rounded-xl border-[0.5px] border-success/25 bg-success-tint p-3">
+                        <span className="flex items-center gap-1.5 text-[11px] font-extrabold text-success mb-1.5">
+                            <Eye className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                            ما تراه في لوحتك
+                        </span>
+                        <ul className="space-y-1 text-[10px] text-ink/75 leading-relaxed">
+                            <li>· اسم المجتمع واسم الشركة.</li>
+                            <li>· عدد المشاركين المضمون والمؤكد.</li>
+                            <li>· التاريخ والوقت والوحدة أو الملعب المحجوز.</li>
+                            <li>· اسم وجوال منشئ الفعالية — كجهة اتصال وتنسيق فقط.</li>
+                        </ul>
+                    </div>
+
+                    <div className="rounded-xl border-[0.5px] border-danger/25 bg-danger-tint p-3">
+                        <span className="flex items-center gap-1.5 text-[11px] font-extrabold text-danger mb-1.5">
+                            <EyeOff className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                            ما لا تراه إطلاقاً
+                        </span>
+                        <ul className="space-y-1 text-[10px] text-ink/75 leading-relaxed">
+                            <li>· أسماء المشاركين وأرقام جوالاتهم — إطلاقاً.</li>
+                            <li>· البيانات المالية أو ميزانيات الشركات ومحافظها.</li>
+                            <li>· محتوى مجتمعات الشركات أو إعلاناتها الداخلية.</li>
+                            <li>· أي فعاليات أو حجوزات لا تخص مرافقك المسجَّلة.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <p className="text-[10px] text-ink/50">
+                    هذا ليس نقصاً في البيانات — هو حدّ الخصوصية الذي تلتزم به المنصة تجاه موظفي الشركات، ويسري على كل مزوّد.
+                </p>
+            </Card>
 
             <Note title="هذا الجدول ليس تقويم التوفر">
                 هنا ما التزمت به عبر المنصة. أما الأوقات التي حجزتها خارجها

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Partner;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityUnit;
+use App\Models\EventProviderRequest;
 use App\Models\Partner;
 use App\Models\UnitSlot;
 use App\Services\Provider\AvailabilityService;
@@ -44,9 +45,18 @@ class AvailabilityController extends Controller
             ->orderBy('start_time')
             ->get();
 
+        // الطلبات المعلّقة تحجز الوقت فعلياً في نظر المزوّد: إن قَبِلها صار
+        // محجوزاً. عرضها كـ«متاح» يدعوه لبيع الوقت نفسه مرتين.
+        $pending = EventProviderRequest::query()
+            ->whereIn('activity_unit_id', $units->pluck('id'))
+            ->pending()
+            ->whereBetween('requested_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->get(['id', 'activity_unit_id', 'requested_date', 'start_time', 'duration_minutes']);
+
         return Inertia::render('partner/availability', [
             'units' => $units,
             'slots' => $slots,
+            'pendingRequests' => $pending,
             'week_start' => $weekStart->toDateString(),
             'week_end' => $weekEnd->toDateString(),
         ]);

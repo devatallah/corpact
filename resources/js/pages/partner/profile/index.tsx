@@ -1,14 +1,7 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { Store } from 'lucide-react';
 import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
-import {
-    Badge,
-    Button,
-    Field,
-    INPUT,
-    Note,
-    PageHeader,
-} from '@/components/portal/ui';
+import { Badge, Button, Card, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import PartnerLayout from '@/layouts/partner-layout';
 import { partnerStatus } from '@/lib/status';
 
@@ -19,9 +12,13 @@ import { partnerStatus } from '@/lib/status';
  * changes a phone number: this account accepts bookings and owns the bank
  * details, so an unattended session must not be able to rewrite it.
  */
+type Step = { key: string; label: string; hint: string; href: string; done: boolean; count?: number };
+
 export default function PartnerProfile({
     partner,
+    activation,
 }: {
+    activation: Step[];
     partner: {
         id: number;
         name: string;
@@ -50,14 +47,59 @@ export default function PartnerProfile({
 
             <PageHeader
                 icon={Store}
-                title={partner.trade_name || partner.name}
-                subtitle="بياناتك كما تظهر للشركات في نتائج البحث وعلى الطلبات."
+                title="ملف مزوّد الخدمة ومعالج التفعيل"
+                subtitle="إدارة البيانات التجارية، والفروع، والوحدات، والحساب البنكي المعتمد للصرف."
                 actions={
                     <Badge tone={partnerStatus(partner.status).tone}>
                         {partnerStatus(partner.status).label}
                     </Badge>
                 }
             />
+
+            {/* ── معالج التفعيل ── */}
+            <Card padding="p-4" className="space-y-3">
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <h2 className="text-sm font-extrabold text-ink">خطوات التفعيل</h2>
+                    <Badge tone={activation.every((step) => step.done) ? 'success' : 'warning'}>
+                        {activation.filter((step) => step.done).length} من {activation.length} مكتملة
+                    </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                    {activation.map((step, index) => (
+                        <Link key={step.key} href={step.href} className="block">
+                            <div
+                                className={`rounded-xl border-[0.5px] p-3 h-full transition-colors ${
+                                    step.done
+                                        ? 'border-success/25 bg-success-tint'
+                                        : 'border-warning/30 bg-warning-tint hover:border-warning/50'
+                                }`}
+                            >
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <span
+                                        className={`w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center shrink-0 ${
+                                            step.done ? 'bg-success text-white' : 'bg-warning text-white'
+                                        }`}
+                                    >
+                                        {step.done ? '✓' : index + 1}
+                                    </span>
+                                    <span className="text-[11px] font-extrabold text-ink">{step.label}</span>
+                                </div>
+                                <span className="block text-[10px] text-ink/55">{step.hint}</span>
+                                {step.count !== undefined && (
+                                    <span className="block font-mono text-[10px] text-ink/45 mt-0.5">{step.count} مسجَّل</span>
+                                )}
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+
+                {!activation.every((step) => step.done) && (
+                    <Note tone="warning" title="لا تصلك طلبات قبل اكتمال الخطوات الأربع">
+                        الشركات لا ترى مرافقك في الاقتراح الآلي حتى تكتمل الوحدات، ولا يُصرف لك حتى يُعتمد حسابك البنكي.
+                    </Note>
+                )}
+            </Card>
 
             <form
                 onSubmit={(event) => {

@@ -55,7 +55,7 @@ export default function PartnerReliability({
                     hint={
                         behaviors.acceptance_rate === null
                             ? 'لا طلبات مكتملة بعد'
-                            : `من ${behaviors.total_requests} طلباً`
+                            : `${acceptanceLabel(behaviors.acceptance_rate)} · ${behaviors.accepted} مقبول من ${behaviors.total_requests}`
                     }
                     tone={
                         behaviors.acceptance_rate !== null &&
@@ -67,7 +67,19 @@ export default function PartnerReliability({
                 <StatCard
                     label="متوسط زمن ردّك"
                     value={responseLabel}
-                    hint="من لحظة وصول الطلب"
+                    hint={
+                        behaviors.avg_response_minutes === null
+                            ? 'من لحظة وصول الطلب'
+                            : behaviors.avg_response_minutes < 720
+                              ? 'ضمن النطاق القياسي — أقل من المهلة القصوى بكثير'
+                              : 'يتجاوز النطاق القياسي — المهلة القصوى 12 ساعة'
+                    }
+                    tone={
+                        behaviors.avg_response_minutes !== null &&
+                        behaviors.avg_response_minutes < 720
+                            ? 'success'
+                            : undefined
+                    }
                 />
                 <StatCard
                     label="طلبات قبلتها"
@@ -86,51 +98,41 @@ export default function PartnerReliability({
                 />
             </div>
 
-            {/* ── ما يرفع وما يخفض ── */}
-            <Card padding="p-4" className="space-y-4">
-                <h2 className="text-sm font-extrabold text-ink">
-                    ما يرفع موثوقيتك وما يخفضها
-                </h2>
-
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div className="space-y-2">
-                        <Behavior
-                            good
-                            icon={CircleCheckBig}
-                            label="قبول الطلب قبل انتهاء المهلة"
-                        />
-                        <Behavior
-                            good
-                            icon={CircleCheckBig}
-                            label="فعالية تمّت دون مشاكل"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Behavior icon={Clock} label="ردّ بعد انتهاء المهلة" />
-                        <Behavior
-                            icon={X}
-                            label="رفض الطلب"
-                            note="أثره طفيف — الرفض الصريح أفضل من الصمت"
-                        />
-                        <Behavior icon={X} label="ترك الطلب حتى تنتهي مهلته" />
-                        <Behavior
-                            icon={X}
-                            label="إلغاء حجز بعد قبوله"
-                            note="الأشد أثراً بفارق كبير"
-                        />
-                        <Behavior
-                            icon={X}
-                            label="إلغاء بسبب تقويم غير محدَّث"
-                            note="مثل الإلغاء بعد القبول تماماً"
-                        />
-                    </div>
+            {/* ── دليل أثر السلوكيات ── */}
+            <Card padding="p-4" className="space-y-3">
+                <div>
+                    <h2 className="text-sm font-extrabold text-ink">
+                        دليل أثر السلوكيات على تدفق طلبات المنصة
+                    </h2>
+                    <p className="text-[11px] text-ink/55">
+                        ما يصلك من طلبات ليس ثابتاً — هذه هي الأشياء الثلاثة التي تحرّكه.
+                    </p>
                 </div>
 
+                <Impact
+                    tone="good"
+                    icon={CircleCheckBig}
+                    title="القبول السريع ضمن المهلة — الأثر الإيجابي الأكبر"
+                    body="الردّ السريع والقبول يرفعان ترتيب مرافقك فوراً في الاقتراح الآلي لفعاليات الشركات، فتتضاعف الحجوزات المتكررة الموجّهة إليك."
+                />
+
+                <Impact
+                    tone="warn"
+                    icon={Clock}
+                    title="التأخر في الردّ وانتهاء المهلة — يضرّ بحصتك من الطلبات"
+                    body="ترك الطلب معلّقاً حتى تسقط مهلته يخفض أولويتك آلياً لصالح مزوّدين أسرع. الرفض السريع دائماً أفضل من التجاهل."
+                />
+
+                <Impact
+                    tone="bad"
+                    icon={X}
+                    title="الإلغاء بعد القبول — الأثر الأشد ضرراً إطلاقاً"
+                    body="الإلغاء بعد القبول يربك فعاليات الشركات ومنسوبيها، ويؤدي إلى تطبيق غرامات الإلغاء المنصوص عليها في عقدك واستبعاد المرفق مؤقتاً من الاقتراح. وإلغاء سببه تقويم غير محدَّث يُعامل معاملته تماماً."
+                />
+
                 <Note title="لماذا لا نعرض لك رقماً؟">
-                    المؤشر رقم داخلي تستعمله المنصة في ترتيب اقتراح المرافق.
-                    عرضه هنا يحوّل الهدف من «خدمة جيدة» إلى «رقم أعلى»، ولذلك
-                    تُعرض السلوكيات نفسها: هي ما تملك تغييره فعلاً.
+                    المؤشر رقم داخلي تستعمله المنصة في ترتيب اقتراح المرافق. عرضه هنا يحوّل الهدف من «خدمة جيدة» إلى «رقم
+                    أعلى»، ولذلك تُعرض السلوكيات نفسها: هي ما تملك تغييره فعلاً.
                 </Note>
             </Card>
 
@@ -154,35 +156,40 @@ export default function PartnerReliability({
     );
 }
 
-function Behavior({
+function acceptanceLabel(rate: number) {
+    if (rate >= 90) {
+        return 'ممتاز';
+    }
+
+    return rate >= 70 ? 'جيد' : 'يحتاج تحسيناً';
+}
+
+/** أثر سلوك واحد على تدفق الطلبات — مرتّبة بقوة الأثر لا بالترتيب الزمني. */
+function Impact({
+    tone,
     icon: Icon,
-    label,
-    note,
-    good = false,
+    title,
+    body,
 }: {
+    tone: 'good' | 'warn' | 'bad';
     icon: typeof CircleCheckBig;
-    label: string;
-    note?: string;
-    good?: boolean;
+    title: string;
+    body: string;
 }) {
+    const tones = {
+        good: 'border-success/25 bg-success-tint',
+        warn: 'border-warning/25 bg-warning-tint',
+        bad: 'border-danger/25 bg-danger-tint',
+    };
+    const icons = { good: 'text-success', warn: 'text-warning', bad: 'text-danger' };
+
     return (
-        <div
-            className={`flex items-start gap-2 rounded-xl border-[0.5px] p-2.5 ${good ? 'border-success/25 bg-success-tint' : 'border-ink/12 bg-page'}`}
-        >
-            <Icon
-                className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${good ? 'text-success' : 'text-ink/60'}`}
-                aria-hidden="true"
-            />
-            <span className="min-w-0">
-                <span className="block text-[11px] font-bold text-ink">
-                    {label}
-                </span>
-                {note && (
-                    <span className="block text-[10px] text-ink/55">
-                        {note}
-                    </span>
-                )}
-            </span>
+        <div className={`rounded-xl border-[0.5px] p-3.5 flex items-start gap-2.5 ${tones[tone]}`}>
+            <Icon className={`w-4 h-4 shrink-0 mt-0.5 ${icons[tone]}`} aria-hidden="true" />
+            <div className="min-w-0">
+                <span className="block text-xs font-extrabold text-ink">{title}</span>
+                <p className="text-[11px] text-ink/70 leading-relaxed mt-0.5">{body}</p>
+            </div>
         </div>
     );
 }

@@ -1,13 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import {
-    Building,
-    MapPin,
-    Pencil,
-    Plus,
-    Trash2,
-    TriangleAlert,
-    X,
-} from 'lucide-react';
+import { Building, Lock, MapPin, Pencil, Plus, Trash2, TriangleAlert, X } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import {
@@ -19,15 +11,7 @@ import {
 } from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
 import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
-import {
-    Badge,
-    Button,
-    Card,
-    Field,
-    INPUT,
-    Note,
-    PageHeader,
-} from '@/components/portal/ui';
+import { Badge, Button, Card, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import PartnerLayout from '@/layouts/partner-layout';
 import type { Paginated, SortState } from '@/types';
 
@@ -60,7 +44,10 @@ type Unit = {
     }[];
 };
 
+type WorkingHours = Record<string, { from: string; to: string }[]> | null;
+
 type Branch = {
+    working_hours?: WorkingHours;
     id: number;
     name: string;
     address: string | null;
@@ -127,8 +114,9 @@ export default function PartnerBranches({
 
             <PageHeader
                 icon={Building}
-                title="الفروع ووحدات النشاط"
-                subtitle="الوحدة هي ما يُحجز فعلاً — سعتها وسعرها هما ما تراه الشركات."
+                title="الفروع ووحدات الأنشطة والأسعار"
+                badge={`${branches.total} فروع · ${branches.data.reduce((sum, branch) => sum + (branch.units?.length ?? 0), 0)} وحدات`}
+                subtitle="إدارة طاقتك الاستيعابية وأسعارك المعتمدة. جميع الأسعار بالريال وشاملة ضريبة القيمة المضافة 15٪."
                 actions={
                     <Button
                         type="button"
@@ -139,6 +127,11 @@ export default function PartnerBranches({
                     </Button>
                 }
             />
+
+            <Note tone="info" title="حوكمة الأنشطة والتسعير في تيمات">
+                الأنشطة والفئات تُدار مركزياً لدى تيمات — تختار منها ولا تضيف إليها، حتى تبقى التقارير والاقتراح الآلي متسقة.
+                وتعديل السعر يسري على الطلبات المستقبلية وحدها؛ الطلب المقبول يبقى بسعره المتفق عليه.
+            </Note>
 
             {partner.has_price_contract && (
                 <Note tone="warning" title="أنت تحت عقد سعر">
@@ -327,7 +320,26 @@ export default function PartnerBranches({
                                     .join('، ') ||
                                     branch.address ||
                                     '—'}
+                                {branchHours(branch) && (
+                                    <>
+                                        <span className="text-ink/25">·</span>
+                                        <span className="font-mono">
+                                            ساعات العمل: {branchHours(branch)}
+                                        </span>
+                                    </>
+                                )}
                             </span>
+                            {(branch.contact_name || branch.contact_phone) && (
+                                <span className="mt-0.5 block text-[10px] text-ink/50">
+                                    المسؤول: {branch.contact_name ?? '—'}
+                                    {branch.contact_phone && (
+                                        <span className="font-mono" dir="ltr">
+                                            {' '}
+                                            ({branch.contact_phone})
+                                        </span>
+                                    )}
+                                </span>
+                            )}
                         </div>
 
                         <div className="flex shrink-0 items-center gap-2">
@@ -434,6 +446,20 @@ export default function PartnerBranches({
                                         <span className="text-ink/50">
                                             {PRICING_LABEL[unit.pricing_type] ??
                                                 unit.pricing_type}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                                        <span className="text-ink/50">
+                                            شامل 15٪ ضريبة
+                                        </span>
+                                        <span className="text-ink/25">·</span>
+                                        <span className="inline-flex items-center gap-1 text-ink/60">
+                                            <Lock
+                                                className="h-2.5 w-2.5 shrink-0"
+                                                aria-hidden="true"
+                                            />
+                                            الإجمالي مجمَّد بعد القبول
                                         </span>
                                     </div>
 
@@ -768,4 +794,18 @@ function UnitForm({
             </FormActions>
         </form>
     );
+}
+
+/** ساعات العمل كمدى واحد — الفرع الذي يفتح ٦ ص ويغلق ١ ص يُقرأ سطراً لا جدولاً. */
+function branchHours(branch: Branch): string | null {
+    const windows = Object.values(branch.working_hours ?? {}).flat().filter(Boolean);
+
+    if (windows.length === 0) {
+        return null;
+    }
+
+    const from = windows.map((w) => w.from).sort()[0];
+    const to = windows.map((w) => w.to).sort().at(-1);
+
+    return `${from} - ${to}`;
 }

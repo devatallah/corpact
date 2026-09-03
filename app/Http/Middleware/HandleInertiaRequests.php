@@ -2,10 +2,14 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\EventStatus;
 use App\Models\Employee;
+use App\Models\Event;
+use App\Models\EventProviderRequest;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\Auth\OtpLoginService;
+use App\Services\Provider\ReliabilityService;
 use App\Support\Identity\CurrentActor;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -46,6 +50,20 @@ class HandleInertiaRequests extends Middleware
         $partnerRole = null;
         if ($guard === 'partner' && $user) {
             $partnerRole = $user->role->value;
+        }
+
+        /*
+         * H §11 — شريط المزوّد.
+         *
+         * أربعة أرقام تُرافق المزوّد على كل شاشة لا على لوحته وحدها: ما ينتظر
+         * ردّه، وما التزم بتقديمه، وسلوكه في القبول وسرعة الرد. الطلب الذي
+         * تنتهي مهلته يكلّفه نقاطاً، فإخفاء عدّاده خلف رابط «لوحة التحكم»
+         * يجعل الشاشة التي يفتحها هي التي تقرر إن كان سيراه.
+         */
+        $providerBar = null;
+
+        if ($guard === 'partner' && $user) {
+            $providerBar = fn () => $this->providerBar($user);
         }
 
         // Multi-membership accounts get a context switcher (H §4/§18).
@@ -90,6 +108,7 @@ class HandleInertiaRequests extends Middleware
                 'role_label' => $roleLabel,
                 'permissions' => $permissions,
                 'partnerRole' => $partnerRole,
+                'providerBar' => $providerBar,
                 'partnerPermissions' => $permissions,
                 'memberships' => $memberships,
             ],
@@ -117,5 +136,34 @@ class HandleInertiaRequests extends Middleware
         }
 
         return null;
+    }
+
+    /**
+     * إحصاءات شريط المزوّد — كسولة، فلا تُحسب إلا حين تُقرأ.
+     *
+     * @return array<string, mixed>
+     */
+    private function providerBar(mixed $account): array
+    {
+        $provider = $account->resolvedPartner();
+
+        $behaviors = app(ReliabilityService::class)->behaviors($provider);
+
+        return [
+            'pending_requests' => EventProviderRequest::query()
+                ->where('partner_id', $provider->id)
+                ->pending()
+                ->count(),
+            'upcoming_events' => Event::query()
+                ->where('partner_id', $provider->id)
+                ->whereIn('status', [EventStatus::Booked->value, EventStatus::Confirmed->value])
+                ->whereDate('event_date', '>=', now()->toDateString())
+                ->count(),
+            'acceptance_rate' => $behaviors['acceptance_rate'],
+            'avg_response_minutes' => $behaviors['avg_response_minutes'],
+            'trade_name' => $provider->trade_name ?: $provider->name,
+            'commercial_registration' => $provider->commercial_registration,
+            'status' => $provider->status,
+        ];
     }
 }

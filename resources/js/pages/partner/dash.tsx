@@ -69,17 +69,8 @@ export default function PartnerDash({
                 subtitle="ملخّص شهرك الحالي، والطلبات التي تنتظر ردّك."
             />
 
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <StatCard
-                    label="طلبات تنتظر ردّك"
-                    value={stats.pending_requests}
-                    tone={stats.pending_requests > 0 ? 'warning' : 'success'}
-                    hint={
-                        stats.pending_requests > 0
-                            ? 'الردّ المتأخر يخصم من موثوقيتك'
-                            : 'لا شيء معلّق'
-                    }
-                />
+            {/* الطلبات المعلّقة ومعدل القبول في شريط المزوّد أعلى كل شاشة — هنا ما لا يظهر فيه. */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <StatCard
                     label="حجوزات هذا الشهر"
                     value={stats.monthly_bookings}

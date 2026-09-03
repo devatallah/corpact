@@ -57,11 +57,13 @@ const STATUS: Record<
 };
 
 export default function PartnerSettlements({
+    commissionRate,
     statements,
     totals,
     filters,
     sort,
 }: {
+    commissionRate: number;
     partner: { id: number; name: string };
     statements: Paginated<Statement>;
     totals: {
@@ -80,9 +82,28 @@ export default function PartnerSettlements({
 
             <PageHeader
                 icon={Scale}
-                title="كشوف المستحقات"
-                subtitle="كل فعالية مكتملة تولّد بنداً، والبنود تُجمَّع في كشف فترة يُعتمد ثم يُحوَّل."
+                title="المستحقات المالية وكشوف التسوية"
+                badge="كل 15 يوماً"
+                subtitle="تُصدر المنصة كشف تسوية دورياً بالفعاليات المكتملة المنفَّذة في مرافقك."
             />
+
+            {/* ── القواعد الثلاث ── */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Rule
+                    title="بند التسوية عند الاكتمال"
+                    body="البند يُنشأ عند اكتمال الفعالية فقط — لا قبل ذلك في أي حال، ولا عند القبول ولا عند الحجز."
+                />
+                <Rule
+                    title="اقتطاع العمولة"
+                    body="العمولة تُقتطع من مستحقاتك ولا تُضاف على السعر المعروض للعميل — السعر الذي أعلنته هو الذي يدفعه."
+                />
+                <Rule
+                    title="ثبات الأسعار التاريخية"
+                    body="كل بند يحفظ نسخة ثابتة من السعر والعمولة وقت الاحتساب، ولا يتأثر بتعديل ملفك لاحقاً."
+                />
+            </div>
+
+            <CommissionExample rate={commissionRate} />
 
             {totals.payouts_blocked && (
                 <Note
@@ -245,5 +266,73 @@ export default function PartnerSettlements({
                 كشفه. <Landmark className="inline h-3 w-3" aria-hidden="true" />
             </Note>
         </PartnerLayout>
+    );
+}
+
+/** قاعدة واحدة من قواعد التسوية — مكتوبة لأن سوء فهمها يظهر كخصم غير مفهوم. */
+function Rule({ title, body }: { title: string; body: string }) {
+    return (
+        <div className="rounded-xl border-[0.5px] border-ink/12 bg-page p-3">
+            <span className="block text-[11px] font-extrabold text-ink mb-0.5">{title}</span>
+            <p className="text-[10px] text-ink/60 leading-relaxed">{body}</p>
+        </div>
+    );
+}
+
+/**
+ * نموذج احتساب البند الواحد.
+ *
+ * The provider's most common misreading is that the commission is added to
+ * what the company pays. It is not — it comes out of their own side. One
+ * worked example settles that faster than a paragraph.
+ */
+export function CommissionExample({ rate }: { rate: number }) {
+    const gross = 300;
+    const commission = Math.round(gross * rate) / 100;
+
+    return (
+        <Card padding="p-4" className="space-y-3">
+            <h2 className="text-sm font-extrabold text-ink">نموذج احتساب البند الواحد — شفافية كاملة</h2>
+
+            <div className="space-y-1.5">
+                <ExampleRow label="قيمة الفعالية شاملة الضريبة (15٪)" value={`${gross.toFixed(2)} ر.س`} />
+                <ExampleRow label={`عمولة تيمات (${rate}٪)`} value={`−${commission.toFixed(2)} ر.س`} negative />
+                <ExampleRow label="صافي التحويل البنكي إليك" value={`${(gross - commission).toFixed(2)} ر.س`} strong />
+            </div>
+
+            <p className="text-[10px] text-ink/50">
+                مثال توضيحي بنسبة عقدك على قيمة 300 ر.س — الأرقام الفعلية في بنود كشوفك أدناه.
+            </p>
+        </Card>
+    );
+}
+
+function ExampleRow({
+    label,
+    value,
+    negative = false,
+    strong = false,
+}: {
+    label: string;
+    value: string;
+    negative?: boolean;
+    strong?: boolean;
+}) {
+    return (
+        <div
+            className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 ${
+                strong ? 'bg-panel' : 'bg-page border-[0.5px] border-ink/10'
+            }`}
+        >
+            <span className={`text-[11px] ${strong ? 'text-white/70' : 'text-ink/65'}`}>{label}</span>
+            <span
+                className={`font-mono text-xs font-black ${
+                    strong ? 'text-lime' : negative ? 'text-danger' : 'text-ink'
+                }`}
+                dir="ltr"
+            >
+                {value}
+            </span>
+        </div>
     );
 }
