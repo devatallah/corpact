@@ -35,7 +35,9 @@ class CompanyService
     public function list(array $filters = []): LengthAwarePaginator
     {
         $query = Company::query()
-            ->with('employees')
+            // كان `with('employees')` يحمّل كل صفوف الموظفين لعشرين شركة
+            // لمجرد عدّها — العدّ يكفي.
+            ->withCount('employees')
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->when(isset($filters['search']), fn ($query) => $query->where('name', 'like', '%'.$filters['search'].'%'));
 

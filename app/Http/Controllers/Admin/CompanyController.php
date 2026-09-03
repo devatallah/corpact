@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\FileCategory;
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\IndexCompanyRequest;
 use App\Http\Requests\Admin\StoreCompanyRequest;
 use App\Http\Requests\Admin\UpdateCompanyRequest;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\RoleAssignment;
 use App\Models\StoredFile;
+use App\Models\User;
 use App\Services\Admin\CompanyService;
 use App\Services\Identity\IdentityResolver;
 use App\Support\Money;
@@ -35,8 +38,48 @@ class CompanyController extends Controller
         $companies = $this->companyService->list($filters);
         $stats = $this->companyService->dashboardStats();
 
+        // مسؤولو الحساب لكل شركة — العقد بلا من يديره على الأرض نصف صورة.
+        $accountManagers = RoleAssignment::query()
+            ->where('role', Role::AccountManager->value)
+            ->where('scope_type', RoleAssignment::SCOPE_COMPANY)
+            ->whereIn('scope_id', $companies->pluck('id'))
+            ->get(['scope_id', 'user_id']);
+
+        $users = User::whereIn('id', $accountManagers->pluck('user_id')->unique())->get(['id', 'name', 'phone', 'email']);
+
+        $managersByCompany = $accountManagers
+            ->groupBy('scope_id')
+            ->map(fn ($rows) => $rows
+                ->map(fn ($row) => $users->firstWhere('id', $row->user_id))
+                ->filter()
+                ->map(fn (User $user) => ['id' => $user->id, 'name' => $user->name, 'phone' => $user->phone, 'email' => $user->email])
+                ->values());
+
+        /*
+         * بنود العقد هللات في العمود (H §12) — وكانت القائمة تطبعها كما هي
+         * تحت وسم «ر.س»، فيقرأ الأدمن 30000 ر.س للموظف الواحد بدل 300.00.
+         * صفحة التعديل كانت تنسّقها منذ البداية؛ القائمة وحدها هي التي كذبت.
+         */
+        $companies->getCollection()->transform(function (Company $company) {
+            $company->setAttribute(
+                'contract_fee_display',
+                $company->contract_fee_per_activated_employee === null
+                    ? null
+                    : Money::format((int) $company->contract_fee_per_activated_employee),
+            );
+            $company->setAttribute(
+                'contract_minimum_display',
+                $company->contract_monthly_minimum === null
+                    ? null
+                    : Money::format((int) $company->contract_monthly_minimum),
+            );
+
+            return $company;
+        });
+
         return Inertia::render('admin/companies/index', [
             'companies' => $companies,
+            'accountManagers' => $managersByCompany,
             'stats' => $stats,
             'filters' => (object) $filters,
             'sort' => CompanyService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),

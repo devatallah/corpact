@@ -28,8 +28,16 @@ type Company = {
     contract_fee_per_activated_employee: string | number | null;
     event_creation_blocked_at: string | null;
     created_at: string | null;
-    employees?: unknown[];
+    employees_count?: number;
+    contract_monthly_minimum: string | number | null;
+    contract_fee_display: string | null;
+    contract_minimum_display: string | null;
+    contract_coordinator_service: boolean | number | null;
+    vat_number: string | null;
+    approved_at: string | null;
 };
+
+type AccountManager = { id: number; name: string; phone: string | null; email: string };
 
 export const COMPANY_STATUS: Record<string, { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger' }> = {
     pending: { label: 'طلب جديد', tone: 'warning' },
@@ -41,11 +49,13 @@ export const COMPANY_STATUS: Record<string, { label: string; tone: 'neutral' | '
 
 export default function AdminCompanies({
     companies,
+    accountManagers,
     stats,
     filters,
     sort,
 }: {
     companies: Paginated<Company>;
+    accountManagers: Record<string, AccountManager[]>;
     stats: { total: number; pending: number; review: number; active: number; rejected: number };
     filters: { search?: string; status?: string };
     sort: SortState;
@@ -59,8 +69,9 @@ export default function AdminCompanies({
 
             <PageHeader
                 icon={Building2}
-                title="الشركات والعقود"
-                subtitle="اعتماد طلبات التسجيل، وضبط شروط العقد التي تُبنى عليها الفوترة الشهرية."
+                title="إدارة الشركات والعقود التجارية"
+                badge={`${stats.active} عقداً نشطاً`}
+                subtitle="تهيئة رسوم الموظف المفعَّل، والحد الأدنى الشهري، وخدمة المنسّق المُدار — وعليها تُبنى الفوترة."
                 actions={
                     <ButtonLink href="/admin/companies/create" icon={Plus}>
                         إضافة شركة
@@ -102,7 +113,7 @@ export default function AdminCompanies({
                         </Th>
                         <Th>مسؤول الحساب</Th>
                         <Th>الموظفون</Th>
-                        <Th>رسم الموظف</Th>
+                        <Th>بنود العقد</Th>
                         <Th>
                             <SortableHeader label="الحالة" sortKey="status" sort={sort} />
                         </Th>
@@ -127,12 +138,11 @@ export default function AdminCompanies({
                                     <span className="font-mono text-[11px] text-ink/50" dir="ltr">
                                         {company.contact_phone ?? ''}
                                     </span>
+                                    <ManagerList managers={accountManagers[String(company.id)] ?? []} />
                                 </Td>
-                                <Td className="font-mono font-bold text-ink">{company.employees?.length ?? 0}</Td>
-                                <Td className="font-mono text-ink/80">
-                                    {company.contract_fee_per_activated_employee ?? (
-                                        <span className="text-danger font-bold">بلا عقد</span>
-                                    )}
+                                <Td className="font-mono font-bold text-ink">{company.employees_count ?? 0}</Td>
+                                <Td>
+                                    <ContractTerms company={company} />
                                 </Td>
                                 <Td>
                                     <Badge tone={COMPANY_STATUS[company.status]?.tone ?? 'neutral'}>
@@ -235,5 +245,57 @@ export default function AdminCompanies({
                 onCancel={() => setDeciding(null)}
             />
         </AdminLayout>
+    );
+}
+
+/**
+ * بنود العقد الثلاثة معاً.
+ *
+ * The three terms decide the invoice together, and any one of them missing
+ * means the company silently never enters the billing run — so the absence is
+ * stated, not left as an empty cell.
+ */
+function ContractTerms({ company }: { company: Company }) {
+    const fee = company.contract_fee_display;
+
+    if (fee === null || fee === undefined) {
+        return <span className="text-[11px] font-bold text-danger">بلا عقد — لا تدخل الفوترة</span>;
+    }
+
+    return (
+        <div className="space-y-0.5 text-[11px]">
+            <div className="flex items-baseline gap-1.5">
+                <span className="font-mono font-bold text-ink">{fee}</span>
+                <span className="text-ink/50">ر.س / موظف مفعَّل</span>
+            </div>
+            <div className="text-[10px] text-ink/55">
+                الحد الأدنى:{' '}
+                {company.contract_minimum_display ? (
+                    <span className="font-mono">{company.contract_minimum_display} ر.س</span>
+                ) : (
+                    'بلا حد أدنى'
+                )}
+            </div>
+            <div className="text-[10px]">
+                {company.contract_coordinator_service ? (
+                    <span className="font-bold text-lead">المنسّق المُدار مفعَّل</span>
+                ) : (
+                    <span className="text-ink/45">إدارة ذاتية</span>
+                )}
+            </div>
+        </div>
+    );
+}
+
+/** مسؤولو الحساب — من يدير العقد فعلاً داخل الشركة. */
+function ManagerList({ managers }: { managers: AccountManager[] }) {
+    if (managers.length === 0) {
+        return <span className="mt-0.5 block text-[10px] font-bold text-warning">بلا مسؤول حساب</span>;
+    }
+
+    return (
+        <span className="mt-0.5 block text-[10px] text-ink/55">
+            {managers.map((manager) => manager.name).join('، ')}
+        </span>
     );
 }

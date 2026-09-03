@@ -48,6 +48,7 @@ export default function AdminDash({
     ghostEventWatch,
     jobHealth,
     walletReconciliation,
+    gatewayHealth,
     monthlyRevenue,
     revenueGrowth,
     last6Months,
@@ -69,6 +70,13 @@ export default function AdminDash({
     ghostEventWatch: GhostWatch;
     jobHealth?: JobHealth;
     walletReconciliation?: { cached_halalas: number; ledger_halalas: number; difference_halalas: number; wallets: number; mismatched: number };
+    gatewayHealth?: {
+        window_hours: number;
+        total: number;
+        success_rate: number | null;
+        failure_rate: number | null;
+        stale_pending: number;
+    };
     monthlyRevenue?: number;
     revenueGrowth?: number;
     last6Months?: { month: string; total: number }[];
@@ -89,6 +97,7 @@ export default function AdminDash({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {walletReconciliation && <ReconciliationCard reconciliation={walletReconciliation} />}
                     {jobHealth && <JobHealthCard health={jobHealth} />}
+                    {gatewayHealth && <GatewayHealthCard health={gatewayHealth} />}
                     <Card className="space-y-3">
                         <CardTitle
                             aside={
@@ -344,5 +353,59 @@ function Indicator({ label, rate, detail, note }: { label: string; rate: number;
             <div className="text-[11px] font-medium text-ink/60">{detail}</div>
             <p className="text-[11px] text-ink/70 leading-relaxed pt-1 border-t-[0.5px] border-ink/5">{note}</p>
         </div>
+    );
+}
+
+/**
+ * H §20 — صحة بوابة الدفع.
+ *
+ * `stale_pending` is the webhook check: an intent whose deadline has passed
+ * while it is still `pending` means the gateway's callback never arrived. A
+ * success rate alone would read as healthy while payments silently hang.
+ */
+function GatewayHealthCard({
+    health,
+}: {
+    health: { window_hours: number; total: number; success_rate: number | null; failure_rate: number | null; stale_pending: number };
+}) {
+    const lagging = health.stale_pending > 0;
+
+    return (
+        <Card className="space-y-3">
+            <CardTitle
+                aside={
+                    <Badge tone={lagging ? 'danger' : 'success'}>
+                        {lagging ? `${health.stale_pending} ويبهوك متأخر` : 'البوابة سليمة'}
+                    </Badge>
+                }
+            >
+                بوابة الدفع الإلكتروني
+            </CardTitle>
+
+            <dl className="space-y-1.5 text-[11px]">
+                <div className="flex items-center justify-between gap-2">
+                    <dt className="text-ink/60">معدل نجاح الدفع (آخر ساعة)</dt>
+                    <dd className="font-mono font-bold text-ink">
+                        {health.success_rate === null ? '—' : `${health.success_rate}٪`}
+                    </dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                    <dt className="text-ink/60">معدل الإخفاق</dt>
+                    <dd className="font-mono font-bold text-ink">
+                        {health.failure_rate === null ? '—' : `${health.failure_rate}٪`}
+                    </dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                    <dt className="text-ink/60">نيّات انتهت مهلتها ولم تُغلق</dt>
+                    <dd className={`font-mono font-bold ${lagging ? 'text-danger' : 'text-ink'}`}>{health.stale_pending}</dd>
+                </div>
+            </dl>
+
+            <p className="text-[10px] text-ink/50 leading-relaxed pt-2 border-t-[0.5px] border-ink/10">
+                {health.total === 0
+                    ? 'لا محاولات دفع في آخر ساعة — المعدلات تظهر بعد أول محاولة.'
+                    : 'نيّة تجاوزت مهلتها وبقيت معلّقة تعني أن ردّ البوابة لم يصل — لا أن الدفع فشل.'}
+            </p>
+        </Card>
     );
 }

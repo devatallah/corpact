@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Console\Commands\ReconcileBalances;
 use App\Console\Commands\WatchdogScheduledJobs;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\JobRun;
 use App\Models\Partner;
+use App\Models\PaymentIntent;
 use App\Models\SettlementItem;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
@@ -145,6 +147,7 @@ class DashboardController extends Controller
         return Inertia::render('admin/dash', [
             ...$props,
             'walletReconciliation' => $this->walletReconciliation(),
+            'gatewayHealth' => $this->gatewayHealth(),
             'monthlyRevenue' => $monthlyRevenue,
             'revenueGrowth' => $lastMonthRevenue > 0
                 ? round((($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100)
@@ -190,7 +193,7 @@ class DashboardController extends Controller
 
     /**
      * H §12.5 — الرصيد مشتق من الدفتر لا العكس. نفس معادلة
-     * {@see \App\Console\Commands\ReconcileBalances}: دائن ناقص مدين بالهللة،
+     * {@see ReconcileBalances}: دائن ناقص مدين بالهللة،
      * مقابل الرصيد المخزَّن. المبالغ هللات صحيحة، والفارق يجب أن يكون صفراً.
      *
      * @return array{cached_halalas: int, ledger_halalas: int, difference_halalas: int, wallets: int, mismatched: int}
@@ -238,5 +241,40 @@ class DashboardController extends Controller
             ->sum('commission_amount_halalas');
 
         return $halalas / 100;
+    }
+
+    /**
+     * صحة بوابة الدفع خلال آخر ساعة — معدل النجاح وما انتهت مهلته.
+     *
+     * @return array<string, mixed>
+     */
+    private function gatewayHealth(): array
+    {
+        $since = now()->subHour();
+
+        $recent = PaymentIntent::query()
+            ->withoutGlobalScopes()
+            ->where('created_at', '>=', $since)
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $total = (int) $recent->sum();
+        $paid = (int) ($recent['paid'] ?? 0);
+        $failed = (int) ($recent['failed'] ?? 0);
+
+        return [
+            'window_hours' => 1,
+            'total' => $total,
+            'success_rate' => $total === 0 ? null : round($paid / $total * 100, 1),
+            'failure_rate' => $total === 0 ? null : round($failed / $total * 100, 2),
+            // نيّة تجاوزت مهلتها ولم تُغلق = ويبهوك لم يصل.
+            'stale_pending' => PaymentIntent::query()
+                ->withoutGlobalScopes()
+                ->where('status', 'pending')
+                ->whereNotNull('expires_at')
+                ->where('expires_at', '<', now())
+                ->count(),
+        ];
     }
 }
