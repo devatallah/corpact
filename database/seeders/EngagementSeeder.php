@@ -107,7 +107,11 @@ class EngagementSeeder extends Seeder
         $rows = DB::table('event_participants')
             ->join('events', 'events.id', '=', 'event_participants.event_id')
             ->whereNotNull('event_participants.attendance_status')
-            ->selectRaw("events.company_id, events.community_id, strftime('%Y-%m', events.event_date) as period")
+            // `strftime` دالة SQLite وحدها؛ MySQL يرفضها بـ«FUNCTION
+            // teamat.strftime does not exist». و`substr` تعمل على المحركين
+            // وتكفي هنا: `event_date` مخزَّن `Y-m-d…` فأول سبعة أحرف هي
+            // الدورة — وهو ما يفعله `RetentionService` للمجموع نفسه.
+            ->selectRaw('events.company_id, events.community_id, substr(events.event_date, 1, 7) as period')
             ->selectRaw('count(distinct events.id) as events_count')
             ->selectRaw("sum(case when event_participants.attendance_status = 'attended' then 1 else 0 end) as attended_count")
             ->selectRaw("sum(case when event_participants.attendance_status = 'absent' then 1 else 0 end) as absent_count")
