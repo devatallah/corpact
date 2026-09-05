@@ -203,6 +203,16 @@ return new class extends Migration
 
             $table->index(['status']);
         });
+
+        /*
+         * القيد المؤجَّل من 800001: `event_templates.activity_unit_id` لم
+         * يستطع الإشارة إلى `activity_units` قبل وجوده. الآن وُجد.
+         */
+        if (Schema::hasTable('event_templates') && Schema::hasColumn('event_templates', 'activity_unit_id')) {
+            Schema::table('event_templates', function (Blueprint $table) {
+                $table->foreign('activity_unit_id')->references('id')->on('activity_units')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void

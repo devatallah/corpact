@@ -31,7 +31,15 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('community_id')->constrained()->cascadeOnDelete();
             $table->foreignId('partner_id')->nullable()->constrained('partners')->nullOnDelete();
-            $table->foreignId('activity_unit_id')->nullable()->constrained('activity_units')->nullOnDelete();
+            /*
+             * العمود بلا قيد هنا: `activity_units` يُنشأ في الهجرة التالية
+             * (900001)، وMySQL يرفض مفتاحاً أجنبياً يشير إلى جدول لم يوجد
+             * بعد («Failed to open the referenced table»). SQLite لا يتحقق
+             * وقت الإنشاء فمرّت الهجرة محلياً وسقطت على الخادم وحده.
+             *
+             * القيد يُضاف في 900001 فور إنشاء الجدول المشار إليه.
+             */
+            $table->unsignedBigInteger('activity_unit_id')->nullable();
             $table->foreignId('category_id')->nullable()->constrained('categories')->nullOnDelete();
             // جسر النموذج القديم: تسعيرة/ملاعب venue حتى يرحّل A15 واجهات الإنشاء للوحدات
             $table->foreignId('venue_pricing_id')->nullable()->constrained('venue_pricings')->nullOnDelete();
