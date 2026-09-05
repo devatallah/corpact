@@ -3,22 +3,40 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Laravel\Horizon\HorizonServiceProvider;
+use Spatie\Backup\BackupServiceProvider;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
 // --- Ops baseline (Phase 0 — H §20/§22) -----------------------------------
-// Daily backup (DB + storage/app), 30-day retention — config/backup.php.
-// clean before run so the retention window is applied first; monitor alerts
-// (mail) if the newest backup is older than a day or storage exceeds cap.
-Schedule::command('backup:clean')->dailyAt('00:30');
-Schedule::command('backup:run')->dailyAt('01:00');
-Schedule::command('backup:monitor')->dailyAt('07:00');
+/*
+ * حزمتان اختياريتان: `spatie/laravel-backup` و`laravel/horizon`.
+ *
+ * `Schedule::command()` يبني استدعاءً لأمر artisan في عملية منفصلة، ولا
+ * يتحقق من وجود الأمر وقت التعريف — فمهمة تشير إلى حزمة غير مثبَّتة تسقط
+ * ليلاً بـ«There are no commands defined» في سجل لا يقرؤه أحد، وتبدو خانة
+ * النسخ الاحتياطي في المراقبة كأنها تعمل.
+ *
+ * فحص وجود الصنف يُبقي الجدول صادقاً: المهمة تُسجَّل حين تكون حزمتها
+ * موجودة، وتغيب حين تغيب — لا مهمة تفشل كل ليلة بصمت. ونظيره على مزوّد
+ * Horizon في `bootstrap/providers.php`.
+ */
+if (class_exists(BackupServiceProvider::class)) {
+    // Daily backup (DB + storage/app), 30-day retention — config/backup.php.
+    // clean before run so the retention window is applied first; monitor alerts
+    // (mail) if the newest backup is older than a day or storage exceeds cap.
+    Schedule::command('backup:clean')->dailyAt('00:30');
+    Schedule::command('backup:run')->dailyAt('01:00');
+    Schedule::command('backup:monitor')->dailyAt('07:00');
+}
 
 // Horizon queue metrics (harmless no-op while the database queue driver is
 // the local fallback; production runs Redis + Horizon under Supervisor).
-Schedule::command('horizon:snapshot')->everyFiveMinutes();
+if (class_exists(HorizonServiceProvider::class)) {
+    Schedule::command('horizon:snapshot')->everyFiveMinutes();
+}
 // --------------------------------------------------------------------------
 
 // جدول المهام المجدولة — H §20
