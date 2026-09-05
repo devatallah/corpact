@@ -70,6 +70,35 @@ return new class extends Migration
         // ── 2) الدفتر القديم يُؤرشف — لا حذف لسجل مالي ─────────────────────
         Schema::rename('wallet_transactions', 'legacy_wallet_transactions');
 
+        /*
+         * MySQL لا يعيد تسمية قيود المفتاح الأجنبي حين يُعاد تسمية جدولها،
+         * وأسماء القيود فريدة على مستوى القاعدة كلها. فيبقى الجدول المؤرشف
+         * ممسكاً بالاسم `wallet_transactions_wallet_id_foreign`، ويسقط إنشاء
+         * الدفتر الجديد بـ«Duplicate foreign key constraint name».
+         *
+         * SQLite لا يسمّي قيوده عالمياً فلا يقع التصادم — ولهذا لم تظهر
+         * المشكلة محلياً ولا في الاختبارات، وظهرت على MySQL وحده.
+         *
+         * القيود تُسقط عن **الأرشيف** لا عن الدفتر الجديد: جدول للقراءة
+         * التاريخية لا يحتاج فرضاً مرجعياً، والسجل المالي نفسه لا يُمس.
+         */
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            // تُقرأ الأسماء من الفهرس لا تُخمَّن: القيود احتفظت بأسماء الجدول
+            // قبل إعادة التسمية، وقد تختلف بين قواعد نشأت في أوقات مختلفة.
+            $constraints = DB::select(
+                'select constraint_name from information_schema.table_constraints
+                 where table_schema = database()
+                   and table_name = ?
+                   and constraint_type = ?',
+                ['legacy_wallet_transactions', 'FOREIGN KEY']
+            );
+
+            foreach ($constraints as $constraint) {
+                $name = $constraint->constraint_name ?? $constraint->CONSTRAINT_NAME;
+                DB::statement("alter table `legacy_wallet_transactions` drop foreign key `{$name}`");
+            }
+        }
+
         // ── 3) الدفتر الجديد ────────────────────────────────────────────────
         Schema::create('wallet_transactions', function (Blueprint $table) {
             $table->id();
