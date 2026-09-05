@@ -5,6 +5,7 @@ use App\Enums\WalletTransactionType;
 use App\Models\Community;
 use App\Models\Company;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -42,7 +43,7 @@ return new class extends Migration
         DB::table('wallets')->update([
             'owner_type' => Company::class,
             'owner_id' => DB::raw('company_id'),
-            'balance_halalas' => DB::raw('CAST(ROUND(balance * 100) AS INTEGER)'),
+            'balance_halalas' => $this->toHalalas('balance'),
         ]);
 
         // محفظة فرعية لكل مجتمع، رصيدها الافتتاحي من عمود communities.balance.
@@ -227,5 +228,21 @@ return new class extends Migration
             $table->dropUnique(['owner_type', 'owner_id']);
             $table->dropColumn(['owner_type', 'owner_id', 'balance_halalas']);
         });
+    }
+
+    /**
+     * تحويل ريالات عشرية إلى هللات صحيحة، بتعبير SQL يفهمه المحركان.
+     *
+     * `CAST(... AS INTEGER)` صالح في SQLite ومرفوض في MySQL — الأخير يريد
+     * `SIGNED`. الفرق لا يظهر محلياً على SQLite، فكانت الهجرة تسقط على
+     * الخادم وحده بـ«error in your SQL syntax near INTEGER» بعد أن تكون قد
+     * أضافت أعمدتها — فتترك القاعدة نصف مهاجَرة ولا تُسجَّل، ويفشل كل تشغيل
+     * تالٍ بـ«Duplicate column».
+     */
+    private function toHalalas(string $column): Expression
+    {
+        $type = DB::connection()->getDriverName() === 'sqlite' ? 'INTEGER' : 'SIGNED';
+
+        return DB::raw("CAST(ROUND({$column} * 100) AS {$type})");
     }
 };

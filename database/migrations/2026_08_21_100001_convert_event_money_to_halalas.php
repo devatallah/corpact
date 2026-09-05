@@ -2,6 +2,7 @@
 
 use App\Support\Money;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -137,7 +138,7 @@ return new class extends Migration
         Schema::table('venue_pricings', function (Blueprint $table) {
             $table->unsignedBigInteger('price_halalas')->default(0)->after('duration_minutes');
         });
-        DB::table('venue_pricings')->update(['price_halalas' => DB::raw('CAST(ROUND(price * 100) AS INTEGER)')]);
+        DB::table('venue_pricings')->update(['price_halalas' => $this->toHalalas('price')]);
         Schema::table('venue_pricings', function (Blueprint $table) {
             $table->dropColumn('price');
         });
@@ -145,7 +146,7 @@ return new class extends Migration
         Schema::table('activity_units', function (Blueprint $table) {
             $table->unsignedBigInteger('price_halalas')->default(0)->after('pricing_type');
         });
-        DB::table('activity_units')->update(['price_halalas' => DB::raw('CAST(ROUND(price * 100) AS INTEGER)')]);
+        DB::table('activity_units')->update(['price_halalas' => $this->toHalalas('price')]);
         Schema::table('activity_units', function (Blueprint $table) {
             $table->dropColumn('price');
         });
@@ -155,8 +156,8 @@ return new class extends Migration
             $table->unsignedBigInteger('new_price_halalas')->default(0)->after('old_price_halalas');
         });
         DB::table('unit_price_changes')->update([
-            'old_price_halalas' => DB::raw('CAST(ROUND(old_price * 100) AS INTEGER)'),
-            'new_price_halalas' => DB::raw('CAST(ROUND(new_price * 100) AS INTEGER)'),
+            'old_price_halalas' => $this->toHalalas('old_price'),
+            'new_price_halalas' => $this->toHalalas('new_price'),
         ]);
         Schema::table('unit_price_changes', function (Blueprint $table) {
             $table->dropColumn(['old_price', 'new_price']);
@@ -167,7 +168,7 @@ return new class extends Migration
             $table->unsignedBigInteger('total_amount_halalas')->nullable()->after('frozen_participants_count');
         });
         DB::table('event_provider_requests')->whereNotNull('total_amount')
-            ->update(['total_amount_halalas' => DB::raw('CAST(ROUND(total_amount * 100) AS INTEGER)')]);
+            ->update(['total_amount_halalas' => $this->toHalalas('total_amount')]);
         Schema::table('event_provider_requests', function (Blueprint $table) {
             $table->dropColumn('total_amount');
         });
@@ -264,5 +265,21 @@ return new class extends Migration
         Schema::table('events', function (Blueprint $table) {
             $table->enum('status', self::EVENT_STATUSES)->default('open')->change();
         });
+    }
+
+    /**
+     * تحويل ريالات عشرية إلى هللات صحيحة، بتعبير SQL يفهمه المحركان.
+     *
+     * `CAST(... AS INTEGER)` صالح في SQLite ومرفوض في MySQL — الأخير يريد
+     * `SIGNED`. الفرق لا يظهر محلياً على SQLite، فكانت الهجرة تسقط على
+     * الخادم وحده بـ«error in your SQL syntax near INTEGER» بعد أن تكون قد
+     * أضافت أعمدتها — فتترك القاعدة نصف مهاجَرة ولا تُسجَّل، ويفشل كل تشغيل
+     * تالٍ بـ«Duplicate column».
+     */
+    private function toHalalas(string $column): Expression
+    {
+        $type = DB::connection()->getDriverName() === 'sqlite' ? 'INTEGER' : 'SIGNED';
+
+        return DB::raw("CAST(ROUND({$column} * 100) AS {$type})");
     }
 };

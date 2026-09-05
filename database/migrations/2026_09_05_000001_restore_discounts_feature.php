@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -40,7 +41,7 @@ return new class extends Migration
 
         // النسبة تبقى في `value`؛ المبلغ الثابت يُنقل إلى الهللات.
         DB::table('discounts')->where('type', 'fixed')->update([
-            'value_halalas' => DB::raw('CAST(ROUND(value * 100) AS INTEGER)'),
+            'value_halalas' => $this->toHalalas('value'),
         ]);
     }
 
@@ -55,5 +56,21 @@ return new class extends Migration
         });
 
         Schema::rename('discounts', 'legacy_discounts');
+    }
+
+    /**
+     * تحويل ريالات عشرية إلى هللات صحيحة، بتعبير SQL يفهمه المحركان.
+     *
+     * `CAST(... AS INTEGER)` صالح في SQLite ومرفوض في MySQL — الأخير يريد
+     * `SIGNED`. الفرق لا يظهر محلياً على SQLite، فكانت الهجرة تسقط على
+     * الخادم وحده بـ«error in your SQL syntax near INTEGER» بعد أن تكون قد
+     * أضافت أعمدتها — فتترك القاعدة نصف مهاجَرة ولا تُسجَّل، ويفشل كل تشغيل
+     * تالٍ بـ«Duplicate column».
+     */
+    private function toHalalas(string $column): Expression
+    {
+        $type = DB::connection()->getDriverName() === 'sqlite' ? 'INTEGER' : 'SIGNED';
+
+        return DB::raw("CAST(ROUND({$column} * 100) AS {$type})");
     }
 };
