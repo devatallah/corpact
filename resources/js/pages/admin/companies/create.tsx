@@ -4,6 +4,7 @@ import { BackLink } from '@/components/list-states';
 import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
 import { Button, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
+import type { SupportAgent } from '@/types';
 
 /**
  * H §16 — إنشاء شركة مباشرة من لوحة الأدمن.
@@ -12,7 +13,11 @@ import AdminLayout from '@/layouts/admin-layout';
  * for it), so the contract terms have to be set right after — a company with
  * no terms is invisible to the monthly invoicing run.
  */
-export default function CreateCompany() {
+export default function CreateCompany({
+    supportAgents,
+}: {
+    supportAgents: SupportAgent[];
+}) {
     const form = useForm({
         name: '',
         email: '',
@@ -22,6 +27,7 @@ export default function CreateCompany() {
         city: '',
         contact_name: '',
         contact_phone: '',
+        support_agent_user_id: '',
     });
 
     return (
@@ -37,7 +43,8 @@ export default function CreateCompany() {
             />
 
             <Note tone="warning" title="بعد الإنشاء: شروط العقد">
-                الشركة بلا شروط عقد لا تدخل دورة الفوترة الشهرية إطلاقاً — لن تصدر لها فاتورة ولن يظهر ذلك كخطأ.
+                الشركة بلا شروط عقد لا تدخل دورة الفوترة الشهرية إطلاقاً — لن
+                تصدر لها فاتورة ولن يظهر ذلك كخطأ.
             </Note>
 
             <form
@@ -49,36 +56,57 @@ export default function CreateCompany() {
             >
                 <FormSection title="بيانات الشركة">
                     <FormGrid>
-                        <Field label="اسم الشركة" htmlFor="company-name" required error={form.errors.name}>
+                        <Field
+                            label="اسم الشركة"
+                            htmlFor="company-name"
+                            required
+                            error={form.errors.name}
+                        >
                             <input
                                 id="company-name"
                                 type="text"
                                 required
                                 value={form.data.name}
-                                onChange={(event) => form.setData('name', event.target.value)}
+                                onChange={(event) =>
+                                    form.setData('name', event.target.value)
+                                }
                                 className={INPUT}
                             />
                         </Field>
 
-                        <Field label="القطاع" htmlFor="company-sector" required error={form.errors.sector}>
+                        <Field
+                            label="القطاع"
+                            htmlFor="company-sector"
+                            required
+                            error={form.errors.sector}
+                        >
                             <input
                                 id="company-sector"
                                 type="text"
                                 required
                                 value={form.data.sector}
-                                onChange={(event) => form.setData('sector', event.target.value)}
+                                onChange={(event) =>
+                                    form.setData('sector', event.target.value)
+                                }
                                 placeholder="مثال: تقنية"
                                 className={INPUT}
                             />
                         </Field>
 
-                        <Field label="المدينة" htmlFor="company-city" required error={form.errors.city}>
+                        <Field
+                            label="المدينة"
+                            htmlFor="company-city"
+                            required
+                            error={form.errors.city}
+                        >
                             <input
                                 id="company-city"
                                 type="text"
                                 required
                                 value={form.data.city}
-                                onChange={(event) => form.setData('city', event.target.value)}
+                                onChange={(event) =>
+                                    form.setData('city', event.target.value)
+                                }
                                 className={INPUT}
                             />
                         </Field>
@@ -96,45 +124,102 @@ export default function CreateCompany() {
                                 dir="ltr"
                                 required
                                 value={form.data.domain}
-                                onChange={(event) => form.setData('domain', event.target.value)}
+                                onChange={(event) =>
+                                    form.setData('domain', event.target.value)
+                                }
                                 placeholder="example.sa"
                                 className={`${INPUT} text-right font-mono`}
                             />
                         </Field>
+
+                        <Field
+                            label="وكيل الدعم المتابع"
+                            htmlFor="c-support"
+                            hint="من يتابع هذه الشركة داخل فريق الدعم. حقل تنظيمي — لا يمنح صلاحية ولا يمنعها."
+                            error={form.errors.support_agent_user_id}
+                        >
+                            <select
+                                id="c-support"
+                                value={form.data.support_agent_user_id}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'support_agent_user_id',
+                                        event.target.value,
+                                    )
+                                }
+                                className={`${INPUT} cursor-pointer`}
+                            >
+                                <option value="">— بلا وكيل متابع —</option>
+                                {supportAgents.map((agent) => (
+                                    <option
+                                        key={agent.id}
+                                        value={String(agent.id)}
+                                    >
+                                        {agent.name} · {agent.companies} شركة
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
                     </FormGrid>
                 </FormSection>
 
-                <FormSection title="حساب مسؤول الحساب" hint="بريد الدخول لبوابة الشركة، وبيانات مسؤول الحساب فيها.">
+                <FormSection
+                    title="حساب مسؤول الحساب"
+                    hint="بريد الدخول لبوابة الشركة، وبيانات مسؤول الحساب فيها."
+                >
                     <FormGrid>
-                        <Field label="البريد الإلكتروني" htmlFor="company-email" required error={form.errors.email}>
+                        <Field
+                            label="البريد الإلكتروني"
+                            htmlFor="company-email"
+                            required
+                            error={form.errors.email}
+                        >
                             <input
                                 id="company-email"
                                 type="email"
                                 dir="ltr"
                                 required
                                 value={form.data.email}
-                                onChange={(event) => form.setData('email', event.target.value)}
+                                onChange={(event) =>
+                                    form.setData('email', event.target.value)
+                                }
                                 className={`${INPUT} text-right font-mono`}
                             />
                         </Field>
 
-                        <Field label="كلمة المرور المبدئية" htmlFor="company-password" required error={form.errors.password}>
+                        <Field
+                            label="كلمة المرور المبدئية"
+                            htmlFor="company-password"
+                            required
+                            error={form.errors.password}
+                        >
                             <input
                                 id="company-password"
                                 type="password"
                                 required
                                 value={form.data.password}
-                                onChange={(event) => form.setData('password', event.target.value)}
+                                onChange={(event) =>
+                                    form.setData('password', event.target.value)
+                                }
                                 className={INPUT}
                             />
                         </Field>
 
-                        <Field label="اسم مسؤول الحساب" htmlFor="company-contact" error={form.errors.contact_name}>
+                        <Field
+                            label="اسم مسؤول الحساب"
+                            htmlFor="company-contact"
+                            error={form.errors.contact_name}
+                        >
                             <input
                                 id="company-contact"
                                 type="text"
                                 value={form.data.contact_name}
-                                onChange={(event) => form.setData('contact_name', event.target.value)}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'contact_name',
+                                        event.target.value,
+                                    )
+                                }
                                 className={INPUT}
                             />
                         </Field>
@@ -150,7 +235,12 @@ export default function CreateCompany() {
                                 type="tel"
                                 dir="ltr"
                                 value={form.data.contact_phone}
-                                onChange={(event) => form.setData('contact_phone', event.target.value)}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'contact_phone',
+                                        event.target.value,
+                                    )
+                                }
                                 placeholder="05xxxxxxxx"
                                 className={`${INPUT} text-right font-mono`}
                             />

@@ -1,9 +1,34 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { CalendarRange, ChevronLeft, ChevronRight, Lock, Plus, Trash2, TriangleAlert } from 'lucide-react';
+import {
+    CalendarRange,
+    ChevronLeft,
+    ChevronRight,
+    Lock,
+    Plus,
+    Trash2,
+    TriangleAlert,
+} from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { ListStates } from '@/components/list-states';
 import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
-import { Badge, Button, Card, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
+import {
+    Badge,
+    Button,
+    Card,
+    Field,
+    IconButton,
+    INPUT,
+    Note,
+    PageHeader,
+    TableShell,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    Tr,
+} from '@/components/portal/ui';
+import TimeSelect from '@/components/time-select';
 import PartnerLayout from '@/layouts/partner-layout';
 
 /**
@@ -24,7 +49,11 @@ type Unit = {
     name: string;
     provider_branch_id: number;
     default_duration_minutes: number | null;
-    branch?: { id: number; name: string; working_hours: Record<string, { from: string; to: string }[]> | null } | null;
+    branch?: {
+        id: number;
+        name: string;
+        working_hours: Record<string, { from: string; to: string }[]> | null;
+    } | null;
 };
 
 type Slot = {
@@ -46,7 +75,15 @@ type PendingRequest = {
     duration_minutes: number;
 };
 
-const DAY_NAMES = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const DAY_NAMES = [
+    'الأحد',
+    'الاثنين',
+    'الثلاثاء',
+    'الأربعاء',
+    'الخميس',
+    'الجمعة',
+    'السبت',
+];
 
 const toMinutes = (time: string) => {
     const [h, m] = time.slice(0, 5).split(':').map(Number);
@@ -57,24 +94,63 @@ const toMinutes = (time: string) => {
 const toClock = (minutes: number) =>
     `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 
+/**
+ * ساعة معروضة على ملعب — «متى يفتح هذا الملعب»، لا «ما المحجوز فيه».
+ *
+ * الحجز لا يقع خارجها، ويوم بلا ساعات معروضة يعني «بلا قيد» لا «مغلق».
+ */
+type OfferedHour = {
+    id: number;
+    venue_id: number;
+    date: string | null;
+    start_time: string;
+    end_time: string;
+    status: string;
+};
+
 export default function PartnerAvailability({
     units,
     slots,
+    venues,
+    offeredHours,
     pendingRequests,
     week_start: weekStart,
     week_end: weekEnd,
 }: {
     units: Unit[];
     slots: Slot[];
+    venues: { id: number; name: string }[];
+    offeredHours: OfferedHour[];
     pendingRequests: PendingRequest[];
     week_start: string;
     week_end: string;
 }) {
-    const [selectedId, setSelectedId] = useState<number | null>(units[0]?.id ?? null);
+    const [selectedId, setSelectedId] = useState<number | null>(
+        units[0]?.id ?? null,
+    );
     const [adding, setAdding] = useState(false);
     const [deleting, setDeleting] = useState<Slot | null>(null);
 
-    const form = useForm({ activity_unit_id: '', date: '', start_time: '', end_time: '', note: '' });
+    const form = useForm({
+        activity_unit_id: '',
+        date: '',
+        start_time: '',
+        end_time: '',
+        note: '',
+    });
+    const hoursForm = useForm({
+        // يبدأ على أول ملعب لا فارغاً: `setData` غير متزامنة، فضبط الملعب
+        // لحظة الإرسال كان يبعث القيمة السابقة — أي فارغاً — فيُرفض الطلب.
+        venue_id: String(venues[0]?.id ?? ''),
+        date: '',
+        start_time: '',
+        end_time: '',
+        status: 'available',
+    });
+    const [venueId, setVenueId] = useState<number | null>(
+        venues[0]?.id ?? null,
+    );
+    const [removingHour, setRemovingHour] = useState<OfferedHour | null>(null);
     const unit = units.find((row) => row.id === selectedId) ?? units[0] ?? null;
 
     const days = Array.from({ length: 7 }, (_, index) => {
@@ -99,7 +175,11 @@ export default function PartnerAvailability({
         const earliest = Math.min(...windows.map((w) => toMinutes(w.from)));
         const latest = Math.max(...windows.map((w) => toMinutes(w.to)));
 
-        for (let start = earliest; start + duration <= latest; start += duration) {
+        for (
+            let start = earliest;
+            start + duration <= latest;
+            start += duration
+        ) {
             bands.push([start, start + duration]);
         }
     }
@@ -107,7 +187,11 @@ export default function PartnerAvailability({
     const shiftWeek = (deltaDays: number) => {
         const date = new Date(`${weekStart}T00:00:00`);
         date.setDate(date.getDate() + deltaDays);
-        router.get('/partner/availability', { date: date.toISOString().slice(0, 10) }, { preserveState: false });
+        router.get(
+            '/partner/availability',
+            { date: date.toISOString().slice(0, 10) },
+            { preserveState: false },
+        );
     };
 
     /** What occupies this band on this day, if anything. */
@@ -121,7 +205,13 @@ export default function PartnerAvailability({
         );
 
         if (slot) {
-            return { kind: slot.booking_type === 'external' ? ('external' as const) : ('platform' as const), slot };
+            return {
+                kind:
+                    slot.booking_type === 'external'
+                        ? ('external' as const)
+                        : ('platform' as const),
+                slot,
+            };
         }
 
         const request = pendingRequests.find(
@@ -132,10 +222,14 @@ export default function PartnerAvailability({
                 toMinutes(row.start_time) + row.duration_minutes > from,
         );
 
-        return request ? { kind: 'pending' as const, request } : { kind: 'free' as const };
+        return request
+            ? { kind: 'pending' as const, request }
+            : { kind: 'free' as const };
     };
 
-    const externalCount = slots.filter((slot) => slot.booking_type === 'external').length;
+    const externalCount = slots.filter(
+        (slot) => slot.booking_type === 'external',
+    ).length;
 
     return (
         <PartnerLayout>
@@ -153,7 +247,10 @@ export default function PartnerAvailability({
                         disabled={units.length === 0}
                         onClick={() => {
                             form.reset();
-                            form.setData('activity_unit_id', String(unit?.id ?? ''));
+                            form.setData(
+                                'activity_unit_id',
+                                String(unit?.id ?? ''),
+                            );
                             setAdding(true);
                         }}
                     >
@@ -163,14 +260,21 @@ export default function PartnerAvailability({
             />
 
             <Note tone="danger" title="تنبيه مسؤولية التعارض">
-                عند تعارض ناتج عن عدم تحديثك للتوفر: تتحمل أنت الإلغاء، وينخفض مؤشر موثوقيتك، وتُطبَّق سياسة إلغاء المزوّد
-                المنصوص عليها في عقدك. التكامل الآلي مع الأنظمة الداخلية للمزوّدين غير متاح في الإصدار الأول.
+                عند تعارض ناتج عن عدم تحديثك للتوفر: تتحمل أنت الإلغاء، وينخفض
+                مؤشر موثوقيتك، وتُطبَّق سياسة إلغاء المزوّد المنصوص عليها في
+                عقدك. التكامل الآلي مع الأنظمة الداخلية للمزوّدين غير متاح في
+                الإصدار الأول.
             </Note>
 
             {units.length === 0 ? (
                 <Card padding="p-8" className="text-center">
-                    <p className="text-sm font-extrabold text-ink mb-1">لا وحدات نشاط بعد.</p>
-                    <p className="text-xs text-ink/55">أضف فرعاً ووحدة نشاط أولاً — التقويم يُبنى على الوحدات لا على المرفق ككل.</p>
+                    <p className="mb-1 text-sm font-extrabold text-ink">
+                        لا وحدات نشاط بعد.
+                    </p>
+                    <p className="text-xs text-ink/55">
+                        أضف فرعاً ووحدة نشاط أولاً — التقويم يُبنى على الوحدات
+                        لا على المرفق ككل.
+                    </p>
                 </Card>
             ) : (
                 <>
@@ -182,14 +286,18 @@ export default function PartnerAvailability({
                                     key={row.id}
                                     type="button"
                                     onClick={() => setSelectedId(row.id)}
-                                    className={`px-3 py-2 rounded-xl text-start border-[0.5px] transition-colors ${
+                                    className={`rounded-xl border-[0.5px] px-3 py-2 text-start transition-colors ${
                                         row.id === unit?.id
-                                            ? 'bg-ink text-lime border-ink'
-                                            : 'bg-surface text-ink/75 border-ink/15 hover:border-ink/35'
+                                            ? 'border-ink bg-ink text-lime'
+                                            : 'border-ink/15 bg-surface text-ink/75 hover:border-ink/35'
                                     }`}
                                 >
-                                    <span className="block text-[11px] font-extrabold">{row.name}</span>
-                                    <span className={`block text-[9px] ${row.id === unit?.id ? 'text-lime/70' : 'text-ink/45'}`}>
+                                    <span className="block text-[11px] font-extrabold">
+                                        {row.name}
+                                    </span>
+                                    <span
+                                        className={`block text-[9px] ${row.id === unit?.id ? 'text-lime/70' : 'text-ink/45'}`}
+                                    >
                                         {row.branch?.name ?? '—'}
                                     </span>
                                 </button>
@@ -198,31 +306,55 @@ export default function PartnerAvailability({
                     </Card>
 
                     {/* ── الأسبوع ── */}
-                    <Card padding="p-3" className="flex items-center justify-between gap-3">
-                        <Button type="button" tone="soft" icon={ChevronRight} onClick={() => shiftWeek(-7)}>
+                    <Card
+                        padding="p-3"
+                        className="flex items-center justify-between gap-3"
+                    >
+                        <Button
+                            type="button"
+                            tone="soft"
+                            icon={ChevronRight}
+                            onClick={() => shiftWeek(-7)}
+                        >
                             الأسبوع السابق
                         </Button>
-                        <span className="font-mono text-xs font-bold text-ink" dir="ltr">
+                        <span
+                            className="font-mono text-xs font-bold text-ink"
+                            dir="ltr"
+                        >
                             {weekStart} — {weekEnd}
                         </span>
-                        <Button type="button" tone="soft" icon={ChevronLeft} onClick={() => shiftWeek(7)}>
+                        <Button
+                            type="button"
+                            tone="soft"
+                            icon={ChevronLeft}
+                            onClick={() => shiftWeek(7)}
+                        >
                             الأسبوع التالي
                         </Button>
                     </Card>
 
                     {/* ── الشبكة ── */}
                     <Card padding="p-4" className="space-y-3">
-                        <h2 className="text-sm font-extrabold text-ink">جدول التوفر: {unit?.name}</h2>
+                        <h2 className="text-sm font-extrabold text-ink">
+                            جدول التوفر: {unit?.name}
+                        </h2>
 
                         <div className="overflow-x-auto">
                             <table className="w-full min-w-[720px] border-separate border-spacing-1">
                                 <thead>
                                     <tr>
-                                        <th className="w-24 text-[10px] font-bold text-ink/50 pb-1">الفترة</th>
+                                        <th className="w-24 pb-1 text-[10px] font-bold text-ink/50">
+                                            الفترة
+                                        </th>
                                         {days.map((day) => (
                                             <th key={day.key} className="pb-1">
-                                                <span className="block text-[10px] font-extrabold text-ink">{day.name}</span>
-                                                <span className="block font-mono text-[9px] text-ink/45">{day.key.slice(5)}</span>
+                                                <span className="block text-[10px] font-extrabold text-ink">
+                                                    {day.name}
+                                                </span>
+                                                <span className="block font-mono text-[9px] text-ink/45">
+                                                    {day.key.slice(5)}
+                                                </span>
                                             </th>
                                         ))}
                                     </tr>
@@ -230,15 +362,30 @@ export default function PartnerAvailability({
                                 <tbody>
                                     {bands.map(([from, to]) => (
                                         <tr key={from}>
-                                            <th className="font-mono text-[10px] text-ink/60 text-start pe-2" dir="ltr">
+                                            <th
+                                                className="pe-2 text-start font-mono text-[10px] text-ink/60"
+                                                dir="ltr"
+                                            >
                                                 {toClock(from)} – {toClock(to)}
                                             </th>
                                             {days.map((day) => {
-                                                const cell = occupancy(day.key, from, to);
+                                                const cell = occupancy(
+                                                    day.key,
+                                                    from,
+                                                    to,
+                                                );
 
                                                 return (
-                                                    <td key={day.key} className="p-0">
-                                                        <Cell cell={cell} onDelete={setDeleting} />
+                                                    <td
+                                                        key={day.key}
+                                                        className="p-0"
+                                                    >
+                                                        <Cell
+                                                            cell={cell}
+                                                            onDelete={
+                                                                setDeleting
+                                                            }
+                                                        />
                                                     </td>
                                                 );
                                             })}
@@ -249,17 +396,33 @@ export default function PartnerAvailability({
                         </div>
 
                         {bands.length === 0 && (
-                            <p className="text-xs text-ink/55 text-center py-4">
-                                لم تُضبط ساعات عمل لفرع هذه الوحدة — اضبطها من «الفروع والوحدات» ليُبنى الجدول.
+                            <p className="py-4 text-center text-xs text-ink/55">
+                                لم تُضبط ساعات عمل لفرع هذه الوحدة — اضبطها من
+                                «الفروع والوحدات» ليُبنى الجدول.
                             </p>
                         )}
 
-                        <div className="flex items-center gap-4 flex-wrap pt-2 border-t-[0.5px] border-ink/10">
-                            <Legend className="bg-page border-ink/15" label="متاح للحجز التلقائي" />
-                            <Legend className="bg-warning-tint border-warning/30" label="طلب معلّق بانتظار ردّك" />
-                            <Legend className="bg-ink border-ink" label="محجوز من المنصة — لا يُحذف من هنا" dark />
-                            <Legend className="bg-info-tint border-info/30" label="حجز خارجي سجّلته أنت" />
-                            <Badge tone="neutral">{externalCount} حجزاً خارجياً هذا الأسبوع</Badge>
+                        <div className="flex flex-wrap items-center gap-4 border-t-[0.5px] border-ink/10 pt-2">
+                            <Legend
+                                className="border-ink/15 bg-page"
+                                label="متاح للحجز التلقائي"
+                            />
+                            <Legend
+                                className="border-warning/30 bg-warning-tint"
+                                label="طلب معلّق بانتظار ردّك"
+                            />
+                            <Legend
+                                className="border-ink bg-ink"
+                                label="محجوز من المنصة — لا يُحذف من هنا"
+                                dark
+                            />
+                            <Legend
+                                className="border-info/30 bg-info-tint"
+                                label="حجز خارجي سجّلته أنت"
+                            />
+                            <Badge tone="neutral">
+                                {externalCount} حجزاً خارجياً هذا الأسبوع
+                            </Badge>
                         </div>
                     </Card>
                 </>
@@ -284,62 +447,99 @@ export default function PartnerAvailability({
                         hint="أي حجز تمّ خارج المنصة — بالهاتف أو حضورياً — يُسجَّل هنا فوراً حتى لا يُعرض وقته للحجز مرتين."
                     >
                         <FormGrid>
-                            <Field label="الوحدة" error={form.errors.activity_unit_id} required>
+                            <Field
+                                label="الوحدة"
+                                error={form.errors.activity_unit_id}
+                                required
+                            >
                                 <select
                                     className={INPUT}
                                     value={form.data.activity_unit_id}
-                                    onChange={(event) => form.setData('activity_unit_id', event.target.value)}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'activity_unit_id',
+                                            event.target.value,
+                                        )
+                                    }
                                 >
                                     <option value="">— اختر الوحدة —</option>
                                     {units.map((row) => (
                                         <option key={row.id} value={row.id}>
-                                            {row.branch?.name ? `${row.branch.name} — ` : ''}
+                                            {row.branch?.name
+                                                ? `${row.branch.name} — `
+                                                : ''}
                                             {row.name}
                                         </option>
                                     ))}
                                 </select>
                             </Field>
 
-                            <Field label="التاريخ" error={form.errors.date} required>
+                            <Field
+                                label="التاريخ"
+                                error={form.errors.date}
+                                required
+                            >
                                 <input
                                     type="date"
                                     dir="ltr"
                                     className={INPUT}
                                     value={form.data.date}
-                                    onChange={(event) => form.setData('date', event.target.value)}
+                                    onChange={(event) =>
+                                        form.setData('date', event.target.value)
+                                    }
                                 />
                             </Field>
 
-                            <Field label="من" error={form.errors.start_time} required>
-                                <input
-                                    type="time"
-                                    dir="ltr"
-                                    className={INPUT}
+                            <Field
+                                label="من"
+                                error={form.errors.start_time}
+                                required
+                            >
+                                <TimeSelect
                                     value={form.data.start_time}
-                                    onChange={(event) => form.setData('start_time', event.target.value)}
+                                    onChange={(next) =>
+                                        form.setData('start_time', next)
+                                    }
                                 />
                             </Field>
 
-                            <Field label="إلى" error={form.errors.end_time} required>
-                                <input
-                                    type="time"
-                                    dir="ltr"
-                                    className={INPUT}
+                            <Field
+                                label="إلى"
+                                error={form.errors.end_time}
+                                required
+                            >
+                                <TimeSelect
                                     value={form.data.end_time}
-                                    onChange={(event) => form.setData('end_time', event.target.value)}
+                                    onChange={(next) =>
+                                        form.setData('end_time', next)
+                                    }
                                 />
                             </Field>
                         </FormGrid>
 
-                        <Field label="ملاحظة" error={form.errors.note} hint="اسم الجهة الحاجزة مثلاً — يظهر لك وحدك.">
-                            <input className={INPUT} value={form.data.note} onChange={(event) => form.setData('note', event.target.value)} />
+                        <Field
+                            label="ملاحظة"
+                            error={form.errors.note}
+                            hint="اسم الجهة الحاجزة مثلاً — يظهر لك وحدك."
+                        >
+                            <input
+                                className={INPUT}
+                                value={form.data.note}
+                                onChange={(event) =>
+                                    form.setData('note', event.target.value)
+                                }
+                            />
                         </Field>
 
                         <FormActions>
                             <Button type="submit" disabled={form.processing}>
                                 تسجيل الحجز
                             </Button>
-                            <Button type="button" tone="soft" onClick={() => setAdding(false)}>
+                            <Button
+                                type="button"
+                                tone="soft"
+                                onClick={() => setAdding(false)}
+                            >
                                 إلغاء
                             </Button>
                         </FormActions>
@@ -355,22 +555,240 @@ export default function PartnerAvailability({
                 details={
                     deleting && (
                         <>
-                            <ConfirmRow label="التاريخ" value={deleting.date.slice(0, 10)} strong />
+                            <ConfirmRow
+                                label="التاريخ"
+                                value={deleting.date.slice(0, 10)}
+                                strong
+                            />
                             <ConfirmRow
                                 label="الوقت"
                                 value={`${deleting.start_time?.slice(0, 5)} — ${deleting.end_time?.slice(0, 5)}`}
                                 strong
                             />
-                            <ConfirmRow label="الملاحظة" value={deleting.note ?? '—'} />
+                            <ConfirmRow
+                                label="الملاحظة"
+                                value={deleting.note ?? '—'}
+                            />
                         </>
                     )
                 }
                 confirmLabel="نعم، احذف الحجز"
                 onConfirm={() => {
-                    router.delete(`/partner/availability/external/${deleting?.id}`, { preserveScroll: true });
+                    router.delete(
+                        `/partner/availability/external/${deleting?.id}`,
+                        { preserveScroll: true },
+                    );
                     setDeleting(null);
                 }}
                 onCancel={() => setDeleting(null)}
+            />
+
+            {/* ── الساعات المعروضة على كل ملعب ── */}
+            <Card padding="p-4" className="space-y-4">
+                <div>
+                    <h2 className="text-sm font-extrabold text-ink">
+                        الساعات المعروضة على ملاعبك
+                    </h2>
+                    <p className="text-[11px] leading-relaxed text-ink/55">
+                        هذه هي الساعات التي يفتح فيها الملعب للحجز. لا يقع حجز
+                        خارجها. ويوم لم تُعرَّف له ساعات يبقى بلا قيد — الصمت
+                        هنا ليس منعاً.
+                    </p>
+                </div>
+
+                {venues.length > 1 && (
+                    <div className="flex flex-wrap gap-1.5">
+                        {venues.map((venue) => (
+                            <button
+                                key={venue.id}
+                                type="button"
+                                onClick={() => {
+                                    setVenueId(venue.id);
+                                    // تُضبط مع الاختيار لا عند الإرسال: `setData`
+                                    // غير متزامنة، فضبطها لحظة الإرسال يبعث
+                                    // القيمة السابقة ويسقط الطلب بلا رسالة.
+                                    hoursForm.setData(
+                                        'venue_id',
+                                        String(venue.id),
+                                    );
+                                }}
+                                className={`cursor-pointer rounded-full border-[0.5px] px-3 py-1 text-xs font-bold transition-colors ${
+                                    venueId === venue.id
+                                        ? 'border-ink bg-ink text-lime'
+                                        : 'border-ink/10 bg-surface text-ink/70 hover:border-ink/30'
+                                }`}
+                            >
+                                {venue.name}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                <form
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        hoursForm.post('/partner/schedule', {
+                            preserveScroll: true,
+                            onSuccess: () =>
+                                hoursForm.reset('start_time', 'end_time'),
+                        });
+                    }}
+                    className="grid grid-cols-1 items-end gap-3 sm:grid-cols-4"
+                >
+                    <Field
+                        label="اليوم"
+                        htmlFor="oh-date"
+                        error={hoursForm.errors.date}
+                        required
+                    >
+                        <input
+                            id="oh-date"
+                            type="date"
+                            className={INPUT}
+                            value={hoursForm.data.date}
+                            onChange={(event) =>
+                                hoursForm.setData('date', event.target.value)
+                            }
+                        />
+                    </Field>
+                    <Field
+                        label="من"
+                        htmlFor="oh-start"
+                        error={hoursForm.errors.start_time}
+                        required
+                    >
+                        <TimeSelect
+                            id="oh-start"
+                            value={hoursForm.data.start_time}
+                            onChange={(next) =>
+                                hoursForm.setData('start_time', next)
+                            }
+                        />
+                    </Field>
+                    <Field
+                        label="إلى"
+                        htmlFor="oh-end"
+                        error={hoursForm.errors.end_time}
+                        required
+                    >
+                        <TimeSelect
+                            id="oh-end"
+                            value={hoursForm.data.end_time}
+                            onChange={(next) =>
+                                hoursForm.setData('end_time', next)
+                            }
+                        />
+                    </Field>
+                    {hoursForm.errors.venue_id && (
+                        <p className="text-[11px] font-bold text-danger sm:col-span-4">
+                            {hoursForm.errors.venue_id}
+                        </p>
+                    )}
+
+                    <Button
+                        type="submit"
+                        icon={Plus}
+                        disabled={
+                            hoursForm.processing ||
+                            venueId === null ||
+                            !hoursForm.data.date ||
+                            !hoursForm.data.start_time ||
+                            !hoursForm.data.end_time
+                        }
+                    >
+                        أضف ساعة
+                    </Button>
+                </form>
+
+                <TableShell>
+                    <Thead>
+                        <Th>اليوم</Th>
+                        <Th>الفترة</Th>
+                        <Th>الحالة</Th>
+                        <Th className="text-center">الإجراء</Th>
+                    </Thead>
+                    <Tbody>
+                        {offeredHours
+                            .filter((hour) => hour.venue_id === venueId)
+                            .map((hour) => (
+                                <Tr key={hour.id}>
+                                    <Td className="font-mono text-[11px] whitespace-nowrap text-ink/75">
+                                        {hour.date ?? '—'}
+                                    </Td>
+                                    <Td
+                                        className="font-mono text-[11px] text-ink"
+                                        dir="ltr"
+                                    >
+                                        {hour.start_time} — {hour.end_time}
+                                    </Td>
+                                    <Td>
+                                        <Badge
+                                            tone={
+                                                hour.status === 'available'
+                                                    ? 'success'
+                                                    : 'neutral'
+                                            }
+                                        >
+                                            {hour.status === 'available'
+                                                ? 'معروضة للحجز'
+                                                : 'مغلقة'}
+                                        </Badge>
+                                    </Td>
+                                    <Td className="text-center">
+                                        <IconButton
+                                            icon={Trash2}
+                                            label="حذف الساعة"
+                                            tone="danger"
+                                            onClick={() =>
+                                                setRemovingHour(hour)
+                                            }
+                                        />
+                                    </Td>
+                                </Tr>
+                            ))}
+
+                        <ListStates
+                            count={
+                                offeredHours.filter(
+                                    (hour) => hour.venue_id === venueId,
+                                ).length
+                            }
+                            colSpan={4}
+                            empty="لا ساعات معروضة لهذا الملعب هذا الأسبوع."
+                            emptyHint="بلا ساعات معرَّفة يبقى الملعب قابلاً للحجز في أي وقت ضمن دوام الفرع."
+                        />
+                    </Tbody>
+                </TableShell>
+            </Card>
+
+            <ConfirmModal
+                open={removingHour !== null}
+                tone="danger"
+                title="حذف ساعة معروضة"
+                message="لن يُعرض هذا الوقت للحجز بعد الآن. الحجوزات القائمة عليه لا تتأثر."
+                details={
+                    removingHour && (
+                        <>
+                            <ConfirmRow
+                                label="اليوم"
+                                value={removingHour.date ?? '—'}
+                            />
+                            <ConfirmRow
+                                label="الفترة"
+                                value={`${removingHour.start_time} — ${removingHour.end_time}`}
+                                strong
+                            />
+                        </>
+                    )
+                }
+                confirmLabel="حذف الساعة"
+                onConfirm={() => {
+                    router.delete(`/partner/schedule/${removingHour?.id}`, {
+                        preserveScroll: true,
+                    });
+                    setRemovingHour(null);
+                }}
+                onCancel={() => setRemovingHour(null)}
             />
         </PartnerLayout>
     );
@@ -382,10 +800,16 @@ type CellState =
     | { kind: 'platform'; slot: Slot }
     | { kind: 'external'; slot: Slot };
 
-function Cell({ cell, onDelete }: { cell: CellState; onDelete: (slot: Slot) => void }) {
+function Cell({
+    cell,
+    onDelete,
+}: {
+    cell: CellState;
+    onDelete: (slot: Slot) => void;
+}) {
     if (cell.kind === 'free') {
         return (
-            <div className="rounded-lg border-[0.5px] border-ink/15 bg-page h-11 flex items-center justify-center">
+            <div className="flex h-11 items-center justify-center rounded-lg border-[0.5px] border-ink/15 bg-page">
                 <span className="text-[10px] text-ink/45">متاح</span>
             </div>
         );
@@ -393,8 +817,10 @@ function Cell({ cell, onDelete }: { cell: CellState; onDelete: (slot: Slot) => v
 
     if (cell.kind === 'pending') {
         return (
-            <div className="rounded-lg border-[0.5px] border-warning/30 bg-warning-tint h-11 flex flex-col items-center justify-center">
-                <span className="text-[10px] font-bold text-warning">طلب معلّق</span>
+            <div className="flex h-11 flex-col items-center justify-center rounded-lg border-[0.5px] border-warning/30 bg-warning-tint">
+                <span className="text-[10px] font-bold text-warning">
+                    طلب معلّق
+                </span>
                 <span className="text-[9px] text-warning/80">بانتظار ردّك</span>
             </div>
         );
@@ -402,34 +828,55 @@ function Cell({ cell, onDelete }: { cell: CellState; onDelete: (slot: Slot) => v
 
     if (cell.kind === 'platform') {
         return (
-            <div className="rounded-lg bg-ink h-11 flex items-center justify-center gap-1">
-                <Lock className="w-2.5 h-2.5 text-lime/70 shrink-0" aria-hidden="true" />
+            <div className="flex h-11 items-center justify-center gap-1 rounded-lg bg-ink">
+                <Lock
+                    className="h-2.5 w-2.5 shrink-0 text-lime/70"
+                    aria-hidden="true"
+                />
                 <span className="text-[10px] font-bold text-lime">محجوز</span>
             </div>
         );
     }
 
     return (
-        <div className="rounded-lg border-[0.5px] border-info/30 bg-info-tint h-11 flex items-center justify-center gap-1 px-1">
+        <div className="flex h-11 items-center justify-center gap-1 rounded-lg border-[0.5px] border-info/30 bg-info-tint px-1">
             <button
                 type="button"
                 onClick={() => onDelete(cell.slot)}
                 aria-label="حذف الحجز الخارجي"
-                className="text-info hover:text-danger transition-colors shrink-0"
+                className="shrink-0 text-info transition-colors hover:text-danger"
             >
-                <Trash2 className="w-2.5 h-2.5" aria-hidden="true" />
+                <Trash2 className="h-2.5 w-2.5" aria-hidden="true" />
             </button>
-            <span className="text-[10px] font-bold text-info truncate">{cell.slot.note || 'حجز خارجي'}</span>
+            <span className="truncate text-[10px] font-bold text-info">
+                {cell.slot.note || 'حجز خارجي'}
+            </span>
         </div>
     );
 }
 
-function Legend({ className, label, dark = false }: { className: string; label: string; dark?: boolean }) {
+function Legend({
+    className,
+    label,
+    dark = false,
+}: {
+    className: string;
+    label: string;
+    dark?: boolean;
+}) {
     return (
         <span className="inline-flex items-center gap-1.5 text-[10px] text-ink/70">
-            <span className={`w-3 h-3 rounded border-[0.5px] ${className}`} aria-hidden="true" />
+            <span
+                className={`h-3 w-3 rounded border-[0.5px] ${className}`}
+                aria-hidden="true"
+            />
             {label}
-            {dark && <TriangleAlert className="w-2.5 h-2.5 text-ink/40" aria-hidden="true" />}
+            {dark && (
+                <TriangleAlert
+                    className="h-2.5 w-2.5 text-ink/40"
+                    aria-hidden="true"
+                />
+            )}
         </span>
     );
 }

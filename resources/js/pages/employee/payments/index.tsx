@@ -1,5 +1,10 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Receipt } from 'lucide-react';
+import PaymentModal from '@/components/employee/payment-modal';
+import type {
+    PaymentIntentDetail,
+    PaymentInvoice,
+} from '@/components/employee/payment-modal';
 import {
     Pagination,
     ResultCount,
@@ -50,13 +55,33 @@ const STATUS: Record<
 export default function EmployeePayments({
     intents,
     sort,
+    active = null,
+    activeInvoice = null,
+    methods = [],
+    statementDescriptor = '',
 }: {
     intents: Paginated<Intent>;
     sort: SortState;
+    active?: PaymentIntentDetail | null;
+    activeInvoice?: PaymentInvoice | null;
+    methods?: string[];
+    statementDescriptor?: string;
 }) {
     return (
         <EmployeeLayout>
             <Head title="مدفوعاتي" />
+
+            {/* النافذة مفتوحة حين يحمل المسار مطالبةً بعينها؛ إغلاقها يعود
+                للقائمة نفسها فلا يفقد الموظف موضعه. */}
+            {active && (
+                <PaymentModal
+                    intent={active}
+                    invoice={activeInvoice}
+                    methods={methods}
+                    statementDescriptor={statementDescriptor}
+                    onClose={() => router.visit('/employee/payments')}
+                />
+            )}
 
             <div className="flex items-center justify-between px-1">
                 <h1 className="flex items-center gap-1.5 text-sm font-black text-ink">

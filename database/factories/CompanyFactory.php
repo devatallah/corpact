@@ -28,6 +28,10 @@ class CompanyFactory extends Factory
             'sector' => fake()->randomElement(['تقنية', 'مالية', 'صحة', 'تعليم', 'طاقة', 'اتصالات', 'عقارات']),
             'employee_count' => fake()->numberBetween(50, 500),
             'city' => fake()->randomElement(['الرياض', 'جدة', 'الدمام', 'مكة', 'المدينة']),
+            // الرقم الضريبي السعودي: 15 رقماً يبدأ بـ3 وينتهي بـ3. بدونه لا
+            // يُولَّد رمز فاتورة ZATCA على مستند الموظف — فيبقى المستند بلا
+            // رمز في كل البيانات التجريبية.
+            'vat_number' => '3'.fake()->unique()->numerify('#############').'3',
             'email_verified_at' => now(),
             'status' => 'active',
             'approved_at' => now(),

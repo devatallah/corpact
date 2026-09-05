@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Company;
 
-use App\Http\Controllers\Controller;
 use App\Enums\Role;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Company\IndexEmployeeRequest;
 use App\Http\Requests\Company\StoreEmployeeRequest;
 use App\Http\Requests\Company\UpdateEmployeeRequest;

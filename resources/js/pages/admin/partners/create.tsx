@@ -1,10 +1,10 @@
 import { Head, useForm } from '@inertiajs/react';
 import { Users } from 'lucide-react';
+import { CategoryPicker } from '@/components/category-picker';
 import { BackLink } from '@/components/list-states';
 import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
 import { Button, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
-import { CategoryPicker } from '@/pages/admin/partners/edit';
 
 /**
  * H §17 — إضافة مزوّد خدمة.

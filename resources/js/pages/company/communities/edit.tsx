@@ -1,18 +1,10 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { CalendarClock, Trash2, UserMinus, UsersRound } from 'lucide-react';
+import { Ban, CalendarClock, Crown, Trash2, UserMinus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import { BackLink } from '@/components/list-states';
 import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
-import {
-    Badge,
-    Button,
-    ButtonLink,
-    Field,
-    INPUT,
-    Note,
-    PageHeader,
-} from '@/components/portal/ui';
+import { Badge, Button, ButtonLink, Field, INPUT, IconButton, Note, PageHeader } from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
 
 /**
@@ -30,8 +22,17 @@ type Category = {
     children?: Category[];
 };
 
+type Member = {
+    id: number;
+    name: string;
+    email: string;
+    department?: { id: number; name: string } | null;
+    joined_at: string | null;
+};
+
 export default function CompanyCommunityEdit({
     community,
+    members,
     employees,
     categories,
 }: {
@@ -42,7 +43,9 @@ export default function CompanyCommunityEdit({
         category_id: number | null;
         category?: { id: number; name: string } | null;
         leader?: { id: number; name: string } | null;
+        deputy_leaders?: { id: number; name: string }[];
     };
+    members: Member[];
     employees: { id: number; name: string }[];
     categories: Category[];
 }) {
@@ -54,6 +57,9 @@ export default function CompanyCommunityEdit({
 
     const leaderForm = useForm({ employee_id: '', is_primary: true });
     const [removingLeader, setRemovingLeader] = useState(false);
+    const [promoting, setPromoting] = useState<Member | null>(null);
+    const [acting, setActing] = useState<{ member: Member; kind: 'remove' | 'ban' } | null>(null);
+    const [reason, setReason] = useState('');
     const [deleting, setDeleting] = useState(false);
 
     return (
@@ -258,6 +264,78 @@ export default function CompanyCommunityEdit({
             </FormSection>
 
             <FormSection
+                title={`أعضاء المجتمع (${members.length})`}
+                hint="الإزالة تُخرج العضو ويمكنه العودة؛ الحظر يمنعه من الانضمام مجدداً. كلاهما يتطلب سبباً موثَّقاً."
+            >
+                <div className="divide-y-[0.5px] divide-ink/10 rounded-2xl border-[0.5px] border-ink/12 bg-page">
+                    {members.map((member) => {
+                        const isPrimary = member.id === community.leader?.id;
+                        const isDeputy = (community.deputy_leaders ?? []).some(
+                            (d) => d.id === member.id,
+                        );
+
+                        return (
+                            <div
+                                key={member.id}
+                                className="flex items-center justify-between gap-2 p-3"
+                            >
+                                <div className="min-w-0">
+                                    <span className="block text-xs font-extrabold text-ink">
+                                        {member.name}
+                                    </span>
+                                    <span className="block text-[10px] text-ink/50">
+                                        {member.department?.name ?? 'بلا إدارة'}
+                                        {member.joined_at &&
+                                            ` · انضم ${new Date(member.joined_at).toLocaleDateString('ar-SA')}`}
+                                    </span>
+                                </div>
+
+                                <div className="flex shrink-0 items-center gap-1.5">
+                                    {isPrimary && <Badge tone="lead">قائد أساسي</Badge>}
+                                    {!isPrimary && isDeputy && (
+                                        <Badge tone="neutral">نائب</Badge>
+                                    )}
+
+                                    {!isPrimary && (
+                                        <>
+                                            <IconButton
+                                                icon={Crown}
+                                                label="اجعله القائد الأساسي"
+                                                onClick={() => setPromoting(member)}
+                                            />
+                                            <IconButton
+                                                icon={UserMinus}
+                                                label="إزالة العضو"
+                                                onClick={() => {
+                                                    setReason('');
+                                                    setActing({ member, kind: 'remove' });
+                                                }}
+                                            />
+                                            <IconButton
+                                                icon={Ban}
+                                                label="حظر العضو"
+                                                tone="danger"
+                                                onClick={() => {
+                                                    setReason('');
+                                                    setActing({ member, kind: 'ban' });
+                                                }}
+                                            />
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {members.length === 0 && (
+                        <p className="p-4 text-center text-xs text-ink/55">
+                            لا أعضاء في هذا المجتمع بعد.
+                        </p>
+                    )}
+                </div>
+            </FormSection>
+
+            <FormSection
                 title="حذف المجتمع"
                 hint="إجراء لا رجعة فيه — الفعاليات المكتملة تبقى في السجل، لكن لا تُنشأ فعاليات جديدة تحته."
             >
@@ -299,6 +377,73 @@ export default function CompanyCommunityEdit({
                     setRemovingLeader(false);
                 }}
                 onCancel={() => setRemovingLeader(false)}
+            />
+
+            <ConfirmModal
+                open={promoting !== null}
+                title="تعيين قائد أساسي"
+                message="يصبح هذا العضو القائد الأساسي للمجتمع: إليه تصل تنبيهاته وإليه تُنسب قراراته في السجل. القائد الحالي يبقى قائداً لكن لا يعود أساسياً."
+                details={
+                    promoting && (
+                        <>
+                            <ConfirmRow label="المجتمع" value={community.name} strong />
+                            <ConfirmRow label="القائد الأساسي الحالي" value={community.leader?.name ?? 'لا يوجد'} />
+                            <ConfirmRow label="القائد الأساسي الجديد" value={promoting.name} strong />
+                        </>
+                    )
+                }
+                confirmLabel="نعم، عيّنه أساسياً"
+                onConfirm={() => {
+                    router.post(
+                        `/company/communities/${community.id}/leaders/${promoting?.id}/primary`,
+                        {},
+                        { preserveScroll: true },
+                    );
+                    setPromoting(null);
+                }}
+                onCancel={() => setPromoting(null)}
+            />
+
+            <ConfirmModal
+                open={acting !== null}
+                tone="danger"
+                title={acting?.kind === 'ban' ? 'حظر العضو' : 'إزالة العضو'}
+                message={
+                    acting?.kind === 'ban'
+                        ? 'يخرج العضو من المجتمع ولا يستطيع الانضمام إليه مجدداً. الحظر صلاحية مسؤول الحساب وحده، ويبقى سببه في السجل.'
+                        : 'يخرج العضو من المجتمع وتُلغى تسجيلاته غير المؤكدة في فعالياته. يمكنه الانضمام مجدداً لاحقاً.'
+                }
+                details={
+                    acting && (
+                        <>
+                            <ConfirmRow label="العضو" value={acting.member.name} strong />
+                            <ConfirmRow label="المجتمع" value={community.name} />
+                            <div className="pt-2">
+                                <label htmlFor="member-reason" className="mb-1 block text-[11px] font-bold text-ink">
+                                    السبب — إلزامي ويُسجَّل على العضوية
+                                </label>
+                                <textarea
+                                    id="member-reason"
+                                    rows={2}
+                                    value={reason}
+                                    onChange={(event) => setReason(event.target.value)}
+                                    className="w-full rounded-xl border-[0.5px] border-ink/20 bg-surface px-3 py-2 text-xs focus:border-ink focus:outline-none"
+                                />
+                            </div>
+                        </>
+                    )
+                }
+                confirmDisabled={!reason.trim()}
+                confirmLabel={acting?.kind === 'ban' ? 'نعم، احظر العضو' : 'نعم، أزل العضو'}
+                onConfirm={() => {
+                    router.post(
+                        `/company/communities/${community.id}/members/${acting?.member.id}/${acting?.kind}`,
+                        { reason },
+                        { preserveScroll: true },
+                    );
+                    setActing(null);
+                }}
+                onCancel={() => setActing(null)}
             />
 
             <ConfirmModal

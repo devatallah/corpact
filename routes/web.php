@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\ProviderOversightController as AdminProviderOvers
 use App\Http\Controllers\Admin\RevenueController as AdminRevenueController;
 use App\Http\Controllers\Admin\SecurityEventController;
 use App\Http\Controllers\Admin\SupportConsoleController;
+use App\Http\Controllers\Admin\SupportOperationsController;
 use App\Http\Controllers\Admin\TaxStatusController;
 use App\Http\Controllers\Admin\TopupRequestController;
 use App\Http\Controllers\Auth\AdminAuthController;
@@ -64,6 +65,7 @@ use App\Http\Controllers\Employee\EventController as EmployeeEventController;
 use App\Http\Controllers\Employee\ExploreController as EmployeeExploreController;
 use App\Http\Controllers\Employee\HomeController as EmployeeHomeController;
 use App\Http\Controllers\Employee\LeaderboardController as EmployeeLeaderboardController;
+use App\Http\Controllers\Employee\LeadershipController;
 use App\Http\Controllers\Employee\LeagueController as EmployeeLeagueController;
 use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
 use App\Http\Controllers\Employee\NotificationPreferenceController as EmployeeNotificationPreferenceController;
@@ -79,6 +81,7 @@ use App\Http\Controllers\Partner\AvailabilityController as PartnerAvailabilityCo
 use App\Http\Controllers\Partner\BankAccountController as PartnerBankAccountController;
 use App\Http\Controllers\Partner\BranchController as PartnerBranchController;
 use App\Http\Controllers\Partner\DashboardController as PartnerDashboardController;
+use App\Http\Controllers\Partner\DiscountController as PartnerDiscountController;
 use App\Http\Controllers\Partner\ProfileController as PartnerProfileController;
 use App\Http\Controllers\Partner\ProviderRequestController as PartnerProviderRequestController;
 use App\Http\Controllers\Partner\ReliabilityController as PartnerReliabilityController;
@@ -94,14 +97,23 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::view('/terms', 'legal.terms');
-Route::view('/privacy', 'legal.privacy');
-Route::view('/support', 'legal.support');
+// الصفحتان النظاميتان. كانتا قالبَي Blade حُذفا في إعادة البناء وبقي
+// المساران يشيران إليهما، فكانا يردّان 500 لا 404.
+Route::get('/terms', fn () => Inertia::render('marketing/terms'))->name('marketing.terms');
+Route::get('/privacy', fn () => Inertia::render('marketing/privacy'))->name('marketing.privacy');
+
+// نموذج الدعم انتقل إلى `/contact` في الموقع الجديد، والمسار القديم يتبعه
+// حتى لا تنكسر الروابط المحفوظة. الوجهة `POST` تبقى كما هي.
+Route::redirect('/support', '/contact');
 Route::post('/support', [SupportMessageController::class, 'store'])->middleware('throttle:5,1')->name('support.store');
-Route::redirect('/pricing', '/packages');
-Route::view('/packages', 'pages.packages');
-Route::view('/about', 'pages.about');
-Route::view('/blog', 'pages.blog');
+
+// `/packages` كانت تعرض باقات بحدود ملاعب لا وجود لها في النموذج المالي
+// الحالي، و`/about` أرقاماً تسويقية غير موثّقة، و`/blog` لا مقالات له. تتبع
+// كلها خليفتها في الموقع الجديد بدل أن تُبعث بمحتوى لم يعد صحيحاً.
+Route::redirect('/pricing', '/for-providers');
+Route::redirect('/packages', '/for-providers');
+Route::redirect('/about', '/how-it-works');
+Route::redirect('/blog', '/');
 
 /*
 |--------------------------------------------------------------------------
@@ -424,6 +436,17 @@ Route::prefix('admin')
         // A14 — سجل الإشعارات: قراءة فقط، وأول ما يفحصه الدعم في شكوى «ما
         // وصلني شيء» (G — دليل وكيل الدعم). صلاحية مستقلة كي يمنحها A15 لدور
         // وكيل الدعم بلا منحه بقية صلاحيات إدارة المنصة.
+        // شاشتا الوكيل المستقلتان + توثيق التصعيد (G/«دليل وكيل الدعم»).
+        Route::get('/support/events', [SupportOperationsController::class, 'events'])
+            ->middleware('permission:event.history.view')
+            ->name('support.events');
+        Route::get('/support/resend', [SupportOperationsController::class, 'resend'])
+            ->middleware('permission:support.resend')
+            ->name('support.resend');
+        Route::post('/support/escalations', [SupportOperationsController::class, 'escalate'])
+            ->middleware('permission:support.messages.manage')
+            ->name('support.escalations.store');
+
         Route::get('/notification-logs', [NotificationLogController::class, 'index'])
             ->middleware('permission:notifications.logs.view')
             ->name('notification-logs.index');
@@ -577,9 +600,21 @@ Route::prefix('partner')
             Route::delete('/venues/{venue}/pricings/{pricing}', [PartnerVenueController::class, 'destroyPricing'])->name('venues.pricings.destroy');
         });
 
-        // A10 — H §12.1: «لا تخفيضات ولا رموز ترويجية» — ميزة التخفيضات
-        // أُزيلت بالكامل (routes/controller/service/UI) وجدولها مؤرشف
-        // legacy_discounts للقراءة فقط.
+        /*
+         * A17 — عادت ميزة التخفيضات بقرار المالك، نقضاً لإزالة A10 التي
+         * استندت إلى H §12.1. القراءة والكتابة مفصولتان: المحاسب يرى
+         * الاتفاق ولا يبرمه.
+         */
+        Route::middleware('partner.permission:discounts.view')->group(function () {
+            Route::get('/discounts', [PartnerDiscountController::class, 'index'])->name('discounts.index');
+            Route::get('/discounts/communities', [PartnerDiscountController::class, 'communities'])->name('discounts.communities');
+        });
+
+        Route::middleware('partner.permission:discounts.manage')->group(function () {
+            Route::post('/discounts', [PartnerDiscountController::class, 'store'])->name('discounts.store');
+            Route::put('/discounts/{discount}', [PartnerDiscountController::class, 'update'])->name('discounts.update');
+            Route::delete('/discounts/{discount}', [PartnerDiscountController::class, 'destroy'])->name('discounts.destroy');
+        });
 
         // Settlements — accessible by both owner and accountant
         Route::middleware('partner.permission:settlements.view')->group(function () {
@@ -703,6 +738,8 @@ Route::prefix('employee')
 
         Route::get('/create', [EmployeeEventController::class, 'create'])->name('events.create');
         Route::post('/create/pricings', [EmployeeEventController::class, 'pricings'])->name('events.pricings');
+        // A17 — تخفيضات المزوّد المنطبقة على هذا المجتمع وهذا الموعد.
+        Route::post('/create/discounts', [EmployeeEventController::class, 'discounts'])->name('events.discounts');
         Route::post('/create', [EmployeeEventController::class, 'store'])->name('events.store');
 
         // A9 — الاقتراح الآلي للمزوّد + المزوّدون المفضّلون للمجتمع (H §11)
@@ -750,6 +787,10 @@ Route::prefix('employee')
 
         Route::get('/community-requests', [EmployeeCommunityRequestController::class, 'index'])->name('community-requests.index');
         Route::post('/community-requests', [EmployeeCommunityRequestController::class, 'store'])->name('community-requests.store');
+
+        // «قيادتي» — مدخل أدوات القائد. لا صلاحية إضافية: الصفحة تعرض ما
+        // يقوده هذا الموظف فقط، ومن لا يقود شيئاً يراها فارغة بنصّها.
+        Route::get('/leadership', [LeadershipController::class, 'index'])->name('leadership.index');
 
         Route::get('/community', [EmployeeCommunityController::class, 'index'])->name('community.index');
         Route::get('/community/{community}', [EmployeeCommunityController::class, 'show'])->name('community.show');

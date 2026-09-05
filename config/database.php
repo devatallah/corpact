@@ -38,9 +38,13 @@ return [
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            'busy_timeout' => null,
-            'journal_mode' => null,
-            'synchronous' => null,
+            // خادم التطوير يبقى ممسكاً بالملف أثناء البذر، والافتراضيات هنا
+            // تجعل أي كاتب يفشل فوراً بـ«database is locked» بدل أن ينتظر —
+            // فكان البذر يسقط نحو مرة من كل ثلاث لسبب لا علاقة له بالبيانات.
+            // WAL يسمح بقارئ وكاتب معاً، والمهلة تُنهي السباق بالانتظار.
+            'busy_timeout' => env('DB_BUSY_TIMEOUT', 5000),
+            'journal_mode' => env('DB_JOURNAL_MODE', 'WAL'),
+            'synchronous' => env('DB_SYNCHRONOUS', 'NORMAL'),
             'transaction_mode' => 'DEFERRED',
         ],
 

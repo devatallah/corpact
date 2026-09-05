@@ -9,7 +9,10 @@ class SupportMessage extends Model
     protected $fillable = [
         'name',
         'email',
+        'company_name',
         'phone',
+        'employees_range',
+        'financial_track',
         'subject',
         'message',
         'status',

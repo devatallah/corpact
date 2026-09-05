@@ -3,6 +3,7 @@ import { MapPinned, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import {
+    FilterSelect,
     Pagination,
     ResultCount,
     SearchInput,
@@ -24,6 +25,7 @@ import {
     Tr,
 } from '@/components/portal/ui';
 import PartnerLayout from '@/layouts/partner-layout';
+import { venueStatus } from '@/lib/status';
 import type { Paginated, SortState } from '@/types';
 
 /**
@@ -50,25 +52,21 @@ export type VenueRow = {
     }[];
 };
 
-export const VENUE_STATUS: Record<
-    string,
-    { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger' }
-> = {
-    active: { label: 'متاح', tone: 'success' },
-    maintenance: { label: 'تحت الصيانة', tone: 'warning' },
-    closed: { label: 'مغلق', tone: 'neutral' },
-};
-
 export default function PartnerVenues({
     venues,
     filters,
     sort,
+    categories,
 }: {
     partner: { id: number; name: string };
     venues: Paginated<VenueRow>;
-    filters: { search?: string };
+    filters: { search?: string; category_id?: string | number };
     sort: SortState;
-    categories: unknown[];
+    categories: {
+        id: number;
+        name: string;
+        children?: { id: number; name: string }[];
+    }[];
 }) {
     const [deleting, setDeleting] = useState<VenueRow | null>(null);
 
@@ -92,6 +90,27 @@ export default function PartnerVenues({
                     <SearchInput
                         value={filters.search ?? ''}
                         placeholder="ابحث باسم الملعب…"
+                    />
+                    <FilterSelect
+                        name="category_id"
+                        label="الفئة"
+                        value={String(filters.category_id ?? '')}
+                        options={[
+                            ['', 'كل الفئات'],
+                            ...categories.flatMap((parent) => [
+                                [String(parent.id), parent.name] as [
+                                    string,
+                                    string,
+                                ],
+                                ...(parent.children ?? []).map(
+                                    (child) =>
+                                        [
+                                            String(child.id),
+                                            `— ${child.name}`,
+                                        ] as [string, string],
+                                ),
+                            ]),
+                        ]}
                     />
                 </Toolbar>
 
@@ -169,12 +188,10 @@ export default function PartnerVenues({
                                     <Td>
                                         <Badge
                                             tone={
-                                                VENUE_STATUS[venue.status]
-                                                    ?.tone ?? 'neutral'
+                                                venueStatus(venue.status).tone
                                             }
                                         >
-                                            {VENUE_STATUS[venue.status]
-                                                ?.label ?? venue.status}
+                                            {venueStatus(venue.status).label}
                                         </Badge>
                                     </Td>
                                     <Td className="text-center">

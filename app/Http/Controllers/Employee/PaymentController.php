@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
+use App\Models\EmployeePaymentInvoice;
 use App\Models\PaymentIntent;
 use App\Services\Payments\Gateway\PaymentGatewayManager;
 use App\Support\Lists\ListSort;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
  * دفع حصة الموظف (A10 — H §12.3 / دليل الموظف §6):
@@ -65,6 +68,36 @@ class PaymentController extends Controller
         ]);
     }
 
+    /**
+     * قائمة مدفوعات الموظف — تُبنى مرة وتُستعمل مع النافذة وبدونها.
+     *
+     * @param  array<string, mixed>  $extra
+     */
+    private function list(Request $request, Employee $employee, array $extra = []): Response
+    {
+        $query = PaymentIntent::query()
+            ->where('employee_id', $employee->id)
+            ->with(['event:id,title,event_date,start_time,community_id', 'event.community:id,name']);
+
+        $intents = self::sort()
+            ->apply($query, $request->query('sort'), $request->query('dir'))
+            ->paginate(20)
+            ->withQueryString();
+
+        return Inertia::render('employee/payments/index', [
+            'intents' => $intents,
+            'sort' => self::sort()->state($request->query('sort'), $request->query('dir')),
+            ...$extra,
+        ]);
+    }
+
+    /**
+     * ورقة السداد فوق القائمة، لا صفحة منفصلة.
+     *
+     * الرابط يبقى كما هو حتى يعمل الرابط المحفوظ وعودة البوابة، لكنه يعرض
+     * قائمة المدفوعات ومعها النافذة مفتوحة: الدفع مقاطعة لا وجهة، وإغلاق
+     * النافذة يترك الموظف حيث كان بدل أن يقذفه إلى شاشة أخرى.
+     */
     public function show(Request $request, PaymentIntent $intent): Response
     {
         $employee = auth('employee')->user();
@@ -73,20 +106,34 @@ class PaymentController extends Controller
 
         $intent->load(['event:id,title,event_date,start_time,starts_at,community_id,status', 'event.community:id,name']);
 
-        return Inertia::render('employee/payments/show', [
-            'intent' => $intent,
+        $invoice = EmployeePaymentInvoice::query()
+            ->where('payment_intent_id', $intent->id)
+            ->first();
+
+        return $this->list($request, $employee, [
+            'active' => $intent,
+            // المستند يُعرض بحالته: «مبدئي» ليس فاتورة ضريبية نهائية، وقول
+            // ذلك أصدق من ترقيم يوحي بما لم يصدر بعد.
+            'activeInvoice' => $invoice === null ? null : [
+                'serial' => $invoice->serial,
+                'provisional' => $invoice->isProvisional(),
+                'seller_name' => $invoice->seller_name,
+                'seller_vat_number' => $invoice->seller_vat_number,
+            ],
             'methods' => config('payments.methods'),
             'statementDescriptor' => config('payments.statement_descriptor'),
         ]);
     }
 
-    /**
-     * إنشاء الدفعة لدى البوابة والتحويل لصفحتها — idempotent: نفس مفتاح
-     * التفرّد يعيد نفس الدفعة (القاعدة 5: لا تحصيل مرتين).
-     */
-    public function pay(PaymentIntent $intent): RedirectResponse
+    public function pay(Request $request, PaymentIntent $intent): SymfonyResponse
     {
         $employee = auth('employee')->user();
+
+        // الوسيلة اختيار الموظف لا حقل حر: القائمة البيضاء هي نفسها المعروضة
+        // في الشاشة، فلا تصل البوابة وسيلة لا تدعمها المنصة أصلاً.
+        $method = $request->validate([
+            'method' => ['sometimes', 'nullable', Rule::in((array) config('payments.methods'))],
+        ])['method'] ?? null;
 
         abort_if((int) $intent->employee_id !== (int) $employee->id, 404);
 
@@ -107,14 +154,26 @@ class PaymentController extends Controller
             [
                 // Merchant of Record: تيمات هي الظاهرة في كشف الحساب (H §12.6).
                 'statement_descriptor' => (string) config('payments.statement_descriptor'),
-                'methods' => config('payments.methods'),
+                // تفضيل الموظف يُمرَّر للبوابة، وتبقى البقية متاحة له هناك.
+                'methods' => $method === null ? config('payments.methods') : [$method],
             ],
         );
 
-        if ($intent->gateway_reference !== $payment->gatewayReference) {
-            $intent->forceFill(['gateway_reference' => $payment->gatewayReference])->save();
-        }
+        $intent->forceFill(array_filter([
+            'gateway_reference' => $intent->gateway_reference !== $payment->gatewayReference
+                ? $payment->gatewayReference
+                : null,
+            'payment_method' => $method,
+        ], fn ($value) => $value !== null))->save();
 
-        return redirect()->away($payment->checkoutUrl);
+        /*
+         * `Inertia::location` لا `redirect()->away`.
+         *
+         * زيارة Inertia طلبٌ XHR: التحويل الخارجي يعود بصفحة البوابة داخل
+         * الاستجابة فيُهملها العميل ولا يحدث شيء — الزر يبدو معطّلاً وهو
+         * سليم. هذه تعيد 409 ومعها `X-Inertia-Location` فينتقل المتصفح
+         * انتقالاً كاملاً، وتعمل كتحويل عادي لغير طلبات Inertia.
+         */
+        return Inertia::location($payment->checkoutUrl);
     }
 }

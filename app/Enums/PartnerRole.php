@@ -48,6 +48,9 @@ enum PartnerRole: string
                 'venues.create',
                 'venues.update',
                 'venues.delete',
+                // A17 — التخفيضات اتفاق تجاري: المالك يبرمه، والمحاسب يراه.
+                'discounts.view',
+                'discounts.manage',
                 'settlements.view',
                 'reports.view',
                 'profile.view',
@@ -75,6 +78,7 @@ enum PartnerRole: string
                 'dashboard.view',
                 'bank.view',
                 'reliability.view',
+                'discounts.view',
             ],
         };
     }

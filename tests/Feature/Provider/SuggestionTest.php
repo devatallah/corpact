@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ActivityUnit;
+use App\Models\AuditLog;
 use App\Models\Category;
 use App\Models\Community;
 use App\Models\CommunityPreferredProvider;
@@ -15,6 +16,7 @@ use App\Models\VenuePricing;
 use App\Services\Community\LeadershipService;
 use App\Services\Provider\AvailabilityService;
 use App\Services\Provider\ProviderSuggestionService;
+use App\Support\Audit\AuditAction;
 
 // A9 — خوارزمية الاقتراح (H §11): المفضّلون أولاً ← إقصاء (غير متاح / لا يقدّم
 // النشاط / خارج الميزانية / معطّل) ← ترتيب بالسعر فالموثوقية فعدم التكرار
@@ -185,7 +187,7 @@ test('creating an event with a non-top provider requires a logged override reaso
         ->assertRedirect();
 
     // H §19 catalogue: overriding the suggestion must land in the audit log with its reason.
-    expect(\App\Models\AuditLog::where('action', \App\Support\Audit\AuditAction::PROVIDER_SUGGESTION_OVERRIDDEN)->count())->toBe(1);
+    expect(AuditLog::where('action', AuditAction::PROVIDER_SUGGESTION_OVERRIDDEN)->count())->toBe(1);
 
     $log = ProviderSelectionLog::firstOrFail();
     expect($log->was_override)->toBeTrue()

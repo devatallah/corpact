@@ -39,7 +39,10 @@ class VenueService
         $query = Venue::query()
             ->with(['category', 'pricings'])
             ->where('partner_id', $partner->id)
-            ->when(filled($filters['search'] ?? null), fn ($q) => $q->where('name', 'like', '%'.$filters['search'].'%'));
+            ->when(filled($filters['search'] ?? null), fn ($q) => $q->where('name', 'like', '%'.$filters['search'].'%'))
+            // `categories` كانت تصل الشاشة بلا تصفية خلفها — مُنتقٍ لا يفعل
+            // شيئاً أسوأ من غيابه.
+            ->when(filled($filters['category_id'] ?? null), fn ($q) => $q->where('category_id', $filters['category_id']));
 
         return self::sort()
             ->apply($query, $filters['sort'] ?? null, $filters['dir'] ?? null)

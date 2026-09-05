@@ -76,6 +76,10 @@ class EventController extends Controller
             // H §9 القاعدة 2: سجل الانتقالات مقروء قبل أي تغيير يدوي.
             'statusHistory' => $event->statusHistory()->get(),
             'allStatuses' => EventStatus::values(),
+            // زر الإلغاء لا يظهر لمن سيرفضه الحارس — الرفض بعد الضغط يعلّم
+            // الأدمن أن الشاشة تعرض ما لا تملكه.
+            'canCancel' => Gate::allows('cancel', $event)
+                && in_array($event->status, [EventStatus::Booked->value, EventStatus::Confirmed->value], true),
             // A15 — G (أدمن تيمات §3): «تستطيع تعديل قائمة الحضور بعد انقضاء
             // نافذة الـ24 ساعة — وهو استثناء لا إجراء روتيني». الـ endpoint
             // كان جاهزاً منذ A12 بلا واجهة.

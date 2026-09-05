@@ -1,5 +1,5 @@
-import { Head, useForm } from '@inertiajs/react';
-import { FileText, Lock, Pencil } from 'lucide-react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Eye, FileText, Lock, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
@@ -27,6 +27,7 @@ type Template = {
     body_en: string | null;
     channels: string[] | null;
     whatsapp_template_name: string | null;
+    variables: string[] | null;
     active: boolean;
 };
 
@@ -44,6 +45,10 @@ export default function NotificationTemplates({
     sort: SortState;
 }) {
     const [editing, setEditing] = useState<Template | null>(null);
+    const [previewing, setPreviewing] = useState<Template | null>(null);
+    const preview = usePage<{ flash?: { preview?: { key: string; title: string; body: string; missing: string[] } | null } }>()
+        .props.flash?.preview;
+    const [variables, setVariables] = useState<Record<string, string>>({});
     const form = useForm({ title_ar: '', title_en: '', body_ar: '', body_en: '', whatsapp_template_name: '', active: true });
 
     function startEditing(template: Template) {
@@ -243,7 +248,21 @@ export default function NotificationTemplates({
                                     </Badge>
                                 </Td>
                                 <Td className="text-center">
-                                    <IconButton icon={Pencil} label="تعديل القالب" onClick={() => startEditing(template)} />
+                                    <div className="flex items-center justify-center gap-1.5">
+                                        <IconButton
+                                            icon={Eye}
+                                            label="معاينة القالب"
+                                            onClick={() => {
+                                                setVariables(
+                                                    Object.fromEntries(
+                                                        (template.variables ?? []).map((v) => [v, '']),
+                                                    ),
+                                                );
+                                                setPreviewing(template);
+                                            }}
+                                        />
+                                        <IconButton icon={Pencil} label="تعديل القالب" onClick={() => startEditing(template)} />
+                                    </div>
                                 </Td>
                             </Tr>
                         ))}
@@ -262,6 +281,68 @@ export default function NotificationTemplates({
                 القوالب الإلزامية هي ما تدين به المنصة للمستخدم بصرف النظر عن تفضيلاته: مطالبة سداد، إلغاء فعالية، عرض مقعد.
                 تعطيلها يعني أن يخسر أحدهم مقعده أو ماله دون أن يُبلَّغ.
             </Note>
+            {/* ── معاينة القالب ── */}
+            {previewing && (
+                <Card padding="p-4" className="space-y-3 border-ink/25">
+                    <div className="flex items-start justify-between gap-2">
+                        <div>
+                            <h2 className="text-sm font-extrabold text-ink">معاينة: {previewing.title_ar}</h2>
+                            <span className="font-mono text-[10px] text-ink/45">{previewing.key}</span>
+                        </div>
+                        <Button type="button" tone="soft" onClick={() => setPreviewing(null)}>
+                            إغلاق
+                        </Button>
+                    </div>
+
+                    <p className="text-[11px] leading-relaxed text-ink/60">
+                        املأ المتغيّرات لترى نص الرسالة كما يصل المستلم. المعاينة لا تُرسل شيئاً ولا تُسجَّل كإشعار.
+                    </p>
+
+                    {(previewing.variables ?? []).length === 0 ? (
+                        <p className="text-xs text-ink/55">هذا القالب بلا متغيّرات — نصه ثابت.</p>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            {(previewing.variables ?? []).map((variable) => (
+                                <Field key={variable} label={variable}>
+                                    <input
+                                        dir="ltr"
+                                        className={`${INPUT} font-mono`}
+                                        value={variables[variable] ?? ''}
+                                        onChange={(event) =>
+                                            setVariables({ ...variables, [variable]: event.target.value })
+                                        }
+                                    />
+                                </Field>
+                            ))}
+                        </div>
+                    )}
+
+                    <Button
+                        type="button"
+                        onClick={() =>
+                            router.post(
+                                `/admin/notification-templates/${previewing.id}/preview`,
+                                { variables },
+                                { preserveScroll: true },
+                            )
+                        }
+                    >
+                        اعرض النص المُركَّب
+                    </Button>
+
+                    {preview && preview.key === previewing.key && (
+                        <div className="space-y-1.5 rounded-xl border-[0.5px] border-ink/12 bg-page p-3">
+                            <span className="block text-xs font-extrabold text-ink">{preview.title}</span>
+                            <p className="text-[11px] leading-relaxed whitespace-pre-wrap text-ink/75">{preview.body}</p>
+                            {preview.missing.length > 0 && (
+                                <p className="text-[10px] font-bold text-warning">
+                                    متغيّرات لم تُملأ فبقيت كما هي: {preview.missing.join('، ')}
+                                </p>
+                            )}
+                        </div>
+                    )}
+                </Card>
+            )}
         </AdminLayout>
     );
 }

@@ -28,12 +28,19 @@ class NotificationController extends Controller
         $filters = $request->validate([
             // H §18 — الترتيب. القيمة مفتاح من قائمة بيضاء في `ListSort`، لا
             // اسم عمود؛ التحقق هنا يمنع الحشو فقط.
+            'unread_only' => ['sometimes', 'nullable', 'boolean'],
             'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
             'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
         ]);
 
         $notifications = $this->notificationService->list($company, $filters);
-        $unreadCount = Notification::where('notifiable_type', Company::class)->where('notifiable_id', $company->id)->whereNull('read_at')->count();
+
+        $scope = fn () => Notification::where('notifiable_type', Company::class)->where('notifiable_id', $company->id);
+        $unreadCount = $scope()->whereNull('read_at')->count();
+        // بطاقة «الإجمالي» كانت تقرأ `notifications.total`، وهو إجمالي بعد
+        // التصفية. مع مُنتقي «غير المقروءة فقط» صار الرقمان يتطابقان دائماً
+        // فيفقد «الإجمالي» معناه — فيأتي غير مُصفّى من هنا.
+        $totalCount = $scope()->count();
 
         return Inertia::render('company/notifications/index', [
             'company' => $company,
@@ -41,6 +48,7 @@ class NotificationController extends Controller
             'filters' => (object) $filters,
             'sort' => CompanyNotificationService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
             'unreadCount' => $unreadCount,
+            'totalCount' => $totalCount,
             'unreadNotifications' => $unreadCount,
         ]);
     }

@@ -3,9 +3,9 @@ import { MapPinned, Plus, Trash2 } from 'lucide-react';
 import { BackLink } from '@/components/list-states';
 import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
 import { Button, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
+import { BLANK_PRICING, PricingRows } from '@/components/venue-pricing-rows';
+import type { PricingDraft } from '@/components/venue-pricing-rows';
 import PartnerLayout from '@/layouts/partner-layout';
-import { PricingRows, BLANK_PRICING } from '@/pages/partner/venues/edit';
-import type { PricingDraft } from '@/pages/partner/venues/edit';
 
 /**
  * H §17 — ملعب جديد.

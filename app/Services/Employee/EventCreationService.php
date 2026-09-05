@@ -6,6 +6,7 @@ use App\Enums\EventStatus;
 use App\Enums\Role;
 use App\Models\Community;
 use App\Models\CompanySetting;
+use App\Models\Discount;
 use App\Models\Employee;
 use App\Models\Event;
 use App\Models\QuickMatch;
@@ -88,13 +89,22 @@ class EventCreationService
     }
 
     /**
-     * تسعير الفعالية بالهللة (A10 — H §12.1/§12.2): الإجمالي مجموع أسعار
-     * المرافق للمدة المختارة (شامل الضريبة)، الدعم subsidy_type/subsidy_value
-     * (لا تخفيضات — الميزة محذوفة)، والسقف الملزم = (الإجمالي − الدعم
-     * المخطط) ÷ الحد الأدنى بلا تقريب لأعلى.
+     * تسعير الفعالية بالهللة (H §12.2)، بترتيب ثابت لا يُقلب:
      *
-     * @param  array{venue_pricing_id: int, venue_ids: array<int>, min_participants: int, subsidy_type?: string, subsidy_value_halalas?: int}  $params
-     * @return array{total_amount_halalas: int, subsidy_type: string, subsidy_value: int, planned_subsidy_halalas: int, max_share_halalas: int}
+     *   الإجمالي  = مجموع أسعار المرافق للمدة المختارة (شامل الضريبة)
+     *   − تخفيض المزوّد   (A17)
+     *   = المستحق، وهو `total_amount_halalas` المخزَّن على الفعالية
+     *   − الدعم المخطط    (subsidy_type/subsidy_value من محفظة المجتمع)
+     *   ÷ الحد الأدنى     = السقف الملزم لحصة اللاعب، بلا تقريب لأعلى
+     *
+     * التخفيض يسبق الدعم عمداً: المحفظة تدفع نسبةً مما يُستحق فعلاً، لا مما
+     * كان سيُستحق لولا التخفيض — وإلا دفعت الشركة عن مبلغ لم يُطالَب به.
+     *
+     * والمخزَّن في `total_amount_halalas` هو **الصافي**: التسوية مع المزوّد
+     * والعمولة تُحتسبان عليه، والمزوّد هو من منح التخفيض فيتحمّله.
+     *
+     * @param  array{venue_pricing_id: int, venue_ids: array<int>, min_participants: int, subsidy_type?: string, subsidy_value_halalas?: int, discount_id?: int|null}  $params
+     * @return array{gross_amount_halalas: int, discount_id: int|null, discount_amount_halalas: int, total_amount_halalas: int, subsidy_type: string, subsidy_value: int, planned_subsidy_halalas: int, max_share_halalas: int}
      */
     public function calculateCosts(array $params): array
     {
@@ -112,6 +122,32 @@ class EventCreationService
         // للمرافق الأخرى في نفس الطلب: تُفضَّل تسعيرة **بنفس المدة وبنفس صفة
         // الذروة** المختارة، وإلا يبقى السلوك القائم (أول تسعيرة بنفس المدة ثم
         // سعر التسعيرة المختارة) — انظر بند المالك في docs/acceptance.md §7.
+        /*
+         * إن أرسلت الشاشة التسعيرات التي عرضتها صراحةً، فهي المحتسَبة.
+         *
+         * الاستنتاج أدناه تقريبٌ لازم حين لا تُرسَل، لكنه قد يختار للمرفق
+         * الثاني تسعيرةً غير التي رآها المستعمل — فيُعرض مبلغ ويُطالَب بغيره.
+         * التسعيرات الصريحة تُلغي هذا الاحتمال من أصله.
+         */
+        $explicit = array_filter(array_map('intval', (array) ($params['venue_pricing_ids'] ?? [])));
+
+        if ($explicit !== []) {
+            $rows = VenuePricing::query()
+                ->whereIn('id', $explicit)
+                ->whereIn('venue_id', $params['venue_ids'])
+                ->get();
+
+            // مرفق بلا تسعيرة صريحة يعني نقصاً في المجموع — يُرفض ولا يُكمَّل
+            // بتخمين.
+            if ($rows->pluck('venue_id')->unique()->count() === count($params['venue_ids'])) {
+                return $this->costsFromTotal(
+                    (int) $rows->sum('price_halalas'),
+                    $rows->first()->duration_minutes,
+                    $params,
+                );
+            }
+        }
+
         $totalHalalas = 0;
         foreach ($params['venue_ids'] as $venueId) {
             if ((int) $venueId === (int) $pricing->venue_id) {
@@ -128,23 +164,71 @@ class EventCreationService
             $totalHalalas += (int) ($venuePricing->price_halalas ?? $pricing->price_halalas);
         }
 
+        return $this->costsFromTotal($totalHalalas, $duration, $params);
+    }
+
+    /**
+     * الدعم والحصة مشتقّان من الإجمالي — مسار واحد مهما اختلف طريق حسابه.
+     *
+     * @param  array<string, mixed>  $params
+     * @return array<string, int|string>
+     */
+    private function costsFromTotal(int $grossHalalas, int $duration, array $params): array
+    {
+        // A17 — تخفيض المزوّد على الإجمالي قبل أي شيء آخر. التخفيض الذي لم
+        // يعد منطبقاً (منتهٍ، أو «مرة واحدة» استُهلك) يسقط بلا خطأ: الشاشة
+        // عرضته لحظة الفتح وقد تكون الحال تغيّرت قبل الإرسال.
+        $discount = $this->discountFor($params);
+        $discountAmount = $discount?->amountFor($grossHalalas) ?? 0;
+        $netHalalas = $grossHalalas - $discountAmount;
+
         $subsidyType = $params['subsidy_type'] ?? 'fixed';
         $subsidyValue = max(0, (int) ($params['subsidy_value_halalas'] ?? 0));
 
         $planned = $subsidyType === 'percentage'
-            ? intdiv($totalHalalas * min(100, $subsidyValue), 100)
-            : min($subsidyValue, $totalHalalas);
+            ? intdiv($netHalalas * min(100, $subsidyValue), 100)
+            : min($subsidyValue, $netHalalas);
 
         $minParticipants = max(1, (int) $params['min_participants']);
-        $maxShare = Money::splitShare($totalHalalas - $planned, $minParticipants)['share'];
+        $maxShare = Money::splitShare($netHalalas - $planned, $minParticipants)['share'];
 
         return [
-            'total_amount_halalas' => $totalHalalas,
+            'gross_amount_halalas' => $grossHalalas,
+            'discount_id' => $discount?->id,
+            'discount_amount_halalas' => $discountAmount,
+            'total_amount_halalas' => $netHalalas,
+            'duration_minutes' => $duration,
             'subsidy_type' => $subsidyType,
             'subsidy_value' => $subsidyValue,
             'planned_subsidy_halalas' => $planned,
             'max_share_halalas' => $maxShare,
         ];
+    }
+
+    /**
+     * التخفيض المطلوب — ويُتحقَّق من انطباقه هنا، لا في الواجهة: الشاشة
+     * تعرض، والخادم يقرّر.
+     *
+     * @param  array<string, mixed>  $params
+     */
+    private function discountFor(array $params): ?Discount
+    {
+        $id = (int) ($params['discount_id'] ?? 0);
+
+        if ($id <= 0) {
+            return null;
+        }
+
+        $query = Discount::query()->whereKey($id);
+
+        // التاريخ والوقت يصلان عند الإنشاء، لا عند معاينة التكلفة المجرّدة.
+        if (filled($params['date'] ?? null) && filled($params['time'] ?? null)) {
+            $query->applicableOn((string) $params['date'], (string) $params['time']);
+        } else {
+            $query->active();
+        }
+
+        return $query->first();
     }
 
     /**
@@ -223,10 +307,15 @@ class EventCreationService
 
         $costs = $this->calculateCosts([
             'venue_pricing_id' => $data['venue_pricing_id'],
+            'venue_pricing_ids' => $data['venue_pricing_ids'] ?? [],
             'venue_ids' => $venueIds,
             'min_participants' => $minParticipants,
             'subsidy_type' => $subsidyType,
             'subsidy_value_halalas' => $subsidyValue,
+            // A17 — التخفيض يُتحقَّق من انطباقه على هذا الموعد بالذات.
+            'discount_id' => $data['discount_id'] ?? null,
+            'date' => $data['date'],
+            'time' => $data['time'],
         ]);
 
         $initialStatus = $this->initialStatusFor($creator, $community);
@@ -250,6 +339,8 @@ class EventCreationService
                 'duration_minutes' => $pricing->duration_minutes,
                 'venues_count' => $venuesCount,
                 'total_amount_halalas' => $costs['total_amount_halalas'],
+                'discount_id' => $costs['discount_id'],
+                'discount_amount_halalas' => $costs['discount_amount_halalas'],
                 'subsidy_type' => $costs['subsidy_type'],
                 'subsidy_value' => $costs['subsidy_value'],
                 'max_share_halalas' => $costs['max_share_halalas'],

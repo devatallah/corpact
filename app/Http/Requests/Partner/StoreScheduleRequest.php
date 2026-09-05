@@ -4,6 +4,7 @@ namespace App\Http\Requests\Partner;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreScheduleRequest extends FormRequest
 {
@@ -23,7 +24,16 @@ class StoreScheduleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'venue_id' => ['required', 'integer', 'exists:venues,id'],
+            // النطاق للمزوّد لا للوجود المجرّد: `exists:venues,id` وحده يقبل
+            // ملعب مزوّد آخر. ومنذ صار الحجز يحترم الساعات المعروضة، صار ذلك
+            // بابَ تحكّم مزوّد في توفّر منافسه — لا خطأ عرضٍ فحسب.
+            'venue_id' => [
+                'required', 'integer',
+                Rule::exists('venues', 'id')->where(
+                    'partner_id',
+                    optional(auth('partner')->user())->resolvedPartner()?->id,
+                ),
+            ],
             'date' => ['required', 'date'],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],

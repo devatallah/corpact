@@ -71,9 +71,19 @@ class HomeController extends Controller
             return null;
         }
 
+        // مطالبات أخرى مفتوحة: البطاقة تبقى للأعجل وحدها — أربع بطاقات
+        // سوداء متتالية تدفن بقية الصفحة — ويُذكر الباقي سطراً يقود إليه.
+        $others = PaymentIntent::query()
+            ->where('employee_id', $employee->id)
+            ->where('status', PaymentIntent::STATUS_PENDING)
+            ->where('expires_at', '>', now())
+            ->whereKeyNot($intent->getKey())
+            ->count();
+
         return [
             'id' => $intent->id,
             'amount' => $intent->amount_halalas / 100,
+            'other_claims' => $others,
             'expires_at' => $intent->expires_at->toIso8601String(),
             'minutes_left' => (int) max(0, now()->diffInMinutes($intent->expires_at, false)),
             'event' => [

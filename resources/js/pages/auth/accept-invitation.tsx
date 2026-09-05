@@ -1,7 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import { ArrowLeft, Building2, Lock } from 'lucide-react';
+import { CodeStep } from '@/components/auth/code-step';
 import AuthLayout, { AUTH_INPUT_LIGHT, AUTH_INPUT_MONO, AuthField, AuthSubmit } from '@/layouts/auth-layout';
-import { CodeStep } from '@/pages/auth/otp-login';
 
 /**
  * H §5 — accepting an invitation. Two steps, and the server owns which one

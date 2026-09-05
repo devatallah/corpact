@@ -80,6 +80,10 @@ class CompanyController extends Controller
         return Inertia::render('admin/companies/index', [
             'companies' => $companies,
             'accountManagers' => $managersByCompany,
+            // وكيل الدعم المتابع لكل شركة — يُقرأ من القائمة لا من فتح كل ملف.
+            'supportAgentNames' => User::query()
+                ->whereIn('id', $companies->pluck('support_agent_user_id')->filter()->unique())
+                ->pluck('name', 'id'),
             'stats' => $stats,
             'filters' => (object) $filters,
             'sort' => CompanyService::sort()->state($filters['sort'] ?? null, $filters['dir'] ?? null),
@@ -89,9 +93,49 @@ class CompanyController extends Controller
     /**
      * Show the form for creating a new company.
      */
+    /**
+     * وكلاء الدعم الذين يصلحون للإسناد.
+     *
+     * دور بنطاق المنصة لا نطاق شركة: الإسناد نفسه لا يمنح شيئاً، فمن يُسنَد
+     * يجب أن يكون وكيل دعم أصلاً. الترتيب بالاسم لأن القائمة تُقرأ لا تُبحث.
+     *
+     * @return list<array{id: int, name: string, email: string|null, companies: int}>
+     */
+    private function assignableSupportAgents(): array
+    {
+        $ids = RoleAssignment::query()
+            ->where('role', Role::SupportAgent->value)
+            ->where('scope_type', RoleAssignment::SCOPE_PLATFORM)
+            ->pluck('user_id')
+            ->unique();
+
+        $loads = Company::query()
+            ->whereIn('support_agent_user_id', $ids)
+            ->selectRaw('support_agent_user_id, count(*) as total')
+            ->groupBy('support_agent_user_id')
+            ->pluck('total', 'support_agent_user_id');
+
+        return User::query()
+            ->whereIn('id', $ids)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email'])
+            ->map(fn (User $user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                // عدد الشركات التي يتابعها بالفعل — الإسناد بلا حِمل الوكيل
+                // الحالي يوزّع الشركات على واحد ويترك البقية فارغين.
+                'companies' => (int) ($loads[$user->id] ?? 0),
+            ])
+            ->values()
+            ->all();
+    }
+
     public function create(): Response
     {
-        return Inertia::render('admin/companies/create');
+        return Inertia::render('admin/companies/create', [
+            'supportAgents' => $this->assignableSupportAgents(),
+        ]);
     }
 
     /**
@@ -133,6 +177,7 @@ class CompanyController extends Controller
     {
         return Inertia::render('admin/companies/edit', [
             'company' => $company,
+            'supportAgents' => $this->assignableSupportAgents(),
             // A15 — H §16 «الشركات والعقود»: قيم العقد والرقم الضريبي والسجل
             // التجاري + نسخ ملف العقد (لا يُحذف منها شيء أبداً — H §19).
             'contract' => [

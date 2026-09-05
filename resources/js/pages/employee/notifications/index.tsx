@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Bell, BellRing, Check, CheckCheck, Trash2 } from 'lucide-react';
+import { Bell, BellRing, Check, CheckCheck } from 'lucide-react';
 import {
     Pagination,
     ResultCount,
@@ -55,7 +55,7 @@ export default function EmployeeNotifications({
                             icon={CheckCheck}
                             onClick={() =>
                                 router.post(
-                                    '/employee/notifications/mark-all-read',
+                                    '/employee/notifications/read-all',
                                     {},
                                     { preserveScroll: true },
                                 )
@@ -141,22 +141,6 @@ export default function EmployeeNotifications({
                                         />
                                     </button>
                                 )}
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        router.delete(
-                                            `/employee/notifications/${notification.id}`,
-                                            { preserveScroll: true },
-                                        )
-                                    }
-                                    aria-label="حذف الإشعار"
-                                    className="rounded-lg bg-danger/8 p-1.5 text-danger transition-colors hover:bg-danger/15"
-                                >
-                                    <Trash2
-                                        className="h-3 w-3"
-                                        aria-hidden="true"
-                                    />
-                                </button>
                             </div>
                         </div>
                     </Card>

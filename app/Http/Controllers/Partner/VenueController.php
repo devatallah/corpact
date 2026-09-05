@@ -34,6 +34,7 @@ class VenueController extends Controller
 
         $filters = $request->validate([
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'category_id' => ['sometimes', 'nullable', 'integer', 'exists:categories,id'],
             'sort' => ['sometimes', 'nullable', 'string', 'max:40'],
             'dir' => ['sometimes', 'nullable', 'string', 'max:4'],
         ]);

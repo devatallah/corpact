@@ -50,10 +50,11 @@ export default function CompanyAudit({
     filters,
     sort,
     actions,
+    groups,
 }: {
     company: { id: number; name: string };
     logs: Paginated<Log>;
-    filters: { search?: string; action?: string; from?: string; to?: string };
+    filters: { search?: string; action?: string; from?: string; to?: string; group?: string };
     sort: SortState;
     actions: { value: string; label: string }[];
     groups: { value: string; label: string }[];
@@ -88,6 +89,15 @@ export default function CompanyAudit({
                     <SearchInput
                         value={filters.search ?? ''}
                         placeholder="ابحث بالفاعل أو السبب…"
+                    />
+                    <FilterSelect
+                        name="group"
+                        label="المجموعة"
+                        value={filters.group ?? ''}
+                        options={[
+                            ['', 'كل المجموعات'],
+                            ...groups.map((group): [string, string] => [group.value, group.label]),
+                        ]}
                     />
                     <FilterSelect
                         name="action"

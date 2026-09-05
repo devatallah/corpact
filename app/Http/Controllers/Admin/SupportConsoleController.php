@@ -17,6 +17,7 @@ use App\Support\Audit\AuditAction;
 use App\Support\Identity\PhoneNumber;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -53,22 +54,43 @@ class SupportConsoleController extends Controller
         $filters = $request->validate([
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'scope' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'coverage' => ['sometimes', 'nullable', Rule::in(['mine', 'all'])],
         ]);
 
         $term = trim((string) ($filters['search'] ?? ''));
         $scope = $filters['scope'] ?? 'all';
+
+        /*
+         * «شركاتي» تصفية لا حجب.
+         *
+         * الوكيل يتابع بضع شركات ويبحث في الكل، فالبحث غير المُصفّى يُغرقه
+         * بنتائج ليست له بينما شكواه غالباً من إحدى شركاته. تبدأ الشاشة على
+         * شركاته، ويبقى «كل الشركات» على بُعد نقرة — ولا شيء هنا يمنع أحداً
+         * من الوصول إلى شيء.
+         *
+         * أدمن المنصة لا شركات مُسنَدة إليه، فالافتراضي في حقه «الكل»: بدء
+         * شاشته على مجموعة فارغة يجعلها تبدو معطّلة.
+         */
+        $myCompanyIds = Company::query()
+            ->where('support_agent_user_id', $request->user()?->id)
+            ->pluck('id');
+
+        $coverage = $filters['coverage'] ?? ($myCompanyIds->isEmpty() ? 'all' : 'mine');
+        $onlyMine = $coverage === 'mine' && $myCompanyIds->isNotEmpty();
+
         $results = ['events' => [], 'employees' => [], 'companies' => []];
 
         if ($term !== '') {
             AuditLogService::record(
                 action: AuditAction::REPORT_EXPORTED,
-                after: ['report' => 'support.search', 'term_length' => mb_strlen($term), 'scope' => $scope],
+                after: ['report' => 'support.search', 'term_length' => mb_strlen($term), 'scope' => $scope, 'coverage' => $coverage],
                 reason: 'بحث من مركز الدعم — G: «كل ما تقرأه من بيانات موظفين وشركات يخضع لسجل التدقيق»',
             );
 
             if ($scope === 'all' || $scope === 'events') {
                 $results['events'] = Event::query()
                     ->with(['company:id,name', 'community:id,name'])
+                    ->when($onlyMine, fn ($query) => $query->whereIn('company_id', $myCompanyIds))
                     ->where(fn ($query) => $query
                         ->where('title', 'like', "%{$term}%")
                         ->orWhere('id', is_numeric($term) ? (int) $term : 0))
@@ -91,6 +113,7 @@ class SupportConsoleController extends Controller
 
                 $results['employees'] = Employee::query()
                     ->with('company:id,name')
+                    ->when($onlyMine, fn ($query) => $query->whereIn('company_id', $myCompanyIds))
                     ->where(fn ($query) => $query
                         ->where('name', 'like', "%{$term}%")
                         ->orWhere('email', 'like', "%{$term}%")
@@ -111,8 +134,11 @@ class SupportConsoleController extends Controller
 
             if ($scope === 'all' || $scope === 'companies') {
                 $results['companies'] = Company::query()
-                    ->where('name', 'like', "%{$term}%")
-                    ->orWhere('email', 'like', "%{$term}%")
+                    ->when($onlyMine, fn ($query) => $query->whereIn('id', $myCompanyIds))
+                    // التجميع لازم: `orWhere` بلا قوسين يُلغي تصفية «شركاتي».
+                    ->where(fn ($query) => $query
+                        ->where('name', 'like', "%{$term}%")
+                        ->orWhere('email', 'like', "%{$term}%"))
                     ->limit(20)
                     ->get(['id', 'name', 'email', 'status'])
                     ->all();
@@ -120,31 +146,13 @@ class SupportConsoleController extends Controller
         }
 
         return Inertia::render('admin/support/console', [
-            'filters' => (object) $filters,
+            'filters' => (object) ($filters + ['coverage' => $coverage]),
+            'coverage' => [
+                'value' => $coverage,
+                'my_companies' => $myCompanyIds->count(),
+            ],
             'results' => $results,
             'escalation' => self::escalationRows(),
-            // الحدّ مقروء من نفس الحدّ المطبَّق (AppServiceProvider) لا مكتوباً
-            // في الواجهة — رقم على الشاشة يخالف ما يفرضه الخادم أسوأ من غيابه.
-            'resendLimit' => [
-                'per_minute' => self::OTP_LIMIT_PER_MINUTE,
-                'note' => 'الحدّ محسوب بالجوال وعنوان الشبكة معاً، حمايةً للمستلم من الإغراق.',
-            ],
-            'pendingInvitations' => Invitation::query()
-                ->with('company:id,name')
-                ->where('status', 'pending')
-                ->latest('id')
-                ->limit(20)
-                ->get()
-                ->map(fn (Invitation $invitation) => [
-                    'id' => $invitation->id,
-                    'name' => $invitation->name,
-                    'email' => $invitation->email,
-                    'phone_tail' => $invitation->phone === null ? null : mb_substr($invitation->phone, -4),
-                    'company' => $invitation->company?->only(['id', 'name']),
-                    'send_count' => (int) $invitation->send_count,
-                    'expires_at' => $invitation->expires_at?->toIso8601String(),
-                ])
-                ->all(),
         ]);
     }
 

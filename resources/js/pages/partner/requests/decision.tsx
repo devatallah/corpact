@@ -10,11 +10,21 @@ import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import { BackLink } from '@/components/list-states';
 import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
-import { Badge, Button, Card, Field, INPUT, Note, PageHeader, StatCard } from '@/components/portal/ui';
+import {
+    Badge,
+    Button,
+    Card,
+    Field,
+    INPUT,
+    Note,
+    PageHeader,
+    StatCard,
+} from '@/components/portal/ui';
+import { Deadline } from '@/components/provider/request-deadline';
+import type { ProviderRequestRow } from '@/components/provider/request-deadline';
+import TimeSelect from '@/components/time-select';
 import PartnerLayout from '@/layouts/partner-layout';
 import { providerRequestStatus } from '@/lib/status';
-import { Deadline } from '@/pages/partner/requests/queue';
-import type { ProviderRequestRow } from '@/pages/partner/requests/queue';
 
 /**
  * H §11 — صفحة القرار.
@@ -41,6 +51,10 @@ export default function PartnerRequestDecision({
     can_decide: boolean;
     commissionRate: number;
 }) {
+    const isPreview =
+        typeof window !== 'undefined' &&
+        new URLSearchParams(window.location.search).has('preview');
+
     const [accepting, setAccepting] = useState(false);
     const [rejecting, setRejecting] = useState(false);
     const [cancelling, setCancelling] = useState(false);
@@ -73,6 +87,17 @@ export default function PartnerRequestDecision({
                 subtitle={event?.company_name ?? '—'}
                 actions={<Badge tone={meta.tone}>{meta.label}</Badge>}
             />
+
+            {isPreview && (
+                <Note
+                    tone="info"
+                    title="معاينة — هذه هي الصفحة التي تصلك برابط الواتساب"
+                >
+                    ما تراه هنا هو ما يفتحه الرابط المرسل إليك عند وصول طلب
+                    جديد. الأزرار تعمل كالمعتاد — المعاينة ليست وضعاً آمناً، فأي
+                    قبول أو رفض هنا نافذ.
+                </Note>
+            )}
 
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <StatCard
@@ -147,17 +172,26 @@ export default function PartnerRequestDecision({
             </Card>
 
             {/* ── القناة المعتمدة ── */}
-            <Note tone="danger" title="تنبيه تنظيمي ملزم — القناة المعتمدة الوحيدة">
-                لوحة المنصة هي القناة المعتمدة الوحيدة لقبول الطلبات ورفضها. واتساب والبريد للإشعار فقط: رسالة تقول «تمام محجوز»
-                لا تحجز شيئاً ولا تُلزم أحداً — أول ردّ رقمي هنا هو ما يثبّت الحالة.
+            <Note
+                tone="danger"
+                title="تنبيه تنظيمي ملزم — القناة المعتمدة الوحيدة"
+            >
+                لوحة المنصة هي القناة المعتمدة الوحيدة لقبول الطلبات ورفضها.
+                واتساب والبريد للإشعار فقط: رسالة تقول «تمام محجوز» لا تحجز
+                شيئاً ولا تُلزم أحداً — أول ردّ رقمي هنا هو ما يثبّت الحالة.
             </Note>
 
             {/* ── صافي ما يصلك ── */}
             <Card padding="p-4" className="space-y-2">
-                <h2 className="text-sm font-extrabold text-ink">صافي التحويل المتوقع عند الاكتمال</h2>
+                <h2 className="text-sm font-extrabold text-ink">
+                    صافي التحويل المتوقع عند الاكتمال
+                </h2>
 
                 <div className="space-y-1.5">
-                    <NetRow label="قيمة الطلب شاملة ضريبة القيمة المضافة" value={`${Number(request.total_amount ?? 0).toFixed(2)} ر.س`} />
+                    <NetRow
+                        label="قيمة الطلب شاملة ضريبة القيمة المضافة"
+                        value={`${Number(request.total_amount ?? 0).toFixed(2)} ر.س`}
+                    />
                     <NetRow
                         label={`عمولة تيمات (${commissionRate}٪ تُقتطع من مستحقاتك)`}
                         value={`−${((Number(request.total_amount ?? 0) * commissionRate) / 100).toFixed(2)} ر.س`}
@@ -171,13 +205,15 @@ export default function PartnerRequestDecision({
                 </div>
 
                 <p className="text-[10px] text-ink/50">
-                    لا يُنشأ بند التسوية إلا بعد اكتمال الفعالية — لا عند القبول ولا عند الحجز.
+                    لا يُنشأ بند التسوية إلا بعد اكتمال الفعالية — لا عند القبول
+                    ولا عند الحجز.
                 </p>
             </Card>
 
             <Note title="الكمية مجمَّدة عند الإرسال">
-                الطلب بكمية محددة نهائياً: زيادة عدد المشاركين بعد إرساله لا تغيّر التكلفة ولا تُلزمك بأكثر مما قبلته. والمهلة
-                هي 12 ساعة من الإرسال أو 6 ساعات قبل الموعد — أيّهما أقرب.
+                الطلب بكمية محددة نهائياً: زيادة عدد المشاركين بعد إرساله لا
+                تغيّر التكلفة ولا تُلزمك بأكثر مما قبلته. والمهلة هي 12 ساعة من
+                الإرسال أو 6 ساعات قبل الموعد — أيّهما أقرب.
             </Note>
 
             {!canDecide && (
@@ -268,15 +304,12 @@ export default function PartnerRequestDecision({
                                     error={altForm.errors.proposed_start_time}
                                     required
                                 >
-                                    <input
-                                        type="time"
-                                        dir="ltr"
-                                        className={INPUT}
+                                    <TimeSelect
                                         value={altForm.data.proposed_start_time}
-                                        onChange={(changeEvent) =>
+                                        onChange={(next) =>
                                             altForm.setData(
                                                 'proposed_start_time',
-                                                changeEvent.target.value,
+                                                next,
                                             )
                                         }
                                     />
@@ -573,10 +606,14 @@ function NetRow({
     return (
         <div
             className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 ${
-                strong ? 'bg-panel' : 'bg-page border-[0.5px] border-ink/10'
+                strong ? 'bg-panel' : 'border-[0.5px] border-ink/10 bg-page'
             }`}
         >
-            <span className={`text-[11px] ${strong ? 'text-white/70' : 'text-ink/65'}`}>{label}</span>
+            <span
+                className={`text-[11px] ${strong ? 'text-white/70' : 'text-ink/65'}`}
+            >
+                {label}
+            </span>
             <span
                 className={`font-mono text-xs font-black ${strong ? 'text-lime' : negative ? 'text-danger' : 'text-ink'}`}
                 dir="ltr"

@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     CalendarDays,
     Clock,
@@ -10,20 +10,7 @@ import {
 import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import { BackLink, ListStates } from '@/components/list-states';
-import {
-    Badge,
-    Button,
-    Card,
-    IconButton,
-    Money,
-    PageHeader,
-    Tbody,
-    Td,
-    Th,
-    Thead,
-    TableShell,
-    Tr,
-} from '@/components/portal/ui';
+import { Badge, Button, Card, IconButton, Money, PageHeader, TableShell, Tbody, Td, Th, Thead, Tr } from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
 import { eventStatus } from '@/lib/status';
 
@@ -34,6 +21,15 @@ import { eventStatus } from '@/lib/status';
  * always a full refund: the dialog states the policy and the headcount, not
  * just «هل أنت متأكد؟».
  */
+type SeriesOccurrence = {
+    id: number;
+    event_date: string;
+    start_time: string | null;
+    status: string;
+    participants_count: number | null;
+    capacity: number | null;
+};
+
 type EventModel = {
     id: number;
     title: string;
@@ -59,12 +55,13 @@ export default function CompanyEventShow({
     communityMembers,
     joinedIds,
     refundPreview,
+    seriesEvents,
 }: {
     company: { id: number; name: string };
     event: EventModel;
     communityMembers: { id: number; name: string; email: string }[];
     joinedIds: number[];
-    seriesEvents: unknown[];
+    seriesEvents: SeriesOccurrence[];
     refundPreview: { percentage: number; policy_label: string } | null;
 }) {
     const [cancelling, setCancelling] = useState(false);
@@ -329,6 +326,40 @@ export default function CompanyEventShow({
                 }}
                 onCancel={() => setRemoving(null)}
             />
+            {seriesEvents.length > 1 && (
+                <Card padding="p-4" className="space-y-2">
+                    <h2 className="text-sm font-extrabold text-ink">سلسلة متكررة — {seriesEvents.length} موعداً</h2>
+                    <p className="text-[11px] text-ink/55">
+                        مولَّدة من قالب تكرار. كل موعد فعالية مستقلة بتسجيلها وحالتها.
+                    </p>
+
+                    <div className="divide-y-[0.5px] divide-ink/10 rounded-xl border-[0.5px] border-ink/12 bg-page">
+                        {seriesEvents.map((occurrence) => (
+                            <Link
+                                key={occurrence.id}
+                                href={`/company/events/${occurrence.id}`}
+                                className={`flex items-center justify-between gap-2 p-2.5 ${
+                                    occurrence.id === event.id ? 'bg-lime/12' : ''
+                                }`}
+                            >
+                                <span className="font-mono text-[11px] font-bold text-ink" dir="ltr">
+                                    {occurrence.event_date}
+                                    {occurrence.start_time ? ` · ${occurrence.start_time.slice(0, 5)}` : ''}
+                                </span>
+                                <span className="flex shrink-0 items-center gap-2">
+                                    <span className="font-mono text-[10px] text-ink/50">
+                                        {occurrence.participants_count ?? 0}/{occurrence.capacity ?? '—'}
+                                    </span>
+                                    <Badge tone={eventStatus(occurrence.status).tone}>
+                                        {eventStatus(occurrence.status).label}
+                                    </Badge>
+                                </span>
+                            </Link>
+                        ))}
+                    </div>
+                </Card>
+            )}
+
         </CompanyLayout>
     );
 }

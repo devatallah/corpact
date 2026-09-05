@@ -21,6 +21,7 @@ import {
     Tr,
 } from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
+import { leagueFormat, leagueStatus } from '@/lib/status';
 import type { Paginated, SortState } from '@/types';
 
 /**
@@ -30,22 +31,6 @@ import type { Paginated, SortState } from '@/types';
  * The format decides what a standings table even means, so it is a column
  * rather than a detail — a knockout has no points table.
  */
-export const LEAGUE_FORMAT: Record<string, string> = {
-    single_round_robin: 'دوري من دور واحد',
-    double_round_robin: 'دوري من دورين',
-    knockout: 'خروج المغلوب',
-};
-
-export const LEAGUE_STATUS: Record<
-    string,
-    { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger' }
-> = {
-    draft: { label: 'مسودة', tone: 'neutral' },
-    active: { label: 'جارية', tone: 'success' },
-    completed: { label: 'منتهية', tone: 'neutral' },
-    cancelled: { label: 'ملغاة', tone: 'danger' },
-};
-
 type LeagueRow = {
     id: number;
     name: string;
@@ -155,8 +140,7 @@ export default function CompanyLeagues({
                                     {league.community?.name ?? '—'}
                                 </Td>
                                 <Td className="text-ink/85">
-                                    {LEAGUE_FORMAT[league.format] ??
-                                        league.format}
+                                    {leagueFormat(league.format)}
                                 </Td>
                                 <Td className="font-mono text-ink/80">
                                     {league.departments?.length ?? 0}
@@ -166,13 +150,9 @@ export default function CompanyLeagues({
                                 </Td>
                                 <Td>
                                     <Badge
-                                        tone={
-                                            LEAGUE_STATUS[league.status]
-                                                ?.tone ?? 'neutral'
-                                        }
+                                        tone={leagueStatus(league.status).tone}
                                     >
-                                        {LEAGUE_STATUS[league.status]?.label ??
-                                            league.status}
+                                        {leagueStatus(league.status).label}
                                     </Badge>
                                 </Td>
                             </Tr>

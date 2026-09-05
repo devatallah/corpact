@@ -33,19 +33,30 @@ export default function PortalShell({
     useFlashToasts();
 
     return (
-        <div className="min-h-screen bg-page text-ink font-arabic antialiased flex flex-col">
+        <div className="flex min-h-screen flex-col bg-page font-arabic text-ink antialiased">
+            {/*
+             * مبدّل السياق يُمرَّر للشريط الجانبي وحده هنا.
+             *
+             * كان يُمرَّر للاثنين، فيرى صاحب العضويتين المبدّل نفسه مرتين في
+             * شاشة واحدة — مرة في الترويسة ومرة أسفل الشريط. لم يظهر العيب
+             * لأن بوابة الشركة لم يكن فيها حساب بعضويتين أصلاً. بوابة الموظف
+             * بلا شريط جانبي، فهي تمرّره للترويسة مباشرة ولا يمسّها هذا.
+             */}
             <PortalHeader
                 userLabel={userLabel}
                 userSub={userSub}
                 userAvatar={userLabel.charAt(0)}
                 notificationsUrl={notificationsUrl}
-                contextSwitchUrl={contextSwitchUrl}
             />
 
-            <div className="flex-1 flex max-w-7xl mx-auto w-full">
-                <PortalSidebar navItems={navItems} logoutUrl={logoutUrl} contextSwitchUrl={contextSwitchUrl} />
+            <div className="mx-auto flex w-full max-w-7xl flex-1">
+                <PortalSidebar
+                    navItems={navItems}
+                    logoutUrl={logoutUrl}
+                    contextSwitchUrl={contextSwitchUrl}
+                />
 
-                <main className="flex-1 min-w-0 p-0 sm:p-4 lg:p-6 pb-8 flex justify-center">
+                <main className="flex min-w-0 flex-1 justify-center p-0 pb-8 sm:p-4 lg:p-6">
                     <div className="w-full max-w-6xl min-w-0 p-4 sm:p-8">
                         <div className="space-y-6">{children}</div>
                     </div>

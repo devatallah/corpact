@@ -26,7 +26,8 @@ import type { SharedProps } from '@/types';
  * so the rail can badge them without a second request.
  */
 export default function CompanyLayout({ children }: { children: ReactNode }) {
-    const props = usePage<SharedProps & { pendingCommunityRequests?: number }>().props;
+    const props = usePage<SharedProps & { pendingCommunityRequests?: number }>()
+        .props;
     const { auth } = props;
     const unread = props.unreadNotifications;
     const pendingRequests = props.pendingCommunityRequests;
@@ -36,14 +37,24 @@ export default function CompanyLayout({ children }: { children: ReactNode }) {
         { label: 'الأقسام', href: '/company/departments', icon: Tags },
         { label: 'الموظفون', href: '/company/employees', icon: Users },
         { label: 'المجتمعات', href: '/company/communities', icon: UsersRound },
-        { label: 'طلبات المجتمعات', href: '/company/community-requests', icon: ClipboardList, badge: pendingRequests },
+        {
+            label: 'طلبات المجتمعات',
+            href: '/company/community-requests',
+            icon: ClipboardList,
+            badge: pendingRequests,
+        },
         { label: 'الفعاليات', href: '/company/events', icon: Calendar },
         { label: 'البطولات', href: '/company/leagues', icon: Trophy },
         { label: 'المحفظة', href: '/company/wallet', icon: Wallet },
         { label: 'الفواتير', href: '/company/invoices', icon: Receipt },
         { label: 'التقارير', href: '/company/reports', icon: TrendingUp },
         { label: 'سجل التدقيق', href: '/company/audit', icon: ShieldCheck },
-        { label: 'الإشعارات', href: '/company/notifications', icon: Bell, badge: unread },
+        {
+            label: 'الإشعارات',
+            href: '/company/notifications',
+            icon: Bell,
+            badge: unread,
+        },
         { label: 'الإعدادات', href: '/company/settings', icon: Settings },
         { label: 'الملف الشخصي', href: '/company/profile', icon: CircleUser },
     ];
@@ -55,7 +66,6 @@ export default function CompanyLayout({ children }: { children: ReactNode }) {
             userLabel={auth.user?.name ?? 'الشركة'}
             userSub="مسؤول الحساب"
             notificationsUrl="/company/notifications"
-            contextSwitchUrl="/company/context/switch"
         >
             {children}
         </PortalShell>

@@ -11,6 +11,7 @@ use App\Models\Partner;
 use App\Models\PaymentIntent;
 use App\Models\Wallet;
 use App\Models\WalletHold;
+use App\Services\Billing\EmployeeInvoiceService;
 use App\Services\Events\EventStateMachine;
 use App\Services\Events\ParticipationService;
 use App\Services\Messaging\Channels\MessageChannel;
@@ -260,6 +261,10 @@ class CollectionService
             $event = Event::withoutGlobalScopes()->whereKey($locked->event_id)->lockForUpdate()->firstOrFail();
 
             $this->setParticipantPaymentStatus($event, (int) $locked->employee_id, 'paid', 'دُفعت الحصة عبر البوابة');
+
+            // المستند يُصدَر لحظة تأكيد السداد داخل المعاملة نفسها: مطالبة
+            // مدفوعة بلا مستند تترك الموظف بلا ما يثبت دفعه.
+            app(EmployeeInvoiceService::class)->issueFor($locked->refresh());
 
             $this->evaluate($event);
         });

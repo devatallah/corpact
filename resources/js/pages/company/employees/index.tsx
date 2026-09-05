@@ -1,8 +1,25 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { CircleCheckBig, Clock, Download, Pencil, Send, Upload, UserPlus, UserX, Users } from 'lucide-react';
+import {
+    CircleCheckBig,
+    Clock,
+    Download,
+    Pencil,
+    Send,
+    Upload,
+    UserPlus,
+    UserX,
+    Users,
+} from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
-import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import {
+    FilterSelect,
+    Pagination,
+    ResultCount,
+    SearchInput,
+    SortableHeader,
+    Toolbar,
+} from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
 import {
     Badge,
@@ -11,7 +28,7 @@ import {
     IconButton,
     Note,
     PageHeader,
-        TableShell,
+    TableShell,
     Tbody,
     Td,
     Th,
@@ -43,7 +60,11 @@ type Employee = {
     status: string;
     events_count: number;
     department?: { id: number; name: string } | null;
-    communities?: { id: number; name: string; category?: { id: number; name: string } | null }[];
+    communities?: {
+        id: number;
+        name: string;
+        category?: { id: number; name: string } | null;
+    }[];
 };
 
 type Invitation = {
@@ -74,7 +95,11 @@ export default function CompanyEmployees({
     departments: { id: number; name: string; employees_count: number }[];
     pendingInvitations: Invitation[];
     leaderIds: number[];
-    filters: { search?: string; status?: string; department_id?: string | number };
+    filters: {
+        search?: string;
+        status?: string;
+        department_id?: string | number;
+    };
     sort: SortState;
     activeCount: number;
     totalCount: number;
@@ -85,7 +110,11 @@ export default function CompanyEmployees({
 
     // Invitations belong to the whole roster, not to page 7 of it.
     const onFirstPage = employees.current_page === 1;
-    const showInvitations = onFirstPage && pendingInvitations.length > 0 && !filters.status && !filters.department_id;
+    const showInvitations =
+        onFirstPage &&
+        pendingInvitations.length > 0 &&
+        !filters.status &&
+        !filters.department_id;
 
     return (
         <CompanyLayout>
@@ -101,36 +130,59 @@ export default function CompanyEmployees({
                         <div className="flex flex-col items-center">
                             <a
                                 href="/company/reports/export/employees_activation?format=xlsx"
-                                className="inline-flex items-center justify-center gap-2 font-bold rounded-xl transition-colors bg-ink/5 text-ink border-[0.5px] border-ink/10 hover:bg-ink/10 text-xs px-3.5 py-2"
+                                className="inline-flex items-center justify-center gap-2 rounded-xl border-[0.5px] border-ink/10 bg-ink/5 px-3.5 py-2 text-xs font-bold text-ink transition-colors hover:bg-ink/10"
                             >
-                                <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                                <Download
+                                    className="h-3.5 w-3.5"
+                                    aria-hidden="true"
+                                />
                                 تصدير الموظفين
                             </a>
-                            <span className="text-[9px] text-ink/45 mt-0.5">(يُسجَّل في سجل التدقيق)</span>
+                            <span className="mt-0.5 text-[9px] text-ink/45">
+                                (يُسجَّل في سجل التدقيق)
+                            </span>
                         </div>
-                        <ButtonLink href="/company/employees/import" icon={Upload}>
+                        <ButtonLink
+                            href="/company/employees/import"
+                            icon={Upload}
+                        >
                             رفع ملف CSV / Excel
                         </ButtonLink>
-                        <ButtonLink href="/company/employees/create" tone="soft" icon={UserPlus}>
+                        <ButtonLink
+                            href="/company/employees/create"
+                            tone="soft"
+                            icon={UserPlus}
+                        >
                             دعوة موظف
                         </ButtonLink>
                     </>
                 }
             />
 
-            <Note tone="info" title="ملاحظة ربط الحسابات المتقاطعة">
-                إن كان رقم جوال الموظف مسجلاً في شركة أخرى على منصة تيمات، يُربط بنفس حسابه كعضوية منشأة جديدة ولا يُنشأ حساب
-                مكرر — فيتبدّل بين منشآته برقم واحد.
+            {/*
+                الصياغة السابقة («يُربط بنفس حسابه كعضوية منشأة جديدة ولا
+                يُنشأ حساب مكرر») كانت تصف الآلية قبل أن تذكر القاعدة، فتُقرأ
+                وكأن شيئاً جديداً يُنشأ. القاعدة أولاً: رقم واحد = حساب واحد.
+            */}
+            <Note tone="info" title="رقم الجوال = حساب واحد">
+                لكل رقم جوال حساب واحد على تيمات مهما تعدّدت شركاته. إن كان رقم
+                الموظف مسجلاً في شركة أخرى، تُضاف شركتك إلى حسابه القائم — يدخل
+                بالرقم نفسه، وينتقل بين شركاته من مبدّل المنشأة.
             </Note>
 
-            <Note tone="warning" title="التقارير التاريخية تُنسب للإدارة وقت الحدث لا الإدارة الحالية">
+            <Note
+                tone="warning"
+                title="التقارير التاريخية تُنسب للإدارة وقت الحدث لا الإدارة الحالية"
+            >
                 تغيير الإدارة يُحفظ بتاريخه الدقيق دون تشويه السجلات السابقة.
             </Note>
 
-
             <Card padding="p-4" className="space-y-4">
                 <Toolbar>
-                    <SearchInput value={filters.search ?? ''} placeholder="البحث بالاسم، البريد، الجوال، أو الرقم الوظيفي…" />
+                    <SearchInput
+                        value={filters.search ?? ''}
+                        placeholder="البحث بالاسم، البريد، الجوال، أو الرقم الوظيفي…"
+                    />
                     <FilterSelect
                         name="status"
                         label="حالة التفعيل"
@@ -148,7 +200,11 @@ export default function CompanyEmployees({
                         options={[
                             ['', 'كافة الإدارات'],
                             ...departments.map(
-                                (department) => [String(department.id), `${department.name} (${department.employees_count})`] as [string, string],
+                                (department) =>
+                                    [
+                                        String(department.id),
+                                        `${department.name} (${department.employees_count})`,
+                                    ] as [string, string],
                             ),
                         ]}
                     />
@@ -157,16 +213,26 @@ export default function CompanyEmployees({
                 <TableShell>
                     <Thead>
                         <Th>
-                            <SortableHeader label="الموظف والرقم الوظيفي" sortKey="name" sort={sort} />
+                            <SortableHeader
+                                label="الموظف والرقم الوظيفي"
+                                sortKey="name"
+                                sort={sort}
+                            />
                         </Th>
                         <Th>بريد العمل</Th>
                         <Th>
                             رقم الجوال
-                            <span className="ms-1.5 px-1.5 py-0.5 rounded text-[10px] bg-ink/10 text-ink font-bold">يظهر لك وحدك</span>
+                            <span className="ms-1.5 rounded bg-ink/10 px-1.5 py-0.5 text-[10px] font-bold text-ink">
+                                يظهر لك وحدك
+                            </span>
                         </Th>
                         <Th>الإدارة الحالية</Th>
                         <Th>
-                            <SortableHeader label="حالة التفعيل" sortKey="status" sort={sort} />
+                            <SortableHeader
+                                label="حالة التفعيل"
+                                sortKey="status"
+                                sort={sort}
+                            />
                         </Th>
                         <Th>المشاركات</Th>
                         <Th className="text-center">الإجراءات</Th>
@@ -175,31 +241,49 @@ export default function CompanyEmployees({
                     <Tbody>
                         {showInvitations &&
                             pendingInvitations.map((invitation) => (
-                                <Tr key={`inv-${invitation.id}`} className="bg-ink/[0.015]">
+                                <Tr
+                                    key={`inv-${invitation.id}`}
+                                    className="bg-ink/[0.015]"
+                                >
                                     <Td>
-                                        <span className="block font-extrabold text-ink/80">{invitation.name ?? '—'}</span>
+                                        <span className="block font-extrabold text-ink/80">
+                                            {invitation.name ?? '—'}
+                                        </span>
                                         <span className="block font-mono text-[11px] text-ink/45">
-                                            {invitation.employee_number ?? 'دعوة — لم يُفعّل بعد'}
+                                            {invitation.employee_number ??
+                                                'دعوة — لم يُفعّل بعد'}
                                         </span>
                                     </Td>
-                                    <Td className="font-mono text-[11px] text-ink/60" dir="ltr">
+                                    <Td
+                                        className="font-mono text-[11px] text-ink/60"
+                                        dir="ltr"
+                                    >
                                         {invitation.email ?? '—'}
                                     </Td>
-                                    <Td className="font-mono text-[11px] font-bold text-ink/70" dir="ltr">
+                                    <Td
+                                        className="font-mono text-[11px] font-bold text-ink/70"
+                                        dir="ltr"
+                                    >
                                         {invitation.phone ?? '—'}
                                     </Td>
-                                    <Td className="text-ink/70">{invitation.department?.name ?? '—'}</Td>
+                                    <Td className="text-ink/70">
+                                        {invitation.department?.name ?? '—'}
+                                    </Td>
                                     <Td>
                                         {invitation.status === 'expired' ? (
-                                            <Badge tone="danger">انتهت صلاحية الرابط</Badge>
+                                            <Badge tone="danger">
+                                                انتهت صلاحية الرابط
+                                            </Badge>
                                         ) : (
                                             <Badge tone="info" icon={Clock}>
                                                 رابط مرسل
                                             </Badge>
                                         )}
                                         {invitation.expires_at && (
-                                            <span className="block font-mono text-[10px] text-ink/45 mt-0.5">
-                                                {new Date(invitation.expires_at).toLocaleDateString('ar-SA')}
+                                            <span className="mt-0.5 block font-mono text-[10px] text-ink/45">
+                                                {new Date(
+                                                    invitation.expires_at,
+                                                ).toLocaleDateString('ar-SA')}
                                             </span>
                                         )}
                                     </Td>
@@ -209,7 +293,11 @@ export default function CompanyEmployees({
                                             icon={Send}
                                             label="إعادة إرسال الدعوة"
                                             onClick={() =>
-                                                router.post(`/company/invitations/${invitation.id}/resend`, {}, { preserveScroll: true })
+                                                router.post(
+                                                    `/company/invitations/${invitation.id}/resend`,
+                                                    {},
+                                                    { preserveScroll: true },
+                                                )
                                             }
                                         />
                                     </Td>
@@ -219,24 +307,44 @@ export default function CompanyEmployees({
                         {employees.data.map((employee) => (
                             <Tr key={employee.id}>
                                 <Td>
-                                    <span className="flex items-center gap-1.5 flex-wrap">
-                                        <Link href={`/company/employees/${employee.id}/edit`} className="font-extrabold text-ink hover:underline">
+                                    <span className="flex flex-wrap items-center gap-1.5">
+                                        <Link
+                                            href={`/company/employees/${employee.id}/edit`}
+                                            className="font-extrabold text-ink hover:underline"
+                                        >
                                             {employee.name}
                                         </Link>
-                                        {leaders.has(employee.id) && <Badge tone="lead">قائد مجتمع</Badge>}
+                                        {leaders.has(employee.id) && (
+                                            <Badge tone="lead">
+                                                قائد مجتمع
+                                            </Badge>
+                                        )}
                                     </span>
-                                    <span className="block font-mono text-[11px] text-ink/50">{employee.employee_number ?? '—'}</span>
+                                    <span className="block font-mono text-[11px] text-ink/50">
+                                        {employee.employee_number ?? '—'}
+                                    </span>
                                 </Td>
-                                <Td className="font-mono text-[11px] text-ink/70" dir="ltr">
+                                <Td
+                                    className="font-mono text-[11px] text-ink/70"
+                                    dir="ltr"
+                                >
                                     {employee.email}
                                 </Td>
-                                <Td className="font-mono text-[11px] font-bold text-ink" dir="ltr">
+                                <Td
+                                    className="font-mono text-[11px] font-bold text-ink"
+                                    dir="ltr"
+                                >
                                     {employee.phone ?? '—'}
                                 </Td>
-                                <Td className="text-ink/85">{employee.department?.name ?? 'بلا إدارة'}</Td>
+                                <Td className="text-ink/85">
+                                    {employee.department?.name ?? 'بلا إدارة'}
+                                </Td>
                                 <Td>
                                     {employee.status === 'active' ? (
-                                        <Badge tone="success" icon={CircleCheckBig}>
+                                        <Badge
+                                            tone="success"
+                                            icon={CircleCheckBig}
+                                        >
                                             مفعّل
                                         </Badge>
                                     ) : (
@@ -246,20 +354,34 @@ export default function CompanyEmployees({
                                     )}
                                 </Td>
                                 <Td>
-                                    <span className="font-mono font-bold text-ink">{employee.events_count}</span>
-                                    <span className="block text-[10px] text-ink/50">فعالية</span>
+                                    <span className="font-mono font-bold text-ink">
+                                        {employee.events_count}
+                                    </span>
+                                    <span className="block text-[10px] text-ink/50">
+                                        فعالية
+                                    </span>
                                 </Td>
                                 <Td className="text-center">
                                     <div className="flex items-center justify-center gap-1.5">
                                         <Link
                                             href={`/company/employees/${employee.id}/edit`}
                                             title="تعديل الموظف"
-                                            className="p-1.5 rounded-lg bg-ink/5 hover:bg-ink/10 text-ink transition-colors"
+                                            className="rounded-lg bg-ink/5 p-1.5 text-ink transition-colors hover:bg-ink/10"
                                         >
-                                            <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+                                            <Pencil
+                                                className="h-3.5 w-3.5"
+                                                aria-hidden="true"
+                                            />
                                         </Link>
                                         {employee.status !== 'inactive' && (
-                                            <IconButton icon={UserX} label="تعطيل الحساب" tone="danger" onClick={() => setDeactivating(employee)} />
+                                            <IconButton
+                                                icon={UserX}
+                                                label="تعطيل الحساب"
+                                                tone="danger"
+                                                onClick={() =>
+                                                    setDeactivating(employee)
+                                                }
+                                            />
                                         )}
                                     </div>
                                 </Td>
@@ -267,7 +389,12 @@ export default function CompanyEmployees({
                         ))}
 
                         <ListStates
-                            count={employees.data.length + (showInvitations ? pendingInvitations.length : 0)}
+                            count={
+                                employees.data.length +
+                                (showInvitations
+                                    ? pendingInvitations.length
+                                    : 0)
+                            }
                             colSpan={7}
                             empty="لا موظفين مطابقين."
                             emptyHint="ادعُ موظفاً واحداً، أو ارفع ملف الموظفين دفعة واحدة."
@@ -277,12 +404,13 @@ export default function CompanyEmployees({
 
                 {showInvitations && (
                     <p className="text-[11px] text-ink/50">
-                        الصفوف الباهتة في الأعلى دعوات لم تُقبل بعد — ليست حسابات، ولا تُحتسب في الفوترة. الترقيم أدناه يخصّ الموظفين
-                        المسجّلين وحدهم.
+                        الصفوف الباهتة في الأعلى دعوات لم تُقبل بعد — ليست
+                        حسابات، ولا تُحتسب في الفوترة. الترقيم أدناه يخصّ
+                        الموظفين المسجّلين وحدهم.
                     </p>
                 )}
 
-                <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <ResultCount page={employees} />
                     <Pagination page={employees} />
                 </div>
@@ -296,16 +424,34 @@ export default function CompanyEmployees({
                 details={
                     deactivating && (
                         <>
-                            <ConfirmRow label="الموظف" value={deactivating.name} strong />
-                            <ConfirmRow label="القسم" value={deactivating.department?.name ?? 'بلا إدارة'} />
-                            <ConfirmRow label="مجتمعاته" value={`${deactivating.communities?.length ?? 0} مجتمعاً يخرج منها`} />
-                            <ConfirmRow label="أثر الفوترة" value="لا يُحتسب ضمن الموظفين المفعَّلين في الدورة القادمة" strong />
+                            <ConfirmRow
+                                label="الموظف"
+                                value={deactivating.name}
+                                strong
+                            />
+                            <ConfirmRow
+                                label="القسم"
+                                value={
+                                    deactivating.department?.name ?? 'بلا إدارة'
+                                }
+                            />
+                            <ConfirmRow
+                                label="مجتمعاته"
+                                value={`${deactivating.communities?.length ?? 0} مجتمعاً يخرج منها`}
+                            />
+                            <ConfirmRow
+                                label="أثر الفوترة"
+                                value="لا يُحتسب ضمن الموظفين المفعَّلين في الدورة القادمة"
+                                strong
+                            />
                         </>
                     )
                 }
                 confirmLabel="نعم، عطّل الحساب"
                 onConfirm={() => {
-                    router.delete(`/company/employees/${deactivating?.id}`, { preserveScroll: true });
+                    router.delete(`/company/employees/${deactivating?.id}`, {
+                        preserveScroll: true,
+                    });
                     setDeactivating(null);
                 }}
                 onCancel={() => setDeactivating(null)}

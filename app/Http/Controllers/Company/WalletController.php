@@ -14,6 +14,7 @@ use App\Services\Company\WalletService;
 use App\Services\Wallet\TopupRequestService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -150,7 +151,7 @@ class WalletController extends Controller
     /**
      * مرجع القيد كما يُقرأ لا كما يُخزَّن.
      *
-     * @param  \Illuminate\Support\Collection<int, string|null>  $bankReferences
+     * @param  Collection<int, string|null>  $bankReferences
      */
     private function ledgerReference(WalletTransaction $tx, $bankReferences): ?string
     {

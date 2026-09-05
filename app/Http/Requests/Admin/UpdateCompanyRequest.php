@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\Role;
+use App\Models\RoleAssignment;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateCompanyRequest extends FormRequest
 {
@@ -32,6 +35,15 @@ class UpdateCompanyRequest extends FormRequest
             'contact_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'contact_phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'city' => ['sometimes', 'string', 'max:255'],
+            // وكيل الدعم المتابع — اختياري، ويجب أن يكون وكيل دعم فعلاً.
+            // بلا هذا الشرط يصير الحقل باباً لإسناد أي مستخدم، فيظهر على ملف
+            // الشركة اسمٌ لا يملك أصلاً صلاحية فتح شاشات الدعم.
+            'support_agent_user_id' => [
+                'sometimes', 'nullable', 'integer',
+                Rule::exists('role_assignments', 'user_id')
+                    ->where('role', Role::SupportAgent->value)
+                    ->where('scope_type', RoleAssignment::SCOPE_PLATFORM),
+            ],
             'status' => ['sometimes', 'string', 'in:pending,review,active,rejected'],
         ];
     }

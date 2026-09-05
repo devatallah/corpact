@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\URL;
 #[Fillable([
     'event_id', 'employee_id', 'company_id',
     'amount_halalas', 'base_amount_halalas', 'vat_amount_halalas', 'currency',
-    'status', 'gateway', 'gateway_reference', 'idempotency_key',
+    'status', 'gateway', 'payment_method', 'gateway_reference', 'idempotency_key',
     'expires_at', 'paid_at', 'cancelled_at',
     'refund_status', 'refund_reason', 'refund_idempotency_key',
     'refund_attempts', 'refund_last_error', 'refunded_at',

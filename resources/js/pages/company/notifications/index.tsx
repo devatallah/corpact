@@ -2,12 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { Bell, BellRing, Check, CheckCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
-import {
-    Pagination,
-    ResultCount,
-    SortableHeader,
-    Toolbar,
-} from '@/components/list-controls';
+import { FilterSelect, Pagination, ResultCount, SortableHeader, Toolbar } from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
 import { FormActions, FormSection } from '@/components/portal/form';
 import {
@@ -50,12 +45,15 @@ export default function CompanyNotifications({
     notifications,
     sort,
     unreadCount,
+    totalCount,
+    filters,
 }: {
     company: { id: number; name: string };
     notifications: Paginated<NotificationRow>;
-    filters: Record<string, unknown>;
+    filters: { unread_only?: boolean | string };
     sort: SortState;
     unreadCount: number;
+    totalCount: number;
     unreadNotifications: number;
 }) {
     const form = useForm({ title: '', body: '', type: 'note' });
@@ -95,7 +93,7 @@ export default function CompanyNotifications({
                     value={unreadCount}
                     tone={unreadCount > 0 ? 'warning' : 'success'}
                 />
-                <StatCard label="الإجمالي" value={notifications.total} />
+                <StatCard label="الإجمالي" value={totalCount} />
             </div>
 
             {/* ── ملاحظة داخلية ── */}
@@ -150,6 +148,15 @@ export default function CompanyNotifications({
 
             <Card padding="p-4" className="space-y-4">
                 <Toolbar>
+                    <FilterSelect
+                        name="unread_only"
+                        label="العرض"
+                        value={filters.unread_only ? '1' : ''}
+                        options={[
+                            ['', 'كل الإشعارات'],
+                            ['1', 'غير المقروءة فقط'],
+                        ]}
+                    />
                     <span className="text-[11px] text-ink/50">
                         أحدث الإشعارات أولاً.
                     </span>

@@ -39,6 +39,9 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
     'venues_count',
     'total_amount',
     'total_amount_halalas',
+    // A17 — عاد مسار الكتابة بعودة الميزة (كان أرشيف A10 قراءةً فقط).
+    'discount_id',
+    'discount_amount_halalas',
     'subsidy_type',
     'subsidy_value',
     'max_share_halalas',
@@ -263,8 +266,19 @@ class Event extends Model
 
     public function setDiscountAmountAttribute(mixed $value): void
     {
-        // أرشيف الميزة المحذوفة — لا مسار كتابة جديداً؛ يُبتلع الإدخال القديم.
+        // A17 — الكتابة الحقيقية بالهللة عبر `discount_amount_halalas`؛ هذا
+        // المُحوِّل يقبل الريالات للتوافق مع النداءات القديمة.
         $this->attributes['discount_amount_halalas'] = $value === null ? null : Money::toHalalas($value);
+    }
+
+    /**
+     * A17 — التخفيض المطبَّق، إن وُجد.
+     *
+     * @return BelongsTo<Discount, $this>
+     */
+    public function discount(): BelongsTo
+    {
+        return $this->belongsTo(Discount::class);
     }
 
     public function getRefundAmountAttribute(): ?string

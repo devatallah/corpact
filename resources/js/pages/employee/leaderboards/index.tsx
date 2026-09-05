@@ -1,8 +1,9 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { Medal, Repeat, Target } from 'lucide-react';
 import { useState } from 'react';
+import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import { ListStates } from '@/components/list-states';
-import { Badge, Card, Note, PageHeader } from '@/components/portal/ui';
+import { Badge, Button, Card, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
 import EmployeeLayout from '@/layouts/employee-layout';
 
 /**
@@ -47,6 +48,7 @@ export default function EmployeeLeaderboards({
     season,
     boards,
     myEmployeeId,
+    canManageSeasons,
 }: {
     communities: { id: number; name: string }[];
     community: { id: number; name: string } | null;
@@ -86,6 +88,9 @@ export default function EmployeeLeaderboards({
     myEmployeeId: number;
 }) {
     const [board, setBoard] = useState<'consistency' | 'skill'>('consistency');
+    const [creatingSeason, setCreatingSeason] = useState(false);
+    const [closingSeason, setClosingSeason] = useState(false);
+    const seasonForm = useForm({ name: '', starts_on: '', ends_on: '' });
     const [level, setLevel] = useState<'individual' | 'department'>(
         'individual',
     );
@@ -178,6 +183,73 @@ export default function EmployeeLeaderboards({
                     </span>
                 )}
             </Card>
+
+            {/* ── إدارة المواسم ── */}
+            {canManageSeasons && (
+                <Card padding="p-3" className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                        <h2 className="text-xs font-extrabold text-ink">إدارة المواسم</h2>
+                        <Button type="button" tone="soft" onClick={() => setCreatingSeason(!creatingSeason)}>
+                            {creatingSeason ? 'إلغاء' : 'موسم مخصّص'}
+                        </Button>
+                    </div>
+
+                    {creatingSeason && (
+                        <form
+                            onSubmit={(submitEvent) => {
+                                submitEvent.preventDefault();
+                                seasonForm.post(`/employee/community/${community.id}/seasons`, {
+                                    preserveScroll: true,
+                                    onSuccess: () => {
+                                        seasonForm.reset();
+                                        setCreatingSeason(false);
+                                    },
+                                });
+                            }}
+                            className="space-y-2"
+                        >
+                            <Field label="اسم الموسم" error={seasonForm.errors.name} required>
+                                <input
+                                    className={INPUT}
+                                    value={seasonForm.data.name}
+                                    onChange={(changeEvent) => seasonForm.setData('name', changeEvent.target.value)}
+                                />
+                            </Field>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <Field label="يبدأ في" error={seasonForm.errors.starts_on} required>
+                                    <input
+                                        type="date"
+                                        dir="ltr"
+                                        className={INPUT}
+                                        value={seasonForm.data.starts_on}
+                                        onChange={(changeEvent) => seasonForm.setData('starts_on', changeEvent.target.value)}
+                                    />
+                                </Field>
+                                <Field label="ينتهي في" error={seasonForm.errors.ends_on} required>
+                                    <input
+                                        type="date"
+                                        dir="ltr"
+                                        className={INPUT}
+                                        value={seasonForm.data.ends_on}
+                                        onChange={(changeEvent) => seasonForm.setData('ends_on', changeEvent.target.value)}
+                                    />
+                                </Field>
+                            </div>
+
+                            <Button type="submit" disabled={seasonForm.processing}>
+                                أنشئ الموسم
+                            </Button>
+                        </form>
+                    )}
+
+                    {season && season.status !== 'closed' && (
+                        <Button type="button" tone="danger" onClick={() => setClosingSeason(true)}>
+                            أغلق «{season.name}»
+                        </Button>
+                    )}
+                </Card>
+            )}
 
             {/* ── تبديل اللوحة ── */}
             <div className="grid grid-cols-2 gap-2">
@@ -301,6 +373,27 @@ export default function EmployeeLeaderboards({
                 المواسم دورية؛ وعند انتهاء الموسم تُؤرشف اللوحة في السجلات ولا تُحذف أي نتيجة سابقة، ويبدأ الموسم الجديد من الصفر
                 — تكافؤاً للفرص مع كل زميل انضم حديثاً.
             </Note>
+            <ConfirmModal
+                open={closingSeason}
+                tone="danger"
+                title="إغلاق الموسم"
+                message="تُؤرشف اللوحة كما هي في السجلات ولا تُحذف أي نتيجة. يبدأ الموسم التالي من الصفر — وهذا ما يجعل زميلاً انضم حديثاً قادراً على المنافسة."
+                details={
+                    season && (
+                        <>
+                            <ConfirmRow label="الموسم" value={season.name} strong />
+                            <ConfirmRow label="المدة" value={`${season.starts_on} — ${season.ends_on}`} />
+                            <ConfirmRow label="المجتمع" value={community?.name ?? '—'} />
+                        </>
+                    )
+                }
+                confirmLabel="نعم، أغلق الموسم"
+                onConfirm={() => {
+                    router.post(`/employee/seasons/${season?.id}/close`, {}, { preserveScroll: true });
+                    setClosingSeason(false);
+                }}
+                onCancel={() => setClosingSeason(false)}
+            />
         </EmployeeLayout>
     );
 }

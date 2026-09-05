@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Models\SupportMessage;
 use App\Support\Lists\ListSort;
 use Illuminate\Http\RedirectResponse;
@@ -12,6 +14,23 @@ use Inertia\Response;
 
 class SupportMessageController extends Controller
 {
+    /** G/«دليل وكيل الدعم» — «ما لا تفعله — يُصعَّد فوراً»، بنصّه. */
+    private const ESCALATION_LABELS = [
+        'event.force_state' => 'تغيير حالة فعالية يدوياً',
+        'attendance.edit_post_window' => 'تعديل الحضور بعد نافذة الـ٢٤ ساعة',
+        'attendance.edit' => 'تعديل قائمة الحاضرين',
+        'results.correct' => 'تصحيح النتائج',
+        'provider.reliability.adjust' => 'تعديل مؤشر موثوقية مزوّد',
+        'admins.manage' => 'تغيير صلاحية أو دور',
+        'platform.manage' => 'إعدادات المنصة والفئات',
+        'catalog.manage' => 'شجرة الفئات والأنشطة',
+        'refund.approve' => 'أي استرداد أو تصحيح مالي',
+        'wallet.topup.approve' => 'اعتماد تحويل بنكي',
+        'wallet.topup.unapprove' => 'إلغاء اعتماد تحويل',
+        'settlement.approve' => 'اعتماد كشف تسوية أو صرفه',
+        'invoice.approve' => 'الفواتير الشهرية',
+    ];
+
     /**
      * H §18 — الأعمدة المسموح الترتيب بها. كلها معروضة في الجدول أصلاً
      * (المرسل · الموضوع · الحالة · التاريخ). الافتراضي هو ترتيب الشاشة السابق
@@ -41,7 +60,9 @@ class SupportMessageController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('subject', 'like', "%{$search}%");
+                    ->orWhere('subject', 'like', "%{$search}%")
+                    // اسم الشركة أوّل ما يُبحث به في متابعة طلب عرض.
+                    ->orWhere('company_name', 'like', "%{$search}%");
             });
         }
 
@@ -63,6 +84,17 @@ class SupportMessageController extends Controller
                 'resolved' => SupportMessage::where('status', 'resolved')->count(),
             ],
             'filters' => (object) $request->only('search', 'status', 'sort', 'dir'),
+            // مصفوفة التصعيد ومَن تصعَّد إليه — نفس الجدول الذي يعرضه دليل
+            // وكيل الدعم، مقروءاً من الأدوار لا مكتوباً في الواجهة.
+            'escalation' => collect(Role::escalationMatrix())
+                ->map(fn (Role $role, string $permission) => [
+                    'action' => $permission,
+                    'label' => self::ESCALATION_LABELS[$permission] ?? $permission,
+                    'role' => $role->label(),
+                ])
+                ->values()
+                ->all(),
+            'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
             'sort' => self::sort()->state($request->query('sort'), $request->query('dir')),
         ]);
     }

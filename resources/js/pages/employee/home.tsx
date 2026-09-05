@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
     CalendarDays,
@@ -12,6 +12,7 @@ import {
     Users,
 } from 'lucide-react';
 import { ListState } from '@/components/list-states';
+import { Button } from '@/components/portal/ui';
 import EmployeeLayout from '@/layouts/employee-layout';
 
 /**
@@ -26,6 +27,8 @@ type PendingPayment = {
     amount: number;
     expires_at: string;
     minutes_left: number;
+    /** مطالبات مفتوحة أخرى غير هذه — تُذكر ولا تُعرض بطاقاتٍ كاملة. */
+    other_claims: number;
     event: {
         id: number;
         title: string;
@@ -83,6 +86,21 @@ type Leaderboard = {
     }[];
 };
 
+type QuickMatch = {
+    id: number;
+    message: string | null;
+    votes_count: number;
+    my_vote_option_id: number | null;
+    viewer_is_leader: boolean;
+    community?: { id: number; name: string } | null;
+    options?: {
+        id: number;
+        proposed_date: string;
+        proposed_time: string | null;
+        votes_count?: number;
+    }[];
+};
+
 export default function EmployeeHome({
     pendingPayment,
     communities,
@@ -91,6 +109,7 @@ export default function EmployeeHome({
     activityStats,
     challenges,
     leaderboard,
+    quickMatches,
 }: {
     pendingPayment: PendingPayment | null;
     employee: { id: number; name: string; company_id: number };
@@ -105,7 +124,7 @@ export default function EmployeeHome({
     };
     challenges: Challenge[];
     leaderboard: Leaderboard;
-    quickMatches: unknown[];
+    quickMatches: QuickMatch[];
 }) {
     const joined = new Set(joinedEventIds);
     const nextConfirmed = events.find((event) => joined.has(event.id));
@@ -264,6 +283,102 @@ export default function EmployeeHome({
                     </Link>
                 </div>
             </section>
+
+            {/* ── تصويت سريع على موعد ── */}
+            {quickMatches.length > 0 && (
+                <section className="space-y-2.5">
+                    <h2 className="px-1 text-xs font-black text-ink">
+                        تصويت سريع على موعد
+                    </h2>
+                    <p className="px-1 text-[11px] leading-relaxed text-ink/60">
+                        زميلك يبحث عن موعد يناسب الأغلبية قبل أن يحجز. صوّتك
+                        يساعده — ولا يُلزمك بالحضور.
+                    </p>
+
+                    {quickMatches.map((match) => (
+                        <div
+                            key={match.id}
+                            className="space-y-2 rounded-2xl border-[0.5px] border-ink/15 bg-surface p-3"
+                        >
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                    <span className="block text-xs font-extrabold text-ink">
+                                        {match.community?.name ?? '—'}
+                                    </span>
+                                    {match.message && (
+                                        <span className="block text-[11px] leading-relaxed text-ink/60">
+                                            {match.message}
+                                        </span>
+                                    )}
+                                </div>
+                                <span className="shrink-0 font-mono text-[10px] text-ink/45">
+                                    {match.votes_count} صوتاً
+                                </span>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                {(match.options ?? []).map((option) => {
+                                    const mine =
+                                        match.my_vote_option_id === option.id;
+
+                                    return (
+                                        <button
+                                            key={option.id}
+                                            type="button"
+                                            disabled={
+                                                match.my_vote_option_id !== null
+                                            }
+                                            onClick={() =>
+                                                router.post(
+                                                    `/employee/quick-match/${match.id}/vote`,
+                                                    { option_id: option.id },
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                            className={`w-full rounded-xl border-[0.5px] p-2 text-start transition-colors disabled:cursor-default ${
+                                                mine
+                                                    ? 'border-ink bg-lime/25'
+                                                    : 'border-ink/12 bg-page hover:border-ink/30'
+                                            }`}
+                                        >
+                                            <span className="flex items-center justify-between gap-2">
+                                                <span
+                                                    className="font-mono text-[11px] font-bold text-ink"
+                                                    dir="ltr"
+                                                >
+                                                    {option.proposed_date} ·{' '}
+                                                    {option.proposed_time?.slice(
+                                                        0,
+                                                        5,
+                                                    )}
+                                                </span>
+                                                <span className="font-mono text-[10px] text-ink/55">
+                                                    {option.votes_count ?? 0}
+                                                </span>
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {match.viewer_is_leader && (
+                                <Button
+                                    type="button"
+                                    onClick={() =>
+                                        router.post(
+                                            `/employee/quick-match/${match.id}/convert`,
+                                            {},
+                                            { preserveScroll: true },
+                                        )
+                                    }
+                                >
+                                    حوّله إلى فعالية بالموعد الفائز
+                                </Button>
+                            )}
+                        </div>
+                    ))}
+                </section>
+            )}
 
             {/* ── فعاليات مقترحة ── */}
             <section className="space-y-2.5">
@@ -587,6 +702,21 @@ function PaymentClaim({ claim }: { claim: PendingPayment }) {
                             />
                         </Link>
                     </div>
+
+                    {/* الأعجل وحده يأخذ بطاقة؛ البقية سطر يقود إليها. */}
+                    {claim.other_claims > 0 && (
+                        <Link
+                            href="/employee/payments"
+                            className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border-[0.5px] border-white/15 px-3 py-2 text-[11px] font-bold text-white/80 transition-colors hover:bg-white/10"
+                        >
+                            ولديك {claim.other_claims}{' '}
+                            {claim.other_claims === 1
+                                ? 'مطالبة أخرى مفتوحة'
+                                : 'مطالبات أخرى مفتوحة'}{' '}
+                            — عرض الكل
+                            <ArrowLeft className="h-3 w-3" aria-hidden="true" />
+                        </Link>
+                    )}
                 </div>
             </div>
         </section>

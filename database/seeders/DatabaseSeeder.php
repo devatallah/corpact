@@ -11,6 +11,7 @@ use App\Models\CommunityAnnouncement;
 use App\Models\CommunityPoll;
 use App\Models\Company;
 use App\Models\Department;
+use App\Models\Discount;
 use App\Models\Employee;
 use App\Models\Invitation;
 use App\Models\League;
@@ -37,8 +38,22 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
+    /** أي رقم يصلح — المهم أنه لا يتغيّر بين التشغيلات. */
+    private const RANDOM_SEED = 20260904;
+
     public function run(): void
     {
+        // بذرة ثابتة للعشوائية كلها.
+        //
+        // البذر السابق كان يفشل نحو مرة من كل ثلاث: أعداد الأعضاء وحالات
+        // الملاعب تُشتق من `fake()` و`rand()`، فتختلف البيانات كل تشغيل
+        // وتسقط سيناريوهات تعتمد عليها. بيانات العرض يجب أن تكون قابلة
+        // لإعادة الإنتاج — ما يُرى في جهاز يُرى في غيره، وما يفشل يفشل دائماً
+        // فيُصلَح بدل أن يُعاد التشغيل حتى ينجح.
+        mt_srand(self::RANDOM_SEED);
+        srand(self::RANDOM_SEED);
+        fake()->seed(self::RANDOM_SEED);
+
         // ╔══════════════════════════════════════════════════════════╗
         // ║  NOTIFICATION TEMPLATES (A14 — H §14)                    ║
         // ╚══════════════════════════════════════════════════════════╝
@@ -110,11 +125,16 @@ class DatabaseSeeder extends Seeder
         foreach (range(1, 4) as $i) {
             $venue = Venue::factory()->create(['partner_id' => $biz1->id, 'category_id' => $padelCat->id, 'name' => "ملعب بادل $i"]);
             $biz1Venues->push($venue);
-            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 150, 'is_peak' => false, 'label' => 'صباحي', 'start_time' => '06:00', 'end_time' => '16:00', 'days' => [0, 1, 2, 3]]);
-            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 250, 'is_peak' => true, 'label' => 'مسائي', 'start_time' => '16:00', 'end_time' => '23:00', 'days' => [0, 1, 2, 3]]);
-            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 300, 'is_peak' => true, 'label' => 'نهاية الأسبوع', 'start_time' => '06:00', 'end_time' => '23:00', 'days' => [4, 5]]);
-            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 90, 'price' => 220, 'is_peak' => false, 'label' => 'صباحي', 'start_time' => '06:00', 'end_time' => '16:00']);
-            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 90, 'price' => 350, 'is_peak' => true, 'label' => 'مسائي', 'start_time' => '16:00', 'end_time' => '23:00']);
+
+            // الملاعب لا تتساوى أسعارها: ملعب بإضاءة أحدث أغلى من جاره. كانت
+            // كلها بسعر واحد، فتفصيل السعر لكل ملعب يبدو زينةً بلا معنى —
+            // ولا يُكتشف خطأ في الجمع لأن كل الأرقام متطابقة.
+            $bump = ($i - 1) * 25;
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 150 + $bump, 'is_peak' => false, 'label' => 'صباحي', 'start_time' => '06:00', 'end_time' => '16:00', 'days' => [0, 1, 2, 3]]);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 250 + $bump, 'is_peak' => true, 'label' => 'مسائي', 'start_time' => '16:00', 'end_time' => '23:00', 'days' => [0, 1, 2, 3]]);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 300 + $bump, 'is_peak' => true, 'label' => 'نهاية الأسبوع', 'start_time' => '06:00', 'end_time' => '23:00', 'days' => [4, 5]]);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 90, 'price' => 220 + $bump, 'is_peak' => false, 'label' => 'صباحي', 'start_time' => '06:00', 'end_time' => '16:00']);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 90, 'price' => 350 + $bump, 'is_peak' => true, 'label' => 'مسائي', 'start_time' => '16:00', 'end_time' => '23:00']);
         }
         $biz1Tennis = Venue::factory()->create(['partner_id' => $biz1->id, 'category_id' => $tennisCat->id, 'name' => 'ملعب تنس 1']);
         $biz1Venues->push($biz1Tennis);
@@ -173,6 +193,130 @@ class DatabaseSeeder extends Seeder
         $basketVenue = Venue::factory()->create(['partner_id' => $biz3->id, 'category_id' => $basketballCat->id, 'name' => 'ملعب سلة']);
         $biz3Venues->push($basketVenue);
         VenuePricing::factory()->create(['venue_id' => $basketVenue->id, 'duration_minutes' => 60, 'price' => 250]);
+
+        /*
+         * ── مزوّدون 7–10: عمق الاختيار ──
+         *
+         * كان لكل فئة مزوّد أو اثنان فقط، فيكفي أن يكون أحدهما مشغولاً ليصير
+         * «لا يوجد مزوّد مناسب» هو الحال الطبيعي في شاشة الإنشاء — والمنصة
+         * كلها مبنية على **ترتيب** اقتراحات، وترتيبُ عنصرٍ واحد لا معنى له.
+         * كل فئة الآن ثلاثة مزوّدين على الأقل في مدن مختلفة، فيظهر معيار
+         * «القرب» و«عدم التكرار» أثرهما، ويبقى بديل حين يمتلئ الأول.
+         *
+         * الفروع والوحدات تُشتق تلقائياً في `PlatformCatalogSeeder` من كل
+         * مزوّد له ملاعب — فلا شيء يُضاف هنا غير الملاعب وتسعيراتها.
+         */
+        $biz7 = Partner::factory()->create([
+            'name' => 'نادي الملقا الرياضي',
+            'email' => 'malqa@teamat.com',
+            'password' => Hash::make('123456'),
+            'city' => 'الرياض',
+            'district' => 'حي الملقا',
+            'contact_name' => 'ناصر الدوسري',
+            'contact_phone' => '0533000007',
+            'contact_title' => 'مدير التشغيل',
+            'working_hours' => '06:00 - 23:00',
+            'rating' => 4.5,
+            'total_bookings' => 118,
+            'commission_rate' => 11.00,
+        ]);
+        $biz7->categories()->attach([$padelCat->id, $footballCat->id]);
+
+        $biz7Venues = collect();
+        foreach (range(1, 2) as $i) {
+            $venue = Venue::factory()->create(['partner_id' => $biz7->id, 'category_id' => $padelCat->id, 'name' => "ملعب بادل $i"]);
+            $biz7Venues->push($venue);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 165 + ($i - 1) * 20, 'is_peak' => false, 'label' => 'صباحي', 'start_time' => '06:00', 'end_time' => '16:00']);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 265 + ($i - 1) * 20, 'is_peak' => true, 'label' => 'مسائي', 'start_time' => '16:00', 'end_time' => '23:00']);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 90, 'price' => 240 + ($i - 1) * 20, 'is_peak' => false, 'label' => 'صباحي', 'start_time' => '06:00', 'end_time' => '16:00']);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 90, 'price' => 365 + ($i - 1) * 20, 'is_peak' => true, 'label' => 'مسائي', 'start_time' => '16:00', 'end_time' => '23:00']);
+        }
+        $biz7Football = Venue::factory()->create(['partner_id' => $biz7->id, 'category_id' => $footballCat->id, 'name' => 'ملعب كرة قدم']);
+        $biz7Venues->push($biz7Football);
+        VenuePricing::factory()->create(['venue_id' => $biz7Football->id, 'duration_minutes' => 60, 'price' => 320]);
+        VenuePricing::factory()->create(['venue_id' => $biz7Football->id, 'duration_minutes' => 90, 'price' => 460]);
+
+        $biz8 = Partner::factory()->create([
+            'name' => 'مجمع النرجس متعدد الرياضات',
+            'email' => 'narjes@teamat.com',
+            'password' => Hash::make('123456'),
+            'city' => 'الرياض',
+            'district' => 'حي النرجس',
+            'contact_name' => 'ريم الشهري',
+            'contact_phone' => '0533000008',
+            'contact_title' => 'مسؤولة الحجوزات',
+            'working_hours' => '06:00 - 23:00',
+            'rating' => 4.2,
+            'total_bookings' => 64,
+            'commission_rate' => 12.00,
+        ]);
+        $biz8->categories()->attach([$tennisCat->id, $basketballCat->id, $padelCat->id]);
+
+        $biz8Venues = collect();
+        foreach (range(1, 2) as $i) {
+            $venue = Venue::factory()->create(['partner_id' => $biz8->id, 'category_id' => $tennisCat->id, 'name' => "ملعب تنس $i"]);
+            $biz8Venues->push($venue);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 135 + ($i - 1) * 15, 'is_peak' => false, 'label' => 'خارج الذروة', 'start_time' => '06:00', 'end_time' => '16:00']);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 210 + ($i - 1) * 15, 'is_peak' => true, 'label' => 'ذروة', 'start_time' => '16:00', 'end_time' => '23:00']);
+        }
+        $biz8Basket = Venue::factory()->create(['partner_id' => $biz8->id, 'category_id' => $basketballCat->id, 'name' => 'صالة سلة']);
+        $biz8Venues->push($biz8Basket);
+        VenuePricing::factory()->create(['venue_id' => $biz8Basket->id, 'duration_minutes' => 60, 'price' => 230]);
+        VenuePricing::factory()->create(['venue_id' => $biz8Basket->id, 'duration_minutes' => 90, 'price' => 330]);
+        $biz8Padel = Venue::factory()->create(['partner_id' => $biz8->id, 'category_id' => $padelCat->id, 'name' => 'ملعب بادل مغطّى']);
+        $biz8Venues->push($biz8Padel);
+        VenuePricing::factory()->create(['venue_id' => $biz8Padel->id, 'duration_minutes' => 60, 'price' => 190]);
+        VenuePricing::factory()->create(['venue_id' => $biz8Padel->id, 'duration_minutes' => 90, 'price' => 270]);
+
+        $biz9 = Partner::factory()->create([
+            'name' => 'أندية جدة للبادل',
+            'email' => 'jeddahpadel@teamat.com',
+            'password' => Hash::make('123456'),
+            'city' => 'جدة',
+            'district' => 'حي الشاطئ',
+            'contact_name' => 'وليد باعشن',
+            'contact_phone' => '0533000009',
+            'working_hours' => '06:00 - 23:00',
+            'rating' => 4.6,
+            'total_bookings' => 97,
+            'commission_rate' => 10.00,
+        ]);
+        $biz9->categories()->attach([$padelCat->id, $tennisCat->id]);
+
+        $biz9Venues = collect();
+        foreach (range(1, 3) as $i) {
+            $venue = Venue::factory()->create(['partner_id' => $biz9->id, 'category_id' => $padelCat->id, 'name' => "ملعب بادل $i"]);
+            $biz9Venues->push($venue);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 60, 'price' => 175 + ($i - 1) * 30]);
+            VenuePricing::factory()->create(['venue_id' => $venue->id, 'duration_minutes' => 90, 'price' => 255 + ($i - 1) * 30]);
+        }
+        $biz9Tennis = Venue::factory()->create(['partner_id' => $biz9->id, 'category_id' => $tennisCat->id, 'name' => 'ملعب تنس 1']);
+        $biz9Venues->push($biz9Tennis);
+        VenuePricing::factory()->create(['venue_id' => $biz9Tennis->id, 'duration_minutes' => 60, 'price' => 160]);
+
+        $biz10 = Partner::factory()->create([
+            'name' => 'مركز الخبر الرياضي',
+            'email' => 'khobarsports@teamat.com',
+            'password' => Hash::make('123456'),
+            'city' => 'الخبر',
+            'district' => 'حي العقربية',
+            'contact_name' => 'ماجد القحطاني',
+            'contact_phone' => '0533000010',
+            'working_hours' => '06:00 - 23:00',
+            'rating' => 3.9,
+            'total_bookings' => 31,
+            'commission_rate' => 15.00,
+        ]);
+        $biz10->categories()->attach([$footballCat->id, $basketballCat->id]);
+
+        $biz10Venues = collect();
+        $biz10Football = Venue::factory()->create(['partner_id' => $biz10->id, 'category_id' => $footballCat->id, 'name' => 'ملعب كرة قدم']);
+        $biz10Venues->push($biz10Football);
+        VenuePricing::factory()->create(['venue_id' => $biz10Football->id, 'duration_minutes' => 60, 'price' => 300]);
+        VenuePricing::factory()->create(['venue_id' => $biz10Football->id, 'duration_minutes' => 90, 'price' => 430]);
+        $biz10Basket = Venue::factory()->create(['partner_id' => $biz10->id, 'category_id' => $basketballCat->id, 'name' => 'صالة سلة']);
+        $biz10Venues->push($biz10Basket);
+        VenuePricing::factory()->create(['venue_id' => $biz10Basket->id, 'duration_minutes' => 60, 'price' => 240]);
 
         // ── Partner 4: Pending (waiting admin approval) ──
         $biz4 = Partner::factory()->pending()->create([
@@ -250,24 +394,70 @@ class DatabaseSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
-        // ── Slots / Schedule ──
-        $allvenues = $biz1Venues->merge($biz2Venues)->merge($biz3Venues);
-        $slotHours = [
-            ['06:00', '07:00'], ['07:00', '08:00'], ['08:00', '09:00'],
-            ['16:00', '17:00'], ['17:00', '18:00'], ['18:00', '19:00'],
-            ['19:00', '20:00'], ['20:00', '21:00'], ['21:00', '22:00'],
-            ['22:00', '23:00'],
+        /*
+         * ── الساعات المعروضة (slots) ──
+         *
+         * `slots` هي ما يعرضه المزوّد على ملعبه ليوم بعينه، ويوم له ساعات
+         * معروضة لا يُحجز خارجها (انظر `AvailabilityService::withinOfferedHours`).
+         *
+         * كانت كل الملاعب تُبذر بنفس النمط: صباح 06–09 ثم مساء 16–23، وبينهما
+         * **سبع ساعات ميتة على مستوى المنصة كلها**. أي موعد بين 09:00 و16:00
+         * داخل أسبوع الجدولة كان يُقصي كل المزوّدين بلا استثناء، فتظهر «لا
+         * يوجد مزوّد مناسب» وكأنها عطب في المنطق — وهي فجوة في البيانات.
+         *
+         * ثلاثة أنماط متناوبة تسدّ الفجوة وتبقى واقعية: مرفق يفتح النهار
+         * كاملاً، وآخر صباحي/مسائي، وثالث نهاري/مسائي. لا ساعة من 06:00 إلى
+         * 23:00 بلا مرفق يعرضها.
+         */
+        $allvenues = $biz1Venues->merge($biz2Venues)->merge($biz3Venues)
+            ->merge($biz7Venues)->merge($biz8Venues)->merge($biz9Venues)->merge($biz10Venues);
+
+        /*
+         * الفتحة **نافذة عمل متصلة**، لا كتلة حجز ثابتة.
+         *
+         * `slots` هي الساعات التي يعرضها المزوّد، و`unit_slots` هي ما حُجز
+         * منها — والبذرة كانت تخلط بينهما: صفوف بالساعة، بعضها مختوم
+         * `booked` عشوائياً وكأن العرض نفسه هو الحجز.
+         *
+         * وللخلط أثر يقتل الشاشة: الحجز لا يصحّ إلا داخل فتحة معروضة **واحدة**
+         * (`AvailabilityService::withinOfferedHours`)، ووحدات النشاط مبذورة
+         * بمدة افتراضية 90 دقيقة — وهي المدة التي يفحص بها مُقترِح المزوّدين
+         * حين لا ترسل الشاشة مدة. فتحة الساعة لا تسع 90 دقيقة أبداً، فكان كل
+         * مزوّد يُقصى بـ«غير متاح في الوقت المطلوب» في **كل** ساعة من أسبوع
+         * الجدولة: لا اقتراح واحد داخل النافذة المعروضة. وفتحة الساعتين تصلح
+         * لبداية على رأس الكتلة وحدها، فتموت الساعات الفردية.
+         *
+         * النافذة المتصلة تسع أي مدة تبيعها الملاعب (60 و90) وأي وقت بدء
+         * داخلها، ويبقى ما حُجز فعلاً في `unit_slots` حيث يخصّه.
+         */
+        $patterns = [
+            [['06:00', '23:00']],                       // النهار كاملاً
+            [['06:00', '10:00'], ['16:00', '23:00']],   // صباحي + مسائي
+            [['10:00', '16:00'], ['17:00', '23:00']],   // نهاري + مسائي
         ];
-        foreach ($allvenues as $venue) {
-            foreach (range(0, 6) as $dayOffset) {
+
+        /*
+         * النمط يدور **داخل كل فئة** لا عبر الملاعب كلها: الفئة الصغيرة
+         * (ملعبان أو ثلاثة) كانت تقع على نمط واحد بحكم ترتيبها في القائمة،
+         * فتعود الفجوة إليها وحدها بينما تبدو البيانات مكتملة إجمالاً.
+         */
+        $seen = [];
+
+        foreach ($allvenues->values() as $venue) {
+            $rank = $seen[$venue->category_id] = ($seen[$venue->category_id] ?? -1) + 1;
+            $slotHours = $patterns[$rank % count($patterns)];
+
+            foreach (range(0, 13) as $dayOffset) {
                 $date = now()->addDays($dayOffset)->toDateString();
+
                 foreach ($slotHours as [$start, $end]) {
                     Slot::create([
                         'venue_id' => $venue->id,
                         'date' => $date,
                         'start_time' => $start,
                         'end_time' => $end,
-                        'status' => fake()->boolean(25) ? 'booked' : 'available',
+                        // النافذة معروضة دائماً؛ ما حُجز منها يعيش في `unit_slots`.
+                        'status' => 'available',
                     ]);
                 }
             }
@@ -572,12 +762,56 @@ class DatabaseSeeder extends Seeder
         CommunityAnnouncement::factory()->create(['community_id' => $basketCom2->id, 'employee_id' => $c2Employees[4]->id, 'body' => 'بطولة السلة الشهرية ستبدأ قريباً، سجلوا أسماءكم.']);
 
         // ╔══════════════════════════════════════════════════════════╗
-        // ║  DISCOUNTS — أُزيلت (A10)                                 ║
+        // ║  DISCOUNTS (A17)                                         ║
         // ╚══════════════════════════════════════════════════════════╝
-        // «لا تخفيضات ولا رموز ترويجية في الإصدار الأول» (H §12.1)، و«خصم»
-        // محظورة في H §2. أرشف A10 الجدول باسم `legacy_discounts` وحذف النموذج
-        // والمسارات، لكن أربعة نداءات `Discount::create` بقيت هنا فكانت تُسقط
-        // `migrate:fresh --seed` بـ «Class Discount not found» — حُذفت (A14).
+        // أعاد A17 الميزة التي أزالها A10، بقرار المالك ونقضاً لـ H §12.1.
+        // البذور تغطّي الأشكال الأربعة التي تفترق بها الحسابات: مبلغ ثابت،
+        // نسبة، «مرة واحدة»، ونافذة ساعات — وصفٌّ مؤرشف يجب ألّا يظهر.
+        Discount::create([
+            'partner_id' => $biz1->id, 'company_id' => $company1->id,
+            'community_id' => $padelCom1->id, 'name' => 'تخفيض الربع الأول',
+            'type' => 'fixed', 'value' => 50, 'value_halalas' => 5000,
+            'usage' => 'date_range', 'expires_at' => now()->addMonths(3)->toDateString(),
+            'status' => 'active',
+        ]);
+        Discount::create([
+            'partner_id' => $biz1->id, 'company_id' => $company1->id,
+            'community_id' => $footballCom1->id, 'name' => 'خصم الولاء 10٪',
+            'type' => 'percentage', 'value' => 10, 'value_halalas' => 0,
+            'usage' => 'date_range', 'expires_at' => now()->addYear()->toDateString(),
+            'status' => 'active',
+        ]);
+        Discount::create([
+            'partner_id' => $biz2->id, 'company_id' => $company2->id,
+            'community_id' => $padelCom2->id, 'name' => 'ترحيب بالمجتمع الجديد',
+            'type' => 'fixed', 'value' => 100, 'value_halalas' => 10000,
+            'usage' => 'one_time', 'status' => 'active',
+        ]);
+        // ساعات الهدوء وحدها — التخفيض لا يسري على حجز المساء.
+        Discount::create([
+            'partner_id' => $biz2->id, 'company_id' => $company1->id,
+            'community_id' => $tennisCom1->id, 'name' => 'ساعات الصباح',
+            'type' => 'percentage', 'value' => 20, 'value_halalas' => 0,
+            'usage' => 'date_range', 'start_time' => '08:00', 'end_time' => '16:00',
+            'status' => 'active',
+        ]);
+        // نسبة بنافذة ساعات على مجتمع البادل — أوضح شكل يُظهر شروط التخفيض
+        // على البطاقة: القاعدة، والنافذة، وما تعنيه على الحجز المعروض.
+        Discount::create([
+            'partner_id' => $biz1->id, 'company_id' => $company1->id,
+            'community_id' => $padelCom1->id, 'name' => 'خصم الصيف',
+            'type' => 'percentage', 'value' => 20, 'value_halalas' => 0,
+            'usage' => 'date_range', 'start_time' => '08:00', 'end_time' => '14:00',
+            'expires_at' => now()->addMonths(2)->toDateString(),
+            'status' => 'active',
+        ]);
+        // صفّ مؤرشف بختم A10 — موجود للقراءة، ولا يظهر في قائمة ولا حساب.
+        Discount::create([
+            'partner_id' => $biz1->id, 'company_id' => $company1->id,
+            'community_id' => $padelCom1->id, 'name' => 'تخفيض قديم (مؤرشف)',
+            'type' => 'fixed', 'value' => 75, 'value_halalas' => 7500,
+            'usage' => 'date_range', 'status' => 'active',
+        ])->forceFill(['archived_at' => now()->subYear()])->save();
 
         // ╔══════════════════════════════════════════════════════════╗
         // ║  LEAGUES                                                 ║
@@ -894,5 +1128,17 @@ class DatabaseSeeder extends Seeder
         $leadership->assignLeader($tennisCom1, $c1Employees[6]->fresh(), asPrimary: true);
         $leadership->assignLeader($padelCom2, $c2Employees[0]->fresh(), asPrimary: true);
         $leadership->assignLeader($basketCom2, $c2Employees[4]->fresh(), asPrimary: true);
+
+        // ╔══════════════════════════════════════════════════════════╗
+        // ║  SCENARIOS — كل حالة وكل مسار                            ║
+        // ╚══════════════════════════════════════════════════════════╝
+        // بعد القيادة لأن إنشاء الفعالية يمرّ بالقائد، وبعد الهوية لأن
+        // الخدمات تقرأ `user_id`. الترتيب هنا ليس تجميلاً: كل بذرة تفترض
+        // ما قبلها موجوداً.
+        $this->call(PlatformCatalogSeeder::class);
+        $this->call(EventScenarioSeeder::class);
+        $this->call(BillingScenarioSeeder::class);
+        $this->call(OperationsSeeder::class);
+        $this->call(EngagementSeeder::class);
     }
 }

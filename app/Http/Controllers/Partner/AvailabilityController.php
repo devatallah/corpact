@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityUnit;
 use App\Models\EventProviderRequest;
 use App\Models\Partner;
+use App\Models\Slot;
 use App\Models\UnitSlot;
+use App\Models\Venue;
 use App\Services\Provider\AvailabilityService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
@@ -53,9 +55,35 @@ class AvailabilityController extends Controller
             ->whereBetween('requested_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
             ->get(['id', 'activity_unit_id', 'requested_date', 'start_time', 'duration_minutes']);
 
+        // الساعات المعروضة على ملاعب المزوّد لهذا الأسبوع. هي ما يسمح بالحجز
+        // أصلاً: خارجها لا يقع حجز، وغيابها عن يوم يعني «بلا قيد» لا «مغلق».
+        $venueIds = Venue::query()->where('partner_id', $partner->id)->pluck('id');
+
+        $offeredHours = Slot::query()
+            ->whereIn('venue_id', $venueIds)
+            // `slots.date` مخزَّن بمركّب وقت («2026-09-05 00:00:00»)، فمقارنته
+            // نصّاً بـ`whereBetween` تُسقط اليوم الأخير من الأسبوع كاملاً —
+            // ساعات ذلك اليوم موجودة ولا تُعرض. `whereDate` تقارن اليوم نفسه.
+            ->whereDate('date', '>=', $weekStart->toDateString())
+            ->whereDate('date', '<=', $weekEnd->toDateString())
+            ->orderBy('date')
+            ->orderBy('start_time')
+            ->get()
+            ->map(fn (Slot $slot) => [
+                'id' => $slot->id,
+                'venue_id' => $slot->venue_id,
+                'date' => $slot->date?->toDateString(),
+                'start_time' => substr((string) $slot->start_time, 0, 5),
+                'end_time' => substr((string) $slot->end_time, 0, 5),
+                'status' => $slot->status,
+            ])
+            ->all();
+
         return Inertia::render('partner/availability', [
             'units' => $units,
             'slots' => $slots,
+            'venues' => Venue::query()->whereIn('id', $venueIds)->orderBy('name')->get(['id', 'name']),
+            'offeredHours' => $offeredHours,
             'pendingRequests' => $pending,
             'week_start' => $weekStart->toDateString(),
             'week_end' => $weekEnd->toDateString(),

@@ -1,9 +1,9 @@
 import { Head, router } from '@inertiajs/react';
-import { CircleCheckBig, Scale } from 'lucide-react';
+import { CircleCheckBig, Pencil, Scale } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import { BackLink, ListStates } from '@/components/list-states';
-import { Badge, Button, Card, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import { Badge, Button, Card, Field, INPUT, IconButton, Note, PageHeader, StatCard, TableShell, Tbody, Td, Th, Thead, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
 import { settlementItemStatus } from '@/lib/status';
 
@@ -63,6 +63,8 @@ export default function AdminSettlementShow({ statement }: { statement: Statemen
     const [approving, setApproving] = useState(false);
     const [paying, setPaying] = useState(false);
     const [reference, setReference] = useState('');
+    const [correcting, setCorrecting] = useState<Item | null>(null);
+    const [correction, setCorrection] = useState({ gross: '', rate: '', reason: '' });
 
     return (
         <AdminLayout>
@@ -120,6 +122,7 @@ export default function AdminSettlementShow({ statement }: { statement: Statemen
                         <Th>العمولة</Th>
                         <Th>الصافي</Th>
                         <Th>الحالة</Th>
+                        <Th className="text-center">تصحيح</Th>
                     </Thead>
                     <Tbody>
                         {statement.items.map((item) => (
@@ -145,9 +148,19 @@ export default function AdminSettlementShow({ statement }: { statement: Statemen
                                 <Td>
                                     <Badge tone={settlementItemStatus(item.status).tone}>{settlementItemStatus(item.status).label}</Badge>
                                 </Td>
+                                <Td className="text-center">
+                                    <IconButton
+                                        icon={Pencil}
+                                        label="تصحيح البند"
+                                        onClick={() => {
+                                            setCorrection({ gross: String(item.gross_amount ?? ''), rate: '', reason: '' });
+                                            setCorrecting(item);
+                                        }}
+                                    />
+                                </Td>
                             </Tr>
                         ))}
-                        <ListStates count={statement.items.length} colSpan={6} empty="لا بنود في هذا الكشف." />
+                        <ListStates count={statement.items.length} colSpan={7} empty="لا بنود في هذا الكشف." />
                     </Tbody>
                 </TableShell>
             </Card>
@@ -217,6 +230,72 @@ export default function AdminSettlementShow({ statement }: { statement: Statemen
                     setPaying(false);
                 }}
                 onCancel={() => setPaying(false)}
+            />
+            <ConfirmModal
+                open={correcting !== null}
+                tone="danger"
+                title="تصحيح بند تسوية"
+                message="لا يُعدَّل البند الأصلي — يُنشأ بند تصحيحي مرتبط به، ويُعاد احتساب صافي الكشف. الفرق يظهر للمزوّد في كشفه."
+                details={
+                    correcting && (
+                        <>
+                            <ConfirmRow label="الفعالية" value={correcting.event_title ?? `#${correcting.id}`} strong />
+                            <ConfirmRow label="الإجمالي الحالي" value={`${correcting.gross_amount} ر.س`} />
+                            <ConfirmRow label="الصافي الحالي" value={`${correcting.net_amount} ر.س`} />
+
+                            <div className="space-y-2 pt-2">
+                                <Field label="الإجمالي المصحَّح (ريال)" required>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        dir="ltr"
+                                        className={INPUT}
+                                        value={correction.gross}
+                                        onChange={(event) => setCorrection({ ...correction, gross: event.target.value })}
+                                    />
+                                </Field>
+
+                                <Field label="نسبة العمولة المصحَّحة (٪)" hint="اتركها فارغة لإبقاء النسبة كما هي.">
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="0.01"
+                                        dir="ltr"
+                                        className={INPUT}
+                                        value={correction.rate}
+                                        onChange={(event) => setCorrection({ ...correction, rate: event.target.value })}
+                                    />
+                                </Field>
+
+                                <Field label="سبب التصحيح" hint="إلزامي ويُسجَّل في سجل التدقيق." required>
+                                    <textarea
+                                        rows={2}
+                                        className={INPUT}
+                                        value={correction.reason}
+                                        onChange={(event) => setCorrection({ ...correction, reason: event.target.value })}
+                                    />
+                                </Field>
+                            </div>
+                        </>
+                    )
+                }
+                confirmDisabled={!correction.gross || !correction.reason.trim()}
+                confirmLabel="سجّل التصحيح"
+                onConfirm={() => {
+                    router.post(
+                        `/admin/finance/settlement-items/${correcting?.id}/correct`,
+                        {
+                            corrected_gross: correction.gross,
+                            corrected_rate_percent: correction.rate === '' ? null : correction.rate,
+                            reason: correction.reason,
+                        },
+                        { preserveScroll: true },
+                    );
+                    setCorrecting(null);
+                }}
+                onCancel={() => setCorrecting(null)}
             />
         </AdminLayout>
     );

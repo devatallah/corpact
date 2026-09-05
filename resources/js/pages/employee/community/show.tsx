@@ -11,8 +11,8 @@ import {
     Trophy,
     UserPlus,
     UsersRound,
-    Star,
     Wallet,
+    Lock,
 } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
@@ -438,15 +438,39 @@ export default function EmployeeCommunityShow({
                                 <span className="text-xs font-extrabold text-ink">
                                     {poll.question}
                                 </span>
-                                <Badge
-                                    tone={
-                                        poll.status === 'open'
-                                            ? 'lime'
-                                            : 'neutral'
-                                    }
-                                >
-                                    {poll.status === 'open' ? 'مفتوح' : 'مغلق'}
-                                </Badge>
+                                <span className="flex shrink-0 items-center gap-1.5">
+                                    <Badge
+                                        tone={
+                                            poll.status === 'open'
+                                                ? 'lime'
+                                                : 'neutral'
+                                        }
+                                    >
+                                        {poll.status === 'open'
+                                            ? 'مفتوح'
+                                            : 'مغلق'}
+                                    </Badge>
+                                    {isLeader && poll.status === 'open' && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                router.post(
+                                                    `/employee/community/${community.id}/polls/${poll.id}/close`,
+                                                    {},
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                            aria-label="إغلاق التصويت"
+                                            title="تُثبَّت النتيجة ولا تُقبل أصوات جديدة"
+                                            className="rounded-lg bg-ink/5 p-1 text-ink transition-colors hover:bg-ink/10"
+                                        >
+                                            <Lock
+                                                className="h-3 w-3"
+                                                aria-hidden="true"
+                                            />
+                                        </button>
+                                    )}
+                                </span>
                             </div>
 
                             <div className="space-y-1.5">
@@ -660,37 +684,6 @@ export default function EmployeeCommunityShow({
                                     leaderIds.includes(member.id) && (
                                         <Badge tone="neutral">قائد</Badge>
                                     )}
-                                {isPrimaryLeader &&
-                                    member.id !== primaryLeaderId && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                router.post(
-                                                    `/employee/community/${community.id}/leaders`,
-                                                    {
-                                                        employee_id: member.id,
-                                                        is_primary: false,
-                                                    },
-                                                    { preserveScroll: true },
-                                                )
-                                            }
-                                            title={
-                                                leaderIds.includes(member.id)
-                                                    ? 'نائب بالفعل'
-                                                    : 'تعيين نائباً للقائد'
-                                            }
-                                            aria-label="تعيين نائباً"
-                                            disabled={leaderIds.includes(
-                                                member.id,
-                                            )}
-                                            className="rounded-lg bg-lead-tint p-1 text-lead transition-colors hover:bg-lead/20 disabled:opacity-40"
-                                        >
-                                            <Star
-                                                className="h-3 w-3"
-                                                aria-hidden="true"
-                                            />
-                                        </button>
-                                    )}
                                 {isLeader && member.id !== primaryLeaderId && (
                                     <button
                                         type="button"
@@ -716,17 +709,27 @@ export default function EmployeeCommunityShow({
 
             {/* ── دفتر محفظة المجتمع ── */}
             {walletLedger && (
-                <Card padding="p-4" className="space-y-3">
-                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                /* المرساة يقصدها رابط «محفظة المجتمع» في «قيادتي»؛ بدونها
+                   يهبط القائد أعلى الصفحة ويبحث عن الدفتر بنفسه. */
+                <Card id="wallet" padding="p-4" className="space-y-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
-                            <h2 className="text-sm font-extrabold text-ink flex items-center gap-1.5">
-                                <Wallet className="w-4 h-4" aria-hidden="true" />
+                            <h2 className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+                                <Wallet
+                                    className="h-4 w-4"
+                                    aria-hidden="true"
+                                />
                                 حركات محفظة المجتمع
                             </h2>
-                            <p className="text-[10px] text-ink/55">سجل تراكمي لكل تغطية حجز واسترداد — لا يُعدَّل ولا يُحذف.</p>
+                            <p className="text-[10px] text-ink/55">
+                                سجل تراكمي لكل تغطية حجز واسترداد — لا يُعدَّل
+                                ولا يُحذف.
+                            </p>
                         </div>
-                        <div className="rounded-xl bg-panel px-3 py-1.5 text-end shrink-0">
-                            <span className="block text-[9px] text-white/60">الرصيد</span>
+                        <div className="shrink-0 rounded-xl bg-panel px-3 py-1.5 text-end">
+                            <span className="block text-[9px] text-white/60">
+                                الرصيد
+                            </span>
                             <span className="block font-mono text-sm font-black text-lime">
                                 {Number(walletLedger.balance).toFixed(2)} ر.س
                             </span>
@@ -735,15 +738,24 @@ export default function EmployeeCommunityShow({
 
                     <div className="space-y-1.5">
                         {walletLedger.transactions.map((tx) => (
-                            <div key={tx.id} className="rounded-xl border-[0.5px] border-ink/10 bg-page p-2.5">
+                            <div
+                                key={tx.id}
+                                className="rounded-xl border-[0.5px] border-ink/10 bg-page p-2.5"
+                            >
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
-                                        <span className="block text-[11px] font-bold text-ink">{tx.type_label}</span>
-                                        <span className="block text-[10px] text-ink/60 leading-relaxed">{tx.note ?? '—'}</span>
+                                        <span className="block text-[11px] font-bold text-ink">
+                                            {tx.type_label}
+                                        </span>
+                                        <span className="block text-[10px] leading-relaxed text-ink/60">
+                                            {tx.note ?? '—'}
+                                        </span>
                                     </div>
                                     <span
-                                        className={`font-mono text-xs font-black shrink-0 ${
-                                            tx.signed_amount >= 0 ? 'text-success' : 'text-ink'
+                                        className={`shrink-0 font-mono text-xs font-black ${
+                                            tx.signed_amount >= 0
+                                                ? 'text-success'
+                                                : 'text-ink'
                                         }`}
                                         dir="ltr"
                                     >
@@ -751,13 +763,20 @@ export default function EmployeeCommunityShow({
                                         {tx.signed_amount.toFixed(2)}
                                     </span>
                                 </div>
-                                <div className="flex items-center justify-between gap-2 mt-1 text-[9px] text-ink/45 font-mono">
+                                <div className="mt-1 flex items-center justify-between gap-2 font-mono text-[9px] text-ink/45">
                                     <span dir="ltr">
-                                        {tx.occurred_at ? new Date(tx.occurred_at).toLocaleDateString('ar-SA') : '—'}
-                                        {tx.reference ? ` · ${tx.reference}` : ''}
+                                        {tx.occurred_at
+                                            ? new Date(
+                                                  tx.occurred_at,
+                                              ).toLocaleDateString('ar-SA')
+                                            : '—'}
+                                        {tx.reference
+                                            ? ` · ${tx.reference}`
+                                            : ''}
                                     </span>
                                     <span>
-                                        {tx.actor_name ?? 'محرك تيمات الآلي'} · الرصيد {tx.balance_after.toFixed(2)}
+                                        {tx.actor_name ?? 'محرك تيمات الآلي'} ·
+                                        الرصيد {tx.balance_after.toFixed(2)}
                                     </span>
                                 </div>
                             </div>

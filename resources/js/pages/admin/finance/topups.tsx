@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { CircleCheckBig, Eye, Landmark, X } from 'lucide-react';
+import { CircleCheckBig, Eye, Landmark, Undo2, X } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
@@ -50,6 +50,8 @@ export default function AdminTopups({
 }) {
     const [approving, setApproving] = useState<TopupRequest | null>(null);
     const [reconciled, setReconciled] = useState(false);
+    const [unapproving, setUnapproving] = useState<TopupRequest | null>(null);
+    const [unapproveReason, setUnapproveReason] = useState('');
     const [rejecting, setRejecting] = useState<TopupRequest | null>(null);
     const [reason, setReason] = useState('');
 
@@ -142,6 +144,30 @@ export default function AdminTopups({
                                         >
                                             <Eye className="w-3.5 h-3.5" aria-hidden="true" />
                                         </a>
+                                        {request.status === 'pending' && (
+                                            <IconButton
+                                                icon={Eye}
+                                                label="بدء المراجعة"
+                                                onClick={() =>
+                                                    router.post(
+                                                        `/admin/finance/topups/${request.id}/start-review`,
+                                                        {},
+                                                        { preserveScroll: true },
+                                                    )
+                                                }
+                                            />
+                                        )}
+                                        {request.status === 'approved' && (
+                                            <IconButton
+                                                icon={Undo2}
+                                                label="إلغاء الاعتماد"
+                                                tone="danger"
+                                                onClick={() => {
+                                                    setUnapproveReason('');
+                                                    setUnapproving(request);
+                                                }}
+                                            />
+                                        )}
                                         {request.status !== 'approved' && request.status !== 'rejected' && (
                                             <>
                                                 <IconButton
@@ -225,6 +251,47 @@ export default function AdminTopups({
                     setApproving(null);
                     setReconciled(false);
                 }}
+            />
+
+            <ConfirmModal
+                open={unapproving !== null}
+                tone="danger"
+                title="إلغاء اعتماد التحويل"
+                message="لا يُحذف القيد الأصلي — يُنشأ قيد عكسي مرتبط به يخصم المبلغ من محفظة الشركة. إن كانت الشركة قد صرفت الرصيد فقد يصبح رصيدها سالباً ويتوقف إنشاء فعالياتها."
+                details={
+                    unapproving && (
+                        <>
+                            <ConfirmRow label="الشركة" value={unapproving.company?.name ?? '—'} strong />
+                            <ConfirmRow label="المبلغ المسترجع" value={`${unapproving.amount.toLocaleString()} ريال`} strong />
+                            <ConfirmRow label="المرجع البنكي" value={unapproving.bank_reference ?? '—'} />
+                            <ConfirmRow label="اعتمده" value={unapproving.reviewer?.name ?? '—'} />
+
+                            <div className="pt-2">
+                                <label htmlFor="unapprove-reason" className="mb-1 block text-[11px] font-bold text-ink">
+                                    سبب إلغاء الاعتماد — إلزامي ويُسجَّل في سجل التدقيق
+                                </label>
+                                <textarea
+                                    id="unapprove-reason"
+                                    rows={2}
+                                    value={unapproveReason}
+                                    onChange={(event) => setUnapproveReason(event.target.value)}
+                                    className="w-full rounded-xl border-[0.5px] border-ink/20 bg-surface px-3 py-2 text-xs focus:border-ink focus:outline-none"
+                                />
+                            </div>
+                        </>
+                    )
+                }
+                confirmDisabled={!unapproveReason.trim()}
+                confirmLabel="نعم، ألغِ الاعتماد بقيد عكسي"
+                onConfirm={() => {
+                    router.post(
+                        `/admin/finance/topups/${unapproving?.id}/unapprove`,
+                        { reason: unapproveReason },
+                        { preserveScroll: true },
+                    );
+                    setUnapproving(null);
+                }}
+                onCancel={() => setUnapproving(null)}
             />
 
             <ConfirmModal

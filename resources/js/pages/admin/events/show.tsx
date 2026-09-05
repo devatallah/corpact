@@ -1,9 +1,9 @@
-import { Head, router } from '@inertiajs/react';
-import { Calendar, History, TriangleAlert, Users } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Ban, Calendar, History, TriangleAlert, Users } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
 import { BackLink, ListStates } from '@/components/list-states';
-import { Badge, Button, Card, Money, Note, PageHeader, StatCard, Tbody, Td, Th, Thead, TableShell, Tr } from '@/components/portal/ui';
+import { Badge, Button, Card, Money, Note, PageHeader, StatCard, TableShell, Tbody, Td, Th, Thead, Tr } from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
 import { eventStatus } from '@/lib/status';
 
@@ -16,6 +16,15 @@ import { eventStatus } from '@/lib/status';
  * every use of them shows up in the ghost-event monitor as a manual
  * intervention, which is exactly the point.
  */
+type SeriesOccurrence = {
+    id: number;
+    event_date: string;
+    start_time: string | null;
+    status: string;
+    participants_count: number | null;
+    capacity: number | null;
+};
+
 type EventModel = {
     id: number;
     title: string;
@@ -55,14 +64,17 @@ export default function AdminEventShow({
     event,
     statusHistory,
     allStatuses,
+    canCancel,
     attendance,
     attendanceWindowClosed,
     attendanceWindowClosesAt,
+    seriesEvents,
 }: {
     event: EventModel;
-    seriesEvents: unknown[];
+    seriesEvents: SeriesOccurrence[];
     statusHistory: StatusRow[];
     allStatuses: string[];
+    canCancel: boolean;
     attendance: AttendanceRow[];
     attendanceWindowClosed: boolean;
     attendanceWindowClosesAt: string | null;
@@ -70,6 +82,9 @@ export default function AdminEventShow({
     const [forcing, setForcing] = useState(false);
     const [targetStatus, setTargetStatus] = useState('');
     const [forceReason, setForceReason] = useState('');
+    const [cancelling, setCancelling] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancelSeries, setCancelSeries] = useState(false);
 
     const [editingAttendance, setEditingAttendance] = useState<AttendanceRow | null>(null);
     const [attendanceStatus, setAttendanceStatus] = useState<'attended' | 'absent'>('attended');
@@ -91,6 +106,19 @@ export default function AdminEventShow({
                 actions={
                     <>
                         <Badge tone={status.tone}>{status.label}</Badge>
+                        {canCancel && (
+                            <Button
+                                tone="danger"
+                                icon={Ban}
+                                onClick={() => {
+                                    setCancelReason('');
+                                    setCancelSeries(false);
+                                    setCancelling(true);
+                                }}
+                            >
+                                إلغاء الفعالية
+                            </Button>
+                        )}
                         <Button
                             tone="danger"
                             icon={TriangleAlert}
@@ -342,6 +370,90 @@ export default function AdminEventShow({
                 }}
                 onCancel={() => setEditingAttendance(null)}
             />
+            <ConfirmModal
+                open={cancelling}
+                tone="danger"
+                title="إلغاء الفعالية إدارياً"
+                message="إلغاء إداري = استرداد كامل: يُردّ لكل مشارك ما دفعه إلى وسيلة دفعه الأصلية، وتُعاد مساهمة المجتمع، وتسقط عمولة تيمات. الإجراء مالي ويُسجَّل باسمك."
+                details={
+                    <>
+                        <ConfirmRow label="الفعالية" value={event.title} strong />
+                        <ConfirmRow label="الشركة" value={event.company?.name ?? '—'} />
+                        <ConfirmRow
+                            label="المشاركون المتأثرون"
+                            value={`${event.participants_count ?? 0} مشاركاً يُردّ لهم`}
+                            strong
+                        />
+
+                        <div className="pt-2">
+                            <label htmlFor="admin-cancel-reason" className="mb-1 block text-[11px] font-bold text-ink">
+                                سبب الإلغاء — إلزامي، خمسة أحرف على الأقل
+                            </label>
+                            <textarea
+                                id="admin-cancel-reason"
+                                rows={2}
+                                value={cancelReason}
+                                onChange={(event_) => setCancelReason(event_.target.value)}
+                                className="w-full rounded-xl border-[0.5px] border-ink/20 bg-surface px-3 py-2 text-xs focus:border-ink focus:outline-none"
+                            />
+                            <label className="mt-2 flex items-center gap-2 text-[11px] text-ink/80">
+                                <input
+                                    type="checkbox"
+                                    checked={cancelSeries}
+                                    onChange={(event_) => setCancelSeries(event_.target.checked)}
+                                    className="h-3.5 w-3.5 rounded border-ink/25 accent-ink"
+                                />
+                                ألغِ بقية فعاليات السلسلة أيضاً
+                            </label>
+                        </div>
+                    </>
+                }
+                confirmDisabled={cancelReason.trim().length < 5}
+                confirmLabel="نعم، ألغِ الفعالية"
+                onConfirm={() => {
+                    router.post(
+                        `/admin/events/${event.id}/cancel`,
+                        { reason: cancelReason, cancel_series: cancelSeries },
+                        { preserveScroll: true },
+                    );
+                    setCancelling(false);
+                }}
+                onCancel={() => setCancelling(false)}
+            />
+            {seriesEvents.length > 1 && (
+                <Card padding="p-4" className="space-y-2">
+                    <h2 className="text-sm font-extrabold text-ink">سلسلة متكررة — {seriesEvents.length} موعداً</h2>
+                    <p className="text-[11px] text-ink/55">
+                        مولَّدة من قالب تكرار. كل موعد فعالية مستقلة بتسجيلها وحالتها.
+                    </p>
+
+                    <div className="divide-y-[0.5px] divide-ink/10 rounded-xl border-[0.5px] border-ink/12 bg-page">
+                        {seriesEvents.map((occurrence) => (
+                            <Link
+                                key={occurrence.id}
+                                href={`/admin/events/${occurrence.id}`}
+                                className={`flex items-center justify-between gap-2 p-2.5 ${
+                                    occurrence.id === event.id ? 'bg-lime/12' : ''
+                                }`}
+                            >
+                                <span className="font-mono text-[11px] font-bold text-ink" dir="ltr">
+                                    {occurrence.event_date}
+                                    {occurrence.start_time ? ` · ${occurrence.start_time.slice(0, 5)}` : ''}
+                                </span>
+                                <span className="flex shrink-0 items-center gap-2">
+                                    <span className="font-mono text-[10px] text-ink/50">
+                                        {occurrence.participants_count ?? 0}/{occurrence.capacity ?? '—'}
+                                    </span>
+                                    <Badge tone={eventStatus(occurrence.status).tone}>
+                                        {eventStatus(occurrence.status).label}
+                                    </Badge>
+                                </span>
+                            </Link>
+                        ))}
+                    </div>
+                </Card>
+            )}
+
         </AdminLayout>
     );
 }

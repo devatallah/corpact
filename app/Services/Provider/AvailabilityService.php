@@ -4,6 +4,7 @@ namespace App\Services\Provider;
 
 use App\Models\ActivityUnit;
 use App\Models\EventProviderRequest;
+use App\Models\Slot;
 use App\Models\UnitSlot;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -37,7 +38,56 @@ class AvailabilityService
             return false;
         }
 
+        if (! $this->withinOfferedHours($unit, $start, $end)) {
+            return false;
+        }
+
         return ! $this->overlapQuery($unit->id, $start, $end)->exists();
+    }
+
+    /**
+     * هل الوقت داخل ساعة معروضة للملعب؟
+     *
+     * `slots` هي الساعات التي يعرضها المزوّد على ملعبه ليوم بعينه، و`unit_slots`
+     * هي ما حُجز منها. كان الحجز يتجاهل الأولى تماماً: يعرض المزوّد ساعاته
+     * وتُحجز خارجها. القاعدة هنا: **إن كان لليوم ساعات معروضة فالحجز داخلها
+     * حصراً؛ وإن لم تُعرَّف ساعات لذلك اليوم فلا قيد** — فملعب لم يُجدوَل بعد
+     * يبقى قابلاً للحجز كما كان، ولا ينقلب الصمت منعاً.
+     */
+    private function withinOfferedHours(ActivityUnit $unit, CarbonInterface $start, CarbonInterface $end): bool
+    {
+        if ($unit->venue_id === null) {
+            return true;
+        }
+
+        $offered = Slot::query()
+            ->where('venue_id', $unit->venue_id)
+            ->whereDate('date', $start->toDateString())
+            ->get();
+
+        if ($offered->isEmpty()) {
+            return true;
+        }
+
+        $startTime = $start->format('H:i:s');
+        $endTime = $end->format('H:i:s');
+
+        return $offered
+            ->where('status', Slot::STATUS_AVAILABLE)
+            ->contains(fn (Slot $slot) => $this->timeString($slot->start_time) <= $startTime
+                && $this->timeString($slot->end_time) >= $endTime);
+    }
+
+    /** الأعمدة الزمنية تُقرأ نصاً أو Carbon حسب التخزين — تُوحَّد هنا. */
+    private function timeString(mixed $value): string
+    {
+        if ($value instanceof CarbonInterface) {
+            return $value->format('H:i:s');
+        }
+
+        $text = (string) $value;
+
+        return strlen($text) === 5 ? $text.':00' : $text;
     }
 
     /**

@@ -38,6 +38,9 @@ return [
         'issue_day' => 3,
         'due_days' => 15,
         'serial_prefix' => env('BILLING_SERIAL_PREFIX', 'TMT-INV'),
+        // سلسلة مستقلة لحصص الموظفين: بائعها غير بائع رسوم النظام ومعالجتها
+        // الضريبية غير معالجتها، فترقيمها لا يُخلط بترقيمها.
+        'employee_serial_prefix' => env('BILLING_EMPLOYEE_SERIAL_PREFIX', 'TMT-EMP'),
         // بيانات البائع في الفاتورة — تُملأ من العقد/السجل التجاري لتيمات.
         'seller_name' => env('BILLING_SELLER_NAME', 'تيمات'),
         'seller_vat_number' => env('BILLING_SELLER_VAT_NUMBER'),

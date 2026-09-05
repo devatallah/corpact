@@ -3,10 +3,13 @@
 namespace App\Http\Middleware;
 
 use App\Enums\EventStatus;
+use App\Enums\Role;
+use App\Models\Community;
 use App\Models\Employee;
 use App\Models\Event;
 use App\Models\EventProviderRequest;
 use App\Models\Notification;
+use App\Models\RoleAssignment;
 use App\Models\User;
 use App\Services\Auth\OtpLoginService;
 use App\Services\Provider\ReliabilityService;
@@ -82,6 +85,34 @@ class HandleInertiaRequests extends Middleware
                 ->all();
         }
 
+        /*
+         * المجتمعات التي يقودها هذا الموظف.
+         *
+         * القيادة ليست بوابة منفصلة عندنا — الموظف نفسه يقود. لكن أدوات
+         * القائد (الأعضاء، قالب التكرار، محفظة المجتمع) كانت لا تُذكر في أي
+         * قائمة: تُبلغ بالمرور عبر «مجتمعاتي» ثم النزول في الصفحة. تبويب
+         * «قيادتي» يظهر لمن يقود فقط، ويُسمّي ما يملكه.
+         */
+        $leadership = [];
+
+        if ($guard === 'employee' && $user && $user->user_id !== null) {
+            $leadership = Community::query()
+                ->whereIn('id', RoleAssignment::query()
+                    ->where('user_id', $user->user_id)
+                    ->where('role', Role::CommunityLeader->value)
+                    ->where('scope_type', RoleAssignment::SCOPE_COMMUNITY)
+                    ->pluck('scope_id'))
+                ->where('company_id', $user->company_id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'icon'])
+                ->map(fn (Community $community) => [
+                    'id' => $community->id,
+                    'name' => $community->name,
+                    'icon' => $community->icon,
+                ])
+                ->all();
+        }
+
         if ($guard === 'company' && $user) {
             // The company guard authenticates a Company row; the acting global
             // user comes from the portal session stamp (never guessed).
@@ -111,11 +142,16 @@ class HandleInertiaRequests extends Middleware
                 'providerBar' => $providerBar,
                 'partnerPermissions' => $permissions,
                 'memberships' => $memberships,
+                'leadership' => $leadership,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
                 'status' => fn () => $request->session()->get('status'),
+                // معاينة قالب الإشعار تعود ومضةً لا خاصية صفحة — الشاشة
+                // تقرؤها من هنا بدل أن يُعاد بناء المُصيِّر في الواجهة.
+                'preview' => fn () => $request->session()->get('preview'),
+                'warning' => fn () => $request->session()->get('warning'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'unreadNotifications' => fn () => $guard === 'employee' && auth('employee')->check()

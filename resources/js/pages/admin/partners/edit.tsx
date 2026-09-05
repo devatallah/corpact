@@ -1,5 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import { Ban, Users } from 'lucide-react';
+import { CategoryPicker } from '@/components/category-picker';
 import { BackLink } from '@/components/list-states';
 import { FormActions, FormGrid, FormSection } from '@/components/portal/form';
 import { Badge, Button, Field, INPUT, Note, PageHeader } from '@/components/portal/ui';
@@ -23,6 +24,8 @@ type Partner = {
     commission_rate: string | number | null;
     status: string;
     bank_status: string;
+    cr_number: string | null;
+    vat_number: string | null;
     categories?: { id: number }[];
 };
 
@@ -61,6 +64,13 @@ export default function EditPartner({
         commission_rate: String(partner.commission_rate ?? ''),
         status: partner.status,
         category_ids: (partner.categories ?? []).map((category) => category.id),
+    });
+
+    // نموذج مستقل: البيانات الضريبية تُحفظ على مسارها الخاص وتُقيَّد في سجل
+    // التدقيق كتغيير تعاقدي، لا كتعديل ملف عادي.
+    const taxForm = useForm({
+        cr_number: partner.cr_number ?? '',
+        vat_number: partner.vat_number ?? '',
     });
 
     return (
@@ -195,6 +205,41 @@ export default function EditPartner({
                     </FormGrid>
                 </FormSection>
 
+                <FormSection
+                    title="السجل التجاري والرقم الضريبي"
+                    hint="يظهران على فواتير المزوّد وكشوف تسويته. الرقم الضريبي السعودي 15 رقماً يبدأ وينتهي بالرقم 3."
+                >
+                    <FormGrid columns={2}>
+                        <Field label="رقم السجل التجاري" error={taxForm.errors.cr_number}>
+                            <input
+                                dir="ltr"
+                                className={INPUT}
+                                value={taxForm.data.cr_number}
+                                onChange={(event) => taxForm.setData('cr_number', event.target.value)}
+                            />
+                        </Field>
+
+                        <Field label="الرقم الضريبي (VAT)" error={taxForm.errors.vat_number}>
+                            <input
+                                dir="ltr"
+                                placeholder="3XXXXXXXXXXXX3"
+                                className={`${INPUT} font-mono`}
+                                value={taxForm.data.vat_number}
+                                onChange={(event) => taxForm.setData('vat_number', event.target.value)}
+                            />
+                        </Field>
+                    </FormGrid>
+
+                    <Button
+                        type="button"
+                        tone="soft"
+                        disabled={taxForm.processing}
+                        onClick={() => taxForm.put(`/admin/partners/${partner.id}/tax`, { preserveScroll: true })}
+                    >
+                        حفظ البيانات الضريبية
+                    </Button>
+                </FormSection>
+
                 <FormSection title="الأنشطة">
                     <CategoryPicker
                         categories={categories}
@@ -218,52 +263,3 @@ export default function EditPartner({
  * The activity tree as a set of toggles, grouped by parent. Shared with the
  * create form — the same tree, the same selection semantics.
  */
-export function CategoryPicker({
-    categories,
-    selected,
-    onChange,
-    error,
-}: {
-    categories: { id: number; name: string; children?: { id: number; name: string }[] }[];
-    selected: number[];
-    onChange: (ids: number[]) => void;
-    error?: string;
-}) {
-    function toggle(id: number) {
-        onChange(selected.includes(id) ? selected.filter((value) => value !== id) : [...selected, id]);
-    }
-
-    return (
-        <div className="space-y-4">
-            {categories.map((parent) => (
-                <div key={parent.id} className="space-y-2">
-                    <span className="text-[11px] font-extrabold text-ink/50 uppercase tracking-wider block">{parent.name}</span>
-                    <div className="flex flex-wrap gap-2">
-                        {[parent, ...(parent.children ?? [])].map((category) => {
-                            const active = selected.includes(category.id);
-
-                            return (
-                                <button
-                                    key={category.id}
-                                    type="button"
-                                    onClick={() => toggle(category.id)}
-                                    aria-pressed={active}
-                                    className={`px-3 py-1.5 rounded-full text-xs font-bold border-[0.5px] transition-colors cursor-pointer ${
-                                        active ? 'bg-ink text-lime border-ink' : 'bg-surface text-ink/70 border-ink/15 hover:border-ink/30'
-                                    }`}
-                                >
-                                    {category.name}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-            ))}
-
-            {error && <p className="text-[11px] font-bold text-danger">{error}</p>}
-            {selected.length === 0 && !error && (
-                <p className="text-[11px] text-ink/55">اختر نشاطاً واحداً على الأقل — بدونه لا يظهر المرفق في محرك الاقتراحات.</p>
-            )}
-        </div>
-    );
-}

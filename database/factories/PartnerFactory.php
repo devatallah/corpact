@@ -32,6 +32,10 @@ class PartnerFactory extends Factory
             'bank_status' => 'missing',
             'total_bookings' => fake()->numberBetween(0, 200),
             'commission_rate' => fake()->randomFloat(2, 8, 15),
+            // الرقم الضريبي السعودي: 15 رقماً يبدأ بـ3 وينتهي بـ3. بدونه لا
+            // يُولَّد رمز فاتورة ZATCA على مستند الموظف — فيبقى المستند بلا
+            // رمز في كل البيانات التجريبية.
+            'vat_number' => '3'.fake()->unique()->numerify('#############').'3',
             'email_verified_at' => now(),
             'status' => 'active',
             'role' => 'owner',

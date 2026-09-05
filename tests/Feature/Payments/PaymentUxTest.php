@@ -62,10 +62,12 @@ test('the payment page shows the amount with VAT decomposition, methods, deadlin
         ->get("/employee/payments/{$intent->id}")
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('employee/payments/show')
-            ->where('intent.amount', '150.00')
-            ->where('intent.base_amount', '130.43')
-            ->where('intent.vat_amount', '19.57')
+            // ورقة السداد صارت نافذةً فوق القائمة: نفس المسار، ونفس البيانات،
+            // ومكوّن القائمة هو ما يُصيَّر.
+            ->component('employee/payments/index')
+            ->where('active.amount', '150.00')
+            ->where('active.base_amount', '130.43')
+            ->where('active.vat_amount', '19.57')
             ->where('statementDescriptor', 'تيمات')
             ->where('methods', ['mada', 'card', 'apple_pay'])
         );

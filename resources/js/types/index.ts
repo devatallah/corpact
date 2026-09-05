@@ -35,3 +35,16 @@ export type SortState = {
     key: string;
     direction: 'asc' | 'desc';
 };
+
+/**
+ * وكيل دعم صالح للإسناد إلى شركة، ومعه عدد الشركات التي يتابعها.
+ *
+ * العدد معروض عمداً في المُنتقي: بدونه تُسنَد الشركات كلها إلى أول اسم في
+ * القائمة، وهو ما يُفترض أن يمنعه توزيع المتابعة أصلاً.
+ */
+export type SupportAgent = {
+    id: number;
+    name: string;
+    email: string | null;
+    companies: number;
+};

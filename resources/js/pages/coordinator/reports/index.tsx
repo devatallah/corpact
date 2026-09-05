@@ -1,9 +1,29 @@
 import { Head, Link } from '@inertiajs/react';
 import { ClipboardList } from 'lucide-react';
-import { FilterSelect, Pagination, ResultCount, SearchInput, SortableHeader, Toolbar } from '@/components/list-controls';
+import {
+    FilterSelect,
+    Pagination,
+    ResultCount,
+    SearchInput,
+    SortableHeader,
+    Toolbar,
+} from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
-import { Badge, Card, Note, PageHeader, StatCard, TableShell, Tbody, Td, Th, Thead, Tr } from '@/components/portal/ui';
+import {
+    Badge,
+    Card,
+    Note,
+    PageHeader,
+    StatCard,
+    TableShell,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    Tr,
+} from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
+import { coordinatorReportStatus } from '@/lib/status';
 import type { Paginated, SortState } from '@/types';
 
 /**
@@ -17,12 +37,6 @@ import type { Paginated, SortState } from '@/types';
  * Dormant communities are surfaced as their own column because they are the
  * single most common thing a coordinator is paid to notice.
  */
-export const REPORT_STATUS: Record<string, { label: string; tone: 'neutral' | 'success' | 'warning' | 'danger' }> = {
-    generated: { label: 'مولَّد — بانتظار التوصيات', tone: 'warning' },
-    submitted: { label: 'مُرسَل للمراجعة', tone: 'warning' },
-    delivered: { label: 'مُسلَّم للشركة', tone: 'success' },
-};
-
 type ReportRow = {
     id: number;
     company_id: number;
@@ -48,7 +62,9 @@ export default function CoordinatorReports({
     filters: { search?: string; status?: string };
     sort: SortState;
 }) {
-    const awaiting = reports.data.filter((row) => row.status !== 'delivered').length;
+    const awaiting = reports.data.filter(
+        (row) => row.status !== 'delivered',
+    ).length;
 
     return (
         <AdminLayout>
@@ -60,7 +76,7 @@ export default function CoordinatorReports({
                 subtitle="التقرير يُولَّد آلياً، وتُضيف أنت التوصيات — ثم يُسلَّم للشركة."
             />
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <StatCard label="إجمالي التقارير" value={reports.total} />
                 <StatCard
                     label="في هذه الصفحة تنتظر عملاً"
@@ -72,13 +88,17 @@ export default function CoordinatorReports({
 
             {!isPlatformAdmin && (
                 <Note title="نطاقك">
-                    ترى تقارير الشركات المسندة إليك فقط. شركة خارج إسنادك غير موجودة بالنسبة لهذه الصفحة — لا محجوبة.
+                    ترى تقارير الشركات المسندة إليك فقط. شركة خارج إسنادك غير
+                    موجودة بالنسبة لهذه الصفحة — لا محجوبة.
                 </Note>
             )}
 
             <Card padding="p-4" className="space-y-4">
                 <Toolbar>
-                    <SearchInput value={filters.search ?? ''} placeholder="ابحث بالشركة أو الدورة…" />
+                    <SearchInput
+                        value={filters.search ?? ''}
+                        placeholder="ابحث بالشركة أو الدورة…"
+                    />
                     <FilterSelect
                         name="status"
                         label="الحالة"
@@ -96,14 +116,22 @@ export default function CoordinatorReports({
                     <Thead>
                         <Th>الشركة</Th>
                         <Th>
-                            <SortableHeader label="الدورة" sortKey="period_key" sort={sort} />
+                            <SortableHeader
+                                label="الدورة"
+                                sortKey="period_key"
+                                sort={sort}
+                            />
                         </Th>
                         <Th>معدل التفعيل</Th>
                         <Th>فعاليات مكتملة</Th>
                         <Th>مجتمعات خاملة</Th>
                         <Th>التوصيات</Th>
                         <Th>
-                            <SortableHeader label="الحالة" sortKey="status" sort={sort} />
+                            <SortableHeader
+                                label="الحالة"
+                                sortKey="status"
+                                sort={sort}
+                            />
                         </Th>
                     </Thead>
 
@@ -111,13 +139,22 @@ export default function CoordinatorReports({
                         {reports.data.map((report) => (
                             <Tr key={report.id}>
                                 <Td>
-                                    <Link href={`/coordinator/reports/${report.id}`} className="font-extrabold text-ink hover:underline">
+                                    <Link
+                                        href={`/coordinator/reports/${report.id}`}
+                                        className="font-extrabold text-ink hover:underline"
+                                    >
                                         {report.company_name}
                                     </Link>
                                 </Td>
-                                <Td className="font-mono text-ink/85">{report.period_key}</Td>
-                                <Td className="font-mono font-bold text-ink">{report.activation_rate}٪</Td>
-                                <Td className="font-mono text-ink/80">{report.completed_events}</Td>
+                                <Td className="font-mono text-ink/85">
+                                    {report.period_key}
+                                </Td>
+                                <Td className="font-mono font-bold text-ink">
+                                    {report.activation_rate}٪
+                                </Td>
+                                <Td className="font-mono text-ink/80">
+                                    {report.completed_events}
+                                </Td>
                                 <Td>
                                     <span
                                         className={`font-mono font-bold ${report.dormant_communities > 0 ? 'text-warning' : 'text-ink/60'}`}
@@ -127,18 +164,34 @@ export default function CoordinatorReports({
                                 </Td>
                                 <Td>
                                     {report.recommendations_count === 0 ? (
-                                        <Badge tone="warning">لا توصيات بعد</Badge>
+                                        <Badge tone="warning">
+                                            لا توصيات بعد
+                                        </Badge>
                                     ) : (
-                                        <span className="font-mono font-bold text-ink">{report.recommendations_count}</span>
+                                        <span className="font-mono font-bold text-ink">
+                                            {report.recommendations_count}
+                                        </span>
                                     )}
                                 </Td>
                                 <Td>
-                                    <Badge tone={REPORT_STATUS[report.status]?.tone ?? 'neutral'}>
-                                        {REPORT_STATUS[report.status]?.label ?? report.status}
+                                    <Badge
+                                        tone={
+                                            coordinatorReportStatus(
+                                                report.status,
+                                            ).tone
+                                        }
+                                    >
+                                        {
+                                            coordinatorReportStatus(
+                                                report.status,
+                                            ).label
+                                        }
                                     </Badge>
                                     {report.delivered_at && (
-                                        <span className="block font-mono text-[10px] text-ink/45 mt-0.5">
-                                            {new Date(report.delivered_at).toLocaleDateString('ar-SA')}
+                                        <span className="mt-0.5 block font-mono text-[10px] text-ink/45">
+                                            {new Date(
+                                                report.delivered_at,
+                                            ).toLocaleDateString('ar-SA')}
                                         </span>
                                     )}
                                 </Td>
@@ -154,7 +207,7 @@ export default function CoordinatorReports({
                     </Tbody>
                 </TableShell>
 
-                <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <ResultCount page={reports} />
                     <Pagination page={reports} />
                 </div>

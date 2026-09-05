@@ -82,6 +82,7 @@ class AuditLogController extends Controller
         $filters = $request->validate([
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'action' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'group' => ['sometimes', 'nullable', 'string', 'max:60'],
             'from' => ['sometimes', 'nullable', 'date'],
             'to' => ['sometimes', 'nullable', 'date'],
             // H §18 — مفتاح ترتيب من القائمة البيضاء + اتجاهه؛ `?sort=asc`
@@ -97,6 +98,10 @@ class AuditLogController extends Controller
                 ->where('actor_name', 'like', '%'.$filters['search'].'%')
                 ->orWhere('reason', 'like', '%'.$filters['search'].'%')))
             ->when(filled($filters['action'] ?? null), fn ($query) => $query->where('action', $filters['action']))
+            // `groups` كانت تُرسَل للواجهة بلا تصفية خلفها. التصفية بالبادئة
+            // نفسها التي يستعملها أدمن تيمات، فالمجموعة تعني الشيء ذاته في
+            // الشاشتين ولا يبقى النطاق هو الفرق الوحيد.
+            ->when(filled($filters['group'] ?? null), fn ($query) => $query->where('action', 'like', $filters['group'].'.%'))
             ->when(filled($filters['from'] ?? null), fn ($query) => $query->whereDate('created_at', '>=', $filters['from']))
             ->when(filled($filters['to'] ?? null), fn ($query) => $query->whereDate('created_at', '<=', $filters['to']));
 

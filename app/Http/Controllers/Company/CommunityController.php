@@ -105,8 +105,23 @@ class CommunityController extends Controller
         $community->load('category');
         Community::attachPrimaryLeaders([$community]);
 
+        CommunityService::attachLeaderRoster([$community]);
+
         return Inertia::render('company/communities/edit', [
             'community' => $community,
+            // الأعضاء لم يكونوا يصلون هذه الشاشة إطلاقاً، فإزالة عضو أو حظره —
+            // وهما صلاحية مسؤول الحساب وحده (H §6) — لم يكن لهما زر في أي مكان.
+            'members' => $community->members()
+                ->with('department:id,name')
+                ->orderByPivot('joined_at', 'asc')
+                ->get(['employees.id', 'employees.name', 'employees.email', 'employees.department_id'])
+                ->map(fn ($member) => [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'email' => $member->email,
+                    'department' => $member->department?->only(['id', 'name']),
+                    'joined_at' => $member->pivot->joined_at,
+                ]),
             'employees' => Employee::where('company_id', $company->id)->active()->select('id', 'name')->orderBy('name')->get(),
             'categories' => Category::whereNull('parent_id')->with('children:id,parent_id,name,icon')->select('id', 'parent_id', 'name', 'icon')->orderBy('name')->get(),
         ]);

@@ -19,6 +19,35 @@ class StoreEventRequest extends FormRequest
     }
 
     /**
+     * الحقول الاختيارية الفارغة تصير `null` بدل سلسلة خاوية.
+     *
+     * «دعم الشركة» متروكاً فارغاً كان يصل `''`، فيمرّ على `sometimes` ويسقط
+     * على `numeric` برسالة إنجليزية لا معنى لها لمن ترك الحقل عمداً — ولم
+     * يكن يمكن إنشاء فعالية بلا رقم فيه إطلاقاً.
+     *
+     * و`null` لا مجرد قيمة صالحة: `isset()` عليها false، فتقرأ الخدمة الفراغ
+     * على وجهه الصحيح «استعمل افتراضي إعدادات الشركة» (H §12.2) بدل أن
+     * تحسبه دعماً صفرياً صريحاً يلغي الافتراضي.
+     *
+     * (`merge` لا `request->remove`: طلب Inertia يصل JSON، وحقيبة الـ form
+     * التي يعمل عليها `remove` ليست التي يُقرأ منها الإدخال.)
+     */
+    protected function prepareForValidation(): void
+    {
+        $blank = [];
+
+        foreach (['company_subsidy', 'discount_id', 'quick_match_id'] as $field) {
+            if ($this->input($field) === '') {
+                $blank[$field] = null;
+            }
+        }
+
+        if ($blank !== []) {
+            $this->merge($blank);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -30,6 +59,10 @@ class StoreEventRequest extends FormRequest
             'partner_id' => ['required', 'integer', 'exists:partners,id'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'venue_pricing_id' => ['required', 'integer', 'exists:venue_pricings,id'],
+            // التسعيرات التي عرضتها الشاشة فعلاً — واحدة لكل مرفق مختار.
+            // إرسالها يجعل المعروض هو المحتسَب بلا استنتاج.
+            'venue_pricing_ids' => ['sometimes', 'array'],
+            'venue_pricing_ids.*' => ['integer', 'exists:venue_pricings,id'],
             'venue_ids' => ['required', 'array', 'min:1'],
             'venue_ids.*' => ['integer', 'exists:venues,id'],
             'date' => ['required', 'date', 'after:today'],
@@ -38,10 +71,19 @@ class StoreEventRequest extends FormRequest
             // H §7: الحد الأدنى مطلوب لآلة الحالات (بلوغه يرسل الطلب للمزوّد)
             // ومقيد بالسعة؛ افتراضيه 2 حين لا ترسله الواجهة.
             'min_participants' => ['sometimes', 'integer', 'min:2', 'lte:capacity'],
-            'company_subsidy' => ['sometimes', 'numeric', 'min:0'],
+            'company_subsidy' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'quick_match_id' => ['nullable', 'integer', 'exists:quick_matches,id'],
-            // التكرار لم يعد على الفعالية (A8): مساره الوحيد قوالب H §8
-            // يديرها القائد/المنسّق/مسؤول الحساب من صفحة القوالب.
+            // A17 — تخفيض المزوّد. الانطباق (النافذة، والاستهلاك لتخفيض
+            // «مرة واحدة») يُفحص في الخدمة على موعد الفعالية نفسه، لا هنا.
+            'discount_id' => ['nullable', 'integer', 'exists:discounts,id'],
+            /*
+             * A17 — التكرار عاد إلى هذه الشاشة **مدخلاً** لا تخزيناً: A8 يبقى
+             * قائماً، فالقالب هو المصدر الوحيد للتكرار. اختيار غير `none`
+             * يُنشئ `event_template` بدل فعالية مفردة.
+             *
+             * لا `daily`: H §8 لا يعرّفه، وA8 حوّل ما كان منه إلى أسبوعي.
+             */
+            'recurrence' => ['sometimes', 'in:none,weekly,monthly'],
             'notes' => ['nullable', 'string', 'max:500'],
             // A9: سبب تجاوز الاقتراح الآلي — يفرضه الحارس عند الحاجة (H §11)
             'override_reason' => ['nullable', 'string', 'max:500'],

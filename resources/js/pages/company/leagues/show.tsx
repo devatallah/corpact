@@ -14,7 +14,7 @@ import {
     Tr,
 } from '@/components/portal/ui';
 import CompanyLayout from '@/layouts/company-layout';
-import { LEAGUE_FORMAT, LEAGUE_STATUS } from '@/pages/company/leagues/index';
+import { leagueFormat, leagueStatus } from '@/lib/status';
 
 /**
  * H §10 — تفاصيل البطولة.
@@ -83,12 +83,10 @@ export default function CompanyLeagueShow({
             <PageHeader
                 icon={Trophy}
                 title={league.name}
-                subtitle={`${league.community?.name ?? '—'} · ${LEAGUE_FORMAT[league.format] ?? league.format}`}
+                subtitle={`${league.community?.name ?? '—'} · ${leagueFormat(league.format)}`}
                 actions={
-                    <Badge
-                        tone={LEAGUE_STATUS[league.status]?.tone ?? 'neutral'}
-                    >
-                        {LEAGUE_STATUS[league.status]?.label ?? league.status}
+                    <Badge tone={leagueStatus(league.status).tone}>
+                        {leagueStatus(league.status).label}
                     </Badge>
                 }
             />

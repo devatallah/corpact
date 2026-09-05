@@ -19,7 +19,7 @@ import {
     Tr,
 } from '@/components/portal/ui';
 import EmployeeLayout from '@/layouts/employee-layout';
-import { LEAGUE_FORMAT, LEAGUE_STATUS } from '@/pages/company/leagues/index';
+import { leagueFormat, leagueStatus } from '@/lib/status';
 
 /**
  * H §10 — البطولة كما يراها الموظف.
@@ -108,12 +108,10 @@ export default function EmployeeLeagueShow({
             <PageHeader
                 icon={Trophy}
                 title={league.name}
-                subtitle={LEAGUE_FORMAT[league.format] ?? league.format}
+                subtitle={leagueFormat(league.format)}
                 actions={
-                    <Badge
-                        tone={LEAGUE_STATUS[league.status]?.tone ?? 'neutral'}
-                    >
-                        {LEAGUE_STATUS[league.status]?.label ?? league.status}
+                    <Badge tone={leagueStatus(league.status).tone}>
+                        {leagueStatus(league.status).label}
                     </Badge>
                 }
             />

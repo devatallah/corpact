@@ -4,11 +4,18 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\DeliveryStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Company;
+use App\Models\Employee;
 use App\Models\NotificationLog;
+use App\Models\NotificationTemplate;
+use App\Models\Partner;
+use App\Models\User;
 use App\Support\Identity\PhoneNumber;
 use App\Support\Lists\ListSort;
 use App\Support\Messaging\SecretLink;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,6 +52,94 @@ class NotificationLogController extends Controller
         ], 'created_at', ListSort::DESC, 'id');
     }
 
+    /**
+     * أنواع المستلمين المسموح تحميل أسمائها.
+     *
+     * `recipient_type` عمود نصّي في قاعدة البيانات، وتمريره إلى الحاوية أو
+     * إلى `new` يجعل محتوى صفٍّ يختار صنفاً يُستدعى. القائمة بيضاء لذلك، لا
+     * للترجمة وحدها.
+     *
+     * @var array<class-string, string>
+     */
+    private const RECIPIENT_KINDS = [
+        User::class => 'مستخدم',
+        Employee::class => 'موظف',
+        Company::class => 'شركة',
+        Partner::class => 'مزوّد',
+    ];
+
+    /** @var array<string, string> */
+    private const CHANNEL_LABELS = [
+        'whatsapp' => 'واتساب',
+        'sms' => 'رسالة نصية',
+        'mail' => 'بريد إلكتروني',
+        'in_app' => 'داخل التطبيق',
+        'log' => 'سجل فقط',
+    ];
+
+    /** أسباب التخطّي/الفشل — نصوص المزوّد تبقى كما هي حين لا نعرفها. */
+    private const REASON_LABELS = [
+        'no_phone' => 'لا رقم جوال مسجَّل',
+        'no_email' => 'لا بريد مسجَّل',
+        'opted_out' => 'أوقف المستخدم هذا الإشعار',
+        'channel_disabled' => 'القناة غير مهيأة',
+        'quiet_hours' => 'ساعات عدم الإزعاج',
+    ];
+
+    /**
+     * عنوان القالب بمتحوّلات هذا الصف.
+     *
+     * العنوان المخزَّن قالبٌ فيه `{company}` و`{period}`؛ عرضه كما هو يترك
+     * وكيل الدعم أمام «نسخة تقرير {company} — {period}» ويُبقيه يخمّن أي
+     * شركة. المتحوّلات محفوظة على الصف نفسه، فتُركَّب هنا.
+     *
+     * ما لا متحوّل له يبقى كما هو: حذفه يترك جملة ناقصة لا يُعرف نقصها.
+     *
+     * @param  array<string, mixed>|null  $variables
+     */
+    private static function renderTitle(?string $title, ?array $variables): ?string
+    {
+        if ($title === null || $variables === null) {
+            return $title;
+        }
+
+        return preg_replace_callback(
+            '/\{(\w+)\}/',
+            fn (array $m) => is_scalar($variables[$m[1]] ?? null) ? (string) $variables[$m[1]] : $m[0],
+            $title,
+        );
+    }
+
+    /**
+     * أسماء المستلمين لصفوف الصفحة — استعلام واحد لكل نوع، لا صفاً صفاً.
+     *
+     * @param  Collection<int, NotificationLog>  $logs
+     * @return array<string, string>
+     */
+    private function recipientNames(Collection $logs): array
+    {
+        $names = [];
+
+        foreach ($logs->groupBy('recipient_type') as $type => $rows) {
+            if (! array_key_exists((string) $type, self::RECIPIENT_KINDS)) {
+                continue;
+            }
+
+            $ids = $rows->pluck('recipient_id')->filter()->unique()->all();
+
+            if ($ids === []) {
+                continue;
+            }
+
+            /** @var class-string<Model> $type */
+            foreach ($type::query()->whereKey($ids)->get(['id', 'name']) as $row) {
+                $names[$type.'#'.$row->id] = (string) $row->name;
+            }
+        }
+
+        return $names;
+    }
+
     public function index(Request $request): Response
     {
         $request->validate([
@@ -77,7 +172,23 @@ class NotificationLogController extends Controller
         $logs = self::sort()
             ->apply($query, $request->query('sort'), $request->query('dir'))
             ->paginate(20)
-            ->withQueryString()
+            ->withQueryString();
+
+        /*
+         * الصفحة كانت تعرض ما في العمود حرفياً: `App\Models\User` مستلماً،
+         * و`auth.otp` قالباً، و`log` قناةً، و`delivered` حالةً. وكيل الدعم
+         * يقرأ هذا الجدول ليجيب «لم يصلني إشعار» — والقراءة تصير ترجمةً
+         * ذهنية لأسماء أصناف ومفاتيح داخلية.
+         *
+         * الأسماء والعناوين تُجلب دفعةً واحدة لصفوف الصفحة العشرين، لا صفاً
+         * صفاً: استعلام لكل نوع مستلم، واستعلام واحد لعناوين القوالب.
+         */
+        $names = $this->recipientNames($logs->getCollection());
+        $titles = NotificationTemplate::query()
+            ->whereIn('key', $logs->getCollection()->pluck('template_key')->filter()->unique())
+            ->pluck('title_ar', 'key');
+
+        $logs
             // الصف يُسقَط عمداً إلى شكل معروض: لا يصل العميل مفتاح يحمل
             // اعتماداً. الروابط الحاملة للاعتماد تُخزَّن إشارةً أصلاً
             // (SecretLink)، والحجب هنا يغطي الصفوف التاريخية التي كُتبت قبل
@@ -88,9 +199,15 @@ class NotificationLogController extends Controller
                 'notification_id' => $log->notification_id,
                 'recipient_type' => $log->recipient_type,
                 'recipient_id' => $log->recipient_id,
+                'recipient_name' => $names[$log->recipient_type.'#'.$log->recipient_id] ?? null,
+                'recipient_kind' => self::RECIPIENT_KINDS[$log->recipient_type] ?? null,
                 'recipient_phone' => $log->recipient_phone,
+                'template_title' => self::renderTitle($titles[$log->template_key] ?? null, $log->variables),
                 'channel' => $log->channel,
+                'channel_label' => self::CHANNEL_LABELS[$log->channel] ?? $log->channel,
                 'status' => $log->status->value,
+                'status_label' => $log->status->label(),
+                'reason_label' => $log->reason === null ? null : (self::REASON_LABELS[$log->reason] ?? $log->reason),
                 'attempt' => $log->attempt,
                 'reason' => $log->reason,
                 'variables' => SecretLink::redactVariables($log->variables),
@@ -112,7 +229,14 @@ class NotificationLogController extends Controller
             'statuses' => collect(DeliveryStatus::cases())
                 ->map(fn (DeliveryStatus $s) => ['value' => $s->value, 'label' => $s->label()])
                 ->values(),
-            'channels' => array_keys((array) config('messaging.channels', [])) + ['in_app', 'mail'],
+            // `+` على المصفوفات اتحادٌ بالمفاتيح لا إلحاق: القنوات الثلاث
+            // المُهيأة تشغل المفاتيح 0..2، فكان `in_app` و`mail` يسقطان
+            // بصمت ولا يظهران في المُنتقي — ولوجود صفوف بهما، كان تصفيتهما
+            // متعذّرة أصلاً.
+            'channels' => array_values(array_unique(array_merge(
+                array_keys((array) config('messaging.channels', [])),
+                ['in_app', 'mail'],
+            ))),
             'stats' => [
                 'total' => NotificationLog::query()->count(),
                 'failed' => NotificationLog::query()->where('status', DeliveryStatus::Failed->value)->count(),

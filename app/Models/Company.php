@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -34,6 +35,7 @@ use Illuminate\Support\Facades\URL;
     'contact_name',
     'contact_phone',
     'contact_title',
+    'support_agent_user_id',
     'domain',
     'sector',
     'employee_count',
@@ -55,6 +57,17 @@ use Illuminate\Support\Facades\URL;
 class Company extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
+
+    /**
+     * وكيل الدعم المتابِع لهذه الشركة.
+     *
+     * حقل تنظيمي لا صلاحية: يقول من يتابعها، ولا يمنح ولا يمنع. وكيل الدعم
+     * يبحث في كل الشركات كما كان — هذا يجيب «من أتواصل معه» لا «من يستطيع».
+     */
+    public function supportAgent(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'support_agent_user_id');
+    }
 
     public function sendPasswordResetNotification($token): void
     {

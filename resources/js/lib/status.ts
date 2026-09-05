@@ -16,7 +16,9 @@ export type StatusMeta = { label: string; tone: BadgeTone };
 
 function lookup(map: Record<string, StatusMeta>) {
     return (value: string | null | undefined): StatusMeta =>
-        value === null || value === undefined ? { label: '—', tone: 'neutral' } : (map[value] ?? { label: value, tone: 'neutral' });
+        value === null || value === undefined
+            ? { label: '—', tone: 'neutral' }
+            : (map[value] ?? { label: value, tone: 'neutral' });
 }
 
 /**
@@ -44,7 +46,10 @@ export const eventStatus = lookup({
     settled: { label: 'مسوّاة', tone: 'success' },
     expired: { label: 'منتهية دون اكتمال العدد', tone: 'neutral' },
     // أربعة إلغاءات مختلفة الأثر على الاسترداد — لا يُجمعن في واحد.
-    cancelled_min_not_met: { label: 'ملغاة — لم يبلغ الحد الأدنى', tone: 'danger' },
+    cancelled_min_not_met: {
+        label: 'ملغاة — لم يبلغ الحد الأدنى',
+        tone: 'danger',
+    },
     cancelled_provider: { label: 'ملغاة من المزوّد', tone: 'danger' },
     cancelled_company: { label: 'ملغاة من الشركة', tone: 'danger' },
     cancelled_payment_failed: { label: 'ملغاة — فشل التحصيل', tone: 'danger' },
@@ -147,3 +152,48 @@ export const providerRequestStatus = lookup({
     expired: { label: 'انتهت المهلة دون ردّ', tone: 'danger' },
     cancelled: { label: 'ملغى بعد القبول', tone: 'danger' },
 });
+
+/**
+ * H §11 — حالة الملعب.
+ *
+ * تعيش هنا لا في صفحة القائمة: كانت `VENUE_STATUS` مُصدَّرة من
+ * `pages/partner/venues/index.tsx` وتستوردها صفحة التعديل، فصارت الصفحة
+ * تبعيةً لصفحة أخرى — يطويها Rollup في حزمة مشتركة وتختفي من بيان Vite،
+ * فيردّ `/partner/venues` خطأ خادم في أي نشر مبنيّ. صفحةٌ لا تُستورَد من صفحة.
+ */
+export const venueStatus = lookup({
+    active: { label: 'متاح', tone: 'success' },
+    maintenance: { label: 'تحت الصيانة', tone: 'warning' },
+    closed: { label: 'مغلق', tone: 'neutral' },
+});
+
+/** H §19 — حالة تقرير المنسّق الشهري. */
+export const coordinatorReportStatus = lookup({
+    generated: { label: 'مولَّد — بانتظار التوصيات', tone: 'warning' },
+    submitted: { label: 'مُرسَل للمراجعة', tone: 'warning' },
+    delivered: { label: 'مُسلَّم للشركة', tone: 'success' },
+});
+
+/** H §16 — حالة الدوري الداخلي. */
+export const leagueStatus = lookup({
+    draft: { label: 'مسودة', tone: 'neutral' },
+    active: { label: 'جارية', tone: 'success' },
+    completed: { label: 'منتهية', tone: 'neutral' },
+    cancelled: { label: 'ملغاة', tone: 'danger' },
+});
+
+/**
+ * صيغة الدوري — نصّ بلا نبرة، فلا `lookup` له.
+ *
+ * تُقرأ في ثلاث شاشات: قائمة الشركة، وتفاصيل الدوري، وشاشة الموظف. اختلاف
+ * الترجمة بين الثلاث يجعل الصيغة الواحدة تبدو ثلاث صيغ.
+ */
+export function leagueFormat(value: string | null | undefined): string {
+    const formats: Record<string, string> = {
+        single_round_robin: 'دوري من دور واحد',
+        double_round_robin: 'دوري من دورين',
+        knockout: 'خروج المغلوب',
+    };
+
+    return value ? (formats[value] ?? value) : '—';
+}

@@ -1,10 +1,25 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { Building2, CalendarDays, Headphones, Send, TriangleAlert, UserRound } from 'lucide-react';
-import { useState } from 'react';
-import ConfirmModal, { ConfirmRow } from '@/components/confirm-modal';
+import { Head, Link } from '@inertiajs/react';
+import {
+    Building2,
+    CalendarDays,
+    Headphones,
+    TriangleAlert,
+    UserRound,
+} from 'lucide-react';
 import { FilterSelect, SearchInput, Toolbar } from '@/components/list-controls';
 import { ListStates } from '@/components/list-states';
-import { Badge, Button, Card, Note, PageHeader, TableShell, Tbody, Td, Th, Thead, Tr } from '@/components/portal/ui';
+import {
+    Badge,
+    Card,
+    Note,
+    PageHeader,
+    TableShell,
+    Tbody,
+    Td,
+    Th,
+    Thead,
+    Tr,
+} from '@/components/portal/ui';
 import AdminLayout from '@/layouts/admin-layout';
 import { companyStatus, employeeStatus, eventStatus } from '@/lib/status';
 
@@ -18,37 +33,41 @@ import { companyStatus, employeeStatus, eventStatus } from '@/lib/status';
  * doing themselves.
  */
 type Results = {
-    events: { id: number; title: string; status: string; event_date: string | null; company: { id: number; name: string } | null; community: { id: number; name: string } | null }[];
-    employees: { id: number; name: string; email: string; phone_tail: string | null; status: string; company: { id: number; name: string } | null }[];
+    events: {
+        id: number;
+        title: string;
+        status: string;
+        event_date: string | null;
+        company: { id: number; name: string } | null;
+        community: { id: number; name: string } | null;
+    }[];
+    employees: {
+        id: number;
+        name: string;
+        email: string;
+        phone_tail: string | null;
+        status: string;
+        company: { id: number; name: string } | null;
+    }[];
     companies: { id: number; name: string; email: string; status: string }[];
 };
 
-type Invitation = {
-    id: number;
-    name: string | null;
-    email: string;
-    phone_tail: string | null;
-    company: { id: number; name: string } | null;
-    send_count: number;
-    expires_at: string | null;
-};
-
 export default function SupportConsole({
-    resendLimit,
     filters,
+    coverage,
     results,
     escalation,
-    pendingInvitations,
 }: {
-    resendLimit: { per_minute: number; note: string };
-    filters: { search?: string; scope?: string };
+    filters: { search?: string; scope?: string; coverage?: string };
+    coverage: { value: string; my_companies: number };
     results: Results;
     escalation: { action: string; label: string; role: string }[];
-    pendingInvitations: Invitation[];
 }) {
-    const [resending, setResending] = useState<Invitation | null>(null);
     const searched = (filters.search ?? '').trim() !== '';
-    const found = results.events.length + results.employees.length + results.companies.length;
+    const found =
+        results.events.length +
+        results.employees.length +
+        results.companies.length;
 
     return (
         <AdminLayout>
@@ -60,18 +79,22 @@ export default function SupportConsole({
                 subtitle="ابحث عن فعالية أو موظف أو شركة لتشخيص بلاغ. كل عملية بحث تُقيَّد في سجل التدقيق باسمك."
             />
 
-            <Note tone="info" title="إعادة الإرسال محدودة بقصد">
-                {`الحدّ الأقصى ${resendLimit.per_minute} رسائل لكل رقم في الدقيقة. ${resendLimit.note}`}
+            <Note tone="info" title="إعادة الإرسال لها شاشتها">
+                رموز الدخول والدعوات تُعاد من «إعادة إرسال الدعوات» — أداة واحدة
+                بحدّها المعلن، بدل أن تكون مدفونة فوق نتائج بحث لا تعنيك.
             </Note>
 
             <Note title="حدود صلاحيتك">
-                تقرأ وتشخّص وتعيد الإرسال ضمن الحدود. أي تغيير في حالة أو مال أو صلاحية يُصعَّد إلى الدور المختص أدناه — لا
-                يُنفَّذ من هنا.
+                تقرأ وتشخّص وتعيد الإرسال ضمن الحدود. أي تغيير في حالة أو مال أو
+                صلاحية يُصعَّد إلى الدور المختص أدناه — لا يُنفَّذ من هنا.
             </Note>
 
             <Card padding="p-4" className="space-y-4">
                 <Toolbar>
-                    <SearchInput value={filters.search ?? ''} placeholder="اسم، بريد، رقم جوال، أو رقم فعالية…" />
+                    <SearchInput
+                        value={filters.search ?? ''}
+                        placeholder="اسم، بريد، رقم جوال، أو رقم فعالية…"
+                    />
                     <FilterSelect
                         name="scope"
                         label="نطاق البحث"
@@ -83,7 +106,28 @@ export default function SupportConsole({
                             ['companies', 'الشركات'],
                         ]}
                     />
+                    {coverage.my_companies > 0 && (
+                        <FilterSelect
+                            name="coverage"
+                            label="التغطية"
+                            value={filters.coverage ?? coverage.value}
+                            options={[
+                                ['mine', `شركاتي (${coverage.my_companies})`],
+                                ['all', 'كل الشركات'],
+                            ]}
+                        />
+                    )}
                 </Toolbar>
+
+                {coverage.value === 'mine' && (
+                    <Note
+                        tone="info"
+                        title="النتائج مقصورة على الشركات التي تتابعها"
+                    >
+                        هذه تصفية لا حجب — اختر «كل الشركات» للبحث في المنصة
+                        كلها.
+                    </Note>
+                )}
 
                 {!searched && (
                     <ListStates
@@ -94,7 +138,11 @@ export default function SupportConsole({
                 )}
 
                 {searched && found === 0 && (
-                    <ListStates count={0} empty="لا نتائج مطابقة." emptyHint="جرّب مصطلحاً أقصر أو غيّر نطاق البحث." />
+                    <ListStates
+                        count={0}
+                        empty="لا نتائج مطابقة."
+                        emptyHint="جرّب مصطلحاً أقصر أو غيّر نطاق البحث."
+                    />
                 )}
 
                 {results.events.length > 0 && (
@@ -111,13 +159,31 @@ export default function SupportConsole({
                                 {results.events.map((event) => (
                                     <Tr key={event.id}>
                                         <Td>
-                                            <span className="font-extrabold text-ink block">{event.title}</span>
-                                            <span className="font-mono text-[10px] text-ink/45">#{event.id}</span>
+                                            <span className="block font-extrabold text-ink">
+                                                {event.title}
+                                            </span>
+                                            <span className="font-mono text-[10px] text-ink/45">
+                                                #{event.id}
+                                            </span>
                                         </Td>
-                                        <Td className="text-ink/85">{event.company?.name ?? '—'}</Td>
-                                        <Td className="font-mono text-[11px] text-ink/70">{event.event_date ?? '—'}</Td>
+                                        <Td className="text-ink/85">
+                                            {event.company?.name ?? '—'}
+                                        </Td>
+                                        <Td className="font-mono text-[11px] text-ink/70">
+                                            {event.event_date ?? '—'}
+                                        </Td>
                                         <Td>
-                                            <Badge tone={eventStatus(event.status).tone}>{eventStatus(event.status).label}</Badge>
+                                            <Badge
+                                                tone={
+                                                    eventStatus(event.status)
+                                                        .tone
+                                                }
+                                            >
+                                                {
+                                                    eventStatus(event.status)
+                                                        .label
+                                                }
+                                            </Badge>
                                         </Td>
                                         <Td className="text-center">
                                             <Link
@@ -147,16 +213,40 @@ export default function SupportConsole({
                             <Tbody>
                                 {results.employees.map((employee) => (
                                     <Tr key={employee.id}>
-                                        <Td className="font-extrabold text-ink">{employee.name}</Td>
-                                        <Td className="font-mono text-[11px] text-ink/70" dir="ltr">
+                                        <Td className="font-extrabold text-ink">
+                                            {employee.name}
+                                        </Td>
+                                        <Td
+                                            className="font-mono text-[11px] text-ink/70"
+                                            dir="ltr"
+                                        >
                                             {employee.email}
                                         </Td>
-                                        <Td className="font-mono text-[11px] text-ink/70" dir="ltr">
-                                            {employee.phone_tail ? `•••• ${employee.phone_tail}` : '—'}
+                                        <Td
+                                            className="font-mono text-[11px] text-ink/70"
+                                            dir="ltr"
+                                        >
+                                            {employee.phone_tail
+                                                ? `•••• ${employee.phone_tail}`
+                                                : '—'}
                                         </Td>
-                                        <Td className="text-ink/85">{employee.company?.name ?? '—'}</Td>
+                                        <Td className="text-ink/85">
+                                            {employee.company?.name ?? '—'}
+                                        </Td>
                                         <Td>
-                                            <Badge tone={employeeStatus(employee.status).tone}>{employeeStatus(employee.status).label}</Badge>
+                                            <Badge
+                                                tone={
+                                                    employeeStatus(
+                                                        employee.status,
+                                                    ).tone
+                                                }
+                                            >
+                                                {
+                                                    employeeStatus(
+                                                        employee.status,
+                                                    ).label
+                                                }
+                                            </Badge>
                                         </Td>
                                     </Tr>
                                 ))}
@@ -176,12 +266,29 @@ export default function SupportConsole({
                             <Tbody>
                                 {results.companies.map((company) => (
                                     <Tr key={company.id}>
-                                        <Td className="font-extrabold text-ink">{company.name}</Td>
-                                        <Td className="font-mono text-[11px] text-ink/70" dir="ltr">
+                                        <Td className="font-extrabold text-ink">
+                                            {company.name}
+                                        </Td>
+                                        <Td
+                                            className="font-mono text-[11px] text-ink/70"
+                                            dir="ltr"
+                                        >
                                             {company.email}
                                         </Td>
                                         <Td>
-                                            <Badge tone={companyStatus(company.status).tone}>{companyStatus(company.status).label}</Badge>
+                                            <Badge
+                                                tone={
+                                                    companyStatus(
+                                                        company.status,
+                                                    ).tone
+                                                }
+                                            >
+                                                {
+                                                    companyStatus(
+                                                        company.status,
+                                                    ).label
+                                                }
+                                            </Badge>
                                         </Td>
                                     </Tr>
                                 ))}
@@ -192,60 +299,17 @@ export default function SupportConsole({
             </Card>
 
             {/* ── إعادة إرسال الدعوات ── */}
-            <Card padding="p-4" className="space-y-4">
-                <h2 className="text-sm font-extrabold text-ink">دعوات معلّقة — إعادة الإرسال</h2>
-
-                <TableShell>
-                    <Thead>
-                        <Th>المدعو</Th>
-                        <Th>الشركة</Th>
-                        <Th>مرات الإرسال</Th>
-                        <Th>تنتهي في</Th>
-                        <Th className="text-center">الإجراء</Th>
-                    </Thead>
-                    <Tbody>
-                        {pendingInvitations.map((invitation) => {
-                            const expired = invitation.expires_at !== null && new Date(invitation.expires_at) < new Date();
-
-                            return (
-                                <Tr key={invitation.id}>
-                                    <Td>
-                                        <span className="font-extrabold text-ink block">{invitation.name ?? '—'}</span>
-                                        <span className="font-mono text-[11px] text-ink/60" dir="ltr">
-                                            {invitation.email}
-                                        </span>
-                                    </Td>
-                                    <Td className="text-ink/85">{invitation.company?.name ?? '—'}</Td>
-                                    <Td className="font-mono text-ink/70">{invitation.send_count}</Td>
-                                    <Td>
-                                        <span className="font-mono text-[11px] text-ink/70">
-                                            {invitation.expires_at ? new Date(invitation.expires_at).toLocaleDateString('ar-SA') : '—'}
-                                        </span>
-                                        {expired && <Badge tone="danger">منتهية</Badge>}
-                                    </Td>
-                                    <Td className="text-center">
-                                        <Button tone="soft" icon={Send} onClick={() => setResending(invitation)}>
-                                            إعادة الإرسال
-                                        </Button>
-                                    </Td>
-                                </Tr>
-                            );
-                        })}
-                        <ListStates
-                            count={pendingInvitations.length}
-                            colSpan={5}
-                            empty="لا دعوات معلّقة."
-                            emptyHint="كل الدعوات إما قُبلت أو انتهت صلاحيتها."
-                        />
-                    </Tbody>
-                </TableShell>
-            </Card>
 
             {/* ── ما لا تفعله — يُصعَّد فوراً ── */}
             <Card padding="p-4" className="space-y-4">
                 <div className="flex items-center gap-2">
-                    <TriangleAlert className="w-4 h-4 text-warning" aria-hidden="true" />
-                    <h2 className="text-sm font-extrabold text-ink">ما لا تفعله — يُصعَّد فوراً</h2>
+                    <TriangleAlert
+                        className="h-4 w-4 text-warning"
+                        aria-hidden="true"
+                    />
+                    <h2 className="text-sm font-extrabold text-ink">
+                        ما لا تفعله — يُصعَّد فوراً
+                    </h2>
                 </div>
 
                 <TableShell>
@@ -257,8 +321,12 @@ export default function SupportConsole({
                         {escalation.map((row) => (
                             <Tr key={row.action}>
                                 <Td>
-                                    <span className="font-bold text-ink block">{row.label}</span>
-                                    <span className="font-mono text-[10px] text-ink/45">{row.action}</span>
+                                    <span className="block font-bold text-ink">
+                                        {row.label}
+                                    </span>
+                                    <span className="font-mono text-[10px] text-ink/45">
+                                        {row.action}
+                                    </span>
                                 </Td>
                                 <Td>
                                     <Badge tone="warning">{row.role}</Badge>
@@ -268,40 +336,23 @@ export default function SupportConsole({
                     </Tbody>
                 </TableShell>
             </Card>
-
-            <ConfirmModal
-                open={resending !== null}
-                title="إعادة إرسال الدعوة"
-                message="سيصل المدعو رابط جديد صالح ٧ أيام، ويزيد عدّاد الإرسال. لا يُنشأ حساب جديد ولا تتغيّر هوية الدعوة."
-                details={
-                    resending && (
-                        <>
-                            <ConfirmRow label="المدعو" value={resending.email} />
-                            <ConfirmRow label="الشركة" value={resending.company?.name ?? '—'} />
-                            <ConfirmRow label="مرات الإرسال السابقة" value={String(resending.send_count)} strong />
-                            <ConfirmRow
-                                label="حدّ الحماية"
-                                value={`${resendLimit.per_minute} رسائل لكل رقم في الدقيقة`}
-                            />
-                        </>
-                    )
-                }
-                confirmLabel="إعادة الإرسال"
-                onConfirm={() => {
-                    router.post(`/admin/support-console/invitations/${resending?.id}/resend`, {}, { preserveScroll: true });
-                    setResending(null);
-                }}
-                onCancel={() => setResending(null)}
-            />
         </AdminLayout>
     );
 }
 
-function ResultBlock({ icon: Icon, title, children }: { icon: typeof Building2; title: string; children: React.ReactNode }) {
+function ResultBlock({
+    icon: Icon,
+    title,
+    children,
+}: {
+    icon: typeof Building2;
+    title: string;
+    children: React.ReactNode;
+}) {
     return (
         <div className="space-y-2">
             <div className="flex items-center gap-1.5">
-                <Icon className="w-3.5 h-3.5 text-ink/60" aria-hidden="true" />
+                <Icon className="h-3.5 w-3.5 text-ink/60" aria-hidden="true" />
                 <h3 className="text-xs font-extrabold text-ink">{title}</h3>
             </div>
             {children}

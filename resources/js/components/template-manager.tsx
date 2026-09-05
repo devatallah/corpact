@@ -26,6 +26,7 @@ import {
     TableShell,
     Tr,
 } from '@/components/portal/ui';
+import TimeSelect from '@/components/time-select';
 import { eventStatus } from '@/lib/status';
 
 /**
@@ -757,16 +758,10 @@ function TemplateForm({
                             error={form.errors.start_time}
                             required
                         >
-                            <input
-                                type="time"
-                                dir="ltr"
-                                className={INPUT}
+                            <TimeSelect
                                 value={form.data.start_time}
-                                onChange={(event) =>
-                                    form.setData(
-                                        'start_time',
-                                        event.target.value,
-                                    )
+                                onChange={(next) =>
+                                    form.setData('start_time', next)
                                 }
                             />
                         </Field>

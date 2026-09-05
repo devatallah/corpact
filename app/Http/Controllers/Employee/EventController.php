@@ -4,15 +4,19 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Employee\StoreEventRequest;
+use App\Models\Community;
 use App\Models\Employee;
 use App\Models\Event;
 use App\Models\EventAlternative;
 use App\Models\EventComment;
+use App\Models\EventTemplate;
 use App\Models\Partner;
 use App\Models\RoleAssignment;
+use App\Models\Venue;
 use App\Models\VenuePricing;
 use App\Services\Attendance\AttendanceService;
 use App\Services\Authorization\AuthorizationService;
+use App\Services\Community\CommunityActor;
 use App\Services\Company\CompanyEventService;
 use App\Services\Competition\ResultService;
 use App\Services\Employee\ChallengeService;
@@ -21,7 +25,10 @@ use App\Services\Employee\EventDetailService;
 use App\Services\Events\EventStateMachine;
 use App\Services\Events\ParticipationService;
 use App\Services\Events\RescheduleService;
+use App\Services\Events\TemplateService;
+use App\Services\Partner\DiscountService;
 use App\Services\Payments\EventRefundService;
+use App\Services\Payments\FundingService;
 use App\Services\Provider\ProviderSuggestionService;
 use App\Support\Competition\MeasurementUnits;
 use App\Support\Notify;
@@ -53,9 +60,20 @@ class EventController extends Controller
         $employee = auth('employee')->user();
 
         $communities = $employee->communities()
-            ->with('category')
+            ->with(['category', 'wallet'])
             ->withCount('members')
-            ->get();
+            ->get()
+            // رصيد محفظة المجتمع يظهر في ملخّص التكلفة: «دعم الشركة» بلا
+            // رصيد يقابله وعدٌ لا يُنفَّذ عند إغلاق التسجيل.
+            ->map(fn ($community) => [
+                'id' => (int) $community->id,
+                'name' => $community->name,
+                'members_count' => (int) $community->members_count,
+                'category_id' => $community->category_id,
+                'category' => $community->category?->only(['id', 'name']),
+                'wallet_balance_halalas' => (int) ($community->wallet?->balance_halalas ?? 0),
+            ])
+            ->values();
 
         $partners = Partner::query()
             ->with(['venues' => function ($q) {
@@ -65,10 +83,24 @@ class EventController extends Controller
             ->orderBy('name')
             ->get();
 
-        // A10 — H §12.1: لا تخفيضات ولا رموز ترويجية — الميزة أُزيلت.
+        /*
+         * افتراضي دعم الشركة (H §12.2) يصل الشاشة كي يُحتسب في الملخّص.
+         *
+         * كان الملخّص يقرأ الحقل المكتوب وحده، فيُعرض «المتبقي على اللاعبين»
+         * كاملاً بينما الخادم يطبّق الافتراضي (نسبة 100 مثلاً) ويجعله صفراً:
+         * رقمٌ معروض يخالف ما سيُطالَب به فعلاً.
+         */
+        $defaults = app(FundingService::class)->defaultSubsidyFor($employee->company_id);
+
+        // A17 — التخفيضات تُجلب حيّة بعد اختيار المجتمع والمزوّد والموعد
+        // (`/employee/create/discounts`)، لا مع الصفحة: انطباقها موقوت.
         return Inertia::render('employee/events/create', [
             'communities' => $communities,
             'partners' => $partners,
+            'subsidyDefault' => [
+                'type' => $defaults['subsidy_type'],
+                'value' => (int) $defaults['subsidy_value'],
+            ],
         ]);
     }
 
@@ -109,12 +141,96 @@ class EventController extends Controller
 
                 return true;
             })
-            // Per venue + duration, keep only the highest price
+            // أعلى سعر لكل (مرفق + مدة): تسعيرتان بنفس المدة والوقت تعنيان
+            // تعريفاً متداخلاً، والأعلى هو الملزِم.
             ->groupBy(fn (VenuePricing $p) => $p->venue_id.'-'.$p->duration_minutes)
-            ->map(fn ($group) => $group->sortByDesc('price')->first())
+            ->map(fn ($group) => $group->sortByDesc('price_halalas')->first())
             ->values();
 
-        return response()->json($pricings);
+        $venueNames = Venue::query()->whereIn('id', $venueIds)->pluck('name', 'id');
+
+        /*
+         * خيار لكل مدة، وفيه سعر كل مرفق على حدة ومجموعها.
+         *
+         * كانت الشاشة تعرض تسعيرة واحدة ويُستنتج سعر بقية المرافق في الخادم
+         * بقاعدة أخرى — فيُعرض رقم ويُحتسب غيره. الخيار الآن يحمل معرّفات
+         * التسعيرات التي عُرضت بالضبط، فما يراه المستعمل هو ما يُحتسب عليه.
+         *
+         * تُستبعد المدة التي لا تغطّي كل المرافق المختارة: مجموع ناقص مرفق
+         * أسوأ من غياب الخيار.
+         */
+        $options = $pricings
+            ->groupBy('duration_minutes')
+            ->filter(fn ($group) => $group->pluck('venue_id')->unique()->count() === count($venueIds))
+            ->map(function ($group, $duration) use ($venueNames) {
+                $lines = $group->map(fn (VenuePricing $p) => [
+                    'venue_id' => (int) $p->venue_id,
+                    'venue_name' => $venueNames[$p->venue_id] ?? '—',
+                    'pricing_id' => (int) $p->id,
+                    'price_halalas' => (int) $p->price_halalas,
+                    'is_peak' => (bool) $p->is_peak,
+                    'label' => $p->label,
+                ])->values();
+
+                return [
+                    'duration_minutes' => (int) $duration,
+                    'total_halalas' => (int) $lines->sum('price_halalas'),
+                    'is_peak' => (bool) $group->first()->is_peak,
+                    'label' => $group->first()->label,
+                    'pricing_ids' => $lines->pluck('pricing_id')->all(),
+                    'venues' => $lines->all(),
+                ];
+            })
+            ->sortBy('duration_minutes')
+            ->values();
+
+        return response()->json(['options' => $options, 'pricings' => $pricings]);
+
+    }
+
+    /**
+     * A17 — التخفيضات المنطبقة على (المجتمع + المزوّد + الموعد).
+     *
+     * تُجلب حيّة لا مع الصفحة: التخفيض له نافذة تاريخ وساعة، ولا تُعرف
+     * انطباقها قبل أن يختار المنشئ الموعد والمزوّد.
+     */
+    public function discounts(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'community_id' => ['required', 'integer', 'exists:communities,id'],
+            'partner_id' => ['required', 'integer', 'exists:partners,id'],
+            'date' => ['required', 'date'],
+            'time' => ['required', 'date_format:H:i'],
+        ]);
+
+        $employee = auth('employee')->user();
+        $community = Community::findOrFail($data['community_id']);
+
+        // نطاق المستأجر قبل أي قراءة — التخفيض اتفاق يخصّ شركةً بعينها.
+        abort_if($employee === null || $employee->company_id !== $community->company_id, 404);
+
+        $discounts = app(DiscountService::class)->applicableFor(
+            $community,
+            Partner::findOrFail($data['partner_id']),
+            $data['date'],
+            $data['time'],
+        );
+
+        return response()->json([
+            'discounts' => $discounts->map(fn ($discount) => [
+                'id' => (int) $discount->id,
+                'name' => $discount->name,
+                'type' => $discount->type,
+                'value' => (float) $discount->value,
+                'value_halalas' => (int) $discount->value_halalas,
+                // الشروط تُعرض قبل الاختيار — نافذة الساعة قيدٌ حقيقي يُقصي
+                // التخفيض عند الإرسال، فإخفاؤه يجعل الرفض مفاجأة.
+                'starts_at' => $discount->starts_at?->toDateString(),
+                'expires_at' => $discount->expires_at?->toDateString(),
+                'start_time' => $discount->start_time,
+                'end_time' => $discount->end_time,
+            ])->values(),
+        ]);
     }
 
     /**
@@ -131,6 +247,31 @@ class EventController extends Controller
         // (فروع + وحدات)؛ الشركاء القدامى بلا فروع خارج الفحص حتى ترحيلهم.
         $suggestionCandidates = $this->guardProviderSelection($data);
 
+        /*
+         * A17 — «التكرار» على هذه الشاشة مدخلٌ لا تخزين. A8 يبقى قائماً:
+         * القالب هو المصدر الوحيد للتكرار، فاختيار غير `none` يُنشئ قالباً
+         * ويولّد ما استحق داخل أفق 14 يوماً — لا فعالية مفردة تُنشأ هنا،
+         * وإلا ازدوج موعد اليوم الأول مرتين.
+         */
+        $recurrence = $data['recurrence'] ?? 'none';
+
+        if ($recurrence !== 'none') {
+            $template = $this->createTemplateFrom($employee, $data, $recurrence);
+
+            if ($suggestionCandidates !== null) {
+                app(ProviderSuggestionService::class)->logSelection(
+                    $template->community,
+                    (int) $data['partner_id'],
+                    $suggestionCandidates,
+                    $data['override_reason'] ?? null,
+                    actorUserId: $employee->user_id,
+                );
+            }
+
+            return redirect("/employee/community/{$template->community_id}/templates")
+                ->with('success', 'أُنشئ قالب التكرار — يولّد فعالياته قبل 14 يوماً من كل موعد.');
+        }
+
         $event = $this->eventCreationService->create($employee, $data);
 
         if ($suggestionCandidates !== null) {
@@ -146,6 +287,52 @@ class EventController extends Controller
 
         return redirect()->route('employee.events.show', $event)
             ->with('success', 'تم إنشاء الفعالية بنجاح.');
+    }
+
+    /**
+     * A17 — ترجمة نموذج «فعالية جديدة» إلى قالب تكرار (A8).
+     *
+     * يوم الأسبوع ويوم الشهر مشتقّان من التاريخ المختار: القائد اختار موعداً
+     * وقال «كرّره»، فلا يُسأل عن اليوم مرة أخرى.
+     *
+     * التخفيض لا ينتقل: القالب لا يحمل عمود تخفيض، واتفاق «مرة واحدة» على
+     * سلسلة بلا نهاية بلا معنى — يُطبَّق على الفعالية المفردة وحدها.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function createTemplateFrom(Employee $employee, array $data, string $recurrence): EventTemplate
+    {
+        $community = Community::findOrFail($data['community_id']);
+
+        abort_if($employee->company_id !== $community->company_id, 404);
+
+        $actor = CommunityActor::forEmployee($employee);
+        abort_if($actor === null, 403, 'تعذر تحديد حسابك.');
+
+        app(AuthorizationService::class)->authorize($actor, 'template.manage', 'community', $community->id);
+
+        $date = Carbon::parse($data['date']);
+        $pricing = VenuePricing::findOrFail($data['venue_pricing_id']);
+
+        return app(TemplateService::class)->create($community, [
+            'partner_id' => $data['partner_id'],
+            'category_id' => $data['category_id'],
+            'venue_pricing_id' => $data['venue_pricing_id'],
+            'venue_ids' => $data['venue_ids'],
+            'recurrence_pattern' => $recurrence,
+            'day_of_week' => $recurrence === 'weekly' ? (int) $date->dayOfWeek : null,
+            'day_of_month' => $recurrence === 'monthly' ? (int) $date->day : null,
+            'starts_from' => $date->toDateString(),
+            'start_time' => $data['time'],
+            'duration_minutes' => (int) $pricing->duration_minutes,
+            'capacity' => (int) $data['capacity'],
+            'min_participants' => (int) ($data['min_participants'] ?? 2),
+            'venues_count' => count($data['venue_ids']),
+            'company_subsidy' => $data['company_subsidy'] ?? null,
+            'notes' => $data['notes'] ?? null,
+            // العطلة تُتخطّى افتراضاً — القالب يديره صاحبه من صفحته بعد ذلك.
+            'blackout_behavior' => 'skip',
+        ], $employee);
     }
 
     /**

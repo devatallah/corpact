@@ -1,13 +1,16 @@
 <?php
 
 use App\Enums\Role;
+use App\Models\AuditLog;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\Department;
+use App\Models\Notification;
 use App\Models\Partner;
 use App\Models\RoleAssignment;
 use App\Models\SettlementStatement;
 use App\Models\User;
+use App\Models\Venue;
 use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
 
@@ -394,3 +397,87 @@ test('an array-shaped sort parameter never 500s a live list', function (string $
     'الفئات' => '/admin/categories',
     'المجتمعات' => '/admin/communities',
 ]);
+
+// ── ثلاثة مُنتقين كانوا يُرسَلون للواجهة بلا تصفية خلفهم ──────────────────
+
+test('the company audit list filters by action group, not just by exact action', function () {
+    $company = Company::factory()->create();
+
+    AuditLog::query()->create([
+        'company_id' => $company->id,
+        'action' => 'financial.topup.approved',
+        'actor_type' => 'system',
+    ]);
+    AuditLog::query()->create([
+        'company_id' => $company->id,
+        'action' => 'permission.granted',
+        'actor_type' => 'system',
+    ]);
+
+    // إنشاء الشركة نفسه يقيّد صفّاً، فالمرجع هنا هو ما تحذفه التصفية لا عدد مطلق.
+    $unfiltered = $this->actingAs($company, 'company')->get('/company/audit')->assertOk();
+    $total = $unfiltered->viewData('page')['props']['logs']['total'];
+
+    expect($total)->toBeGreaterThanOrEqual(2);
+
+    // البادئة هي المجموعة — `financial` تلتقط `financial.topup.approved`
+    // ولا تلتقط `permission.granted`.
+    $this->actingAs($company, 'company')
+        ->get('/company/audit?group=financial')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('logs.total', 1)
+            ->where('logs.data.0.action', 'financial.topup.approved')
+        );
+});
+
+test('the provider venue list filters by the category picker it already rendered', function () {
+    $partner = Partner::factory()->create();
+    $padel = Category::factory()->create();
+    $tennis = Category::factory()->create();
+
+    Venue::factory()->count(2)->create(['partner_id' => $partner->id, 'category_id' => $padel->id]);
+    Venue::factory()->create(['partner_id' => $partner->id, 'category_id' => $tennis->id]);
+
+    $this->actingAs($partner, 'partner')
+        ->get('/partner/venues')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page->has('venues.data', 3));
+
+    $this->actingAs($partner, 'partner')
+        ->get('/partner/venues?category_id='.$tennis->id)
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('venues.data', 1)
+            ->where('venues.data.0.category_id', $tennis->id)
+        );
+});
+
+test('the company notification list narrows to the unread when asked', function () {
+    $company = Company::factory()->create();
+
+    Notification::factory()->count(2)->unread()->create([
+        'notifiable_type' => Company::class,
+        'notifiable_id' => $company->id,
+    ]);
+    Notification::factory()->read()->create([
+        'notifiable_type' => Company::class,
+        'notifiable_id' => $company->id,
+    ]);
+
+    $this->actingAs($company, 'company')
+        ->get('/company/notifications')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page->has('notifications.data', 3));
+
+    // التصفية تضيّق القائمة، لكن بطاقة «الإجمالي» تبقى على الرقم الحقيقي —
+    // وإلا تطابقت مع «غير مقروءة» دائماً وفقدت معناها.
+    $this->actingAs($company, 'company')
+        ->get('/company/notifications?unread_only=1')
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('notifications.data', 2)
+            ->where('unreadCount', 2)
+            ->where('totalCount', 3)
+        );
+});

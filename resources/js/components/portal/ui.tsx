@@ -16,8 +16,23 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 export const CARD = 'bg-surface rounded-2xl border-[0.5px] border-ink/10';
 
-export function Card({ children, className = '', padding = 'p-4' }: { children: ReactNode; className?: string; padding?: string }) {
-    return <div className={`${CARD} ${padding} ${className}`}>{children}</div>;
+export function Card({
+    children,
+    className = '',
+    padding = 'p-4',
+    id,
+}: {
+    children: ReactNode;
+    className?: string;
+    padding?: string;
+    /** مرساة اختيارية — يقصدها رابط من شاشة أخرى فيهبط عند القسم لا فوقه. */
+    id?: string;
+}) {
+    return (
+        <div id={id} className={`${CARD} ${padding} ${className}`}>
+            {children}
+        </div>
+    );
 }
 
 /** The header card every portal screen opens on. */
@@ -36,24 +51,55 @@ export function PageHeader({
     actions?: ReactNode;
 }) {
     return (
-        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${CARD} p-5`}>
+        <div
+            className={`flex flex-col justify-between gap-4 sm:flex-row sm:items-center ${CARD} p-5`}
+        >
             <div className="min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    {Icon && <Icon className="w-5 h-5 text-ink shrink-0" aria-hidden="true" />}
-                    <h1 className="text-xl font-extrabold text-ink">{title}</h1>
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                    {Icon && (
+                        <Icon
+                            className="h-5 w-5 shrink-0 text-ink"
+                            aria-hidden="true"
+                        />
+                    )}
+                    <h1 className="min-w-0 text-lg font-extrabold text-ink sm:text-xl">
+                        {title}
+                    </h1>
                     {badge && (
-                        <span className="px-2.5 py-1 rounded-full bg-ink text-lime text-[11px] font-bold shrink-0">{badge}</span>
+                        <span className="shrink-0 rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold text-lime">
+                            {badge}
+                        </span>
                     )}
                 </div>
-                {subtitle && <p className="text-xs text-ink/60 leading-relaxed">{subtitle}</p>}
+                {subtitle && (
+                    <p className="text-xs leading-relaxed text-ink/60">
+                        {subtitle}
+                    </p>
+                )}
             </div>
-            {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+            {actions && (
+                /*
+                 * `shrink-0` بلا التفاف كان يدفع أزرار الترويسة خارج الشاشة على
+                 * الهاتف، فيتمدّد المستند كله ويظهر شريط تمرير أفقي في كل صفحة
+                 * لها أكثر من زر. الالتفاف على العرض الصغير، وعدم الانكماش من
+                 * `sm` فصاعداً حيث يتّسع السطر أصلاً.
+                 */
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                    {actions}
+                </div>
+            )}
         </div>
     );
 }
 
 /** A titled block inside a card — the prototype's `flex justify-between` row. */
-export function CardTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
+export function CardTitle({
+    children,
+    aside,
+}: {
+    children: ReactNode;
+    aside?: ReactNode;
+}) {
     return (
         <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-extrabold text-ink">{children}</span>
@@ -74,20 +120,40 @@ export function StatCard({
     hint?: string;
     tone?: 'ink' | 'success' | 'warning' | 'danger';
 }) {
-    const tones = { ink: 'text-ink', success: 'text-success', warning: 'text-warning', danger: 'text-danger' };
+    const tones = {
+        ink: 'text-ink',
+        success: 'text-success',
+        warning: 'text-warning',
+        danger: 'text-danger',
+    };
 
     return (
-        <div className={`${CARD} p-4 space-y-1`}>
-            <span className="text-[11px] font-bold text-ink/50 block">{label}</span>
-            <span className={`text-xl font-black font-mono block ${tones[tone]}`}>{value}</span>
-            {hint && <span className="text-[11px] text-ink/45 block">{hint}</span>}
+        <div className={`${CARD} space-y-1 p-4`}>
+            <span className="block text-[11px] font-bold text-ink/50">
+                {label}
+            </span>
+            <span
+                className={`block font-mono text-xl font-black ${tones[tone]}`}
+            >
+                {value}
+            </span>
+            {hint && (
+                <span className="block text-[11px] text-ink/45">{hint}</span>
+            )}
         </div>
     );
 }
 
 /* ── Status ─────────────────────────────────────────────────────────────── */
 
-export type BadgeTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'lead' | 'lime';
+export type BadgeTone =
+    | 'neutral'
+    | 'success'
+    | 'warning'
+    | 'danger'
+    | 'info'
+    | 'lead'
+    | 'lime';
 
 const BADGE_TONES: Record<BadgeTone, string> = {
     neutral: 'bg-ink/5 text-ink/70 border-ink/10',
@@ -99,24 +165,41 @@ const BADGE_TONES: Record<BadgeTone, string> = {
     lime: 'bg-lime/20 text-ink border-lime/40',
 };
 
-export function Badge({ tone = 'neutral', icon: Icon, children }: { tone?: BadgeTone; icon?: LucideIcon; children: ReactNode }) {
+export function Badge({
+    tone = 'neutral',
+    icon: Icon,
+    children,
+}: {
+    tone?: BadgeTone;
+    icon?: LucideIcon;
+    children: ReactNode;
+}) {
     return (
         <span
-            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border-[0.5px] whitespace-nowrap ${BADGE_TONES[tone]}`}
+            className={`inline-flex items-center gap-1 rounded-full border-[0.5px] px-2.5 py-1 text-[11px] font-bold whitespace-nowrap ${BADGE_TONES[tone]}`}
         >
-            {Icon && <Icon className="w-3 h-3 shrink-0" aria-hidden="true" />}
+            {Icon && <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />}
             {children}
         </span>
     );
 }
 
 /** An amount in ريال — always mono, always with the unit. */
-export function Money({ amount, className = '' }: { amount: number | string | null | undefined; className?: string }) {
+export function Money({
+    amount,
+    className = '',
+}: {
+    amount: number | string | null | undefined;
+    className?: string;
+}) {
     const value = Number(amount ?? 0);
 
     return (
         <span className={`font-mono font-bold whitespace-nowrap ${className}`}>
-            {value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+            {value.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            })}{' '}
             <span className="text-[0.85em] font-normal opacity-70">ر.س</span>
         </span>
     );
@@ -143,10 +226,13 @@ export function Note({
     };
 
     return (
-        <div role="note" className={`p-3.5 sm:p-4 rounded-xl border-[0.5px] border-ink/10 border-r-[3px] ${tones[tone]}`}>
+        <div
+            role="note"
+            className={`rounded-xl border-[0.5px] border-r-[3px] border-ink/10 p-3.5 sm:p-4 ${tones[tone]}`}
+        >
             <div className="space-y-1 text-xs leading-relaxed">
                 {title && <h5 className="font-extrabold">{title}</h5>}
-                <div className="text-ink/85 font-medium">{children}</div>
+                <div className="font-medium text-ink/85">{children}</div>
             </div>
         </div>
     );
@@ -166,7 +252,10 @@ const BUTTON_TONES = {
     danger: 'bg-danger-tint text-danger border-[0.5px] border-danger/25 hover:bg-danger/15 rounded-xl',
 } as const;
 
-const BUTTON_SIZES = { sm: 'text-xs px-3.5 py-2', md: 'text-sm px-5 py-2.5' } as const;
+const BUTTON_SIZES = {
+    sm: 'text-xs px-3.5 py-2',
+    md: 'text-sm px-5 py-2.5',
+} as const;
 
 export type ButtonTone = keyof typeof BUTTON_TONES;
 
@@ -177,10 +266,19 @@ export function Button({
     className = '',
     children,
     ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { tone?: ButtonTone; size?: keyof typeof BUTTON_SIZES; icon?: LucideIcon }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+    tone?: ButtonTone;
+    size?: keyof typeof BUTTON_SIZES;
+    icon?: LucideIcon;
+}) {
     return (
-        <button {...rest} className={`${BUTTON_BASE} ${BUTTON_TONES[tone]} ${BUTTON_SIZES[size]} ${className}`}>
-            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />}
+        <button
+            {...rest}
+            className={`${BUTTON_BASE} ${BUTTON_TONES[tone]} ${BUTTON_SIZES[size]} ${className}`}
+        >
+            {Icon && (
+                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            )}
             {children}
         </button>
     );
@@ -203,8 +301,13 @@ export function ButtonLink({
     children: ReactNode;
 }) {
     return (
-        <Link href={href} className={`${BUTTON_BASE} ${BUTTON_TONES[tone]} ${BUTTON_SIZES[size]} ${className}`}>
-            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />}
+        <Link
+            href={href}
+            className={`${BUTTON_BASE} ${BUTTON_TONES[tone]} ${BUTTON_SIZES[size]} ${className}`}
+        >
+            {Icon && (
+                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            )}
             {children}
         </Link>
     );
@@ -216,7 +319,11 @@ export function IconButton({
     label,
     tone = 'soft',
     ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { icon: LucideIcon; label: string; tone?: 'soft' | 'danger' }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+    icon: LucideIcon;
+    label: string;
+    tone?: 'soft' | 'danger';
+}) {
     const tones = {
         soft: 'bg-ink/5 hover:bg-ink/10 text-ink',
         danger: 'bg-danger-tint hover:bg-danger/15 text-danger',
@@ -228,9 +335,9 @@ export function IconButton({
             type="button"
             title={label}
             aria-label={label}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${tones[tone]}`}
+            className={`cursor-pointer rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${tones[tone]}`}
         >
-            <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+            <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
     );
 }
@@ -248,7 +355,9 @@ export function TableShell({ children }: { children: ReactNode }) {
 export function Thead({ children }: { children: ReactNode }) {
     return (
         <thead>
-            <tr className="border-b-[0.5px] border-ink/10 text-ink/60 font-bold bg-ink/[0.02]">{children}</tr>
+            <tr className="border-b-[0.5px] border-ink/10 bg-ink/[0.02] font-bold text-ink/60">
+                {children}
+            </tr>
         </thead>
     );
 }
@@ -257,15 +366,39 @@ export function Tbody({ children }: { children: ReactNode }) {
     return <tbody className="divide-y-[0.5px] divide-ink/10">{children}</tbody>;
 }
 
-export function Tr({ children, className = '' }: { children: ReactNode; className?: string }) {
-    return <tr className={`hover:bg-ink/[0.02] transition-colors ${className}`}>{children}</tr>;
+export function Tr({
+    children,
+    className = '',
+}: {
+    children: ReactNode;
+    className?: string;
+}) {
+    return (
+        <tr className={`transition-colors hover:bg-ink/[0.02] ${className}`}>
+            {children}
+        </tr>
+    );
 }
 
-export function Th({ children, className = '' }: { children?: ReactNode; className?: string }) {
+export function Th({
+    children,
+    className = '',
+}: {
+    children?: ReactNode;
+    className?: string;
+}) {
     return <th className={`p-3 font-bold ${className}`}>{children}</th>;
 }
 
-export function Td({ children, className = '', dir }: { children?: ReactNode; className?: string; dir?: 'ltr' | 'rtl' }) {
+export function Td({
+    children,
+    className = '',
+    dir,
+}: {
+    children?: ReactNode;
+    className?: string;
+    dir?: 'ltr' | 'rtl';
+}) {
     return (
         <td dir={dir} className={`p-3 align-top ${className}`}>
             {children}
@@ -296,12 +429,19 @@ export function Field({
 }) {
     return (
         <div className="space-y-1.5">
-            <label htmlFor={htmlFor} className="text-xs font-extrabold text-ink block">
+            <label
+                htmlFor={htmlFor}
+                className="block text-xs font-extrabold text-ink"
+            >
                 {label} {required && <span className="text-danger">*</span>}
             </label>
             {children}
-            {hint && !error && <p className="text-[11px] text-ink/50">{hint}</p>}
-            {error && <p className="text-[11px] font-bold text-danger">{error}</p>}
+            {hint && !error && (
+                <p className="text-[11px] text-ink/50">{hint}</p>
+            )}
+            {error && (
+                <p className="text-[11px] font-bold text-danger">{error}</p>
+            )}
         </div>
     );
 }
