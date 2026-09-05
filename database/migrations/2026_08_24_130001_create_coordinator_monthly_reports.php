@@ -51,8 +51,16 @@ return new class extends Migration
 
         Schema::create('coordinator_report_recommendations', function (Blueprint $table) {
             $table->id();
+            // اسم القيد صريح: الاسم المولَّد
+            // (`coordinator_report_recommendations_coordinator_monthly_report_id_foreign`)
+            // 72 حرفاً، وحدّ MySQL للمعرّفات 64 — يسقط بـ«Identifier name is
+            // too long». SQLite بلا حدّ، فلم تظهر محلياً. الفهرس الفريد أدناه
+            // مسمّى صراحةً للسبب نفسه.
             $table->foreignId('coordinator_monthly_report_id')
-                ->constrained('coordinator_monthly_reports')
+                ->constrained(
+                    'coordinator_monthly_reports',
+                    indexName: 'coordinator_recommendation_report_fk',
+                )
                 ->cascadeOnDelete();
             $table->foreignId('community_id')->nullable()->constrained()->nullOnDelete();
             $table->string('cause', 40);
