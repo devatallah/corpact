@@ -440,19 +440,21 @@ class EventScenarioSeeder extends Seeder
     private function fundCommunities(): void
     {
         foreach (Community::query()->where('status', 'active')->get() as $community) {
-            $companyWallet = Wallet::query()
-                ->where('owner_type', 'company')
-                ->where('company_id', $community->company_id)
-                ->first();
-
-            $communityWallet = Wallet::query()
-                ->where('owner_type', 'community')
-                ->where('community_id', $community->id)
-                ->first();
-
-            if ($companyWallet === null || $communityWallet === null) {
-                continue;
-            }
+            /*
+             * المحفظة تُعنون بعمودَي التعدّد (`owner_type`/`owner_id`) لا
+             * بعمود `community_id` — وهو غير موجود على الجدول أصلاً.
+             *
+             * الاستعلام القديم كان يسأل عن `community_id` وعن `owner_type`
+             * بقيمة `'company'`/`'community'` بدل اسم الصنف الكامل. وSQLite
+             * يعامل المعرّف المجهول بين علامتي اقتباس مزدوجتين **نصاً** لا
+             * عموداً، فيصير الشرط `'community_id' = 1` أي كاذباً دائماً:
+             * يعود null بلا خطأ، فيقفز `continue`، فلا يُموَّل مجتمع واحد —
+             * بصمت، وفي كل تشغيل محلي. MySQL يرفض العمود المجهول فظهر العطب.
+             *
+             * `mainFor`/`subFor` هما مصدر الحقيقة لعنونة المحافظ.
+             */
+            $companyWallet = Wallet::mainFor($community->company);
+            $communityWallet = Wallet::subFor($community);
 
             $amount = 2_000_00;
 
